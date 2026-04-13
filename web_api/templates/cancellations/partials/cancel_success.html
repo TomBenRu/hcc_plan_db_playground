@@ -1,0 +1,16 @@
+{# HTMX-Partial: Erfolgs-Feedback nach Absage / Rückzug. Kontext: detail (CancellationDetail) #}
+{% set months_de = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"] %}
+<div class="mt-3 bg-green-50 rounded-xl border border-green-100 p-4">
+    {% if detail.status.value == "pending" %}
+    <p class="text-sm font-semibold text-green-700 mb-1">Absage eingereicht</p>
+    <p class="text-xs text-slate-500">
+        Termin am {{ detail.event_date.day }}. {{ months_de[detail.event_date.month - 1] }} {{ detail.event_date.year }}
+        abgesagt. Dispatcher und {{ detail.notification_recipients | length }} Personen wurden benachrichtigt.
+    </p>
+    {% else %}
+    <p class="text-sm font-semibold text-green-700 mb-1">Absage zurückgezogen</p>
+    <p class="text-xs text-slate-500">
+        Der Termin gilt wieder als verbindlich.
+    </p>
+    {% endif %}
+</div>

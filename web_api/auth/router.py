@@ -227,11 +227,13 @@ def refresh(
     return {"access_token": access, "token_type": "bearer"}
 
 
-@router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
-def logout(response: Response, _: CurrentUser):
-    """Löscht Auth-Cookies (Client-seitige Token-Invalidierung)."""
+@router.post("/logout")
+def logout(_: CurrentUser):
+    """Löscht Auth-Cookies und leitet zur Login-Seite weiter."""
+    response = RedirectResponse(url="/auth/login", status_code=status.HTTP_303_SEE_OTHER)
     response.delete_cookie(_ACCESS_COOKIE)
     response.delete_cookie(_REFRESH_COOKIE, path="/auth/refresh")
+    return response
 
 
 @router.get("/me")

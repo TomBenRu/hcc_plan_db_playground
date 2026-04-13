@@ -1,0 +1,79 @@
+{# Partial: Einzelner Inbox-Eintrag. Kontext: item (InboxItem) #}
+{% set months_de = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"] %}
+
+{% set type_config = {
+    "cancellation_new":       {"label": "Termin abgesagt",       "color": "#EF4444", "icon": "M6 18L18 6M6 6l12 12"},
+    "cancellation_withdrawn": {"label": "Absage zurückgezogen",  "color": "#F97316", "icon": "M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"},
+    "cancellation_resolved":  {"label": "Absage gelöst",         "color": "#22C55E", "icon": "M5 13l4 4L19 7"},
+} %}
+{% set cfg = type_config.get(item.type.value, {"label": item.type.value, "color": "#94A3B8", "icon": "M13 16h-1v-4h-1m1-4h.01"}) %}
+
+<div id="inbox-item-{{ item.id }}"
+     class="group bg-white rounded-xl border transition-all duration-200
+            {% if not item.is_read %}border-slate-200 shadow-sm hover:shadow-md{% else %}border-slate-100 hover:border-slate-200 hover:shadow-sm{% endif %}
+            overflow-hidden flex">
+
+    {# ── Farbstreifen links (ungelesen) #}
+    <div class="w-1 flex-shrink-0 transition-colors duration-200"
+         style="background-color: {% if not item.is_read %}{{ cfg.color }}{% else %}transparent{% endif %};"></div>
+
+    <div class="flex-1 min-w-0 p-4 flex items-start gap-3">
+
+        {# ── Typ-Icon ─────────────────────────────────────────────────────── #}
+        <div class="flex-shrink-0 w-9 h-9 rounded-lg flex items-center justify-center"
+             style="background-color: {{ cfg.color }}18;">
+            <svg class="w-4 h-4" fill="none" stroke="{{ cfg.color }}" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="{{ cfg.icon }}"/>
+            </svg>
+        </div>
+
+        {# ── Text ─────────────────────────────────────────────────────────── #}
+        <div class="flex-1 min-w-0">
+            <div class="flex items-start justify-between gap-2 mb-0.5">
+                <p class="text-xs font-semibold uppercase tracking-widest" style="color: {{ cfg.color }};">
+                    {{ cfg.label }}
+                </p>
+                {% if item.created_at %}
+                <p class="text-[11px] text-slate-400 flex-shrink-0 whitespace-nowrap">
+                    {{ item.created_at.day }}. {{ months_de[item.created_at.month - 1] }}
+                </p>
+                {% endif %}
+            </div>
+
+            {% if item.snapshot_data %}
+            <p class="text-sm font-medium text-slate-800 truncate">
+                {% if item.snapshot_data.get("employee_name") %}{{ item.snapshot_data.get("employee_name") }} · {% endif %}{{ item.snapshot_data.get("location_name", "") }}
+            </p>
+            {% if item.snapshot_data.get("event_date") %}
+            <p class="text-xs text-slate-400 mt-0.5">{{ item.snapshot_data.get("event_date") }}</p>
+            {% endif %}
+            {% endif %}
+        </div>
+
+        {# ── Aktionen ─────────────────────────────────────────────────────── #}
+        <div class="flex-shrink-0 flex items-center gap-2">
+            {% if item.reference_id %}
+            <a href="/cancellations/{{ item.reference_id }}"
+               class="text-[11px] font-medium text-slate-400 hover:text-navy transition-colors whitespace-nowrap">
+                Details
+            </a>
+            {% endif %}
+            {% if not item.is_read %}
+            <button
+                hx-patch="/inbox/{{ item.id }}/read"
+                hx-target="#inbox-item-{{ item.id }}"
+                hx-swap="none"
+                onclick="
+                    var el = this.closest('#inbox-item-{{ item.id }}');
+                    el.querySelector('[style*=color]')?.setAttribute('style','background-color:transparent;');
+                    el.querySelector('.w-1')?.setAttribute('style','background-color:transparent;');
+                    this.remove();
+                "
+                class="text-[11px] font-medium px-2.5 py-1 rounded-lg border border-slate-200 text-slate-500
+                       hover:border-slate-300 hover:text-slate-700 transition-colors whitespace-nowrap">
+                Gelesen
+            </button>
+            {% endif %}
+        </div>
+    </div>
+</div>

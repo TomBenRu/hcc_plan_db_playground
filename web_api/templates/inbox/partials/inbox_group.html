@@ -1,0 +1,142 @@
+{# Partial: Gruppe von Inbox-Nachrichten zu einem Termin. Kontext: group (InboxGroup) #}
+{% set months_de = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"] %}
+
+{% set type_config = {
+    "cancellation_new":       {"label": "Termin abgesagt",       "color": "#EF4444"},
+    "cancellation_withdrawn": {"label": "Absage zurückgezogen",  "color": "#F97316"},
+    "cancellation_resolved":  {"label": "Absage gelöst",         "color": "#22C55E"},
+} %}
+
+{# Farbe der prominentesten (neuesten/ungelesenen) Nachricht bestimmen #}
+{% set first_cfg = type_config.get(group.messages[0].type.value, {"label": group.messages[0].type.value, "color": "#94A3B8"}) %}
+
+<details {% if group.has_unread %}open{% endif %}
+         class="group/details bg-white dark:bg-slate-800 rounded-xl border overflow-hidden
+                {% if group.has_unread %}border-slate-200 dark:border-slate-700 shadow-sm{% else %}border-slate-100 dark:border-slate-700/50{% endif %}">
+
+    {# ── Gruppen-Header ────────────────────────────────────────────────────── #}
+    <summary class="flex items-stretch cursor-pointer list-none select-none
+                    hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors duration-150">
+
+        {# Farbstreifen links #}
+        <div class="w-1 flex-shrink-0 transition-colors duration-200"
+             style="background-color: {% if group.has_unread %}{{ first_cfg.color }}{% else %}transparent{% endif %};"></div>
+
+        <div class="flex-1 min-w-0 p-4 flex items-center gap-3">
+
+            {# Ort + Datum #}
+            <div class="flex-1 min-w-0">
+                {% if group.employee_name %}
+                <p class="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">{{ group.employee_name }}</p>
+                {% endif %}
+                <p class="text-sm {% if group.employee_name %}text-slate-500 dark:text-slate-400{% else %}font-medium text-slate-800 dark:text-slate-100{% endif %} truncate">
+                    {{ group.location_name }}
+                </p>
+                {% if group.event_date %}
+                <p class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{{ group.event_date }}</p>
+                {% endif %}
+            </div>
+
+            {# Nachrichten-Anzahl + Ungelesen-Indikator #}
+            <div class="flex items-center gap-2 flex-shrink-0">
+                {% if group.has_unread %}
+                <span class="w-2 h-2 rounded-full bg-brand flex-shrink-0"></span>
+                {% endif %}
+                <span class="text-[11px] text-slate-400 font-sans">
+                    {{ group.messages | length }}
+                    {{ "Nachricht" if group.messages | length == 1 else "Nachrichten" }}
+                </span>
+                {# Chevron – dreht sich via CSS group-open #}
+                <svg class="w-4 h-4 text-slate-300 transition-transform duration-200 group-open/details:rotate-180"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                </svg>
+            </div>
+
+            {# Link zu Absage-Detail #}
+            {% if group.reference_id %}
+            <a href="/cancellations/{{ group.reference_id }}"
+               onclick="event.stopPropagation();"
+               class="flex-shrink-0 text-[11px] font-medium text-slate-400 hover:text-navy transition-colors whitespace-nowrap">
+                Details
+            </a>
+            {% endif %}
+
+        </div>
+    </summary>
+
+    {# ── Nachrichten-Liste ─────────────────────────────────────────────────── #}
+    <div class="border-t border-slate-100 dark:border-slate-700/50 divide-y divide-slate-50 dark:divide-slate-700/30">
+        {% for item in group.messages %}
+        {% set cfg = type_config.get(item.type.value, {"label": item.type.value, "color": "#94A3B8"}) %}
+
+        <div id="inbox-item-{{ item.id }}"
+             class="flex items-center gap-3 px-5 py-3
+                    {% if not item.is_read %}bg-white dark:bg-slate-800{% else %}bg-slate-50/50 dark:bg-slate-900/40{% endif %}">
+
+            {# Typ-Icon #}
+            <div class="flex-shrink-0 w-7 h-7 rounded-md flex items-center justify-center"
+                 style="background-color: {{ cfg.color }}18;">
+                {% if item.type.value == "cancellation_new" %}
+                <svg class="w-3.5 h-3.5" fill="none" stroke="{{ cfg.color }}" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+                {% elif item.type.value == "cancellation_withdrawn" %}
+                <svg class="w-3.5 h-3.5" fill="none" stroke="{{ cfg.color }}" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>
+                </svg>
+                {% elif item.type.value == "cancellation_resolved" %}
+                <svg class="w-3.5 h-3.5" fill="none" stroke="{{ cfg.color }}" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                </svg>
+                {% else %}
+                <svg class="w-3.5 h-3.5" fill="none" stroke="{{ cfg.color }}" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M13 16h-1v-4h-1m1-4h.01"/>
+                </svg>
+                {% endif %}
+            </div>
+
+            {# Label + Datum #}
+            <div class="flex-1 min-w-0">
+                <p class="text-xs font-semibold" style="color: {{ cfg.color }};">{{ cfg.label }}</p>
+            </div>
+
+            {# Datum + Gelesen-Button #}
+            <div class="flex items-center gap-3 flex-shrink-0">
+                {% if item.created_at %}
+                <p class="text-[11px] text-slate-400 whitespace-nowrap">
+                    {{ item.created_at.day }}. {{ months_de[item.created_at.month - 1] }}
+                </p>
+                {% endif %}
+                {% if not item.is_read %}
+                <button
+                    hx-patch="/inbox/{{ item.id }}/read"
+                    hx-target="this"
+                    hx-swap="none"
+                    hx-on::after-request="
+                        var el = document.getElementById('inbox-item-{{ item.id }}');
+                        if (el) {
+                            el.classList.remove('bg-white', 'dark:bg-slate-800');
+                            el.classList.add('bg-slate-50/50', 'dark:bg-slate-900/40');
+                        }
+                        this.remove();
+                        var details = el && el.closest('details');
+                        if (details && !details.querySelectorAll('button[hx-patch]').length) {
+                            var dot = details.querySelector('summary span.bg-brand');
+                            if (dot) dot.remove();
+                            var stripe = details.querySelector('.w-1');
+                            if (stripe) stripe.style.backgroundColor = 'transparent';
+                        }
+                    "
+                    class="text-[11px] font-medium px-2 py-0.5 rounded-md border border-slate-200 text-slate-500
+                           hover:border-slate-300 hover:text-slate-700 transition-colors whitespace-nowrap">
+                    Gelesen
+                </button>
+                {% endif %}
+            </div>
+
+        </div>
+        {% endfor %}
+    </div>
+
+</details>

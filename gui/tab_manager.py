@@ -21,6 +21,7 @@ from gui.cache.performance_monitor import performance_monitor
 from gui.custom_widgets.progress_bars import GlobalUpdatePlanTabsProgressManager
 from gui.custom_widgets.tabbars import TabBar
 from gui.observer import signal_handling
+from gui.widget_styles.plan_table import tab_text_color_of_binding_plans
 from tools.actions import MenuToolbarAction
 from tools.helper_functions import date_to_string
 
@@ -895,7 +896,7 @@ class TabManager(QObject):
         """Setzt ★-Präfix und grüne Textfarbe für verbindliche Plan-Tabs."""
         prefix = '★ ' if is_binding else ''
         self.tabs_plans.setTabText(tab_index, f'{prefix}{plan_name}')
-        color = QColor('#2e7d32') if is_binding else QColor()
+        color = QColor(tab_text_color_of_binding_plans) if is_binding else QColor()
         self.tabs_plans.tabBar().setTabTextColor(tab_index, color)
 
     # === KONTEXTMENÜ ===

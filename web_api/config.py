@@ -20,6 +20,14 @@ class Settings(BaseSettings):
     DEBUG: bool = False
     APP_TITLE: str = "hcc_plan Web-API"
 
+    # E-Mail
+    EMAIL_BACKEND: str = "console"  # "smtp" | "console"
+    SMTP_HOST: str = "localhost"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    EMAIL_FROM: str = "noreply@hccplan.local"
+
 
 def get_settings() -> Settings:
     """Factory — kann in Tests via dependency_overrides ersetzt werden."""

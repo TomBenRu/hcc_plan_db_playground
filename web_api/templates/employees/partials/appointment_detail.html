@@ -123,8 +123,28 @@
     </div>
     {% endif %}
 
+    <!-- Absage-Button (nur bei verbindlichen Terminen ohne offene Absage) -->
+    {% if event.is_binding %}
+    <div class="mt-auto pt-2 pb-1">
+        {% if event.has_pending_cancellation %}
+        <div class="w-full py-2 rounded-xl text-sm font-medium border border-amber-200 text-amber-600 bg-amber-50 text-center">
+            Absage bereits gestellt
+        </div>
+        {% else %}
+        <button
+            hx-get="/cancellations/form/{{ event.appointment_id }}"
+            hx-target="#cancel-form-container"
+            hx-swap="innerHTML"
+            class="w-full py-2 rounded-xl text-sm font-medium border border-rose-200 text-rose-500 hover:bg-rose-50 transition-colors">
+            Termin absagen
+        </button>
+        {% endif %}
+        <div id="cancel-form-container"></div>
+    </div>
+    {% else %}
     <!-- Spacer -->
     <div class="mt-auto pt-2 pb-1"></div>
+    {% endif %}
 </div>
 
 <script>

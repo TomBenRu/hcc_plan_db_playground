@@ -9,6 +9,7 @@ appointment_field_marked = "background-color: #054C00;"
 label_day_num_marked_bg = '#b7833f'
 label_day_num_marked_fg = '#2b2b2b'
 label_day_num_marked = "background-color: #b7833f; color: #2b2b2b"
+tab_text_color_of_binding_plans = '#52c953'
 
 horizontal_header_statistics_color = QColor('#00212f')
 horizontal_header_statistics_color_guest = QColor('#262626')

@@ -27,6 +27,7 @@ from database.models import (
     PlanPeriod,
     TimeOfDay,
 )
+from web_api.models.web_models import CancellationRequest, CancellationStatus
 
 # ── Farb-Palette für Einsatzorte ──────────────────────────────────────────────
 _LOCATION_COLORS = [
@@ -63,6 +64,8 @@ class CalendarEvent:
     plan_period_id: uuid.UUID
     period_start: date
     period_end: date
+    is_binding: bool = True
+    has_pending_cancellation: bool = False
 
 
 @dataclass
@@ -158,6 +161,18 @@ def get_appointments_for_person(
 
     rows = session.execute(stmt).mappings().all()
 
+    # Batch-Query: welche Appointments haben eine offene Absage?
+    appointment_ids = [row["appointment_id"] for row in rows]
+    pending_cancellation_ids: set[uuid.UUID] = set()
+    if appointment_ids:
+        pending_cancellation_ids = set(
+            session.execute(
+                sa_select(CancellationRequest.appointment_id)
+                .where(CancellationRequest.appointment_id.in_(appointment_ids))
+                .where(CancellationRequest.status == CancellationStatus.pending)
+            ).scalars().all()
+        )
+
     return [
         CalendarEvent(
             appointment_id=row["appointment_id"],
@@ -172,6 +187,7 @@ def get_appointments_for_person(
             plan_period_id=row["plan_period_id"],
             period_start=row["period_start"],
             period_end=row["period_end"],
+            has_pending_cancellation=row["appointment_id"] in pending_cancellation_ids,
         )
         for row in rows
     ]

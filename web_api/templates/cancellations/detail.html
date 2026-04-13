@@ -1,0 +1,99 @@
+{% extends "base.html" %}
+{% block title %}Absage-Detail – hcc plan{% endblock %}
+
+{% block nav %}{% include "partials/nav.html" %}{% endblock %}
+
+{% block content %}
+{% set months_de = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"] %}
+{% set status_styles = {
+    "pending":   "bg-amber-50 text-amber-700 ring-amber-200",
+    "withdrawn": "bg-slate-50 text-slate-500 ring-slate-200",
+    "resolved":  "bg-green-50 text-green-700 ring-green-200",
+} %}
+{% set status_labels = {
+    "pending":   "Offen",
+    "withdrawn": "Zurückgezogen",
+    "resolved":  "Gelöst",
+} %}
+
+<div class="max-w-2xl mx-auto px-4 py-8 animate-fade-up">
+    <div class="flex items-center gap-3 mb-6">
+        <a href="/cancellations" class="text-slate-400 hover:text-slate-600 transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </a>
+        <h1 class="font-display text-xl font-semibold text-slate-800 dark:text-white">Absage-Detail</h1>
+        <span class="ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 {{ status_styles.get(detail.status.value, '') }}">
+            {{ status_labels.get(detail.status.value, detail.status.value) }}
+        </span>
+    </div>
+
+    <div class="space-y-3">
+        <!-- Termin-Info -->
+        <div class="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
+            <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-2">Termin</p>
+            <p class="text-sm font-semibold text-slate-800">{{ detail.location_name }}</p>
+            <p class="text-sm text-slate-600">
+                {{ detail.event_date.day }}. {{ months_de[detail.event_date.month - 1] }} {{ detail.event_date.year }}
+                {% if detail.time_of_day_name %} · {{ detail.time_of_day_name }}{% endif %}
+            </p>
+            {% if detail.time_start or detail.time_end %}
+            <p class="text-xs text-slate-400 mt-0.5">
+                {% if detail.time_start %}{{ detail.time_start.strftime("%H:%M") }}{% endif %}
+                {% if detail.time_start and detail.time_end %} – {% endif %}
+                {% if detail.time_end %}{{ detail.time_end.strftime("%H:%M") }} Uhr{% endif %}
+            </p>
+            {% endif %}
+        </div>
+
+        <!-- Mitarbeiter -->
+        <div class="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
+            <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-1">Mitarbeiter</p>
+            <p class="text-sm text-slate-700">{{ detail.employee_name }}</p>
+        </div>
+
+        <!-- Begründung -->
+        {% if detail.reason %}
+        <div class="bg-amber-50 rounded-xl border border-amber-100 p-4">
+            <p class="text-xs font-semibold tracking-widest uppercase text-amber-500 mb-1">Begründung</p>
+            <p class="text-sm text-slate-600 italic">{{ detail.reason }}</p>
+        </div>
+        {% endif %}
+
+        <!-- Benachrichtigungs-Kreis -->
+        {% if detail.notification_recipients %}
+        <div class="bg-white rounded-xl border border-slate-100 shadow-sm p-4">
+            <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-3">
+                Benachrichtigungs-Kreis
+                <span class="ml-1 text-slate-300 font-normal normal-case tracking-normal">({{ detail.notification_recipients | length }})</span>
+            </p>
+            <ul class="space-y-2">
+                {% for rec in detail.notification_recipients %}
+                <li class="flex items-center justify-between">
+                    <span class="text-sm text-slate-700">{{ rec.person_name }}</span>
+                    <span class="text-[10px] text-slate-400">{{ rec.source.value.replace("_", " ") }}</span>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Aktionen -->
+        {% if detail.status.value == "pending" and detail.appointment_id %}
+        <div class="pt-2">
+            <form action="/cancellations/{{ detail.id }}/withdraw" method="post"
+                  hx-patch="/cancellations/{{ detail.id }}/withdraw"
+                  hx-target="#withdraw-result"
+                  hx-swap="outerHTML">
+                <button type="submit"
+                        class="w-full py-2.5 rounded-xl text-sm font-medium border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
+                    Absage zurückziehen
+                </button>
+            </form>
+            <div id="withdraw-result"></div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

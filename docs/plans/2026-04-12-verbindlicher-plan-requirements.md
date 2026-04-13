@@ -265,6 +265,7 @@ Keine weiteren Tabellen betroffen.
 
 ## 9. Verifikation (End-to-End)
 
+- Test-User: hanna@test.de, Test1234!
 1. Plan A und Plan B für dieselbe Planperiode anlegen und solver laufen lassen
 2. Plan A als verbindlich markieren → Mitarbeiter-Kalender und Availability-Kalender
    zeigen nur Appointments aus Plan A

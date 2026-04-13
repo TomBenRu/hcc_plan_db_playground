@@ -6,13 +6,16 @@ from fastapi.responses import RedirectResponse
 from sqlmodel import Session, text
 
 from web_api.auth.router import router as auth_router
+from web_api.cancellations.router import router as cancellations_router
 from web_api.config import get_settings
 from web_api.dashboard.router import router as dashboard_router
 from web_api.dependencies import get_db_session
 from web_api.availability.router import router as availability_router
 from web_api.employees.router import router as employees_router
 from web_api.exceptions import LoginRequired
+from web_api.inbox.router import router as inbox_router
 from web_api.scheduler.setup import create_scheduler
+from web_api.settings.router import router as settings_router
 
 scheduler = None
 
@@ -37,6 +40,9 @@ app.include_router(auth_router)
 app.include_router(dashboard_router)
 app.include_router(employees_router)
 app.include_router(availability_router)
+app.include_router(cancellations_router)
+app.include_router(inbox_router)
+app.include_router(settings_router)
 
 
 @app.exception_handler(LoginRequired)

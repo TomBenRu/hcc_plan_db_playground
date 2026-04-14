@@ -77,7 +77,7 @@
     "":                       "Alle",
     "cancellation_new":       "Neue Absagen",
     "cancellation_withdrawn": "Zurückgezogen",
-    "cancellation_resolved":  "Gelöst",
+    "resolved":               "Gelöst",
 } %}
 
 <div class="h-[calc(100vh-56px)] flex flex-col overflow-hidden">
@@ -153,15 +153,48 @@
             </a>
 
             {# Gelöst #}
-            <a href="?type_filter=cancellation_resolved{% if unread_only %}&unread_only=true{% endif %}"
+            <a href="?type_filter=resolved{% if unread_only %}&unread_only=true{% endif %}"
                class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
                       border-transparent text-sm font-sans text-slate-400
-                      {% if type_filter == 'cancellation_resolved' %}active{% endif %}">
+                      {% if type_filter == 'resolved' %}active{% endif %}">
                 <span class="w-2 h-2 rounded-full flex-shrink-0 bg-green-400"></span>
                 Gelöst
             </a>
 
         </div>
+
+        {# ── Rollen-Filter (nur wenn Nutzer mehrere Rollen hat) ──────────── #}
+        {% if show_role_filter %}
+        <div class="mt-1 mb-4">
+            <div class="border-t border-white/5 mb-4"></div>
+            <p class="hidden lg:block text-xs font-semibold tracking-widest uppercase text-slate-500 mb-2 font-sans">
+                Rolle
+            </p>
+            <div class="flex flex-col gap-1.5">
+                <a href="?{% if type_filter %}type_filter={{ type_filter }}&{% endif %}{% if unread_only %}unread_only=true&{% endif %}"
+                   class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                          border-transparent text-sm font-sans text-slate-400
+                          {% if not role_filter %}active{% endif %}">
+                    <span class="w-2 h-2 rounded-full flex-shrink-0 bg-slate-500"></span>
+                    Alle Rollen
+                </a>
+                <a href="?{% if type_filter %}type_filter={{ type_filter }}&{% endif %}{% if unread_only %}unread_only=true&{% endif %}role_filter=employee"
+                   class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                          border-transparent text-sm font-sans text-slate-400
+                          {% if role_filter == 'employee' %}active{% endif %}">
+                    <span class="w-2 h-2 rounded-full flex-shrink-0 bg-sky-400"></span>
+                    Mitarbeiter
+                </a>
+                <a href="?{% if type_filter %}type_filter={{ type_filter }}&{% endif %}{% if unread_only %}unread_only=true&{% endif %}role_filter=dispatcher"
+                   class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                          border-transparent text-sm font-sans text-slate-400
+                          {% if role_filter == 'dispatcher' %}active{% endif %}">
+                    <span class="w-2 h-2 rounded-full flex-shrink-0 bg-amber-400"></span>
+                    Dispatcher
+                </a>
+            </div>
+        </div>
+        {% endif %}
 
         {# ── Ungelesen-Toggle ────────────────────────────────────────────── #}
         <div class="mt-1 mb-6">

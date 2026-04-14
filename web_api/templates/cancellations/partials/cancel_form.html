@@ -17,7 +17,9 @@
                 Absagen
             </button>
             <button type="button"
-                    onclick="document.getElementById('cancel-form').remove()"
+                    hx-get="/cancellations/cancel-button/{{ appointment_id }}"
+                    hx-target="#cancellation-action-area"
+                    hx-swap="innerHTML"
                     class="px-4 py-2 rounded-lg text-sm font-medium border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors">
                 Abbrechen
             </button>

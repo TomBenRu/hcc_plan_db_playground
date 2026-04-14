@@ -8,7 +8,7 @@
 } %}
 {% set scfg = status_config.get(c.status.value, {"label": c.status.value, "color": "#94A3B8", "badge": ""}) %}
 
-<a href="/cancellations/{{ c.id }}"
+<a href="/cancellations/{{ c.id }}{{ card_detail_suffix | default('') }}"
    class="group block bg-white rounded-xl border border-slate-100 shadow-sm
           hover:shadow-md hover:border-slate-200 transition-all duration-200 overflow-hidden flex">
 
@@ -46,11 +46,17 @@
                 {% endif %}
             </div>
 
-            {# ── Status-Badge + Pfeil ──────────────────────────────────────── #}
+            {# ── Status-Badge + Angebote + Pfeil ──────────────────────────── #}
             <div class="flex flex-col items-end gap-2 flex-shrink-0">
                 <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 {{ scfg.badge }}">
                     {{ scfg.label }}
                 </span>
+                {% if c.offer_count > 0 %}
+                <span class="text-[10px] font-semibold px-2 py-0.5 rounded-full
+                             bg-violet-50 text-violet-700 ring-1 ring-violet-200">
+                    {{ c.offer_count }} {{ "Angebot" if c.offer_count == 1 else "Angebote" }}
+                </span>
+                {% endif %}
                 <svg class="w-4 h-4 text-slate-300 group-hover:text-slate-500 transition-colors mt-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                 </svg>

@@ -2,9 +2,15 @@
 {% set months_de = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"] %}
 
 {% set type_config = {
-    "cancellation_new":       {"label": "Termin abgesagt",       "color": "#EF4444"},
-    "cancellation_withdrawn": {"label": "Absage zurückgezogen",  "color": "#F97316"},
-    "cancellation_resolved":  {"label": "Absage gelöst",         "color": "#22C55E"},
+    "cancellation_new":          {"label": "Termin abgesagt",            "color": "#EF4444"},
+    "cancellation_withdrawn":    {"label": "Absage zurückgezogen",       "color": "#F97316"},
+    "cancellation_resolved":     {"label": "Absage gelöst",              "color": "#22C55E"},
+    "takeover_offer_received":   {"label": "Übernahme-Angebot",          "color": "#8B5CF6"},
+    "takeover_accepted":         {"label": "Übernahme akzeptiert",       "color": "#22C55E"},
+    "swap_request_received":     {"label": "Tausch-Anfrage",             "color": "#3B82F6"},
+    "swap_accepted_by_target":   {"label": "Tausch angenommen",          "color": "#22C55E"},
+    "swap_confirmed":            {"label": "Tausch bestätigt",           "color": "#22C55E"},
+    "swap_rejected":             {"label": "Tausch abgelehnt",           "color": "#94A3B8"},
 } %}
 
 {# Farbe der prominentesten (neuesten/ungelesenen) Nachricht bestimmen #}
@@ -53,8 +59,24 @@
                 </svg>
             </div>
 
-            {# Link zu Absage-Detail #}
-            {% if group.reference_id %}
+            {# Link zu Absage-Detail / Übernahme-CTA #}
+            {% if group.reference_id and group.reference_type == "cancellation_request" %}
+              {% if can_offer_takeover and group.cancellation_open and group.requester_web_user_id != user.id %}
+              <a href="/cancellations/{{ group.reference_id }}"
+                 onclick="event.stopPropagation();"
+                 class="flex-shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-lg
+                        bg-orange-50 text-orange-600 border border-orange-200
+                        hover:bg-orange-100 transition-colors whitespace-nowrap">
+                  Übernahme anbieten
+              </a>
+              {% else %}
+              <a href="/cancellations/{{ group.reference_id }}"
+                 onclick="event.stopPropagation();"
+                 class="flex-shrink-0 text-[11px] font-medium text-slate-400 hover:text-navy transition-colors whitespace-nowrap">
+                  Details
+              </a>
+              {% endif %}
+            {% elif group.reference_id %}
             <a href="/cancellations/{{ group.reference_id }}"
                onclick="event.stopPropagation();"
                class="flex-shrink-0 text-[11px] font-medium text-slate-400 hover:text-navy transition-colors whitespace-nowrap">

@@ -18,7 +18,7 @@
 
 <div class="max-w-2xl mx-auto px-4 py-8 animate-fade-up">
     <div class="flex items-center gap-3 mb-6">
-        <a href="/cancellations" class="text-slate-400 hover:text-slate-600 transition-colors">
+        <a href="{{ back_url }}" class="text-slate-400 hover:text-slate-600 transition-colors">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
             </svg>
@@ -79,19 +79,87 @@
         </div>
         {% endif %}
 
+        <!-- Übernahme-Angebote (Phase 2) -->
+        {% if detail.takeover_offers %}
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm p-4">
+            <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-3">
+                Übernahme-Angebote
+                <span class="ml-1 text-slate-300 dark:text-slate-500 font-normal normal-case tracking-normal">({{ detail.takeover_offers | length }})</span>
+            </p>
+            <ul class="space-y-3">
+                {% for offer in detail.takeover_offers %}
+                <li class="flex items-start justify-between gap-3">
+                    <div>
+                        <p class="text-sm font-medium text-slate-800 dark:text-slate-100">{{ offer.offerer_name }}</p>
+                        {% if offer.message %}
+                        <p class="text-xs text-slate-500 dark:text-slate-400 italic mt-0.5">&bdquo;{{ offer.message }}&ldquo;</p>
+                        {% endif %}
+                    </div>
+                    <div class="flex items-center gap-2 flex-shrink-0">
+                        {% if offer.status.value == "pending" %}
+                        <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:ring-amber-700/50">Offen</span>
+                        {% elif offer.status.value == "accepted" %}
+                        <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 bg-green-50 text-green-700 ring-green-200 dark:bg-green-900/30 dark:text-green-400 dark:ring-green-700/50">Akzeptiert</span>
+                        {% elif offer.status.value == "rejected" %}
+                        <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 bg-slate-50 text-slate-500 ring-slate-200 dark:bg-slate-700/30 dark:text-slate-400 dark:ring-slate-600/50">Abgelehnt</span>
+                        {% endif %}
+                        {% if is_dispatcher and offer.status.value == "pending" and detail.status.value == "pending" %}
+                        <form hx-post="/cancellations/{{ detail.id }}/takeover-offers/{{ offer.id }}/accept"
+                              hx-target="closest .space-y-3"
+                              hx-swap="outerHTML">
+                            <button type="submit"
+                                    class="text-xs font-medium px-3 py-1 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors">
+                                Akzeptieren
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </li>
+                {% endfor %}
+            </ul>
+        </div>
+        {% endif %}
+
+        <!-- Übernahme anbieten (Mitarbeiter im Kreis) -->
+        {% set ns = namespace(user_in_circle=false, user_has_offer=false) %}
+        {% for rec in detail.notification_recipients %}
+          {% if rec.web_user_id == user.id %}{% set ns.user_in_circle = true %}{% endif %}
+        {% endfor %}
+        {% for offer in detail.takeover_offers %}
+          {% if offer.offerer_web_user_id == user.id and offer.status.value in ("pending", "accepted") %}
+            {% set ns.user_has_offer = true %}
+          {% endif %}
+        {% endfor %}
+        {% if detail.status.value == "pending" and ns.user_in_circle and not is_own and can_offer_takeover and not ns.user_has_offer %}
+        <div id="takeover-offer-section"
+             class="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm p-4">
+            <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-3">Termin übernehmen</p>
+            <form hx-post="/cancellations/{{ detail.id }}/takeover-offers"
+                  hx-target="#takeover-offer-section"
+                  hx-swap="outerHTML">
+                <textarea name="message"
+                          placeholder="Optionale Nachricht…"
+                          rows="2"
+                          class="w-full text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 placeholder-slate-400 px-3 py-2 mb-2 resize-none focus:outline-none focus:ring-2 focus:ring-brand/50"></textarea>
+                <button type="submit"
+                        class="w-full py-2.5 rounded-xl text-sm font-medium bg-brand text-white hover:opacity-90 transition-opacity">
+                    Übernahme anbieten
+                </button>
+            </form>
+        </div>
+        {% endif %}
+
         <!-- Aktionen -->
-        {% if detail.status.value == "pending" and detail.appointment_id %}
-        <div class="pt-2">
-            <form action="/cancellations/{{ detail.id }}/withdraw" method="post"
-                  hx-patch="/cancellations/{{ detail.id }}/withdraw"
-                  hx-target="#withdraw-result"
+        {% if detail.status.value == "pending" and detail.appointment_id and is_own %}
+        <div id="withdraw-section" class="pt-2">
+            <form hx-patch="/cancellations/{{ detail.id }}/withdraw"
+                  hx-target="#withdraw-section"
                   hx-swap="outerHTML">
                 <button type="submit"
-                        class="w-full py-2.5 rounded-xl text-sm font-medium border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors">
+                        class="w-full py-2.5 rounded-xl text-sm font-medium border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
                     Absage zurückziehen
                 </button>
             </form>
-            <div id="withdraw-result"></div>
         </div>
         {% endif %}
     </div>

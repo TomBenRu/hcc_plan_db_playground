@@ -34,10 +34,17 @@ from web_api.models.web_models import (
     InboxMessageType,
     LocationNotificationCircle,
     NotificationSource,
+    TakeoverOffer,
+    TakeoverOfferStatus,
     WebUser,
 )
 from web_api.settings.service import get_effective_deadline
 from web_api.templating import templates
+
+# Lazy import to avoid circular dependency
+def _get_takeover_summaries(session, cancellation_id):
+    from web_api.cancellations.takeover_service import get_takeover_offers_for_cancellation
+    return get_takeover_offers_for_cancellation(session, cancellation_id)
 
 
 # ── Datenklassen ──────────────────────────────────────────────────────────────
@@ -66,6 +73,8 @@ class CancellationDetail:
     created_at: datetime
     plan_period_id: uuid.UUID
     notification_recipients: list[NotificationRecipient]
+    takeover_offers: list = field(default_factory=list)
+    requester_web_user_id: uuid.UUID | None = None
 
 
 @dataclass
@@ -79,6 +88,7 @@ class CancellationSummary:
     status: CancellationStatus
     created_at: datetime
     recipient_count: int
+    offer_count: int = 0
 
 
 # ── Hilfsfunktionen ───────────────────────────────────────────────────────────
@@ -185,7 +195,7 @@ def _notify_recipients(
             msg_type=msg_type,
             reference_id=cr_id,
             reference_type="cancellation_request",
-            snapshot_data=snapshot,
+            snapshot_data={**snapshot, "sent_as": "employee"},
         )
 
     if dispatcher_user and dispatcher_user.id not in notify_ids:
@@ -196,7 +206,7 @@ def _notify_recipients(
             msg_type=msg_type,
             reference_id=cr_id,
             reference_type="cancellation_request",
-            snapshot_data=snapshot,
+            snapshot_data={**snapshot, "sent_as": "dispatcher"},
         )
 
     return emails, notify_ids
@@ -261,9 +271,22 @@ def compute_notification_circle(
     auto_computed: dict[uuid.UUID, NotificationRecipient] = {}
 
     if candidates_rows:
-        candidate_app_ids = [r["app_id"] for r in candidates_rows]
+        # Alle PersonIDs der Kandidaten sammeln
+        all_person_ids = list({r["person_id"] for r in candidates_rows})
 
-        # Binding-Appointments am Termin-Datum pro ActorPlanPeriod
+        # Alle ActorPlanPeriod-IDs dieser Personen über ALLE Planperioden laden
+        # (Multi-Team-Mitglieder haben je eine ActorPlanPeriod pro Team)
+        all_app_meta = session.execute(
+            sa_select(ActorPlanPeriod.id, ActorPlanPeriod.person_id)
+            .where(ActorPlanPeriod.person_id.in_(all_person_ids))
+        ).mappings().all()
+
+        app_id_to_person: dict[uuid.UUID, uuid.UUID] = {
+            r["id"]: r["person_id"] for r in all_app_meta
+        }
+        all_app_ids = list(app_id_to_person.keys())
+
+        # Binding-Appointments am Termin-Datum über alle Planperioden
         existing_apps_rows = session.execute(
             sa_select(
                 AvailDay.actor_plan_period_id,
@@ -279,22 +302,29 @@ def compute_notification_circle(
             .join(LocationPlanPeriod, LocationPlanPeriod.id == Event.location_plan_period_id)
             .join(LocationOfWork, LocationOfWork.id == LocationPlanPeriod.location_of_work_id)
             .join(Plan, Plan.id == Appointment.plan_id)
-            .where(AvailDay.actor_plan_period_id.in_(candidate_app_ids))
+            .where(AvailDay.actor_plan_period_id.in_(all_app_ids))
             .where(Event.date == event_date)
             .where(Plan.is_binding.is_(True))
             .where(Plan.prep_delete.is_(None))
             .where(Appointment.prep_delete.is_(None))
         ).mappings().all()
 
-        existing_by_app: dict[uuid.UUID, list[dict]] = {}
+        # Bestehende Appointments nach person_id gruppieren
+        existing_by_person: dict[uuid.UUID, list[dict]] = {}
         for row in existing_apps_rows:
-            existing_by_app.setdefault(row["actor_plan_period_id"], []).append(dict(row))
+            person_id = app_id_to_person[row["actor_plan_period_id"]]
+            existing_by_person.setdefault(person_id, []).append(dict(row))
 
-        # CombLoc-Daten für Kandidaten mit bestehenden Appointments
-        combloc_candidates = [a for a in candidate_app_ids if a in existing_by_app]
-        combloc_data: dict[uuid.UUID, list[dict]] = {}
+        # CombLoc-Daten für alle ActorPlanPeriods von Personen mit bestehenden Appointments
+        persons_with_existing = set(existing_by_person.keys())
+        combloc_app_ids = [
+            app_id
+            for app_id, person_id in app_id_to_person.items()
+            if person_id in persons_with_existing
+        ]
+        combloc_data_by_app: dict[uuid.UUID, list[dict]] = {}
 
-        if combloc_candidates:
+        if combloc_app_ids:
             clp_rows = session.execute(
                 sa_select(
                     ActorPlanPeriodCombLocLink.actor_plan_period_id,
@@ -306,7 +336,7 @@ def compute_notification_circle(
                     CombinationLocationsPossible.id
                     == ActorPlanPeriodCombLocLink.combination_locations_possible_id,
                 )
-                .where(ActorPlanPeriodCombLocLink.actor_plan_period_id.in_(combloc_candidates))
+                .where(ActorPlanPeriodCombLocLink.actor_plan_period_id.in_(combloc_app_ids))
                 .where(CombinationLocationsPossible.prep_delete.is_(None))
             ).mappings().all()
 
@@ -328,17 +358,24 @@ def compute_notification_circle(
                     ).add(lr["location_of_work_id"])
 
             for r in clp_rows:
-                combloc_data.setdefault(r["actor_plan_period_id"], []).append({
+                combloc_data_by_app.setdefault(r["actor_plan_period_id"], []).append({
                     "clp_id": r["clp_id"],
                     "time_span_between": r["time_span_between"],
                     "locations": loc_by_clp.get(r["clp_id"], set()),
                 })
 
+        # CombLoc-Daten nach person_id zusammenführen (alle Teams)
+        person_to_combloc: dict[uuid.UUID, list[dict]] = {}
+        for app_id, clp_list in combloc_data_by_app.items():
+            person_id = app_id_to_person[app_id]
+            person_to_combloc.setdefault(person_id, []).extend(clp_list)
+
         for cand in candidates_rows:
-            app_id = cand["app_id"]
+            person_id = cand["person_id"]
             web_user_id = cand["web_user_id"]
 
-            if app_id not in existing_by_app:
+            if person_id not in existing_by_person:
+                # Kein Einsatz an diesem Tag → aufnehmen
                 auto_computed[web_user_id] = NotificationRecipient(
                     web_user_id=web_user_id,
                     email=cand["email"],
@@ -347,16 +384,17 @@ def compute_notification_circle(
                 )
                 continue
 
-            if app_id not in combloc_data:
+            # Bestehende Einsätze vorhanden → CombLoc prüfen (über alle Teams)
+            if person_id not in person_to_combloc:
                 continue
 
-            for existing_app in existing_by_app[app_id]:
+            for existing_app in existing_by_person[person_id]:
                 existing_loc = existing_app["loc_id"]
                 existing_start: time = existing_app["tod_start"]
                 existing_end: time = existing_app["tod_end"]
                 eligible = False
 
-                for clp in combloc_data[app_id]:
+                for clp in person_to_combloc[person_id]:
                     locs = clp["locations"]
                     if location_id not in locs or existing_loc not in locs:
                         continue
@@ -539,7 +577,7 @@ def withdraw_cancellation(
                 msg_type=InboxMessageType.cancellation_withdrawn,
                 reference_id=cr.id,
                 reference_type="cancellation_request",
-                snapshot_data=snapshot,
+                snapshot_data={**snapshot, "sent_as": "employee"},
             )
         p = session.get(Person, ru.person_id) if ru and ru.person_id else None
         recipients_dc.append(NotificationRecipient(
@@ -558,7 +596,7 @@ def withdraw_cancellation(
             msg_type=InboxMessageType.cancellation_withdrawn,
             reference_id=cr.id,
             reference_type="cancellation_request",
-            snapshot_data=snapshot,
+            snapshot_data={**snapshot, "sent_as": "dispatcher"},
         )
 
     email_payloads: list[EmailPayload] = []
@@ -630,6 +668,58 @@ def get_my_cancellations(
     ]
 
 
+def get_circle_cancellations(
+    session: Session,
+    web_user_id: uuid.UUID,
+    status_filter: str | None = None,
+) -> list[CancellationSummary]:
+    """Absagen, in deren Benachrichtigungskreis der User ist (nicht eigene)."""
+    stmt = (
+        sa_select(
+            CancellationRequest.id,
+            CancellationRequest.reason,
+            CancellationRequest.status,
+            CancellationRequest.created_at,
+            Event.date.label("event_date"),
+            LocationOfWork.name.label("location_name"),
+            TimeOfDay.name.label("time_of_day_name"),
+            Person.f_name,
+            Person.l_name,
+        )
+        .select_from(CancellationNotificationRecipient)
+        .join(CancellationRequest,
+              CancellationRequest.id == CancellationNotificationRecipient.cancellation_request_id)
+        .join(Appointment, Appointment.id == CancellationRequest.appointment_id)
+        .join(Event, Event.id == Appointment.event_id)
+        .join(LocationPlanPeriod, LocationPlanPeriod.id == Event.location_plan_period_id)
+        .join(LocationOfWork, LocationOfWork.id == LocationPlanPeriod.location_of_work_id)
+        .join(TimeOfDay, TimeOfDay.id == Event.time_of_day_id)
+        .join(WebUser, WebUser.id == CancellationRequest.web_user_id)
+        .join(Person, Person.id == WebUser.person_id)
+        .where(CancellationNotificationRecipient.web_user_id == web_user_id)
+        .where(CancellationRequest.web_user_id != web_user_id)
+        .order_by(Event.date.asc())
+    )
+    if status_filter:
+        stmt = stmt.where(CancellationRequest.status == status_filter)
+
+    rows = session.execute(stmt).mappings().all()
+    return [
+        CancellationSummary(
+            id=r["id"],
+            employee_name=f"{r['f_name']} {r['l_name']}",
+            location_name=r["location_name"],
+            event_date=r["event_date"],
+            time_of_day_name=r["time_of_day_name"],
+            reason=r["reason"],
+            status=r["status"],
+            created_at=r["created_at"],
+            recipient_count=0,
+        )
+        for r in rows
+    ]
+
+
 def get_cancellations_for_dispatcher(
     session: Session,
     web_user: WebUser,
@@ -674,6 +764,23 @@ def get_cancellations_for_dispatcher(
         stmt = stmt.where(CancellationRequest.status == status_filter)
 
     rows = session.execute(stmt).mappings().all()
+
+    # Batch-Query: offene Übernahme-Angebote pro Absage
+    cancellation_ids = [r["id"] for r in rows]
+    offer_counts: dict[uuid.UUID, int] = {}
+    if cancellation_ids:
+        from sqlalchemy import func
+        offer_rows = session.execute(
+            sa_select(
+                TakeoverOffer.cancellation_request_id,
+                func.count(TakeoverOffer.id).label("cnt"),
+            )
+            .where(TakeoverOffer.cancellation_request_id.in_(cancellation_ids))
+            .where(TakeoverOffer.status == TakeoverOfferStatus.pending)
+            .group_by(TakeoverOffer.cancellation_request_id)
+        ).mappings().all()
+        offer_counts = {r["cancellation_request_id"]: r["cnt"] for r in offer_rows}
+
     return [
         CancellationSummary(
             id=r["id"],
@@ -685,6 +792,7 @@ def get_cancellations_for_dispatcher(
             status=r["status"],
             created_at=r["created_at"],
             recipient_count=0,
+            offer_count=offer_counts.get(r["id"], 0),
         )
         for r in rows
     ]
@@ -701,8 +809,13 @@ def get_cancellation_detail(
     is_dispatcher = web_user.person_id and session.execute(
         sa_select(Team.id).where(Team.dispatcher_id == web_user.person_id)
     ).first() is not None
+    is_in_circle = session.execute(
+        sa_select(CancellationNotificationRecipient.id)
+        .where(CancellationNotificationRecipient.cancellation_request_id == cr.id)
+        .where(CancellationNotificationRecipient.web_user_id == web_user.id)
+    ).first() is not None
 
-    if not is_own and not is_dispatcher:
+    if not is_own and not is_dispatcher and not is_in_circle:
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Kein Zugriff.")
 
     ctx = _load_appointment_context(session, cr.appointment_id)
@@ -735,6 +848,8 @@ def get_cancellation_detail(
             source=rec.source,
         ))
 
+    takeover_offers = _get_takeover_summaries(session, cancellation_id)
+
     return CancellationDetail(
         id=cr.id,
         appointment_id=cr.appointment_id,
@@ -749,4 +864,6 @@ def get_cancellation_detail(
         created_at=cr.created_at,
         plan_period_id=ctx["plan_period_id"],
         notification_recipients=recipients_dc,
+        takeover_offers=takeover_offers,
+        requester_web_user_id=cr.web_user_id,
     )

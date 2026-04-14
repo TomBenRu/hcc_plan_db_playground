@@ -244,8 +244,11 @@ def get_coworkers_for_appointment(
         .join(ActorPlanPeriod,
               ActorPlanPeriod.id == AvailDay.actor_plan_period_id)
         .join(Person, Person.id == ActorPlanPeriod.person_id)
+        .join(Plan, Plan.id == Appointment.plan_id)
         .where(Appointment.event_id == event_id_subq)
         .where(Appointment.prep_delete.is_(None))
+        .where(Plan.is_binding.is_(True))
+        .where(Plan.prep_delete.is_(None))
         .distinct()
         .order_by(Person.l_name, Person.f_name)
     )

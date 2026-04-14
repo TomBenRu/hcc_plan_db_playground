@@ -1,0 +1,14 @@
+{# HTMX-Partial: "Termin absagen"-Button bzw. "Absage bereits gestellt"-Badge #}
+{% if has_pending %}
+<div class="w-full py-2 rounded-xl text-sm font-medium border border-amber-200 text-amber-600 bg-amber-50 text-center">
+    Absage bereits gestellt
+</div>
+{% else %}
+<button
+    hx-get="/cancellations/form/{{ appointment_id }}"
+    hx-target="#cancellation-action-area"
+    hx-swap="innerHTML"
+    class="w-full py-2 rounded-xl text-sm font-medium border border-rose-200 text-rose-500 hover:bg-rose-50 transition-colors">
+    Termin absagen
+</button>
+{% endif %}

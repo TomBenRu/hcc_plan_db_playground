@@ -168,6 +168,7 @@ class CancellationRequest(SQLModel, table=True):
     notification_recipients: list["CancellationNotificationRecipient"] = Relationship(
         back_populates="cancellation_request"
     )
+    takeover_offers: list["TakeoverOffer"] = Relationship()
 
 
 class CancellationNotificationRecipient(SQLModel, table=True):
@@ -190,6 +191,68 @@ class CancellationNotificationRecipient(SQLModel, table=True):
     cancellation_request: CancellationRequest = Relationship(
         back_populates="notification_recipients"
     )
+
+
+# ── Phase 2: Übernahme-Angebote + Tausch-Anfragen ────────────────────────────
+
+
+class TakeoverOfferStatus(str, enum.Enum):
+    pending = "pending"
+    accepted = "accepted"
+    rejected = "rejected"
+
+
+class SwapRequestStatus(str, enum.Enum):
+    pending = "pending"
+    accepted_by_target = "accepted_by_target"
+    rejected_by_target = "rejected_by_target"
+    confirmed_by_dispatcher = "confirmed_by_dispatcher"
+    rejected_by_dispatcher = "rejected_by_dispatcher"
+    withdrawn = "withdrawn"
+
+
+class TakeoverOffer(SQLModel, table=True):
+    __tablename__ = "takeover_offer"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    cancellation_request_id: uuid.UUID = Field(
+        foreign_key="cancellation_request.id", ondelete="CASCADE"
+    )
+    web_user_id: uuid.UUID = Field(foreign_key="web_user.id", ondelete="CASCADE")
+    message: Optional[str] = Field(default=None)
+    status: TakeoverOfferStatus = Field(
+        sa_column=Column(
+            SAEnum(TakeoverOfferStatus, name="takeoverofferstatus"),
+            nullable=False,
+        )
+    )
+    created_at: datetime = Field(default_factory=_utcnow)
+
+
+class SwapRequest(SQLModel, table=True):
+    __tablename__ = "swap_request"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    requester_web_user_id: uuid.UUID = Field(
+        foreign_key="web_user.id", ondelete="CASCADE"
+    )
+    requester_appointment_id: uuid.UUID = Field(
+        foreign_key="appointment.id", ondelete="CASCADE"
+    )
+    target_web_user_id: uuid.UUID = Field(
+        foreign_key="web_user.id", ondelete="CASCADE"
+    )
+    target_appointment_id: uuid.UUID = Field(
+        foreign_key="appointment.id", ondelete="CASCADE"
+    )
+    message: Optional[str] = Field(default=None)
+    status: SwapRequestStatus = Field(
+        sa_column=Column(
+            SAEnum(SwapRequestStatus, name="swaprequeststatus"),
+            nullable=False,
+        )
+    )
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 class InboxMessage(SQLModel, table=True):

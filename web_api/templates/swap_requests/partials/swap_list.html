@@ -1,0 +1,136 @@
+{% set status_labels = {
+    "pending":                 "Ausstehend",
+    "accepted_by_target":      "Zugestimmt",
+    "rejected_by_target":      "Abgelehnt",
+    "confirmed_by_dispatcher": "Bestätigt",
+    "rejected_by_dispatcher":  "Abgelehnt (Dispatcher)",
+    "withdrawn":               "Zurückgezogen",
+} %}
+{% set status_colors = {
+    "pending":                 "#f59e0b",
+    "accepted_by_target":      "#3b82f6",
+    "rejected_by_target":      "#94a3b8",
+    "confirmed_by_dispatcher": "#22c55e",
+    "rejected_by_dispatcher":  "#ef4444",
+    "withdrawn":               "#94a3b8",
+} %}
+{% set status_badge_styles = {
+    "pending":                 "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:ring-amber-700/50",
+    "accepted_by_target":      "bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:ring-blue-700/50",
+    "rejected_by_target":      "bg-slate-50 text-slate-500 ring-slate-200 dark:bg-slate-700/30 dark:text-slate-400 dark:ring-slate-600/50",
+    "confirmed_by_dispatcher": "bg-green-50 text-green-700 ring-green-200 dark:bg-green-900/30 dark:text-green-400 dark:ring-green-700/50",
+    "rejected_by_dispatcher":  "bg-red-50 text-red-700 ring-red-200 dark:bg-red-900/30 dark:text-red-400 dark:ring-red-700/50",
+    "withdrawn":               "bg-slate-50 text-slate-500 ring-slate-200 dark:bg-slate-700/30 dark:text-slate-400 dark:ring-slate-600/50",
+} %}
+
+{% if not swaps %}
+<div class="text-center py-16 text-slate-400 dark:text-slate-500" id="swap-list">
+  <p class="text-sm">Keine Tausch-Anfragen vorhanden.</p>
+</div>
+{% else %}
+<div class="space-y-3" id="swap-list">
+  {% for swap in swaps %}
+  <div class="anim bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm
+               hover:shadow-md hover:border-slate-200 dark:hover:border-slate-600 transition-all duration-200 overflow-hidden flex"
+       style="animation-delay: {{ loop.index0 * 0.05 }}s;">
+
+    <!-- Status-Streifen -->
+    <div class="w-1 flex-shrink-0" style="background-color: {{ status_colors.get(swap.status.value, '#94a3b8') }};"></div>
+
+    <div class="flex-1 p-4">
+      <div class="flex items-start justify-between gap-3">
+        <div class="flex-1">
+          <!-- Tauschpartner -->
+          <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
+            {{ swap.requester_name }} ↔ {{ swap.target_name }}
+          </p>
+
+          <!-- Termine -->
+          <div class="flex gap-4 mt-1.5">
+            <div>
+              <p class="text-xs text-slate-400 dark:text-slate-500">Angeboten</p>
+              <p class="text-xs text-slate-600 dark:text-slate-300">{{ swap.requester_location }}</p>
+              <p class="text-xs text-slate-400 dark:text-slate-500">{{ swap.requester_event_date }}</p>
+            </div>
+            <div>
+              <p class="text-xs text-slate-400 dark:text-slate-500">Gewünscht</p>
+              <p class="text-xs text-slate-600 dark:text-slate-300">{{ swap.target_location }}</p>
+              <p class="text-xs text-slate-400 dark:text-slate-500">{{ swap.target_event_date }}</p>
+            </div>
+          </div>
+
+          {% if swap.message %}
+          <p class="text-xs text-slate-400 dark:text-slate-500 italic mt-1.5">&bdquo;{{ swap.message }}&ldquo;</p>
+          {% endif %}
+        </div>
+
+        <!-- Status-Badge -->
+        <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 flex-shrink-0
+                     {{ status_badge_styles.get(swap.status.value, '') }}">
+          {{ status_labels.get(swap.status.value, swap.status.value) }}
+        </span>
+      </div>
+
+      <!-- Aktions-Buttons -->
+      {% set is_requester = swap.requester_web_user_id == user.id %}
+      {% set is_target = swap.target_web_user_id == user.id %}
+
+      {% if swap.status.value == "pending" %}
+        {% if is_target %}
+        <div class="flex gap-2 mt-3">
+          <form hx-post="/swap-requests/{{ swap.id }}/accept"
+                hx-target="#swap-list"
+                hx-swap="outerHTML">
+            <button type="submit"
+                    class="text-xs font-medium px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors">
+              Akzeptieren
+            </button>
+          </form>
+          <form hx-post="/swap-requests/{{ swap.id }}/reject"
+                hx-target="#swap-list"
+                hx-swap="outerHTML">
+            <button type="submit"
+                    class="text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+              Ablehnen
+            </button>
+          </form>
+        </div>
+        {% elif is_requester %}
+        <form hx-post="/swap-requests/{{ swap.id }}/withdraw"
+              hx-target="#swap-list"
+              hx-swap="outerHTML"
+              class="mt-3">
+          <button type="submit"
+                  class="text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            Zurückziehen
+          </button>
+        </form>
+        {% endif %}
+      {% elif swap.status.value == "accepted_by_target" %}
+        {% if is_dispatcher %}
+        <form hx-post="/swap-requests/{{ swap.id }}/confirm"
+              hx-target="#swap-list"
+              hx-swap="outerHTML"
+              class="mt-3">
+          <button type="submit"
+                  class="text-xs font-medium px-3 py-1.5 rounded-lg bg-brand text-white hover:opacity-90 transition-opacity">
+            Tausch bestätigen
+          </button>
+        </form>
+        {% elif is_requester %}
+        <form hx-post="/swap-requests/{{ swap.id }}/withdraw"
+              hx-target="#swap-list"
+              hx-swap="outerHTML"
+              class="mt-3">
+          <button type="submit"
+                  class="text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+            Zurückziehen
+          </button>
+        </form>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}

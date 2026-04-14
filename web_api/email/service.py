@@ -17,6 +17,20 @@ class EmailPayload:
     cc: list[str] = field(default_factory=list)
 
 
+def send_emails_background(payloads: list[EmailPayload], settings) -> None:
+    """Hilfsfunktion für BackgroundTasks: sendet mehrere E-Mail-Payloads nacheinander."""
+    for payload in payloads:
+        send_email(
+            payload,
+            backend=settings.EMAIL_BACKEND,
+            smtp_host=settings.SMTP_HOST,
+            smtp_port=settings.SMTP_PORT,
+            smtp_user=settings.SMTP_USER,
+            smtp_password=settings.SMTP_PASSWORD,
+            email_from=settings.EMAIL_FROM,
+        )
+
+
 def send_email(payload: EmailPayload, *, backend: str, smtp_host: str, smtp_port: int,
                smtp_user: str, smtp_password: str, email_from: str) -> None:
     """Versendet eine E-Mail. Für BackgroundTasks konzipiert (keine Session nötig).

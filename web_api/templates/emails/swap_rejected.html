@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="de">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tausch-Anfrage abgelehnt</title>
+<style>
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #f8fafc; margin: 0; padding: 24px; color: #334155; }
+  .card { background: white; border-radius: 12px; max-width: 540px; margin: 0 auto; padding: 32px; border: 1px solid #e2e8f0; }
+  .badge { display: inline-block; background: #fee2e2; color: #b91c1c; border-radius: 999px; padding: 2px 10px; font-size: 11px; font-weight: 600; }
+  .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; margin-top: 16px; margin-bottom: 4px; }
+  .value { font-size: 14px; color: #1e293b; }
+  .footer { margin-top: 24px; font-size: 11px; color: #94a3b8; text-align: center; }
+  h1 { font-size: 18px; font-weight: 700; color: #0f172a; margin: 0 0 4px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <p style="margin:0 0 16px"><span class="badge">Tausch abgelehnt</span></p>
+  <h1>{{ snapshot.target_name }} hat die Tausch-Anfrage abgelehnt</h1>
+  <p style="font-size:13px; color:#64748b; margin:4px 0 20px;">Diese E-Mail wurde automatisch versendet.</p>
+
+  <div class="label">Angebotener Termin</div>
+  <div class="value">{{ snapshot.requester_location }}</div>
+  <div class="value" style="color:#64748b; font-size:12px; margin-top:2px;">{{ snapshot.requester_event_date }}</div>
+
+  <div class="label">Gewünschter Termin</div>
+  <div class="value">{{ snapshot.target_location }}</div>
+  <div class="value" style="color:#64748b; font-size:12px; margin-top:2px;">{{ snapshot.target_event_date }}</div>
+
+  <div class="footer">hcc plan · Diese Nachricht wurde automatisch generiert.</div>
+</div>
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="de">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Übernahme-Angebot eingegangen</title>
+<style>
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #f8fafc; margin: 0; padding: 24px; color: #334155; }
+  .card { background: white; border-radius: 12px; max-width: 540px; margin: 0 auto; padding: 32px; border: 1px solid #e2e8f0; }
+  .badge { display: inline-block; background: #dbeafe; color: #1d4ed8; border-radius: 999px; padding: 2px 10px; font-size: 11px; font-weight: 600; }
+  .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; margin-top: 16px; margin-bottom: 4px; }
+  .value { font-size: 14px; color: #1e293b; }
+  .footer { margin-top: 24px; font-size: 11px; color: #94a3b8; text-align: center; }
+  h1 { font-size: 18px; font-weight: 700; color: #0f172a; margin: 0 0 4px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <p style="margin:0 0 16px"><span class="badge">Übernahme-Angebot</span></p>
+  <h1>{{ offerer_name }} möchte einen Termin übernehmen</h1>
+  <p style="font-size:13px; color:#64748b; margin:4px 0 20px;">Diese E-Mail wurde automatisch versendet.</p>
+
+  <div class="label">Einsatzort</div>
+  <div class="value">{{ snapshot.location_name }}</div>
+
+  <div class="label">Datum</div>
+  <div class="value">{{ snapshot.event_date }}{% if snapshot.time_of_day_name %} · {{ snapshot.time_of_day_name }}{% endif %}</div>
+
+  {% if snapshot.time_start %}
+  <div class="label">Uhrzeit</div>
+  <div class="value">{{ snapshot.time_start[:5] }}{% if snapshot.time_end %} – {{ snapshot.time_end[:5] }} Uhr{% endif %}</div>
+  {% endif %}
+
+  {% if message %}
+  <div class="label">Nachricht</div>
+  <div class="value" style="font-style:italic;">&bdquo;{{ message }}&ldquo;</div>
+  {% endif %}
+
+  <div class="footer">hcc plan · Diese Nachricht wurde automatisch generiert.</div>
+</div>
+</body>
+</html>

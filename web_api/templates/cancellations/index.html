@@ -201,7 +201,7 @@
                 {% endif %}
             </div>
 
-            {# ── Liste ───────────────────────────────────────────────────── #}
+            {# ── Eigene Absagen ───────────────────────────────────────────── #}
             {% if cancellations %}
             <div class="space-y-2 anim" style="animation-delay: 0.1s;">
                 {% for c in cancellations %}
@@ -210,7 +210,7 @@
             </div>
 
             {% else %}
-            <div class="anim flex flex-col items-center justify-center py-24 text-slate-400"
+            <div class="anim flex flex-col items-center justify-center py-16 text-slate-400"
                  style="animation-delay: 0.1s;">
                 <div class="w-14 h-14 rounded-2xl bg-white border border-slate-100 shadow-sm
                             flex items-center justify-center mb-4">
@@ -223,6 +223,25 @@
                 <p class="text-xs mt-1 text-slate-400">
                     {% if status_filter %}Kein Eintrag mit diesem Status gefunden.{% else %}Noch keine Absagen vorhanden.{% endif %}
                 </p>
+            </div>
+            {% endif %}
+
+            {# ── Übernahme möglich: Kreis-Absagen (nur für Mitarbeiter) ──── #}
+            {% if circle_cancellations is defined and circle_cancellations %}
+            <div class="mt-10 anim" style="animation-delay: 0.15s;">
+                <h2 class="font-display text-lg font-semibold text-slate-800 dark:text-white mb-1">
+                    Übernahme möglich
+                </h2>
+                <p class="text-xs text-slate-400 mb-4 font-sans">
+                    Absagen in Ihrem Benachrichtigungskreis – Sie können einen Termin übernehmen.
+                </p>
+                <div class="space-y-2">
+                    {% set is_dispatcher = true %}
+                    {% for c in circle_cancellations %}
+                    {% include "cancellations/partials/cancellation_card.html" %}
+                    {% endfor %}
+                    {% set is_dispatcher = false %}
+                </div>
             </div>
             {% endif %}
 

@@ -142,6 +142,7 @@ def get_detail(
             "is_dispatcher": user.has_any_role(WebUserRole.dispatcher, WebUserRole.admin),
             "can_offer_takeover": user.has_any_role(WebUserRole.employee) and not from_dispatcher,
             "back_url": "/dispatcher/cancellations" if from_dispatcher else "/cancellations",
+            "from_dispatcher": from_dispatcher,
             "is_own": detail.requester_web_user_id == user.id,
         },
     )

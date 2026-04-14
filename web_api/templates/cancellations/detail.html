@@ -150,7 +150,7 @@
         {% endif %}
 
         <!-- Aktionen -->
-        {% if detail.status.value == "pending" and detail.appointment_id and is_own %}
+        {% if detail.status.value == "pending" and detail.appointment_id and is_own and not from_dispatcher %}
         <div id="withdraw-section" class="pt-2">
             <form hx-patch="/cancellations/{{ detail.id }}/withdraw"
                   hx-target="#withdraw-section"

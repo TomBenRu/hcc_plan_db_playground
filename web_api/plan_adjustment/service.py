@@ -11,6 +11,7 @@ from database.models import (
     Appointment,
     AvailDay,
     AvailDayAppointmentLink,
+    CastGroup,
     Event,
     Plan,
 )
@@ -45,12 +46,13 @@ def reassign_appointment(
         session.delete(old_link)
         session.flush()
 
-    # 2. Appointment-Kontext laden (Event-Datum + TimeOfDay)
+    # 2. Appointment-Kontext laden (Event-Datum + TimeOfDay + CastGroup)
     appt_row = session.execute(
         sa_select(
             Appointment.plan_id,
             Event.date.label("event_date"),
             Event.time_of_day_id,
+            Event.cast_group_id,
             Plan.plan_period_id,
         )
         .select_from(Appointment)
@@ -65,6 +67,7 @@ def reassign_appointment(
     plan_period_id: uuid.UUID = appt_row["plan_period_id"]
     event_date = appt_row["event_date"]
     time_of_day_id: uuid.UUID = appt_row["time_of_day_id"]
+    cast_group_id: uuid.UUID = appt_row["cast_group_id"]
 
     # 3. ActorPlanPeriod des new_person in derselben PlanPeriod finden
     new_app = session.execute(
@@ -91,6 +94,14 @@ def reassign_appointment(
     )
     session.add(new_link)
     session.flush()
+
+    # 6. fixed_cast der CastGroup löschen — manuelle Zuweisung überschreibt den Constraint;
+    #    andernfalls meldet validate_plan einen Fehler, weil die neue Person nicht im
+    #    fixed_cast-Ausdruck enthalten ist.
+    cast_group = session.get(CastGroup, cast_group_id)
+    if cast_group is not None and cast_group.fixed_cast is not None:
+        cast_group.fixed_cast = None
+        session.flush()
 
 
 def swap_appointments(

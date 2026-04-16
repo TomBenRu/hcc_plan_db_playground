@@ -22,115 +22,82 @@
     "rejected_by_dispatcher":  "bg-red-50 text-red-700 ring-red-200 dark:bg-red-900/30 dark:text-red-400 dark:ring-red-700/50",
     "withdrawn":               "bg-slate-50 text-slate-500 ring-slate-200 dark:bg-slate-700/30 dark:text-slate-400 dark:ring-slate-600/50",
 } %}
+{% set months_de = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"] %}
 
 {% if not swaps %}
-<div class="text-center py-16 text-slate-400 dark:text-slate-500" id="swap-list">
-  <p class="text-sm">Keine Tausch-Anfragen vorhanden.</p>
+<div class="flex flex-col items-center justify-center py-16 text-slate-400 dark:text-slate-500" id="swap-list">
+    <div class="w-14 h-14 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/50 shadow-sm
+                flex items-center justify-center mb-4">
+        <svg class="w-7 h-7 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+        </svg>
+    </div>
+    <p class="text-sm font-medium text-slate-500 dark:text-slate-400">Keine Tausch-Anfragen</p>
+    <p class="text-xs mt-1 text-slate-400 dark:text-slate-500">
+        <a href="/swap-requests/browse" class="underline hover:text-slate-600 dark:hover:text-slate-300">
+            Termin zum Tauschen finden
+        </a>
+    </p>
 </div>
 {% else %}
-<div class="space-y-3" id="swap-list">
+<div class="space-y-2" id="swap-list">
   {% for swap in swaps %}
-  <div class="anim bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm
-               hover:shadow-md hover:border-slate-200 dark:hover:border-slate-600 transition-all duration-200 overflow-hidden flex"
-       style="animation-delay: {{ loop.index0 * 0.05 }}s;">
+  {% set sval = swap.status.value %}
+  <a href="/swap-requests/{{ swap.id }}{% if from_dispatcher %}?from_dispatcher=true{% endif %}"
+     class="group anim block bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm
+            hover:shadow-md hover:border-slate-200 dark:hover:border-slate-600 transition-all duration-200 overflow-hidden flex"
+     style="animation-delay: {{ loop.index0 * 0.05 }}s;">
 
-    <!-- Status-Streifen -->
-    <div class="w-1 flex-shrink-0" style="background-color: {{ status_colors.get(swap.status.value, '#94a3b8') }};"></div>
+    {# Status-Streifen links #}
+    <div class="w-1 flex-shrink-0 transition-colors duration-200"
+         style="background-color: {{ status_colors.get(sval, '#94a3b8') }};"></div>
 
     <div class="flex-1 p-4">
       <div class="flex items-start justify-between gap-3">
-        <div class="flex-1">
-          <!-- Tauschpartner -->
-          <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
+        <div class="flex-1 min-w-0">
+          {# Tauschpartner #}
+          <p class="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">
             {{ swap.requester_name }} ↔ {{ swap.target_name }}
           </p>
 
-          <!-- Termine -->
+          {# Termine nebeneinander #}
           <div class="flex gap-4 mt-1.5">
             <div>
-              <p class="text-xs text-slate-400 dark:text-slate-500">Angeboten</p>
-              <p class="text-xs text-slate-600 dark:text-slate-300">{{ swap.requester_location }}</p>
-              <p class="text-xs text-slate-400 dark:text-slate-500">{{ swap.requester_event_date }}</p>
+              <p class="text-[11px] text-slate-400 dark:text-slate-500">Angeboten</p>
+              <p class="text-xs text-slate-600 dark:text-slate-300 truncate max-w-[100px]">{{ swap.requester_location }}</p>
+              <p class="text-[11px] text-slate-400 dark:text-slate-500">{{ swap.requester_event_date }}</p>
+            </div>
+            <div class="flex items-center text-slate-300 dark:text-slate-600">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+              </svg>
             </div>
             <div>
-              <p class="text-xs text-slate-400 dark:text-slate-500">Gewünscht</p>
-              <p class="text-xs text-slate-600 dark:text-slate-300">{{ swap.target_location }}</p>
-              <p class="text-xs text-slate-400 dark:text-slate-500">{{ swap.target_event_date }}</p>
+              <p class="text-[11px] text-slate-400 dark:text-slate-500">Gewünscht</p>
+              <p class="text-xs text-slate-600 dark:text-slate-300 truncate max-w-[100px]">{{ swap.target_location }}</p>
+              <p class="text-[11px] text-slate-400 dark:text-slate-500">{{ swap.target_event_date }}</p>
             </div>
           </div>
 
           {% if swap.message %}
-          <p class="text-xs text-slate-400 dark:text-slate-500 italic mt-1.5">&bdquo;{{ swap.message }}&ldquo;</p>
+          <p class="text-xs text-slate-400 dark:text-slate-500 italic mt-1.5 truncate">&bdquo;{{ swap.message }}&ldquo;</p>
           {% endif %}
         </div>
 
-        <!-- Status-Badge -->
-        <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 flex-shrink-0
-                     {{ status_badge_styles.get(swap.status.value, '') }}">
-          {{ status_labels.get(swap.status.value, swap.status.value) }}
-        </span>
-      </div>
-
-      <!-- Aktions-Buttons -->
-      {% set is_requester = swap.requester_web_user_id == user.id %}
-      {% set is_target = swap.target_web_user_id == user.id %}
-
-      {% if swap.status.value == "pending" %}
-        {% if is_target %}
-        <div class="flex gap-2 mt-3">
-          <form hx-post="/swap-requests/{{ swap.id }}/accept"
-                hx-target="#swap-list"
-                hx-swap="outerHTML">
-            <button type="submit"
-                    class="text-xs font-medium px-3 py-1.5 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors">
-              Akzeptieren
-            </button>
-          </form>
-          <form hx-post="/swap-requests/{{ swap.id }}/reject"
-                hx-target="#swap-list"
-                hx-swap="outerHTML">
-            <button type="submit"
-                    class="text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-              Ablehnen
-            </button>
-          </form>
+        {# Status-Badge + Pfeil #}
+        <div class="flex flex-col items-end gap-2 flex-shrink-0">
+          <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 {{ status_badge_styles.get(sval, '') }}">
+            {{ status_labels.get(sval, sval) }}
+          </span>
+          <svg class="w-4 h-4 text-slate-300 dark:text-slate-600 group-hover:text-slate-500 dark:group-hover:text-slate-400 transition-colors mt-auto"
+               fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+          </svg>
         </div>
-        {% elif is_requester %}
-        <form hx-post="/swap-requests/{{ swap.id }}/withdraw"
-              hx-target="#swap-list"
-              hx-swap="outerHTML"
-              class="mt-3">
-          <button type="submit"
-                  class="text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-            Zurückziehen
-          </button>
-        </form>
-        {% endif %}
-      {% elif swap.status.value == "accepted_by_target" %}
-        {% if is_dispatcher %}
-        <form hx-post="/swap-requests/{{ swap.id }}/confirm"
-              hx-target="#swap-list"
-              hx-swap="outerHTML"
-              class="mt-3">
-          <button type="submit"
-                  class="text-xs font-medium px-3 py-1.5 rounded-lg bg-brand text-white hover:opacity-90 transition-opacity">
-            Tausch bestätigen
-          </button>
-        </form>
-        {% elif is_requester %}
-        <form hx-post="/swap-requests/{{ swap.id }}/withdraw"
-              hx-target="#swap-list"
-              hx-swap="outerHTML"
-              class="mt-3">
-          <button type="submit"
-                  class="text-xs font-medium px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-            Zurückziehen
-          </button>
-        </form>
-        {% endif %}
-      {% endif %}
+      </div>
     </div>
-  </div>
+  </a>
   {% endfor %}
 </div>
 {% endif %}

@@ -76,6 +76,12 @@
                   Details
               </a>
               {% endif %}
+            {% elif group.reference_type == "swap_request" and group.reference_id %}
+            <a href="/swap-requests/{{ group.reference_id }}"
+               onclick="event.stopPropagation();"
+               class="flex-shrink-0 text-[11px] font-medium text-slate-400 hover:text-navy transition-colors whitespace-nowrap">
+                Details
+            </a>
             {% elif group.reference_id %}
             <a href="/cancellations/{{ group.reference_id }}"
                onclick="event.stopPropagation();"

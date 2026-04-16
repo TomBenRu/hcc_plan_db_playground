@@ -4,16 +4,62 @@
 
 {% block head %}
 <style>
+    /* ── Sidebar scrollbar ─────────────────────────────────────────────────── */
     .sidebar-scroll::-webkit-scrollbar { width: 3px; }
     .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
     .sidebar-scroll::-webkit-scrollbar-thumb {
         background: rgba(255,255,255,0.15); border-radius: 2px;
     }
+
+    /* ── Content scrollbar ─────────────────────────────────────────────────── */
     .content-scroll::-webkit-scrollbar { width: 4px; }
     .content-scroll::-webkit-scrollbar-track { background: transparent; }
     .content-scroll::-webkit-scrollbar-thumb {
         background: #e2e8f0; border-radius: 2px;
     }
+
+    /* ── Responsive: Mobile/Tablet ─────────────────────────────────────────── */
+    @media (max-width: 1023px) {
+        .page-wrapper { grid-template-columns: 1fr !important; grid-template-rows: auto 1fr; }
+        .page-sidebar {
+            flex-direction: row !important; flex-wrap: wrap;
+            gap: 0.5rem; padding: 0.75rem 1rem !important;
+            align-items: center; min-height: unset !important;
+            overflow: visible !important;
+        }
+        .page-sidebar .sidebar-header { margin-bottom: 0 !important; flex-shrink: 0; }
+        .page-sidebar .sidebar-header h1 { font-size: 1rem !important; }
+        .page-sidebar .sidebar-header p  { display: none !important; }
+        .page-sidebar .sidebar-divider   { display: none !important; }
+        .page-sidebar .sidebar-spacer    { display: none !important; }
+        .sidebar-filter-toggle { display: flex !important; }
+        .sidebar-filters {
+            flex-basis: 100%; max-height: 0; overflow: hidden;
+            transition: max-height 0.3s ease-in-out;
+        }
+        .sidebar-filters.open { max-height: 500px; }
+        .sidebar-back { display: none !important; }
+    }
+
+    /* ── Desktop: Toggle ausblenden, Filter immer sichtbar ─────────────────── */
+    @media (min-width: 1024px) {
+        .sidebar-filter-toggle { display: none !important; }
+        .sidebar-filters {
+            max-height: none !important; overflow: visible !important;
+            display: flex; flex-direction: column;
+        }
+    }
+
+    /* ── Filter-Button aktiv ───────────────────────────────────────────────── */
+    .filter-btn         { transition: background 0.15s, color 0.15s, border-color 0.15s; }
+    .filter-btn.active  { background: rgba(255,255,255,0.12); color: #fff; border-color: rgba(255,255,255,0.2); }
+    .filter-btn:not(.active):hover { background: rgba(255,255,255,0.06); color: #cbd5e1; }
+
+    /* ── Chevron-Rotation ──────────────────────────────────────────────────── */
+    #filter-chevron { transition: transform 0.25s; }
+    #filter-chevron.rotated { transform: rotate(180deg); }
+
+    /* ── Karten-Animation ──────────────────────────────────────────────────── */
     @keyframes fadeUp {
         from { opacity: 0; transform: translateY(10px); }
         to   { opacity: 1; transform: translateY(0); }
@@ -26,38 +72,149 @@
 
 {% block content %}
 
+{% set status_labels = {
+    "":                         "Alle",
+    "pending":                  "Ausstehend",
+    "accepted_by_target":       "Zugestimmt",
+    "rejected_by_target":       "Abgelehnt",
+    "confirmed_by_dispatcher":  "Bestätigt",
+    "withdrawn":                "Zurückgezogen",
+} %}
+{% set filter_val = status_filter if status_filter else "" %}
+
 <div class="h-[calc(100vh-56px)] flex flex-col overflow-hidden">
-  <div class="page-wrapper flex-1 grid overflow-hidden"
-       style="grid-template-columns: 240px 1fr;">
+<div class="page-wrapper flex-1 grid overflow-hidden" style="grid-template-columns: 240px 1fr;">
 
-    <!-- Sidebar -->
-    <aside class="bg-navy grid-bg flex flex-col p-6 border-r border-white/5
-                  overflow-y-auto sidebar-scroll animate-fade-up page-sidebar">
-      <div class="sidebar-header mb-6">
-        <p class="text-xs font-semibold tracking-widest uppercase text-white/40 mb-1">hcc plan</p>
-        <h1 class="text-2xl font-semibold font-display text-white leading-tight">Tausch&shy;anfragen</h1>
-      </div>
+    {# ── Left Sidebar ─────────────────────────────────────────────────────── #}
+    <aside class="page-sidebar bg-navy grid-bg flex flex-col overflow-y-auto sidebar-scroll
+                  p-6 animate-fade-up border-r border-white/5">
 
-      <div class="sidebar-divider border-t border-white/5 mb-4"></div>
+        {# Brand-Header #}
+        <div class="sidebar-header mb-6">
+            <div class="flex items-center gap-1.5 mb-2">
+                <span class="inline-block w-1.5 h-1.5 rounded-full" style="background-color:#3B82F6;"></span>
+                <span class="text-xs font-semibold tracking-widest uppercase font-sans text-blue-400/80">
+                    {% if is_dispatcher %}Team{% else %}Mitarbeiter{% endif %}
+                </span>
+            </div>
+            <h1 class="font-display text-white text-2xl font-semibold leading-tight tracking-tight">
+                Tausch&shy;anfragen
+            </h1>
+            <p class="font-sans text-xs text-slate-500 mt-1.5">
+                {% if is_dispatcher %}Tausch-Anfragen Ihres Teams.{% else %}Ihre Tausch-Anfragen.{% endif %}
+            </p>
+        </div>
 
-      <div class="sidebar-spacer flex-1"></div>
+        <div class="sidebar-divider border-t border-white/5 mb-5"></div>
 
-      <a href="/dashboard"
-         class="sidebar-back flex items-center gap-2 text-xs text-white/40 hover:text-white/70 transition-colors mt-4">
-        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
-        </svg>
-        Dashboard
-      </a>
+        {# ── Filter-Toggle (nur Mobile) ──────────────────────────────────── #}
+        <button class="sidebar-filter-toggle hidden w-full items-center justify-between
+                       text-xs font-semibold tracking-widest uppercase text-slate-400 mb-3"
+                onclick="
+                    var s = document.getElementById('sidebar-filters');
+                    var c = document.getElementById('filter-chevron');
+                    s.classList.toggle('open');
+                    c.classList.toggle('rotated');
+                ">
+            <span>Filter: {{ status_labels.get(filter_val, filter_val) }}</span>
+            <svg id="filter-chevron" class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+        </button>
+
+        {# ── Filter-Buttons ──────────────────────────────────────────────── #}
+        <div id="sidebar-filters" class="sidebar-filters flex flex-col gap-1.5 mb-6">
+
+            <p class="hidden lg:block text-xs font-semibold tracking-widest uppercase text-slate-500 mb-2 font-sans">
+                Status
+            </p>
+
+            <a href="?status_filter="
+               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                      border-transparent text-sm font-sans text-slate-400
+                      {% if not filter_val %}active{% endif %}">
+                <span class="w-2 h-2 rounded-full flex-shrink-0 bg-slate-500"></span>
+                Alle
+            </a>
+
+            <a href="?status_filter=pending"
+               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                      border-transparent text-sm font-sans text-slate-400
+                      {% if filter_val == 'pending' %}active{% endif %}">
+                <span class="w-2 h-2 rounded-full flex-shrink-0 bg-amber-400"></span>
+                Ausstehend
+            </a>
+
+            <a href="?status_filter=accepted_by_target"
+               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                      border-transparent text-sm font-sans text-slate-400
+                      {% if filter_val == 'accepted_by_target' %}active{% endif %}">
+                <span class="w-2 h-2 rounded-full flex-shrink-0 bg-blue-400"></span>
+                Zugestimmt
+            </a>
+
+            <a href="?status_filter=confirmed_by_dispatcher"
+               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                      border-transparent text-sm font-sans text-slate-400
+                      {% if filter_val == 'confirmed_by_dispatcher' %}active{% endif %}">
+                <span class="w-2 h-2 rounded-full flex-shrink-0 bg-green-400"></span>
+                Bestätigt
+            </a>
+
+            <a href="?status_filter=withdrawn"
+               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                      border-transparent text-sm font-sans text-slate-400
+                      {% if filter_val == 'withdrawn' %}active{% endif %}">
+                <span class="w-2 h-2 rounded-full flex-shrink-0 bg-slate-400"></span>
+                Zurückgezogen
+            </a>
+
+            <a href="?status_filter=rejected_by_target"
+               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                      border-transparent text-sm font-sans text-slate-400
+                      {% if filter_val == 'rejected_by_target' %}active{% endif %}">
+                <span class="w-2 h-2 rounded-full flex-shrink-0 bg-red-400"></span>
+                Abgelehnt
+            </a>
+
+        </div>
+
+        <div class="sidebar-spacer flex-1"></div>
+
+        <a href="/dashboard"
+           class="sidebar-back flex items-center gap-2 text-xs text-slate-600 hover:text-slate-300
+                  transition-colors font-sans mt-4 pt-4 border-t border-white/5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Zurück zum Dashboard
+        </a>
+
     </aside>
 
-    <!-- Main Content -->
-    <main class="flex-1 overflow-y-auto content-scroll
-                 bg-slate-50 dark:bg-slate-900 px-6 py-8">
-      <div class="max-w-2xl mx-auto">
-        {% include "swap_requests/partials/swap_list.html" %}
-      </div>
+    {# ── Main Content ─────────────────────────────────────────────────────── #}
+    <main class="flex-1 overflow-y-auto content-scroll bg-slate-50 dark:bg-slate-900 px-6 py-8">
+        <div class="max-w-2xl mx-auto">
+
+            <div class="mb-6 anim" style="animation-delay: 0.05s;">
+                <h2 class="font-display text-xl font-semibold text-slate-800 dark:text-white">
+                    {{ status_labels.get(filter_val, filter_val) }}
+                </h2>
+                {% if swaps %}
+                <p class="text-xs text-slate-400 mt-0.5 font-sans">
+                    {% set n = swaps | length %}
+                    {{ n }} {{ "Eintrag" if n == 1 else "Einträge" }}
+                </p>
+                {% endif %}
+            </div>
+
+            <div class="anim" style="animation-delay: 0.1s;">
+                {% include "swap_requests/partials/swap_list.html" %}
+            </div>
+
+        </div>
     </main>
-  </div>
+
+</div>
 </div>
 {% endblock %}

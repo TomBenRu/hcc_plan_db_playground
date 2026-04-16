@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+{% block title %}Tausch-Detail – hcc plan{% endblock %}
+
+{% block nav %}{% include "partials/nav.html" %}{% endblock %}
+
+{% block content %}
+{% set months_de = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"] %}
+{% set sval = swap.status.value %}
+
+{% set status_labels = {
+    "pending":                 "Ausstehend",
+    "accepted_by_target":      "Zugestimmt",
+    "rejected_by_target":      "Abgelehnt",
+    "confirmed_by_dispatcher": "Bestätigt",
+    "rejected_by_dispatcher":  "Abgelehnt (Dispatcher)",
+    "withdrawn":               "Zurückgezogen",
+} %}
+{% set status_badge_styles = {
+    "pending":                 "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:ring-amber-700/50",
+    "accepted_by_target":      "bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:ring-blue-700/50",
+    "rejected_by_target":      "bg-slate-50 text-slate-500 ring-slate-200 dark:bg-slate-700/30 dark:text-slate-400 dark:ring-slate-600/50",
+    "confirmed_by_dispatcher": "bg-green-50 text-green-700 ring-green-200 dark:bg-green-900/30 dark:text-green-400 dark:ring-green-700/50",
+    "rejected_by_dispatcher":  "bg-red-50 text-red-700 ring-red-200 dark:bg-red-900/30 dark:text-red-400 dark:ring-red-700/50",
+    "withdrawn":               "bg-slate-50 text-slate-500 ring-slate-200 dark:bg-slate-700/30 dark:text-slate-400 dark:ring-slate-600/50",
+} %}
+
+<div class="max-w-2xl mx-auto px-4 py-8 animate-fade-up">
+
+    {# Header #}
+    <div class="flex items-center gap-3 mb-6">
+        <a href="/swap-requests"
+           class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </a>
+        <h1 class="font-display text-xl font-semibold text-slate-800 dark:text-white">Tausch-Detail</h1>
+        <span class="ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 {{ status_badge_styles.get(sval, '') }}">
+            {{ status_labels.get(sval, sval) }}
+        </span>
+    </div>
+
+    <div class="space-y-3">
+
+        {# ── Termin-Vergleich ───────────────────────────────────────────────── #}
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm p-4">
+            <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 dark:text-slate-500 mb-3">
+                Tausch-Termine
+            </p>
+            <div class="grid grid-cols-[1fr_auto_1fr] gap-3 items-center">
+                {# Angebotener Termin (Anfragender) #}
+                <div>
+                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1">
+                        {{ snapshot.requester_name }}
+                    </p>
+                    <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                        {{ req_ctx.location_name }}
+                    </p>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">
+                        {{ req_ctx.event_date.day }}. {{ months_de[req_ctx.event_date.month - 1] }} {{ req_ctx.event_date.year }}
+                        {% if req_ctx.time_of_day_name %} · {{ req_ctx.time_of_day_name }}{% endif %}
+                    </p>
+                </div>
+
+                {# Tausch-Pfeil #}
+                <div class="flex items-center justify-center text-slate-300 dark:text-slate-600">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>
+                    </svg>
+                </div>
+
+                {# Gewünschter Termin (Ziel) #}
+                <div>
+                    <p class="text-[10px] font-semibold uppercase tracking-widest text-slate-400 dark:text-slate-500 mb-1">
+                        {{ snapshot.target_name }}
+                    </p>
+                    <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                        {{ tgt_ctx.location_name }}
+                    </p>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">
+                        {{ tgt_ctx.event_date.day }}. {{ months_de[tgt_ctx.event_date.month - 1] }} {{ tgt_ctx.event_date.year }}
+                        {% if tgt_ctx.time_of_day_name %} · {{ tgt_ctx.time_of_day_name }}{% endif %}
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        {# ── Nachricht ──────────────────────────────────────────────────────── #}
+        {% if swap.message %}
+        <div class="bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-100 dark:border-amber-700/30 p-4">
+            <p class="text-xs font-semibold tracking-widest uppercase text-amber-500 dark:text-amber-400 mb-1">
+                Nachricht
+            </p>
+            <p class="text-sm text-slate-600 dark:text-slate-300 italic">&bdquo;{{ swap.message }}&ldquo;</p>
+        </div>
+        {% endif %}
+
+        {# ── Zeitstempel ────────────────────────────────────────────────────── #}
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm p-4">
+            <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 dark:text-slate-500 mb-1">
+                Erstellt
+            </p>
+            <p class="text-sm text-slate-600 dark:text-slate-300">
+                {{ swap.created_at.day }}. {{ months_de[swap.created_at.month - 1] }} {{ swap.created_at.year }}
+                um {{ swap.created_at.strftime("%H:%M") }} Uhr
+            </p>
+        </div>
+
+        {# ── Aktions-Bereich ─────────────────────────────────────────────────── #}
+        <div id="swap-action-area">
+
+            {# Ziel: pending → Annehmen / Ablehnen #}
+            {% if sval == "pending" and is_target %}
+            <div class="flex gap-2 pt-2">
+                <form hx-post="/swap-requests/{{ swap.id }}/accept"
+                      hx-swap="none"
+                      hx-on::after-request="if(event.detail.successful) window.location.reload()"
+                      class="flex-1">
+                    <button type="submit"
+                            class="w-full py-2.5 rounded-xl text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition-colors">
+                        Annehmen
+                    </button>
+                </form>
+                <form hx-post="/swap-requests/{{ swap.id }}/reject"
+                      hx-swap="none"
+                      hx-on::after-request="if(event.detail.successful) window.location.reload()"
+                      class="flex-1">
+                    <button type="submit"
+                            class="w-full py-2.5 rounded-xl text-sm font-medium border border-slate-200 dark:border-slate-700
+                                   text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                        Ablehnen
+                    </button>
+                </form>
+            </div>
+            {% endif %}
+
+            {# Anfragender: pending oder accepted → Zurückziehen (nicht im Dispatcher-Kontext) #}
+            {% if sval in ("pending", "accepted_by_target") and is_requester and not from_dispatcher %}
+            <form hx-post="/swap-requests/{{ swap.id }}/withdraw"
+                  hx-swap="none"
+                  hx-on::after-request="if(event.detail.successful) window.location.reload()"
+                  class="pt-2">
+                <button type="submit"
+                        class="w-full py-2.5 rounded-xl text-sm font-medium border border-slate-200 dark:border-slate-700
+                               text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                    Zurückziehen
+                </button>
+            </form>
+            {% endif %}
+
+            {# Dispatcher: accepted_by_target → Bestätigen #}
+            {% if sval == "accepted_by_target" and is_dispatcher %}
+            <form hx-post="/swap-requests/{{ swap.id }}/confirm"
+                  hx-swap="none"
+                  hx-on::after-request="if(event.detail.successful) window.location.reload()"
+                  class="pt-2">
+                <button type="submit"
+                        class="w-full py-2.5 rounded-xl text-sm font-medium bg-brand text-white hover:opacity-90 transition-opacity">
+                    Tausch bestätigen
+                </button>
+            </form>
+            {% endif %}
+
+        </div>
+
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,101 @@
+{# Partial: Tausch-Formular. Kontext: own_appointments, prefilled_target_id, prefilled_requester_id, requester_ctx #}
+{% set months_de = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"] %}
+
+<div id="swap-action-area"
+     class="bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700
+            shadow-sm p-5 mt-2">
+
+    <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 dark:text-slate-500 mb-4">
+        Tausch anbieten
+    </p>
+
+    <form hx-post="/swap-requests"
+          hx-target="#swap-action-area"
+          hx-swap="outerHTML">
+
+        {# Mein Termin — vorausgefüllt aus Kalender oder Auswahl-Dropdown #}
+        <div class="mb-4">
+            <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1.5">
+                Mein Termin (den ich abgebe)
+            </label>
+            {% if prefilled_requester_id and requester_ctx %}
+            {# Aus Kalender übergeben — nur anzeigen, kein Dropdown #}
+            <input type="hidden" name="requester_appointment_id" value="{{ prefilled_requester_id }}">
+            <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-900
+                        border border-slate-200 dark:border-slate-700 text-sm text-slate-700 dark:text-slate-200">
+                <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                </svg>
+                <span>
+                    {{ requester_ctx.event_date.day }}. {{ months_de[requester_ctx.event_date.month - 1] }} {{ requester_ctx.event_date.year }}
+                    · {{ requester_ctx.location_name }}
+                    {% if requester_ctx.time_of_day_name %} · {{ requester_ctx.time_of_day_name }}{% endif %}
+                </span>
+            </div>
+            {% elif own_appointments %}
+            <select name="requester_appointment_id"
+                    required
+                    class="w-full text-sm rounded-lg border border-slate-200 dark:border-slate-700
+                           bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100
+                           px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/50">
+                <option value="" disabled selected>Termin auswählen…</option>
+                {% for appt in own_appointments %}
+                <option value="{{ appt.appointment_id }}">
+                    {{ appt.event_date.day }}. {{ months_de[appt.event_date.month - 1] }} {{ appt.event_date.year }}
+                    · {{ appt.location_name }}
+                    {% if appt.time_of_day_name %} · {{ appt.time_of_day_name }}{% endif %}
+                </option>
+                {% endfor %}
+            </select>
+            {% else %}
+            <p class="text-sm text-slate-400 dark:text-slate-500 italic">
+                Keine eigenen zukünftigen Termine gefunden.
+            </p>
+            {% endif %}
+        </div>
+
+        {# Ziel-Termin(e) — vorausgefüllt mit dem Kandidaten, weitere wählbar #}
+        <div class="mb-4">
+            <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1.5">
+                Ziel-Termin(e) <span class="text-slate-400 font-normal">(mindestens einer)</span>
+            </label>
+            <input type="hidden" name="target_appointment_ids" value="{{ prefilled_target_id }}">
+            <input type="hidden" name="target_web_user_id" value="{{ prefilled_target_web_user_id }}">
+            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">
+                Ausgewählter Termin ist vorbelegt. Weitere Kandidaten werden separat angefragt.
+            </p>
+        </div>
+
+        {# Nachricht #}
+        <div class="mb-4">
+            <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1.5">
+                Nachricht <span class="text-slate-400 font-normal">(optional)</span>
+            </label>
+            <textarea name="message"
+                      rows="2"
+                      placeholder="Grund für den Tausch…"
+                      class="w-full text-sm rounded-lg border border-slate-200 dark:border-slate-700
+                             bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100
+                             placeholder-slate-400 dark:placeholder-slate-500
+                             px-3 py-2 resize-none focus:outline-none focus:ring-2 focus:ring-brand/50"></textarea>
+        </div>
+
+        <div class="flex gap-2">
+            <button type="submit"
+                    {% if not prefilled_requester_id and not own_appointments %}disabled{% endif %}
+                    class="flex-1 py-2.5 rounded-xl text-sm font-medium bg-brand text-white hover:opacity-90
+                           transition-opacity disabled:opacity-40 disabled:cursor-not-allowed">
+                Tausch anfragen
+            </button>
+            <button type="button"
+                    onclick="document.getElementById('swap-action-area').remove();"
+                    class="px-4 py-2.5 rounded-xl text-sm font-medium border border-slate-200 dark:border-slate-700
+                           text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50
+                           transition-colors">
+                Abbrechen
+            </button>
+        </div>
+
+    </form>
+</div>

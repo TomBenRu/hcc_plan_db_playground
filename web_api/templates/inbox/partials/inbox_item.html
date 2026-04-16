@@ -67,6 +67,11 @@
                       hover:bg-red-100 transition-colors whitespace-nowrap">
                 Übernahme anbieten
             </a>
+            {% elif item.reference_type == "swap_request" and item.reference_id %}
+            <a href="/swap-requests/{{ item.reference_id }}"
+               class="text-[11px] font-medium text-slate-400 hover:text-navy transition-colors whitespace-nowrap">
+                Details
+            </a>
             {% elif item.reference_id %}
             <a href="/cancellations/{{ item.reference_id }}"
                class="text-[11px] font-medium text-slate-400 hover:text-navy transition-colors whitespace-nowrap">

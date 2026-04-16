@@ -9,7 +9,7 @@ Join-Kette:
 
 import uuid
 from dataclasses import dataclass
-from datetime import date, time
+from datetime import date, datetime, time, timedelta, timezone
 
 from sqlalchemy import select as sa_select
 from sqlmodel import Session
@@ -27,7 +27,13 @@ from database.models import (
     PlanPeriod,
     TimeOfDay,
 )
-from web_api.models.web_models import CancellationRequest, CancellationStatus
+from web_api.models.web_models import (
+    CancellationRequest,
+    CancellationStatus,
+    SwapRequest,
+    SwapRequestStatus,
+)
+from web_api.settings.service import get_effective_deadline
 
 # ── Farb-Palette für Einsatzorte ──────────────────────────────────────────────
 _LOCATION_COLORS = [
@@ -64,8 +70,11 @@ class CalendarEvent:
     plan_period_id: uuid.UUID
     period_start: date
     period_end: date
+    team_id: uuid.UUID | None = None
     is_binding: bool = True
     has_pending_cancellation: bool = False
+    has_active_swap_request: bool = False
+    is_past_deadline: bool = False
 
 
 @dataclass
@@ -130,6 +139,7 @@ def get_appointments_for_person(
             PlanPeriod.id.label("plan_period_id"),
             PlanPeriod.start.label("period_start"),
             PlanPeriod.end.label("period_end"),
+            PlanPeriod.team_id.label("team_id"),
         )
         .select_from(Appointment)
         .join(AvailDayAppointmentLink,
@@ -164,6 +174,7 @@ def get_appointments_for_person(
     # Batch-Query: welche Appointments haben eine offene Absage?
     appointment_ids = [row["appointment_id"] for row in rows]
     pending_cancellation_ids: set[uuid.UUID] = set()
+    active_swap_request_ids: set[uuid.UUID] = set()
     if appointment_ids:
         pending_cancellation_ids = set(
             session.execute(
@@ -172,6 +183,35 @@ def get_appointments_for_person(
                 .where(CancellationRequest.status == CancellationStatus.pending)
             ).scalars().all()
         )
+        # Batch-Query: welche Appointments sind bereits als Anfragender in einer aktiven Tauschanfrage?
+        active_swap_request_ids = set(
+            session.execute(
+                sa_select(SwapRequest.requester_appointment_id)
+                .where(SwapRequest.requester_appointment_id.in_(appointment_ids))
+                .where(SwapRequest.status.in_([
+                    SwapRequestStatus.pending,
+                    SwapRequestStatus.accepted_by_target,
+                ]))
+            ).scalars().all()
+        )
+
+    # Batch-Load: Deadlines je Team (eine DB-Abfrage je unique team_id)
+    unique_team_ids = {row["team_id"] for row in rows if row["team_id"] is not None}
+    deadline_hours_by_team: dict[uuid.UUID, int] = {
+        tid: get_effective_deadline(session, tid).deadline_hours
+        for tid in unique_team_ids
+    }
+
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+
+    def _is_past_deadline(team_id: uuid.UUID | None, event_date: date, time_start: time | None) -> bool:
+        if team_id is None or time_start is None:
+            return False
+        dl = deadline_hours_by_team.get(team_id, 0)
+        if dl <= 0:
+            return False
+        cutoff = datetime.combine(event_date, time_start) - timedelta(hours=dl)
+        return now > cutoff
 
     return [
         CalendarEvent(
@@ -187,7 +227,12 @@ def get_appointments_for_person(
             plan_period_id=row["plan_period_id"],
             period_start=row["period_start"],
             period_end=row["period_end"],
+            team_id=row["team_id"],
             has_pending_cancellation=row["appointment_id"] in pending_cancellation_ids,
+            has_active_swap_request=row["appointment_id"] in active_swap_request_ids,
+            is_past_deadline=_is_past_deadline(
+                row["team_id"], row["event_date"], row["time_start"]
+            ),
         )
         for row in rows
     ]

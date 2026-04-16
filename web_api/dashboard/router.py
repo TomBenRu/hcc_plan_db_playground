@@ -42,6 +42,12 @@ _ROLE_SECTIONS = {
                 "url": "/cancellations/",
                 "icon": "M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z",
             },
+            {
+                "title": "Tauschbörse",
+                "desc": "Termine tauschen oder Tausch-Anfragen verwalten",
+                "url": "/swap-requests",
+                "icon": "M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4",
+            },
         ],
     },
     WebUserRole.dispatcher: {
@@ -66,6 +72,12 @@ _ROLE_SECTIONS = {
                 "desc": "Erinnerungen und Fristen konfigurieren",
                 "url": "/dispatcher/notifications",
                 "icon": "M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9",
+            },
+            {
+                "title": "Tauschanfragen",
+                "desc": "Tausch-Anfragen prüfen und bestätigen",
+                "url": "/dispatcher/swap-requests",
+                "icon": "M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4",
             },
         ],
     },

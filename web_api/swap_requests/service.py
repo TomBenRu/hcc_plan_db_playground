@@ -32,6 +32,8 @@ from web_api.cancellations.service import (
 from web_api.email.service import EmailPayload
 from web_api.inbox.service import create_inbox_message
 from web_api.models.web_models import (
+    CancellationRequest,
+    CancellationStatus,
     InboxMessageType,
     SwapRequest,
     SwapRequestStatus,
@@ -130,6 +132,19 @@ def create_swap_request(
                 detail="Tausch ist nur innerhalb desselben Teams möglich.",
             )
 
+        # Konflikt: offene Absage für einen der Termine
+        for appt_id in (requester_appt_id, target_appt_id):
+            open_cancellation = session.execute(
+                sa_select(CancellationRequest.id)
+                .where(CancellationRequest.appointment_id == appt_id)
+                .where(CancellationRequest.status == CancellationStatus.pending)
+            ).first()
+            if open_cancellation is not None:
+                raise HTTPException(
+                    status.HTTP_409_CONFLICT,
+                    detail="Für einen der Termine existiert bereits eine offene Absage.",
+                )
+
         # Wenn eine konkrete target_web_user_id übergeben wurde (aus Browse-Formular),
         # direkt verwenden — verhindert Selbst-Tausch bei Gruppen-Appointments.
         if target_web_user_id is not None and len(target_appt_ids) == 1:
@@ -140,6 +155,11 @@ def create_swap_request(
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Für einen Ziel-Termin wurde kein Mitarbeiter-WebUser gefunden.",
+            )
+        if target_user.id == requester_user.id:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Tausch mit sich selbst ist nicht möglich.",
             )
 
         tgt_person = (
@@ -445,11 +465,14 @@ def get_swap_requests_for_user(
 
     result = []
     for swap in rows:
+        try:
+            req_ctx = _load_appointment_context(session, swap.requester_appointment_id)
+            tgt_ctx = _load_appointment_context(session, swap.target_appointment_id)
+        except HTTPException:
+            continue
+
         req_user = session.get(WebUser, swap.requester_web_user_id)
         tgt_user = session.get(WebUser, swap.target_web_user_id)
-        req_ctx = _load_appointment_context(session, swap.requester_appointment_id)
-        tgt_ctx = _load_appointment_context(session, swap.target_appointment_id)
-
         req_person = session.get(Person, req_user.person_id) if req_user and req_user.person_id else None
         tgt_person = session.get(Person, tgt_user.person_id) if tgt_user and tgt_user.person_id else None
 
@@ -512,11 +535,14 @@ def get_swap_requests_for_dispatcher(
 
     result = []
     for swap in rows:
+        try:
+            req_ctx = _load_appointment_context(session, swap.requester_appointment_id)
+            tgt_ctx = _load_appointment_context(session, swap.target_appointment_id)
+        except HTTPException:
+            continue
+
         req_user = session.get(WebUser, swap.requester_web_user_id)
         tgt_user = session.get(WebUser, swap.target_web_user_id)
-        req_ctx = _load_appointment_context(session, swap.requester_appointment_id)
-        tgt_ctx = _load_appointment_context(session, swap.target_appointment_id)
-
         req_person = session.get(Person, req_user.person_id) if req_user and req_user.person_id else None
         tgt_person = session.get(Person, tgt_user.person_id) if tgt_user and tgt_user.person_id else None
 
@@ -645,6 +671,8 @@ def get_swap_candidate_appointments(
         .join(WebUser, WebUser.person_id == Person.id)
         .where(PlanPeriod.team_id.in_(team_ids))
         .where(Event.date >= date_from)
+        .where(Plan.is_binding.is_(True))
+        .where(Plan.prep_delete.is_(None))
         .where(Appointment.prep_delete.is_(None))
     )
 
@@ -757,6 +785,8 @@ def get_own_upcoming_appointments(
         .join(WebUser, WebUser.person_id == Person.id)
         .where(Person.id == web_user.person_id)
         .where(Event.date >= date.today())
+        .where(Plan.is_binding.is_(True))
+        .where(Plan.prep_delete.is_(None))
         .where(Appointment.prep_delete.is_(None))
         .order_by(Event.date.asc())
     ).mappings().all()

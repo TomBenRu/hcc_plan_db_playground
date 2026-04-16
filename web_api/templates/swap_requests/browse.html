@@ -134,7 +134,7 @@
               hx-get="/swap-requests/browse/results"
               hx-target="#candidate-list"
               hx-swap="innerHTML"
-              hx-trigger="change, load, keyup delay:300ms from:[name=date_from], keyup delay:300ms from:[name=date_to]">
+              hx-trigger="{{ 'change, keyup delay:300ms from:[name=date_from], keyup delay:300ms from:[name=date_to]' if error_message else 'change, load, keyup delay:300ms from:[name=date_from], keyup delay:300ms from:[name=date_to]' }}">
 
             {% if requester_appointment_id %}
             <input type="hidden" name="requester_appointment_id" value="{{ requester_appointment_id }}">
@@ -225,6 +225,16 @@
             </div>
 
             <div id="candidate-list">
+                {% if error_message %}
+                <div class="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-700/50
+                            rounded-xl px-5 py-4 text-sm text-red-700 dark:text-red-400 flex items-start gap-3">
+                    <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                    </svg>
+                    {{ error_message }}
+                </div>
+                {% else %}
                 {# Wird durch das Form-HTMX-Trigger "load" befüllt #}
                 <div class="flex items-center justify-center py-16 text-slate-400">
                     <svg class="w-5 h-5 animate-spin mr-2 opacity-40" fill="none" viewBox="0 0 24 24">
@@ -233,6 +243,7 @@
                     </svg>
                     <span class="text-sm">Lade Termine…</span>
                 </div>
+                {% endif %}
             </div>
 
         </div>

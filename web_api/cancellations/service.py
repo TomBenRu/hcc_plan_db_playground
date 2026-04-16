@@ -34,6 +34,8 @@ from web_api.models.web_models import (
     InboxMessageType,
     LocationNotificationCircle,
     NotificationSource,
+    SwapRequest,
+    SwapRequestStatus,
     TakeoverOffer,
     TakeoverOfferStatus,
     WebUser,
@@ -461,6 +463,20 @@ def create_cancellation(
         raise HTTPException(
             status.HTTP_409_CONFLICT,
             detail="Für diesen Termin existiert bereits eine offene Absage.",
+        )
+
+    open_swap = session.execute(
+        sa_select(SwapRequest.id)
+        .where(
+            (SwapRequest.requester_appointment_id == appointment_id)
+            | (SwapRequest.target_appointment_id == appointment_id)
+        )
+        .where(SwapRequest.status.in_([SwapRequestStatus.pending, SwapRequestStatus.accepted_by_target]))
+    ).first()
+    if open_swap is not None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            detail="Für diesen Termin existiert bereits eine offene Tausch-Anfrage.",
         )
 
     settings = get_effective_deadline(session, ctx["team_id"])

@@ -145,6 +145,7 @@
             </button>
             {% endif %}
         </div>
+        <div id="swap-action-area">
         {% if event.has_active_swap_request %}
         <div class="w-full py-2 rounded-xl text-sm font-medium border border-blue-200 text-blue-400 bg-blue-50 text-center">
             Tauschanfrage bereits gestellt
@@ -154,12 +155,16 @@
             Tausch-Frist abgelaufen
         </div>
         {% else %}
-        <a href="/swap-requests/browse?requester_appointment_id={{ event.appointment_id }}"
-           class="block w-full py-2 rounded-xl text-sm font-medium text-center
-                  border border-blue-200 text-blue-500 hover:bg-blue-50 transition-colors">
+        <button
+            hx-get="/swap-requests/preflight/{{ event.appointment_id }}"
+            hx-target="#swap-action-area"
+            hx-swap="innerHTML"
+            class="w-full py-2 rounded-xl text-sm font-medium
+                   border border-blue-200 text-blue-500 hover:bg-blue-50 transition-colors">
             Termin tauschen
-        </a>
+        </button>
         {% endif %}
+        </div>
     </div>
     {% else %}
     <!-- Spacer -->

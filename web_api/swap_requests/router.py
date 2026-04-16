@@ -4,14 +4,15 @@ import uuid
 from datetime import date
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Query, Request
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
+from sqlalchemy import select as sa_select
 from sqlmodel import Session
 
 from web_api.auth.dependencies import LoggedInUser, WebUserRole, require_role
 from web_api.config import get_settings
 from web_api.dependencies import get_db_session
 from web_api.email.service import send_emails_background
-from web_api.models.web_models import WebUser
+from web_api.models.web_models import CancellationRequest, CancellationStatus, WebUser
 
 _SWAP_LIST_TEMPLATE = "swap_requests/partials/swap_list.html"
 _ERROR_HEADERS = {"HX-Retarget": "#swap-action-area", "HX-Reswap": "innerHTML"}
@@ -70,6 +71,30 @@ def list_swap_requests(
     )
 
 
+@router.get("/preflight/{appointment_id}", response_class=HTMLResponse)
+def swap_preflight(
+    request: Request,
+    appointment_id: uuid.UUID,
+    user: LoggedInUser,
+    session: Session = Depends(get_db_session),
+):
+    """Prüft Konflikte vor dem Öffnen der Browse-Seite; leitet bei OK per HX-Redirect weiter."""
+    open_cancellation = session.execute(
+        sa_select(CancellationRequest.id)
+        .where(CancellationRequest.appointment_id == appointment_id)
+        .where(CancellationRequest.status == CancellationStatus.pending)
+    ).first()
+    if open_cancellation is not None:
+        return templates.TemplateResponse(
+            "swap_requests/partials/error.html",
+            {"request": request, "message": "Für diesen Termin existiert bereits eine offene Absage."},
+        )
+    return Response(
+        status_code=200,
+        headers={"HX-Redirect": f"/swap-requests/browse?requester_appointment_id={appointment_id}"},
+    )
+
+
 @router.get("/browse", response_class=HTMLResponse)
 def browse_swap_candidates(
     request: Request,
@@ -77,9 +102,19 @@ def browse_swap_candidates(
     session: Session = Depends(get_db_session),
     requester_appointment_id: uuid.UUID | None = Query(default=None),
 ):
+    error_message = None
+    if requester_appointment_id is not None:
+        open_cancellation = session.execute(
+            sa_select(CancellationRequest.id)
+            .where(CancellationRequest.appointment_id == requester_appointment_id)
+            .where(CancellationRequest.status == CancellationStatus.pending)
+        ).first()
+        if open_cancellation is not None:
+            error_message = "Für diesen Termin existiert bereits eine offene Absage."
+
     locations, colleagues = get_filter_options_for_user(session, user, requester_appointment_id)
     requester_ctx = None
-    if requester_appointment_id is not None:
+    if requester_appointment_id is not None and error_message is None:
         requester_ctx = _load_appointment_context(session, requester_appointment_id)
     return templates.TemplateResponse(
         "swap_requests/browse.html",
@@ -90,6 +125,7 @@ def browse_swap_candidates(
             "colleagues": colleagues,
             "requester_appointment_id": requester_appointment_id,
             "requester_ctx": requester_ctx,
+            "error_message": error_message,
         },
     )
 
@@ -130,6 +166,19 @@ def swap_form(
     target_web_user_id: uuid.UUID | None = Query(default=None),
     requester_appointment_id: uuid.UUID | None = Query(default=None),
 ):
+    if requester_appointment_id is not None:
+        open_cancellation = session.execute(
+            sa_select(CancellationRequest.id)
+            .where(CancellationRequest.appointment_id == requester_appointment_id)
+            .where(CancellationRequest.status == CancellationStatus.pending)
+        ).first()
+        if open_cancellation is not None:
+            return templates.TemplateResponse(
+                "swap_requests/partials/error.html",
+                {"request": request, "message": "Für diesen Termin existiert bereits eine offene Absage."},
+                headers=_ERROR_HEADERS,
+            )
+
     own_appointments = get_own_upcoming_appointments(session, user)
     requester_ctx = None
     if requester_appointment_id is not None:

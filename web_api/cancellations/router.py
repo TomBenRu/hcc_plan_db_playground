@@ -19,7 +19,7 @@ from web_api.cancellations.service import (
     get_my_cancellations,
     withdraw_cancellation,
 )
-from web_api.models.web_models import CancellationRequest, CancellationStatus
+from web_api.models.web_models import CancellationRequest, CancellationStatus, SwapRequest, SwapRequestStatus
 from sqlalchemy import select as sa_select
 from web_api.config import get_settings
 from web_api.dependencies import get_db_session
@@ -36,6 +36,7 @@ def get_cancel_form(
     user: LoggedInUser,
     session: Session = Depends(get_db_session),
 ):
+    _retarget = {"HX-Retarget": "#cancellation-action-area", "HX-Reswap": "innerHTML"}
     existing = session.execute(
         sa_select(CancellationRequest.id)
         .where(CancellationRequest.appointment_id == appointment_id)
@@ -45,7 +46,21 @@ def get_cancel_form(
         return templates.TemplateResponse(
             "cancellations/partials/cancel_error.html",
             {"request": request, "message": "Für diesen Termin existiert bereits eine offene Absage."},
-            headers={"HX-Retarget": "#cancellation-action-area", "HX-Reswap": "innerHTML"},
+            headers=_retarget,
+        )
+    open_swap = session.execute(
+        sa_select(SwapRequest.id)
+        .where(
+            (SwapRequest.requester_appointment_id == appointment_id)
+            | (SwapRequest.target_appointment_id == appointment_id)
+        )
+        .where(SwapRequest.status.in_([SwapRequestStatus.pending, SwapRequestStatus.accepted_by_target]))
+    ).first()
+    if open_swap is not None:
+        return templates.TemplateResponse(
+            "cancellations/partials/cancel_error.html",
+            {"request": request, "message": "Für diesen Termin existiert bereits eine offene Tausch-Anfrage."},
+            headers=_retarget,
         )
     return templates.TemplateResponse(
         "cancellations/partials/cancel_form.html",

@@ -11,16 +11,23 @@ from web_api.desktop_api.cast_group.router import router as cast_group_router
 from web_api.desktop_api.cast_rule.router import router as cast_rule_router
 from web_api.desktop_api.event.router import router as event_router
 from web_api.desktop_api.event_group.router import router as event_group_router
+from web_api.desktop_api.excel_export_settings.router import router as excel_export_settings_router
+from web_api.desktop_api.location_of_work.router import router as location_of_work_router
 from web_api.desktop_api.location_plan_period.router import router as location_plan_period_router
+from web_api.desktop_api.max_fair_shifts_of_app.router import router as max_fair_shifts_of_app_router
 from web_api.desktop_api.person.router import router as person_router
 from web_api.desktop_api.plan.router import router as plan_router
 from web_api.desktop_api.plan.router import teams_router as plan_teams_router
 from web_api.desktop_api.plan_period.router import router as plan_period_router
 from web_api.desktop_api.plan_period.router import teams_router as plan_period_teams_router
 from web_api.desktop_api.project.router import router as project_router
+from web_api.desktop_api.required_avail_day_groups.router import router as required_avail_day_groups_router
+from web_api.desktop_api.skill.router import router as skill_router
+from web_api.desktop_api.skill_group.router import router as skill_group_router
 from web_api.desktop_api.team.router import router as team_router
 from web_api.desktop_api.team_actor_assign.router import router as team_actor_assign_router
 from web_api.desktop_api.team_location_assign.router import router as team_location_assign_router
+from web_api.desktop_api.time_of_day_enum.router import router as time_of_day_enum_router
 
 router = APIRouter(prefix="/api/v1", tags=["desktop-api"])
 
@@ -43,3 +50,10 @@ router.include_router(event_group_router)
 router.include_router(cast_group_router)
 router.include_router(cast_rule_router)
 router.include_router(avail_day_group_router)
+router.include_router(time_of_day_enum_router)
+router.include_router(skill_router)
+router.include_router(skill_group_router)
+router.include_router(max_fair_shifts_of_app_router)
+router.include_router(required_avail_day_groups_router)
+router.include_router(excel_export_settings_router)
+router.include_router(location_of_work_router)

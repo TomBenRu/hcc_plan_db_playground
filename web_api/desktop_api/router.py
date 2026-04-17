@@ -2,6 +2,8 @@
 
 from fastapi import APIRouter
 
+from web_api.desktop_api.actor_location_pref.router import router as actor_location_pref_router
+from web_api.desktop_api.actor_partner_location_pref.router import router as actor_partner_location_pref_router
 from web_api.desktop_api.actor_plan_period.router import router as actor_plan_period_router
 from web_api.desktop_api.address.router import router as address_router
 from web_api.desktop_api.appointment.router import router as appointment_router
@@ -9,6 +11,7 @@ from web_api.desktop_api.avail_day.router import router as avail_day_router
 from web_api.desktop_api.avail_day_group.router import router as avail_day_group_router
 from web_api.desktop_api.cast_group.router import router as cast_group_router
 from web_api.desktop_api.cast_rule.router import router as cast_rule_router
+from web_api.desktop_api.combination_locations_possible.router import router as combination_locations_possible_router
 from web_api.desktop_api.event.router import router as event_router
 from web_api.desktop_api.event_group.router import router as event_group_router
 from web_api.desktop_api.excel_export_settings.router import router as excel_export_settings_router
@@ -59,3 +62,6 @@ router.include_router(max_fair_shifts_of_app_router)
 router.include_router(required_avail_day_groups_router)
 router.include_router(excel_export_settings_router)
 router.include_router(location_of_work_router)
+router.include_router(actor_location_pref_router)
+router.include_router(actor_partner_location_pref_router)
+router.include_router(combination_locations_possible_router)

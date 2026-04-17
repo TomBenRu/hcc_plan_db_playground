@@ -22,6 +22,35 @@ class NewTimeOfDayStandardResponse(BaseModel):
     old_standard_id: uuid.UUID | None
 
 
+class PendingCombLocCreate(BaseModel):
+    temp_id: uuid.UUID
+    data: schemas.CombinationLocationsPossibleCreate
+
+
+class ReplaceCombLocPossiblesBody(BaseModel):
+    original_ids: list[uuid.UUID]
+    pending_creates: list[PendingCombLocCreate]
+    current_combs: list[schemas.CombinationLocationsPossible]
+
+
+class RestoreCombLocPossiblesBody(BaseModel):
+    comb_ids_to_restore: list[uuid.UUID]
+
+
+class LocationPrefEntry(BaseModel):
+    location_id: uuid.UUID
+    score: float
+
+
+class UpdateLocationPrefsBulkBody(BaseModel):
+    project_id: uuid.UUID
+    entries: list[LocationPrefEntry]
+
+
+class RestoreLocationPrefsBulkBody(BaseModel):
+    pref_ids_to_restore: list[uuid.UUID]
+
+
 @router.post("", response_model=schemas.Person, status_code=status.HTTP_201_CREATED)
 def create_person(body: PersonCreateBody, _: DesktopUser):
     return db_services.Person.create(body.person, body.project_id, body.person_id)
@@ -58,3 +87,59 @@ def new_time_of_day_standard(person_id: uuid.UUID, time_of_day_id: uuid.UUID, _:
                response_model=schemas.PersonShow)
 def remove_time_of_day_standard(person_id: uuid.UUID, time_of_day_id: uuid.UUID, _: DesktopUser):
     return db_services.Person.remove_time_of_day_standard(person_id, time_of_day_id)
+
+
+@router.post("/{person_id}/comb-loc-possibles/{clp_id}", response_model=schemas.PersonShow)
+def put_in_comb_loc_possible(person_id: uuid.UUID, clp_id: uuid.UUID, _: DesktopUser):
+    return db_services.Person.put_in_comb_loc_possible(person_id, clp_id)
+
+
+@router.delete("/{person_id}/comb-loc-possibles/{clp_id}", response_model=schemas.PersonShow)
+def remove_comb_loc_possible(person_id: uuid.UUID, clp_id: uuid.UUID, _: DesktopUser):
+    return db_services.Person.remove_comb_loc_possible(person_id, clp_id)
+
+
+@router.post("/{person_id}/comb-loc-possibles/replace",
+             response_model=dict[str, list[uuid.UUID]])
+def replace_comb_loc_possibles(person_id: uuid.UUID, body: ReplaceCombLocPossiblesBody, _: DesktopUser):
+    pending_tuples = [(p.temp_id, p.data) for p in body.pending_creates]
+    return db_services.Person.replace_comb_loc_possibles(
+        person_id, set(body.original_ids), pending_tuples, body.current_combs,
+    )
+
+
+@router.post("/{person_id}/comb-loc-possibles/restore", status_code=status.HTTP_204_NO_CONTENT)
+def restore_comb_loc_possibles(person_id: uuid.UUID, body: RestoreCombLocPossiblesBody, _: DesktopUser):
+    db_services.Person.restore_comb_loc_possibles(person_id, body.comb_ids_to_restore)
+
+
+@router.post("/{person_id}/location-prefs/{pref_id}", response_model=schemas.PersonShow)
+def put_in_location_pref(person_id: uuid.UUID, pref_id: uuid.UUID, _: DesktopUser):
+    return db_services.Person.put_in_location_pref(person_id, pref_id)
+
+
+@router.delete("/{person_id}/location-prefs/{pref_id}", response_model=schemas.PersonShow)
+def remove_location_pref(person_id: uuid.UUID, pref_id: uuid.UUID, _: DesktopUser):
+    return db_services.Person.remove_location_pref(person_id, pref_id)
+
+
+@router.post("/{person_id}/location-prefs/bulk-update",
+             response_model=dict[str, list[uuid.UUID]])
+def update_location_prefs_bulk(person_id: uuid.UUID, body: UpdateLocationPrefsBulkBody, _: DesktopUser):
+    score_dict = {e.location_id: e.score for e in body.entries}
+    return db_services.Person.update_location_prefs_bulk(person_id, body.project_id, score_dict)
+
+
+@router.post("/{person_id}/location-prefs/bulk-restore", status_code=status.HTTP_204_NO_CONTENT)
+def restore_location_prefs_bulk(person_id: uuid.UUID, body: RestoreLocationPrefsBulkBody, _: DesktopUser):
+    db_services.Person.restore_location_prefs_bulk(person_id, body.pref_ids_to_restore)
+
+
+@router.post("/{person_id}/partner-location-prefs/{pref_id}", response_model=schemas.PersonShow)
+def put_in_partner_location_pref(person_id: uuid.UUID, pref_id: uuid.UUID, _: DesktopUser):
+    return db_services.Person.put_in_partner_location_pref(person_id, pref_id)
+
+
+@router.delete("/{person_id}/partner-location-prefs/{pref_id}", response_model=schemas.PersonShow)
+def remove_partner_location_pref(person_id: uuid.UUID, pref_id: uuid.UUID, _: DesktopUser):
+    return db_services.Person.remove_partner_location_pref(person_id, pref_id)

@@ -113,16 +113,7 @@ def remove_time_of_day_standard(app_id: uuid.UUID, time_of_day_id: uuid.UUID, _:
     return db_services.ActorPlanPeriod.remove_time_of_day_standard(app_id, time_of_day_id)
 
 
-@router.post("/{app_id}/comb-loc-possibles/{clp_id}", response_model=schemas.ActorPlanPeriodShow)
-def put_in_comb_loc_possible(app_id: uuid.UUID, clp_id: uuid.UUID, _: DesktopUser):
-    return db_services.ActorPlanPeriod.put_in_comb_loc_possible(app_id, clp_id)
-
-
-@router.delete("/{app_id}/comb-loc-possibles/{clp_id}", response_model=schemas.ActorPlanPeriodShow)
-def remove_comb_loc_possible(app_id: uuid.UUID, clp_id: uuid.UUID, _: DesktopUser):
-    return db_services.ActorPlanPeriod.remove_comb_loc_possible(app_id, clp_id)
-
-
+# Statische Pfade vor dynamischen {clp_id}/{pref_id}-Routen (FastAPI-Reihenfolge).
 @router.post("/{app_id}/comb-loc-possibles/replace",
              response_model=dict[str, list[uuid.UUID]])
 def replace_comb_loc_possibles(app_id: uuid.UUID, body: ReplaceCombLocPossiblesBody, _: DesktopUser):
@@ -137,14 +128,14 @@ def restore_comb_loc_possibles(app_id: uuid.UUID, body: RestoreCombLocPossiblesB
     db_services.ActorPlanPeriod.restore_comb_loc_possibles(app_id, body.comb_ids_to_restore)
 
 
-@router.post("/{app_id}/location-prefs/{pref_id}", response_model=schemas.ActorPlanPeriodShow)
-def put_in_location_pref(app_id: uuid.UUID, pref_id: uuid.UUID, _: DesktopUser):
-    return db_services.ActorPlanPeriod.put_in_location_pref(app_id, pref_id)
+@router.post("/{app_id}/comb-loc-possibles/{clp_id}", response_model=schemas.ActorPlanPeriodShow)
+def put_in_comb_loc_possible(app_id: uuid.UUID, clp_id: uuid.UUID, _: DesktopUser):
+    return db_services.ActorPlanPeriod.put_in_comb_loc_possible(app_id, clp_id)
 
 
-@router.delete("/{app_id}/location-prefs/{pref_id}", response_model=schemas.ActorPlanPeriodShow)
-def remove_location_pref(app_id: uuid.UUID, pref_id: uuid.UUID, _: DesktopUser):
-    return db_services.ActorPlanPeriod.remove_location_pref(app_id, pref_id)
+@router.delete("/{app_id}/comb-loc-possibles/{clp_id}", response_model=schemas.ActorPlanPeriodShow)
+def remove_comb_loc_possible(app_id: uuid.UUID, clp_id: uuid.UUID, _: DesktopUser):
+    return db_services.ActorPlanPeriod.remove_comb_loc_possible(app_id, clp_id)
 
 
 @router.post("/{app_id}/location-prefs/bulk-update",
@@ -157,6 +148,16 @@ def update_location_prefs_bulk(app_id: uuid.UUID, body: UpdateLocationPrefsBulkB
 @router.post("/{app_id}/location-prefs/bulk-restore", status_code=status.HTTP_204_NO_CONTENT)
 def restore_location_prefs_bulk(app_id: uuid.UUID, body: RestoreLocationPrefsBulkBody, _: DesktopUser):
     db_services.ActorPlanPeriod.restore_location_prefs_bulk(app_id, body.pref_ids_to_restore)
+
+
+@router.post("/{app_id}/location-prefs/{pref_id}", response_model=schemas.ActorPlanPeriodShow)
+def put_in_location_pref(app_id: uuid.UUID, pref_id: uuid.UUID, _: DesktopUser):
+    return db_services.ActorPlanPeriod.put_in_location_pref(app_id, pref_id)
+
+
+@router.delete("/{app_id}/location-prefs/{pref_id}", response_model=schemas.ActorPlanPeriodShow)
+def remove_location_pref(app_id: uuid.UUID, pref_id: uuid.UUID, _: DesktopUser):
+    return db_services.ActorPlanPeriod.remove_location_pref(app_id, pref_id)
 
 
 @router.post("/{app_id}/partner-location-prefs/{pref_id}", response_model=schemas.ActorPlanPeriodShow)

@@ -29,17 +29,18 @@ def create_max_fair_shifts(body: schemas.MaxFairShiftsOfAppCreate, _: DesktopUse
     return db_services.MaxFairShiftsOfApp.create(body)
 
 
+# /bulk MUSS vor /{mfs_id} stehen — sonst matcht "bulk" als UUID.
 @router.post("/bulk", response_model=BulkCreateResponse, status_code=status.HTTP_201_CREATED)
 def create_max_fair_shifts_bulk(body: BulkCreateBody, _: DesktopUser):
     ids = db_services.MaxFairShiftsOfApp.create_bulk(body.entries)
     return BulkCreateResponse(ids=ids)
 
 
-@router.delete("/{mfs_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_max_fair_shifts(mfs_id: uuid.UUID, _: DesktopUser):
-    db_services.MaxFairShiftsOfApp.delete(mfs_id)
-
-
 @router.delete("/bulk", status_code=status.HTTP_204_NO_CONTENT)
 def delete_max_fair_shifts_bulk(body: BulkDeleteBody, _: DesktopUser):
     db_services.MaxFairShiftsOfApp.delete_bulk(body.ids)
+
+
+@router.delete("/{mfs_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_max_fair_shifts(mfs_id: uuid.UUID, _: DesktopUser):
+    db_services.MaxFairShiftsOfApp.delete(mfs_id)

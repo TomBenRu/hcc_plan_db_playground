@@ -65,7 +65,7 @@ def main() -> int:
     test_person_create = schemas.PersonCreate(
         f_name="E2E",
         l_name=f"BulkTest{suffix}",
-        email=f"e2e-bulk-{suffix}@test.local",
+        email=f"e2e-bulk-{suffix}@example.com",
         gender=Gender.divers,
         phone_nr=None,
         username=f"e2e-bulk-{suffix}",

@@ -88,27 +88,10 @@ def update_time_of_days(avail_day_id: uuid.UUID, body: AvailDayTimeOfDaysBody, _
     return db_services.AvailDay.update_time_of_days(avail_day_id, body.time_of_days)
 
 
-# ── comb-loc-possibles ────────────────────────────────────────────────────────
+# Statische Pfade vor dynamischen Routen (FastAPI-Reihenfolge).
+# Wichtig: /batch/... muss vor /{avail_day_id}/... stehen (sonst matcht "batch" als UUID).
 
-@router.post("/{avail_day_id}/comb-loc-possibles/{clp_id}", response_model=schemas.AvailDayShow)
-def put_in_comb_loc_possible(avail_day_id: uuid.UUID, clp_id: uuid.UUID, _: DesktopUser):
-    return db_services.AvailDay.put_in_comb_loc_possible(avail_day_id, clp_id)
-
-
-@router.post("/{avail_day_id}/comb-loc-possibles/bulk", response_model=schemas.AvailDayShow)
-def put_in_comb_loc_possibles(avail_day_id: uuid.UUID, body: IdsBody, _: DesktopUser):
-    return db_services.AvailDay.put_in_comb_loc_possibles(avail_day_id, body.ids)
-
-
-@router.delete("/{avail_day_id}/comb-loc-possibles/{clp_id}", response_model=schemas.AvailDayShow)
-def remove_comb_loc_possible(avail_day_id: uuid.UUID, clp_id: uuid.UUID, _: DesktopUser):
-    return db_services.AvailDay.remove_comb_loc_possible(avail_day_id, clp_id)
-
-
-@router.delete("/{avail_day_id}/comb-loc-possibles", response_model=schemas.AvailDayShow)
-def clear_comb_loc_possibles(avail_day_id: uuid.UUID, _: DesktopUser):
-    return db_services.AvailDay.clear_comb_loc_possibles(avail_day_id)
-
+# ── batch ops (mehrere avail_days) ────────────────────────────────────────────
 
 @router.post("/batch/comb-loc-possibles/replace")
 def replace_comb_loc_possibles_for_avail_days(body: ReplaceCombLocForAvailDaysBody, _: DesktopUser):
@@ -124,28 +107,6 @@ def restore_comb_loc_possibles_for_avail_days(body: RestoreCombLocForAvailDaysBo
     db_services.AvailDay.restore_comb_loc_possibles_for_avail_days(body.target_ids_per_avail_day)
 
 
-# ── location-prefs ────────────────────────────────────────────────────────────
-
-@router.post("/{avail_day_id}/location-prefs/{pref_id}", response_model=schemas.AvailDayShow)
-def put_in_location_pref(avail_day_id: uuid.UUID, pref_id: uuid.UUID, _: DesktopUser):
-    return db_services.AvailDay.put_in_location_pref(avail_day_id, pref_id)
-
-
-@router.post("/{avail_day_id}/location-prefs/bulk", response_model=schemas.AvailDayShow)
-def put_in_location_prefs(avail_day_id: uuid.UUID, body: IdsBody, _: DesktopUser):
-    return db_services.AvailDay.put_in_location_prefs(avail_day_id, body.ids)
-
-
-@router.delete("/{avail_day_id}/location-prefs/{pref_id}", response_model=schemas.AvailDayShow)
-def remove_location_pref(avail_day_id: uuid.UUID, pref_id: uuid.UUID, _: DesktopUser):
-    return db_services.AvailDay.remove_location_pref(avail_day_id, pref_id)
-
-
-@router.delete("/{avail_day_id}/location-prefs", response_model=schemas.AvailDayShow)
-def clear_location_prefs(avail_day_id: uuid.UUID, _: DesktopUser):
-    return db_services.AvailDay.clear_location_prefs(avail_day_id)
-
-
 @router.post("/batch/location-prefs/replace")
 def replace_location_prefs_for_avail_days(body: ReplaceLocationPrefsForAvailDaysBody, _: DesktopUser):
     score_dict = {e.location_id: e.score for e in body.entries}
@@ -159,23 +120,67 @@ def restore_location_prefs_for_avail_days(body: RestoreLocationPrefsForAvailDays
     db_services.AvailDay.restore_location_prefs_for_avail_days(body.target_ids_per_avail_day)
 
 
+# ── comb-loc-possibles ────────────────────────────────────────────────────────
+
+@router.post("/{avail_day_id}/comb-loc-possibles/bulk", response_model=schemas.AvailDayShow)
+def put_in_comb_loc_possibles(avail_day_id: uuid.UUID, body: IdsBody, _: DesktopUser):
+    return db_services.AvailDay.put_in_comb_loc_possibles(avail_day_id, body.ids)
+
+
+@router.delete("/{avail_day_id}/comb-loc-possibles", response_model=schemas.AvailDayShow)
+def clear_comb_loc_possibles(avail_day_id: uuid.UUID, _: DesktopUser):
+    return db_services.AvailDay.clear_comb_loc_possibles(avail_day_id)
+
+
+@router.post("/{avail_day_id}/comb-loc-possibles/{clp_id}", response_model=schemas.AvailDayShow)
+def put_in_comb_loc_possible(avail_day_id: uuid.UUID, clp_id: uuid.UUID, _: DesktopUser):
+    return db_services.AvailDay.put_in_comb_loc_possible(avail_day_id, clp_id)
+
+
+@router.delete("/{avail_day_id}/comb-loc-possibles/{clp_id}", response_model=schemas.AvailDayShow)
+def remove_comb_loc_possible(avail_day_id: uuid.UUID, clp_id: uuid.UUID, _: DesktopUser):
+    return db_services.AvailDay.remove_comb_loc_possible(avail_day_id, clp_id)
+
+
+# ── location-prefs ────────────────────────────────────────────────────────────
+
+@router.post("/{avail_day_id}/location-prefs/bulk", response_model=schemas.AvailDayShow)
+def put_in_location_prefs(avail_day_id: uuid.UUID, body: IdsBody, _: DesktopUser):
+    return db_services.AvailDay.put_in_location_prefs(avail_day_id, body.ids)
+
+
+@router.delete("/{avail_day_id}/location-prefs", response_model=schemas.AvailDayShow)
+def clear_location_prefs(avail_day_id: uuid.UUID, _: DesktopUser):
+    return db_services.AvailDay.clear_location_prefs(avail_day_id)
+
+
+@router.post("/{avail_day_id}/location-prefs/{pref_id}", response_model=schemas.AvailDayShow)
+def put_in_location_pref(avail_day_id: uuid.UUID, pref_id: uuid.UUID, _: DesktopUser):
+    return db_services.AvailDay.put_in_location_pref(avail_day_id, pref_id)
+
+
+@router.delete("/{avail_day_id}/location-prefs/{pref_id}", response_model=schemas.AvailDayShow)
+def remove_location_pref(avail_day_id: uuid.UUID, pref_id: uuid.UUID, _: DesktopUser):
+    return db_services.AvailDay.remove_location_pref(avail_day_id, pref_id)
+
+
 # ── partner-location-prefs ────────────────────────────────────────────────────
-
-@router.post("/{avail_day_id}/partner-location-prefs/{pref_id}", response_model=schemas.AvailDayShow)
-def put_in_partner_location_pref(avail_day_id: uuid.UUID, pref_id: uuid.UUID, _: DesktopUser):
-    return db_services.AvailDay.put_in_partner_location_pref(avail_day_id, pref_id)
-
 
 @router.post("/{avail_day_id}/partner-location-prefs/bulk", response_model=schemas.AvailDayShow)
 def put_in_partner_location_prefs(avail_day_id: uuid.UUID, body: IdsBody, _: DesktopUser):
     return db_services.AvailDay.put_in_partner_location_prefs(avail_day_id, body.ids)
 
 
-@router.delete("/{avail_day_id}/partner-location-prefs/{pref_id}", response_model=schemas.AvailDayShow)
-def remove_partner_location_pref(avail_day_id: uuid.UUID, pref_id: uuid.UUID, _: DesktopUser):
-    return db_services.AvailDay.remove_partner_location_pref(avail_day_id, pref_id)
-
-
 @router.delete("/{avail_day_id}/partner-location-prefs", response_model=schemas.AvailDayShow)
 def clear_partner_location_prefs(avail_day_id: uuid.UUID, _: DesktopUser):
     return db_services.AvailDay.clear_partner_location_prefs(avail_day_id)
+
+
+@router.post("/{avail_day_id}/partner-location-prefs/{pref_id}", response_model=schemas.AvailDayShow)
+def put_in_partner_location_pref(avail_day_id: uuid.UUID, pref_id: uuid.UUID, _: DesktopUser):
+    return db_services.AvailDay.put_in_partner_location_pref(avail_day_id, pref_id)
+
+
+@router.delete("/{avail_day_id}/partner-location-prefs/{pref_id}", response_model=schemas.AvailDayShow)
+def remove_partner_location_pref(avail_day_id: uuid.UUID, pref_id: uuid.UUID, _: DesktopUser):
+    return db_services.AvailDay.remove_partner_location_pref(avail_day_id, pref_id)

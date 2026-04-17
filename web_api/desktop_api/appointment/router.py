@@ -64,10 +64,21 @@ def create_appointment(body: AppointmentCreateBody, _: DesktopUser):
     return db_services.Appointment.create(body.appointment, body.plan_id)
 
 
+# /bulk* MUSS vor /{appointment_id} stehen — sonst matcht "bulk" als UUID.
 @router.post("/bulk", response_model=BulkCreateResponse, status_code=status.HTTP_201_CREATED)
 def create_appointments_bulk(body: AppointmentBulkCreateBody, _: DesktopUser):
     ids = db_services.Appointment.create_bulk(body.appointments, body.plan_id)
     return BulkCreateResponse(ids=ids)
+
+
+@router.delete("/bulk", status_code=status.HTTP_204_NO_CONTENT)
+def delete_appointments_bulk(body: AppointmentBulkIdsBody, _: DesktopUser):
+    db_services.Appointment.delete_bulk(body.appointment_ids)
+
+
+@router.post("/bulk/undelete", status_code=status.HTTP_204_NO_CONTENT)
+def undelete_appointments_bulk(body: AppointmentBulkIdsBody, _: DesktopUser):
+    db_services.Appointment.undelete_bulk(body.appointment_ids)
 
 
 @router.patch("/{appointment_id}/avail-days", status_code=status.HTTP_204_NO_CONTENT)
@@ -98,16 +109,6 @@ def delete_appointment(appointment_id: uuid.UUID, _: DesktopUser):
 @router.post("/{appointment_id}/undelete", status_code=status.HTTP_204_NO_CONTENT)
 def undelete_appointment(appointment_id: uuid.UUID, _: DesktopUser):
     db_services.Appointment.undelete(appointment_id)
-
-
-@router.delete("/bulk", status_code=status.HTTP_204_NO_CONTENT)
-def delete_appointments_bulk(body: AppointmentBulkIdsBody, _: DesktopUser):
-    db_services.Appointment.delete_bulk(body.appointment_ids)
-
-
-@router.post("/bulk/undelete", status_code=status.HTTP_204_NO_CONTENT)
-def undelete_appointments_bulk(body: AppointmentBulkIdsBody, _: DesktopUser):
-    db_services.Appointment.undelete_bulk(body.appointment_ids)
 
 
 @router.patch("/{appointment_id}/reassign", status_code=status.HTTP_204_NO_CONTENT)

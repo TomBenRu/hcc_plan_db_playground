@@ -89,16 +89,8 @@ def remove_time_of_day_standard(person_id: uuid.UUID, time_of_day_id: uuid.UUID,
     return db_services.Person.remove_time_of_day_standard(person_id, time_of_day_id)
 
 
-@router.post("/{person_id}/comb-loc-possibles/{clp_id}", response_model=schemas.PersonShow)
-def put_in_comb_loc_possible(person_id: uuid.UUID, clp_id: uuid.UUID, _: DesktopUser):
-    return db_services.Person.put_in_comb_loc_possible(person_id, clp_id)
-
-
-@router.delete("/{person_id}/comb-loc-possibles/{clp_id}", response_model=schemas.PersonShow)
-def remove_comb_loc_possible(person_id: uuid.UUID, clp_id: uuid.UUID, _: DesktopUser):
-    return db_services.Person.remove_comb_loc_possible(person_id, clp_id)
-
-
+# Statische Pfade MUESSEN vor dynamischen {clp_id}/{pref_id}-Routen stehen,
+# sonst matcht FastAPI "replace"/"bulk-update" als UUID-Parameter.
 @router.post("/{person_id}/comb-loc-possibles/replace",
              response_model=dict[str, list[uuid.UUID]])
 def replace_comb_loc_possibles(person_id: uuid.UUID, body: ReplaceCombLocPossiblesBody, _: DesktopUser):
@@ -113,14 +105,14 @@ def restore_comb_loc_possibles(person_id: uuid.UUID, body: RestoreCombLocPossibl
     db_services.Person.restore_comb_loc_possibles(person_id, body.comb_ids_to_restore)
 
 
-@router.post("/{person_id}/location-prefs/{pref_id}", response_model=schemas.PersonShow)
-def put_in_location_pref(person_id: uuid.UUID, pref_id: uuid.UUID, _: DesktopUser):
-    return db_services.Person.put_in_location_pref(person_id, pref_id)
+@router.post("/{person_id}/comb-loc-possibles/{clp_id}", response_model=schemas.PersonShow)
+def put_in_comb_loc_possible(person_id: uuid.UUID, clp_id: uuid.UUID, _: DesktopUser):
+    return db_services.Person.put_in_comb_loc_possible(person_id, clp_id)
 
 
-@router.delete("/{person_id}/location-prefs/{pref_id}", response_model=schemas.PersonShow)
-def remove_location_pref(person_id: uuid.UUID, pref_id: uuid.UUID, _: DesktopUser):
-    return db_services.Person.remove_location_pref(person_id, pref_id)
+@router.delete("/{person_id}/comb-loc-possibles/{clp_id}", response_model=schemas.PersonShow)
+def remove_comb_loc_possible(person_id: uuid.UUID, clp_id: uuid.UUID, _: DesktopUser):
+    return db_services.Person.remove_comb_loc_possible(person_id, clp_id)
 
 
 @router.post("/{person_id}/location-prefs/bulk-update",
@@ -133,6 +125,16 @@ def update_location_prefs_bulk(person_id: uuid.UUID, body: UpdateLocationPrefsBu
 @router.post("/{person_id}/location-prefs/bulk-restore", status_code=status.HTTP_204_NO_CONTENT)
 def restore_location_prefs_bulk(person_id: uuid.UUID, body: RestoreLocationPrefsBulkBody, _: DesktopUser):
     db_services.Person.restore_location_prefs_bulk(person_id, body.pref_ids_to_restore)
+
+
+@router.post("/{person_id}/location-prefs/{pref_id}", response_model=schemas.PersonShow)
+def put_in_location_pref(person_id: uuid.UUID, pref_id: uuid.UUID, _: DesktopUser):
+    return db_services.Person.put_in_location_pref(person_id, pref_id)
+
+
+@router.delete("/{person_id}/location-prefs/{pref_id}", response_model=schemas.PersonShow)
+def remove_location_pref(person_id: uuid.UUID, pref_id: uuid.UUID, _: DesktopUser):
+    return db_services.Person.remove_location_pref(person_id, pref_id)
 
 
 @router.post("/{person_id}/partner-location-prefs/{pref_id}", response_model=schemas.PersonShow)

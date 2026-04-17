@@ -72,11 +72,7 @@ def update_variation_weight(eg_id: uuid.UUID, body: VariationWeightBody, _: Desk
     return db_services.EventGroup.update_variation_weight(eg_id, body.variation_weight)
 
 
-@router.patch("/{eg_id}/parent", status_code=status.HTTP_204_NO_CONTENT)
-def set_new_parent(eg_id: uuid.UUID, body: NewParentBody, _: DesktopUser):
-    db_services.EventGroup.set_new_parent(eg_id, body.new_parent_id)
-
-
+# Statische /batch/... vor dynamischen /{eg_id}/... Routen.
 @router.post("/batch/parent", response_model=BatchParentResponse)
 def set_new_parent_batch(body: BatchParentRequest, _: DesktopUser):
     moves = [(m.child_id, m.new_parent_id) for m in body.moves]
@@ -85,3 +81,8 @@ def set_new_parent_batch(body: BatchParentRequest, _: DesktopUser):
         old_parent_infos=[OldParentInfo(old_parent_id=p, old_nr=n) for p, n in old_infos],
         nr_resets=nr_resets,
     )
+
+
+@router.patch("/{eg_id}/parent", status_code=status.HTTP_204_NO_CONTENT)
+def set_new_parent(eg_id: uuid.UUID, body: NewParentBody, _: DesktopUser):
+    db_services.EventGroup.set_new_parent(eg_id, body.new_parent_id)

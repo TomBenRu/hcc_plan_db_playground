@@ -48,3 +48,17 @@ def remove_time_of_day_standard(location_id: uuid.UUID,
     data = get_api_client().delete(
         f"/api/v1/locations-of-work/{location_id}/time-of-day-standards/{time_of_day_id}")
     return schemas.LocationOfWorkShow.model_validate(data)
+
+
+def add_skill_group(location_id: uuid.UUID,
+                     skill_group_id: uuid.UUID) -> schemas.LocationOfWorkShow:
+    data = get_api_client().post(
+        f"/api/v1/locations-of-work/{location_id}/skill-groups/{skill_group_id}")
+    return schemas.LocationOfWorkShow.model_validate(data)
+
+
+def remove_skill_group(location_id: uuid.UUID,
+                        skill_group_id: uuid.UUID) -> schemas.LocationOfWorkShow:
+    data = get_api_client().delete(
+        f"/api/v1/locations-of-work/{location_id}/skill-groups/{skill_group_id}")
+    return schemas.LocationOfWorkShow.model_validate(data)

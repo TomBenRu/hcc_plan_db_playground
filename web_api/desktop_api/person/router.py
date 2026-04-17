@@ -145,3 +145,23 @@ def put_in_partner_location_pref(person_id: uuid.UUID, pref_id: uuid.UUID, _: De
 @router.delete("/{person_id}/partner-location-prefs/{pref_id}", response_model=schemas.PersonShow)
 def remove_partner_location_pref(person_id: uuid.UUID, pref_id: uuid.UUID, _: DesktopUser):
     return db_services.Person.remove_partner_location_pref(person_id, pref_id)
+
+
+@router.post("/{person_id}/skills/{skill_id}", response_model=schemas.PersonShow)
+def add_skill(person_id: uuid.UUID, skill_id: uuid.UUID, _: DesktopUser):
+    return db_services.Person.add_skill(person_id, skill_id)
+
+
+@router.delete("/{person_id}/skills/{skill_id}", response_model=schemas.PersonShow)
+def remove_skill(person_id: uuid.UUID, skill_id: uuid.UUID, _: DesktopUser):
+    return db_services.Person.remove_skill(person_id, skill_id)
+
+
+@router.post("/{person_id}/flags/{flag_id}", response_model=schemas.PersonShow)
+def put_in_flag(person_id: uuid.UUID, flag_id: uuid.UUID, _: DesktopUser):
+    return db_services.Person.put_in_flag(person_id, flag_id)
+
+
+@router.delete("/{person_id}/flags/{flag_id}", response_model=schemas.PersonShow)
+def remove_flag(person_id: uuid.UUID, flag_id: uuid.UUID, _: DesktopUser):
+    return db_services.Person.remove_flag(person_id, flag_id)

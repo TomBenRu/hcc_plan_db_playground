@@ -184,3 +184,26 @@ def put_in_partner_location_pref(avail_day_id: uuid.UUID, pref_id: uuid.UUID, _:
 @router.delete("/{avail_day_id}/partner-location-prefs/{pref_id}", response_model=schemas.AvailDayShow)
 def remove_partner_location_pref(avail_day_id: uuid.UUID, pref_id: uuid.UUID, _: DesktopUser):
     return db_services.AvailDay.remove_partner_location_pref(avail_day_id, pref_id)
+
+
+# ── skills ────────────────────────────────────────────────────────────────────
+# Statische Pfade vor dynamischen {skill_id}.
+
+@router.post("/{avail_day_id}/skills/bulk", response_model=schemas.AvailDayShow)
+def put_in_skills(avail_day_id: uuid.UUID, body: IdsBody, _: DesktopUser):
+    return db_services.AvailDay.put_in_skills(avail_day_id, body.ids)
+
+
+@router.delete("/{avail_day_id}/skills", response_model=schemas.AvailDayShow)
+def clear_skills(avail_day_id: uuid.UUID, _: DesktopUser):
+    return db_services.AvailDay.clear_skills(avail_day_id)
+
+
+@router.post("/{avail_day_id}/skills/{skill_id}", response_model=schemas.AvailDayShow)
+def add_skill(avail_day_id: uuid.UUID, skill_id: uuid.UUID, _: DesktopUser):
+    return db_services.AvailDay.add_skill(avail_day_id, skill_id)
+
+
+@router.delete("/{avail_day_id}/skills/{skill_id}", response_model=schemas.AvailDayShow)
+def remove_skill(avail_day_id: uuid.UUID, skill_id: uuid.UUID, _: DesktopUser):
+    return db_services.AvailDay.remove_skill(avail_day_id, skill_id)

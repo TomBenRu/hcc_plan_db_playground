@@ -59,3 +59,14 @@ def new_time_of_day_standard(location_id: uuid.UUID, time_of_day_id: uuid.UUID, 
                response_model=schemas.LocationOfWorkShow)
 def remove_time_of_day_standard(location_id: uuid.UUID, time_of_day_id: uuid.UUID, _: DesktopUser):
     return db_services.LocationOfWork.remove_time_of_day_standard(location_id, time_of_day_id)
+
+
+@router.post("/{location_id}/skill-groups/{skill_group_id}", response_model=schemas.LocationOfWorkShow)
+def add_skill_group(location_id: uuid.UUID, skill_group_id: uuid.UUID, _: DesktopUser):
+    return db_services.LocationOfWork.add_skill_group(location_id, skill_group_id)
+
+
+@router.delete("/{location_id}/skill-groups/{skill_group_id}",
+               response_model=schemas.LocationOfWorkShow)
+def remove_skill_group(location_id: uuid.UUID, skill_group_id: uuid.UUID, _: DesktopUser):
+    return db_services.LocationOfWork.remove_skill_group(location_id, skill_group_id)

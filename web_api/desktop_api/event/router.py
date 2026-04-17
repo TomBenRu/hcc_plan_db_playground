@@ -59,3 +59,23 @@ def update_event_notes(event_id: uuid.UUID, body: EventNotesBody, _: DesktopUser
 @router.patch("/{event_id}/time-of-days", response_model=schemas.EventShow)
 def update_event_time_of_days(event_id: uuid.UUID, body: EventTimeOfDaysBody, _: DesktopUser):
     return db_services.Event.update_time_of_days(event_id, body.time_of_days)
+
+
+@router.post("/{event_id}/flags/{flag_id}", response_model=schemas.EventShow)
+def put_in_flag(event_id: uuid.UUID, flag_id: uuid.UUID, _: DesktopUser):
+    return db_services.Event.put_in_flag(event_id, flag_id)
+
+
+@router.delete("/{event_id}/flags/{flag_id}", response_model=schemas.EventShow)
+def remove_flag(event_id: uuid.UUID, flag_id: uuid.UUID, _: DesktopUser):
+    return db_services.Event.remove_flag(event_id, flag_id)
+
+
+@router.post("/{event_id}/skill-groups/{skill_group_id}", response_model=schemas.EventShow)
+def add_skill_group(event_id: uuid.UUID, skill_group_id: uuid.UUID, _: DesktopUser):
+    return db_services.Event.add_skill_group(event_id, skill_group_id)
+
+
+@router.delete("/{event_id}/skill-groups/{skill_group_id}", response_model=schemas.EventShow)
+def remove_skill_group(event_id: uuid.UUID, skill_group_id: uuid.UUID, _: DesktopUser):
+    return db_services.Event.remove_skill_group(event_id, skill_group_id)

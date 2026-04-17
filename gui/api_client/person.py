@@ -114,3 +114,23 @@ def put_in_partner_location_pref(person_id: uuid.UUID, pref_id: uuid.UUID) -> sc
 def remove_partner_location_pref(person_id: uuid.UUID, pref_id: uuid.UUID) -> schemas.PersonShow:
     data = get_api_client().delete(f"/api/v1/persons/{person_id}/partner-location-prefs/{pref_id}")
     return schemas.PersonShow.model_validate(data)
+
+
+def add_skill(person_id: uuid.UUID, skill_id: uuid.UUID) -> schemas.PersonShow:
+    data = get_api_client().post(f"/api/v1/persons/{person_id}/skills/{skill_id}")
+    return schemas.PersonShow.model_validate(data)
+
+
+def remove_skill(person_id: uuid.UUID, skill_id: uuid.UUID) -> schemas.PersonShow:
+    data = get_api_client().delete(f"/api/v1/persons/{person_id}/skills/{skill_id}")
+    return schemas.PersonShow.model_validate(data)
+
+
+def put_in_flag(person_id: uuid.UUID, flag_id: uuid.UUID) -> schemas.PersonShow:
+    data = get_api_client().post(f"/api/v1/persons/{person_id}/flags/{flag_id}")
+    return schemas.PersonShow.model_validate(data)
+
+
+def remove_flag(person_id: uuid.UUID, flag_id: uuid.UUID) -> schemas.PersonShow:
+    data = get_api_client().delete(f"/api/v1/persons/{person_id}/flags/{flag_id}")
+    return schemas.PersonShow.model_validate(data)

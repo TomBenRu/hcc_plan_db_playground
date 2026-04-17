@@ -183,3 +183,13 @@ def reset_avail_days_location_prefs(app_id: uuid.UUID, _: DesktopUser):
 @router.post("/{app_id}/reset-defaults/partner-location-prefs", status_code=status.HTTP_204_NO_CONTENT)
 def reset_avail_days_partner_location_prefs(app_id: uuid.UUID, _: DesktopUser):
     db_services.AvailDay.reset_all_avail_days_partner_location_prefs_of_actor_plan_period_to_defaults(app_id)
+
+
+@router.post("/{app_id}/skills/clear-all", status_code=status.HTTP_204_NO_CONTENT)
+def clear_all_skills(app_id: uuid.UUID, _: DesktopUser):
+    db_services.AvailDay.clear_all_skills_of_actor_plan_period(app_id)
+
+
+@router.post("/{app_id}/skills/reset-to-person-defaults", status_code=status.HTTP_204_NO_CONTENT)
+def reset_all_skills_to_person_defaults(app_id: uuid.UUID, _: DesktopUser):
+    db_services.AvailDay.reset_all_skills_of_actor_plan_period_to_person_defaults(app_id)

@@ -39,3 +39,23 @@ def update_time_of_days(event_id: uuid.UUID,
     data = get_api_client().patch(f"/api/v1/events/{event_id}/time-of-days",
                                   json={"time_of_days": [t.model_dump(mode="json") for t in time_of_days]})
     return schemas.EventShow.model_validate(data)
+
+
+def put_in_flag(event_id: uuid.UUID, flag_id: uuid.UUID) -> schemas.EventShow:
+    data = get_api_client().post(f"/api/v1/events/{event_id}/flags/{flag_id}")
+    return schemas.EventShow.model_validate(data)
+
+
+def remove_flag(event_id: uuid.UUID, flag_id: uuid.UUID) -> schemas.EventShow:
+    data = get_api_client().delete(f"/api/v1/events/{event_id}/flags/{flag_id}")
+    return schemas.EventShow.model_validate(data)
+
+
+def add_skill_group(event_id: uuid.UUID, skill_group_id: uuid.UUID) -> schemas.EventShow:
+    data = get_api_client().post(f"/api/v1/events/{event_id}/skill-groups/{skill_group_id}")
+    return schemas.EventShow.model_validate(data)
+
+
+def remove_skill_group(event_id: uuid.UUID, skill_group_id: uuid.UUID) -> schemas.EventShow:
+    data = get_api_client().delete(f"/api/v1/events/{event_id}/skill-groups/{skill_group_id}")
+    return schemas.EventShow.model_validate(data)

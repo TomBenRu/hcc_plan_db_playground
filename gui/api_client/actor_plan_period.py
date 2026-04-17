@@ -145,3 +145,11 @@ def reset_avail_days_location_prefs_to_defaults(app_id: uuid.UUID) -> None:
 
 def reset_avail_days_partner_location_prefs_to_defaults(app_id: uuid.UUID) -> None:
     get_api_client().post(f"/api/v1/actor-plan-periods/{app_id}/reset-defaults/partner-location-prefs")
+
+
+def clear_all_skills(app_id: uuid.UUID) -> None:
+    get_api_client().post(f"/api/v1/actor-plan-periods/{app_id}/skills/clear-all")
+
+
+def reset_all_skills_to_person_defaults(app_id: uuid.UUID) -> None:
+    get_api_client().post(f"/api/v1/actor-plan-periods/{app_id}/skills/reset-to-person-defaults")

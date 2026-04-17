@@ -148,3 +148,26 @@ def remove_partner_location_pref(avail_day_id: uuid.UUID, pref_id: uuid.UUID) ->
 def clear_partner_location_prefs(avail_day_id: uuid.UUID) -> schemas.AvailDayShow:
     data = get_api_client().delete(f"/api/v1/avail-days/{avail_day_id}/partner-location-prefs")
     return schemas.AvailDayShow.model_validate(data)
+
+
+# ── skills ────────────────────────────────────────────────────────────────────
+
+def put_in_skills(avail_day_id: uuid.UUID, skill_ids: list[uuid.UUID]) -> schemas.AvailDayShow:
+    data = get_api_client().post(f"/api/v1/avail-days/{avail_day_id}/skills/bulk",
+                                  json={"ids": [str(i) for i in skill_ids]})
+    return schemas.AvailDayShow.model_validate(data)
+
+
+def clear_skills(avail_day_id: uuid.UUID) -> schemas.AvailDayShow:
+    data = get_api_client().delete(f"/api/v1/avail-days/{avail_day_id}/skills")
+    return schemas.AvailDayShow.model_validate(data)
+
+
+def add_skill(avail_day_id: uuid.UUID, skill_id: uuid.UUID) -> schemas.AvailDayShow:
+    data = get_api_client().post(f"/api/v1/avail-days/{avail_day_id}/skills/{skill_id}")
+    return schemas.AvailDayShow.model_validate(data)
+
+
+def remove_skill(avail_day_id: uuid.UUID, skill_id: uuid.UUID) -> schemas.AvailDayShow:
+    data = get_api_client().delete(f"/api/v1/avail-days/{avail_day_id}/skills/{skill_id}")
+    return schemas.AvailDayShow.model_validate(data)

@@ -6,6 +6,7 @@ from fastapi.responses import RedirectResponse
 from sqlmodel import Session, text
 
 from web_api.auth.router import router as auth_router
+from web_api.desktop_api.router import router as desktop_api_router
 from web_api.cancellations.router import router as cancellations_router
 from web_api.config import get_settings
 from web_api.dashboard.router import router as dashboard_router
@@ -39,6 +40,7 @@ app = FastAPI(
 )
 
 app.include_router(auth_router)
+app.include_router(desktop_api_router)
 app.include_router(dashboard_router)
 app.include_router(dispatcher_router)
 app.include_router(employees_router)

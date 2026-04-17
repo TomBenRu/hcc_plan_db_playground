@@ -9,6 +9,7 @@ from uuid import UUID
 
 from database import db_services, schemas
 from commands.command_base_classes import Command
+from gui.api_client import address as api_address
 
 
 class Create(Command):
@@ -40,13 +41,13 @@ class Update(Command):
         self.old_data = db_services.Address.get(address.id)
 
     def execute(self):
-        db_services.Address.update(self.new_data)
+        api_address.update(self.new_data)
 
     def _undo(self):
-        db_services.Address.update(self.old_data)
+        api_address.update(self.old_data)
 
     def _redo(self):
-        db_services.Address.update(self.new_data)
+        api_address.update(self.new_data)
 
 
 class Delete(Command):

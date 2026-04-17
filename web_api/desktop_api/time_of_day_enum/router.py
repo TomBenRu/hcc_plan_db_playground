@@ -42,3 +42,13 @@ def prep_delete(tode_id: uuid.UUID, _: DesktopUser):
 @router.post("/{tode_id}/undo-prep-delete", response_model=schemas.TimeOfDayEnumShow)
 def undo_prep_delete(tode_id: uuid.UUID, _: DesktopUser):
     return db_services.TimeOfDayEnum.undo_prep_delete(tode_id)
+
+
+@router.post("/{tode_id}/project-standard", response_model=schemas.ProjectShow)
+def new_project_standard(tode_id: uuid.UUID, _: DesktopUser):
+    return db_services.Project.new_time_of_day_enum_standard(tode_id)
+
+
+@router.delete("/{tode_id}/project-standard", response_model=schemas.ProjectShow)
+def remove_project_standard(tode_id: uuid.UUID, _: DesktopUser):
+    return db_services.Project.remove_time_of_day_enum_standard(tode_id)

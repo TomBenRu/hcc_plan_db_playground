@@ -26,6 +26,11 @@ class AppRequestedAssignmentsBody(BaseModel):
     required_assignments: bool
 
 
+class NewTimeOfDayStandardResponse(BaseModel):
+    actor_plan_period: schemas.ActorPlanPeriodShow
+    old_standard_id: uuid.UUID | None
+
+
 @router.post("", response_model=schemas.ActorPlanPeriodShow, status_code=status.HTTP_201_CREATED)
 def create_actor_plan_period(body: ActorPlanPeriodCreateBody, _: DesktopUser):
     return db_services.ActorPlanPeriod.create(
@@ -54,3 +59,26 @@ def update_requested_assignments(app_id: uuid.UUID, body: AppRequestedAssignment
     return db_services.ActorPlanPeriod.update_requested_assignments(
         app_id, body.requested_assignments, body.required_assignments
     )
+
+
+@router.post("/{app_id}/time-of-days/{time_of_day_id}", response_model=schemas.ActorPlanPeriodShow)
+def put_in_time_of_day(app_id: uuid.UUID, time_of_day_id: uuid.UUID, _: DesktopUser):
+    return db_services.ActorPlanPeriod.put_in_time_of_day(app_id, time_of_day_id)
+
+
+@router.delete("/{app_id}/time-of-days/{time_of_day_id}", response_model=schemas.ActorPlanPeriodShow)
+def remove_in_time_of_day(app_id: uuid.UUID, time_of_day_id: uuid.UUID, _: DesktopUser):
+    return db_services.ActorPlanPeriod.remove_in_time_of_day(app_id, time_of_day_id)
+
+
+@router.post("/{app_id}/time-of-day-standards/{time_of_day_id}",
+             response_model=NewTimeOfDayStandardResponse)
+def new_time_of_day_standard(app_id: uuid.UUID, time_of_day_id: uuid.UUID, _: DesktopUser):
+    app, old_id = db_services.ActorPlanPeriod.new_time_of_day_standard(app_id, time_of_day_id)
+    return NewTimeOfDayStandardResponse(actor_plan_period=app, old_standard_id=old_id)
+
+
+@router.delete("/{app_id}/time-of-day-standards/{time_of_day_id}",
+               response_model=schemas.ActorPlanPeriodShow)
+def remove_time_of_day_standard(app_id: uuid.UUID, time_of_day_id: uuid.UUID, _: DesktopUser):
+    return db_services.ActorPlanPeriod.remove_time_of_day_standard(app_id, time_of_day_id)

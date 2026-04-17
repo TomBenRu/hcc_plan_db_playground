@@ -24,3 +24,28 @@ def update(person: schemas.PersonShow) -> schemas.Person:
 
 def delete(person_id: uuid.UUID) -> None:
     get_api_client().delete(f"/api/v1/persons/{person_id}")
+
+
+def put_in_time_of_day(person_id: uuid.UUID, time_of_day_id: uuid.UUID) -> schemas.PersonShow:
+    data = get_api_client().post(f"/api/v1/persons/{person_id}/time-of-days/{time_of_day_id}")
+    return schemas.PersonShow.model_validate(data)
+
+
+def remove_in_time_of_day(person_id: uuid.UUID, time_of_day_id: uuid.UUID) -> schemas.PersonShow:
+    data = get_api_client().delete(f"/api/v1/persons/{person_id}/time-of-days/{time_of_day_id}")
+    return schemas.PersonShow.model_validate(data)
+
+
+def new_time_of_day_standard(person_id: uuid.UUID,
+                              time_of_day_id: uuid.UUID) -> tuple[schemas.PersonShow, uuid.UUID | None]:
+    data = get_api_client().post(
+        f"/api/v1/persons/{person_id}/time-of-day-standards/{time_of_day_id}")
+    old_id = uuid.UUID(data["old_standard_id"]) if data["old_standard_id"] else None
+    return schemas.PersonShow.model_validate(data["person"]), old_id
+
+
+def remove_time_of_day_standard(person_id: uuid.UUID,
+                                 time_of_day_id: uuid.UUID) -> schemas.PersonShow:
+    data = get_api_client().delete(
+        f"/api/v1/persons/{person_id}/time-of-day-standards/{time_of_day_id}")
+    return schemas.PersonShow.model_validate(data)

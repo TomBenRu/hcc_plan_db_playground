@@ -27,6 +27,7 @@ from web_api.desktop_api.skill_group.router import router as skill_group_router
 from web_api.desktop_api.team.router import router as team_router
 from web_api.desktop_api.team_actor_assign.router import router as team_actor_assign_router
 from web_api.desktop_api.team_location_assign.router import router as team_location_assign_router
+from web_api.desktop_api.time_of_day.router import router as time_of_day_router
 from web_api.desktop_api.time_of_day_enum.router import router as time_of_day_enum_router
 
 router = APIRouter(prefix="/api/v1", tags=["desktop-api"])
@@ -51,6 +52,7 @@ router.include_router(cast_group_router)
 router.include_router(cast_rule_router)
 router.include_router(avail_day_group_router)
 router.include_router(time_of_day_enum_router)
+router.include_router(time_of_day_router)
 router.include_router(skill_router)
 router.include_router(skill_group_router)
 router.include_router(max_fair_shifts_of_app_router)

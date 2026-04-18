@@ -23,12 +23,15 @@ und die Auth-Exception normal geworfen.
 
 from __future__ import annotations
 
+import logging
 import os
 from typing import Any
-from urllib.parse import urlparse
 
 import requests
 from requests import Response
+
+
+logger = logging.getLogger(__name__)
 
 from gui.auth.token_store import (
     TokenStoreError,
@@ -129,32 +132,34 @@ class DesktopApiClient:
         """
         stored = load_refresh_token()
         if not stored:
+            logger.info("Silent-Login: kein Refresh-Token im Keyring.")
             return False
-        # Cookie mit passender Domain + Pfad injizieren — /auth/refresh
-        # erwartet den Refresh-Token als httpOnly-Cookie. Explizites
-        # domain= ist wichtig, sonst haengt die Matching-Semantik von
-        # der cookielib-Version ab (requests sendet unscoped-Cookies
-        # je nach Policy ggf. gar nicht).
-        hostname = urlparse(self._base_url).hostname or "localhost"
-        self._session.cookies.set(
-            _REFRESH_COOKIE, stored, domain=hostname, path=_REFRESH_PATH,
-        )
+        logger.info("Silent-Login: probiere /auth/refresh an %s", self._base_url)
+        # Cookie direkt als Request-Parameter uebergeben — umgeht jede
+        # cookielib-Domain-/Pfad-Matching-Logik im Session-Jar. Der Server
+        # liefert via Set-Cookie-Header den rotierten Token zurueck; dieser
+        # landet dann mit korrekter Scoping vom Server im Session-Jar.
         try:
             response = self._session.post(
                 f"{self._base_url}{_REFRESH_PATH}",
                 headers={"Accept": "application/json"},
+                cookies={_REFRESH_COOKIE: stored},
             )
-        except requests.RequestException:
+        except requests.RequestException as exc:
+            logger.warning("Silent-Login: Server nicht erreichbar (%s).", exc)
             return False
         if not response.ok:
-            # Token abgelaufen oder invalidiert — aufraeumen.
+            logger.info(
+                "Silent-Login: Server lehnt Refresh-Token ab (HTTP %s). Token wird entfernt.",
+                response.status_code,
+            )
             clear_refresh_token()
             self._session.cookies.clear()
             return False
         try:
             self._access_token = response.json()["access_token"]
-        except (ValueError, KeyError):
-            # Server hat unerwartet kein JSON / kein access_token geliefert.
+        except (ValueError, KeyError) as exc:
+            logger.warning("Silent-Login: unerwartete Antwort (%s). Token wird entfernt.", exc)
             clear_refresh_token()
             self._session.cookies.clear()
             return False
@@ -166,6 +171,7 @@ class DesktopApiClient:
                 save_refresh_token(new_refresh)
             except TokenStoreError:
                 pass
+        logger.info("Silent-Login erfolgreich.")
         return True
 
     def _try_refresh_on_401(self) -> bool:
@@ -175,12 +181,14 @@ class DesktopApiClient:
         vom bereits in der Session-Cookie stehenden Refresh-Token. Schlaegt
         der Refresh fehl, wird alles aufgeraeumt (Keyring + Session-Cookies).
         """
-        if not self._session.cookies.get(_REFRESH_COOKIE):
+        refresh_value = self._session.cookies.get(_REFRESH_COOKIE)
+        if not refresh_value:
             return False
         try:
             response = self._session.post(
                 f"{self._base_url}{_REFRESH_PATH}",
                 headers={"Accept": "application/json"},
+                cookies={_REFRESH_COOKIE: refresh_value},
             )
         except requests.RequestException:
             return False

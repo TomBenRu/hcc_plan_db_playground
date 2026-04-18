@@ -16,6 +16,7 @@ from database import schemas, db_services
 from gui import frm_flag, frm_time_of_day, frm_group_mode, frm_cast_group, widget_styles, data_processing, \
     frm_event_planing_rules, frm_num_actors_app
 from gui.custom_widgets import side_menu
+from gui.custom_widgets.custom_text_edits import NotesTextEdit
 from gui.frm_notes import DlgEventNotes
 from gui.frm_num_actors_app import DlgNumEmployeesEvent
 from gui.frm_skill_groups import DlgSkillGroups
@@ -900,6 +901,8 @@ class FrmTabLocationPlanPeriods(QWidget):
 
         signal_handling.handler_show_dialog.signal_show_dlg_cast_group_pp.connect(self._edit_cast_groups_plan_period)
 
+        self.controller = command_base_classes.ContrExecUndoRedo()
+
         # Alle Anzeigedaten in einer einzigen DB-Session laden
         mask_data = db_services.LocationPlanPeriod.get_location_mask_data(plan_period.id)
 
@@ -929,8 +932,8 @@ class FrmTabLocationPlanPeriods(QWidget):
         font_lb_notes = self.lb_notes_pp.font()
         font_lb_notes.setBold(True)
         self.lb_notes_pp.setFont(font_lb_notes)
-        self.te_notes_pp = QTextEdit()
-        self.te_notes_pp.textChanged.connect(self.save_info_location_pp)
+        self.te_notes_pp = NotesTextEdit()
+        self.te_notes_pp.editing_finished.connect(self.save_info_location_pp)
         self.te_notes_pp.setFixedHeight(180)
         self.te_notes_pp.setDisabled(True)
 
@@ -939,8 +942,8 @@ class FrmTabLocationPlanPeriods(QWidget):
         font_lb_notes = self.lb_notes_location.font()
         font_lb_notes.setBold(True)
         self.lb_notes_location.setFont(font_lb_notes)
-        self.te_notes_location = QTextEdit()
-        self.te_notes_location.textChanged.connect(self.save_info_location)
+        self.te_notes_location = NotesTextEdit()
+        self.te_notes_location.editing_finished.connect(self.save_info_location)
         self.te_notes_location.setFixedHeight(180)
         self.te_notes_location.setDisabled(True)
 
@@ -1075,25 +1078,30 @@ class FrmTabLocationPlanPeriods(QWidget):
             widget.deleteLater()
 
     def info_text_setup(self):
-        self.te_notes_pp.textChanged.disconnect()
         self.te_notes_pp.clear()
         self.te_notes_pp.setText(self.location_id__location_pp[str(self.location_id)].notes)
-        self.te_notes_pp.textChanged.connect(self.save_info_location_pp)
 
-        self.te_notes_location.textChanged.disconnect()
         self.te_notes_location.clear()
         self.te_notes_location.setText(self.location.notes)
-        self.te_notes_location.textChanged.connect(self.save_info_location)
 
     def save_info_location_pp(self):
-        updated_location_plan_period = db_services.LocationPlanPeriod.update_notes(
-            self.location_id__location_pp[str(self.location_id)].id, self.te_notes_pp.toPlainText())
-        self.location_id__location_pp[str(self.location_id)] = updated_location_plan_period
+        lpp = self.location_id__location_pp[str(self.location_id)]
+        new_notes = self.te_notes_pp.toPlainText()
+        if new_notes == (lpp.notes or ''):
+            return
+        cmd = location_plan_period_commands.UpdateNotes(lpp.id, new_notes, notes_old=lpp.notes or '')
+        self.controller.execute(cmd)
+        if cmd.updated_location_plan_period is not None:
+            self.location_id__location_pp[str(self.location_id)] = cmd.updated_location_plan_period
 
     def save_info_location(self):
-        self.location.notes = self.te_notes_location.toPlainText()
-        updated_location = db_services.LocationOfWork.update_notes(
-            self.location_id, self.te_notes_location.toPlainText())
+        # TODO(api-migration Kat. B): LocationOfWork.update_notes Endpoint + Command fehlen.
+        # Bis dahin direkter db_services-Call, aber mit Dirty-Check zur DB-Entlastung.
+        new_notes = self.te_notes_location.toPlainText()
+        if new_notes == (self.location.notes or ''):
+            return
+        self.location.notes = new_notes
+        db_services.LocationOfWork.update_notes(self.location_id, new_notes)
 
     def edit_cast_groups_plan_period(self):
         visible_plan_period_ids = {location_pp.id for location_pp in self.location_plan_periods}

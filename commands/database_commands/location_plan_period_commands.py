@@ -287,3 +287,27 @@ class UpdateNumActors(Command):
         self.updated_location_plan_period = api_lpp.update_num_actors(
             self.location_plan_period_id, self.num_actors)
 
+
+class UpdateNotes(Command):
+    def __init__(self, location_plan_period_id: UUID, notes: str, notes_old: str | None = None):
+        super().__init__()
+        self.location_plan_period_id = location_plan_period_id
+        self.notes = notes
+        self.notes_old = (
+            notes_old if notes_old is not None
+            else db_services.LocationPlanPeriod.get(location_plan_period_id).notes
+        )
+        self.updated_location_plan_period: schemas.LocationPlanPeriodShow | None = None
+
+    def execute(self):
+        self.updated_location_plan_period = api_lpp.update_notes(
+            self.location_plan_period_id, self.notes)
+
+    def _undo(self):
+        self.updated_location_plan_period = api_lpp.update_notes(
+            self.location_plan_period_id, self.notes_old or '')
+
+    def _redo(self):
+        self.updated_location_plan_period = api_lpp.update_notes(
+            self.location_plan_period_id, self.notes)
+

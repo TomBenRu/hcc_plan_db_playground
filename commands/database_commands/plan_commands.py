@@ -78,6 +78,26 @@ class DeletePrepDeleted(Command):
         ...
 
 
+class DeletePrepDeletesFromTeam(Command):
+    """Hartes Löschen aller prep-deleted Plaene eines Teams. Irreversibel —
+    Undo/Redo sind no-ops, weil hard-deletes nicht wiederhergestellt werden
+    können. Aufrufer holt Bestaetigungs-Dialog ein.
+    """
+
+    def __init__(self, team_id: UUID):
+        super().__init__()
+        self.team_id = team_id
+
+    def execute(self):
+        api_plan.delete_prep_deletes_from__team(self.team_id)
+
+    def _undo(self):
+        ...
+
+    def _redo(self):
+        ...
+
+
 class UpdateName(Command):
     def __init__(self, plan_id, new_name: str):
         super().__init__()

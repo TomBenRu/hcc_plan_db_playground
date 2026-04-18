@@ -640,7 +640,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             .format(num_plans_to_delete=num_plans_to_delete, team_name=self.curr_team.name),  #
                                            QMessageBox.Yes, QMessageBox.Cancel)
         if confirmation == QMessageBox.Yes:
-            db_services.Plan.delete_prep_deletes_from__team(self.curr_team.id)
+            self.controller.execute(plan_commands.DeletePrepDeletesFromTeam(self.curr_team.id))
 
     def settings_project(self):
         dlg = DlgSettingsProject(self, self.project_id)

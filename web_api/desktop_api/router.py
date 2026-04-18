@@ -12,6 +12,9 @@ from web_api.desktop_api.avail_day_group.router import router as avail_day_group
 from web_api.desktop_api.cast_group.router import router as cast_group_router
 from web_api.desktop_api.cast_rule.router import router as cast_rule_router
 from web_api.desktop_api.combination_locations_possible.router import router as combination_locations_possible_router
+from web_api.desktop_api.email.router import router as email_router
+from web_api.desktop_api.employee_event.router import router as employee_event_router
+from web_api.desktop_api.employee_event_category.router import router as employee_event_category_router
 from web_api.desktop_api.event.router import router as event_router
 from web_api.desktop_api.event_group.router import router as event_group_router
 from web_api.desktop_api.excel_export_settings.router import router as excel_export_settings_router
@@ -65,3 +68,6 @@ router.include_router(location_of_work_router)
 router.include_router(actor_location_pref_router)
 router.include_router(actor_partner_location_pref_router)
 router.include_router(combination_locations_possible_router)
+router.include_router(employee_event_router)
+router.include_router(employee_event_category_router)
+router.include_router(email_router)

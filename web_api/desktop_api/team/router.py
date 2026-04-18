@@ -30,6 +30,33 @@ class RestoreCombLocPossiblesBody(BaseModel):
     comb_ids_to_restore: list[uuid.UUID]
 
 
+class TeamCreateBody(BaseModel):
+    name: str
+    project_id: uuid.UUID
+    dispatcher_id: uuid.UUID | None = None
+
+
+@router.post("", response_model=schemas.TeamShow, status_code=status.HTTP_201_CREATED)
+def create_team(body: TeamCreateBody, _: DesktopUser):
+    return db_services.Team.create(body.name, body.project_id, body.dispatcher_id)
+
+
+@router.put("/{team_id}", response_model=schemas.TeamShow)
+def update_team(team_id: uuid.UUID, body: schemas.Team, _: DesktopUser):
+    return db_services.Team.update(body)
+
+
+@router.delete("/{team_id}", response_model=schemas.Team)
+def delete_team(team_id: uuid.UUID, _: DesktopUser):
+    """Soft-Delete (setzt prep_delete)."""
+    return db_services.Team.delete(team_id)
+
+
+@router.post("/{team_id}/undelete", response_model=schemas.Team)
+def undelete_team(team_id: uuid.UUID, _: DesktopUser):
+    return db_services.Team.undelete(team_id)
+
+
 @router.patch("/{team_id}/notes", response_model=schemas.TeamShow)
 def update_team_notes(team_id: uuid.UUID, body: TeamNotesBody, _: DesktopUser):
     return db_services.Team.update_notes(team_id, body.notes)

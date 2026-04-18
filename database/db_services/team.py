@@ -189,3 +189,13 @@ def delete(team_id: UUID) -> schemas.Team:
         team_db.prep_delete = _utcnow()
         session.flush()
         return schemas.Team.model_validate(team_db)
+
+
+def undelete(team_id: UUID) -> schemas.Team:
+    """Hebt das Soft-Delete einer Team-Zeile auf (Undo-Pfad)."""
+    log_function_info()
+    with get_session() as session:
+        team_db = session.get(models.Team, team_id)
+        team_db.prep_delete = None
+        session.flush()
+        return schemas.Team.model_validate(team_db)

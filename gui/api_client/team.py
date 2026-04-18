@@ -6,6 +6,32 @@ from database import schemas
 from gui.api_client.client import get_api_client
 
 
+def create(name: str, project_id: uuid.UUID,
+           dispatcher_id: uuid.UUID | None = None) -> schemas.TeamShow:
+    data = get_api_client().post("/api/v1/teams", json={
+        "name": name,
+        "project_id": str(project_id),
+        "dispatcher_id": str(dispatcher_id) if dispatcher_id else None,
+    })
+    return schemas.TeamShow.model_validate(data)
+
+
+def update(team: schemas.Team) -> schemas.TeamShow:
+    data = get_api_client().put(f"/api/v1/teams/{team.id}",
+                                json=team.model_dump(mode="json"))
+    return schemas.TeamShow.model_validate(data)
+
+
+def delete(team_id: uuid.UUID) -> schemas.Team:
+    data = get_api_client().delete(f"/api/v1/teams/{team_id}")
+    return schemas.Team.model_validate(data)
+
+
+def undelete(team_id: uuid.UUID) -> schemas.Team:
+    data = get_api_client().post(f"/api/v1/teams/{team_id}/undelete")
+    return schemas.Team.model_validate(data)
+
+
 def update_notes(team_id: uuid.UUID, notes: str) -> schemas.TeamShow:
     data = get_api_client().patch(f"/api/v1/teams/{team_id}/notes",
                                   json={"notes": notes})

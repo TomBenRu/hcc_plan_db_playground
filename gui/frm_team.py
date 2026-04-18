@@ -6,6 +6,8 @@ from PySide6.QtWidgets import QDialog, QWidget, QLineEdit, QHBoxLayout, QPushBut
 from sqlalchemy.exc import IntegrityError
 
 from database import schemas, db_services
+from commands import command_base_classes
+from commands.database_commands import team_commands
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from tools.helper_functions import setup_form_help
 
@@ -24,6 +26,7 @@ class FrmTeam(QDialog):
         self.new_team: schemas.TeamCreate | None = None
         self.new_mode = False
         self.to_delete_status = False
+        self.controller = command_base_classes.ContrExecUndoRedo()
 
         self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
 
@@ -91,8 +94,11 @@ class FrmTeam(QDialog):
                                    .format(name=team_name))
                 return
             try:
-                team_created = db_services.Team.create(team_name=self.le_name.text(), project_id=self.project.id,
-                                                       dispatcher_id=dispatcher_id)
+                cmd = team_commands.Create(name=self.le_name.text(),
+                                            project_id=self.project.id,
+                                            dispatcher_id=dispatcher_id)
+                self.controller.execute(cmd)
+                team_created = cmd.created_team
             except IntegrityError as e:
                 if e.orig and str(e.orig).startswith('UNIQUE constraint failed'):
                     QMessageBox.critical(self, self.tr('Error'),
@@ -110,17 +116,18 @@ class FrmTeam(QDialog):
         else:
             self.curr_team.name = self.le_name.text()
             self.curr_team.dispatcher = db_services.Person.get(dispatcher_id) if dispatcher_id else None
-            updated_team = db_services.Team.update(self.curr_team)
+            update_payload = schemas.Team.model_validate(self.curr_team.model_dump())
+            self.controller.execute(team_commands.Update(update_payload))
             QMessageBox.information(self, self.tr('Team Update'),
                                   self.tr('Team has been updated:\n{team}')
-                                  .format(team=updated_team))
+                                  .format(team=self.curr_team))
         self.accept()
 
     def delete(self):
-        deleted_team = db_services.Team.delete(self.curr_team.id)
+        self.controller.execute(team_commands.Delete(self.curr_team.id))
         QMessageBox.information(self, self.tr('Team Deletion'),
                               self.tr('The team has been deleted:\n{team}')
-                              .format(team=deleted_team))
+                              .format(team=self.curr_team))
         self.accept()
 
     def change_new_mode(self):

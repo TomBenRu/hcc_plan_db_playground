@@ -10,6 +10,7 @@ from uuid import UUID
 
 from database import db_services, schemas
 from commands.command_base_classes import Command
+from gui.api_client import cast_rule as api_cast_rule
 
 
 class Create(Command):
@@ -21,13 +22,13 @@ class Create(Command):
         self.created_cast_rule: schemas.CastRuleShow | None = None
 
     def execute(self):
-        self.created_cast_rule = db_services.CastRule.create(self.project_id, self.name, self.rule)
+        self.created_cast_rule = api_cast_rule.create(self.project_id, self.name, self.rule)
 
     def _undo(self):
-        db_services.CastRule.delete(self.created_cast_rule.id)
+        api_cast_rule.delete(self.created_cast_rule.id)
 
     def _redo(self):
-        db_services.CastRule.create(self.project_id, self.name, self.rule, self.created_cast_rule.id)
+        api_cast_rule.create(self.project_id, self.name, self.rule, self.created_cast_rule.id)
 
 
 class Update(Command):
@@ -40,13 +41,13 @@ class Update(Command):
         self.updated_cast_rule: schemas.CastRuleShow | None = None
 
     def execute(self):
-        self.updated_cast_rule = db_services.CastRule.update(self.cast_rule_id, self.name, self.rule)
+        self.updated_cast_rule = api_cast_rule.update(self.cast_rule_id, self.name, self.rule)
 
     def _undo(self):
-        db_services.CastRule.update(self.cast_rule_id, self.cast_rule.name, self.cast_rule.rule)
+        api_cast_rule.update(self.cast_rule_id, self.cast_rule.name, self.cast_rule.rule)
 
     def _redo(self):
-        db_services.CastRule.update(self.cast_rule_id, self.name, self.rule)
+        api_cast_rule.update(self.cast_rule_id, self.name, self.rule)
 
 class SetPrepDelete(Command):
     def __init__(self, cast_rule_id: UUID):
@@ -55,12 +56,12 @@ class SetPrepDelete(Command):
         self.updated_cast_rule: schemas.CastRuleShow | None = None
 
     def execute(self):
-        self.updated_cast_rule = db_services.CastRule.set_prep_delete(self.cast_rule_id)
+        self.updated_cast_rule = api_cast_rule.set_prep_delete(self.cast_rule_id)
 
     def _undo(self):
-        db_services.CastRule.undelete(self.cast_rule_id)
+        api_cast_rule.undelete(self.cast_rule_id)
 
     def _redo(self):
-        db_services.CastRule.set_prep_delete(self.cast_rule_id)
+        api_cast_rule.set_prep_delete(self.cast_rule_id)
 
 

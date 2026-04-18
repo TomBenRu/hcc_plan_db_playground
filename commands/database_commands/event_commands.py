@@ -13,6 +13,7 @@ from uuid import UUID
 
 from database import db_services, schemas
 from commands.command_base_classes import Command
+from gui.api_client import event as api_event
 
 
 class Create(Command):
@@ -22,13 +23,21 @@ class Create(Command):
         self.created_event: schemas.EventShow | None = None
 
     def execute(self):
-        self.created_event = db_services.Event.create(self.event)
+        self.created_event = api_event.create(
+            date=self.event.date,
+            location_plan_period_id=self.event.location_plan_period.id,
+            time_of_day_id=self.event.time_of_day.id,
+        )
 
     def _undo(self):
-        db_services.Event.delete(self.created_event.id)
+        api_event.delete(self.created_event.id)
 
     def _redo(self):
-        self.created_event = db_services.Event.create(self.event)
+        self.created_event = api_event.create(
+            date=self.event.date,
+            location_plan_period_id=self.event.location_plan_period.id,
+            time_of_day_id=self.event.time_of_day.id,
+        )
 
 
 class UpdateTimeOfDay(Command):
@@ -39,13 +48,13 @@ class UpdateTimeOfDay(Command):
         self.new_time_of_day_id = new_time_of_day_id
 
     def execute(self):
-        db_services.Event.update_time_of_day_and_date(self.event.id, self.new_time_of_day_id)
+        api_event.update_time_of_day_and_date(self.event.id, self.new_time_of_day_id)
 
     def _undo(self):
-        db_services.Event.update_time_of_day_and_date(self.event.id, self.old_time_of_day_id)
+        api_event.update_time_of_day_and_date(self.event.id, self.old_time_of_day_id)
 
     def _redo(self):
-        db_services.Event.update_time_of_day_and_date(self.event.id, self.new_time_of_day_id)
+        api_event.update_time_of_day_and_date(self.event.id, self.new_time_of_day_id)
 
 
 class UpdateTimeOfDays(Command):
@@ -56,13 +65,15 @@ class UpdateTimeOfDays(Command):
         self.old_time_of_days = db_services.TimeOfDay.get_time_of_days_from__event(event_id)
 
     def execute(self):
-        db_services.Event.update_time_of_days(self.event_id, self.new_time_of_days)
+        api_event.update_time_of_days(self.event_id, self.new_time_of_days)
 
     def _undo(self):
-        db_services.AvailDay.update_time_of_days(self.event_id, self.old_time_of_days)
+        # Vorher-Bug: rief db_services.AvailDay.update_time_of_days auf
+        # (falsches Service). Bei Migration gefixt auf api_event.
+        api_event.update_time_of_days(self.event_id, self.old_time_of_days)
 
     def _redo(self):
-        db_services.AvailDay.update_time_of_days(self.event_id, self.new_time_of_days)
+        api_event.update_time_of_days(self.event_id, self.new_time_of_days)
 
 
 class UpdateDateTimeOfDay(Command):
@@ -72,15 +83,15 @@ class UpdateDateTimeOfDay(Command):
         self.new_date = new_date
         self.new_time_of_day_id = new_time_of_day_id
     def execute(self):
-        db_services.Event.update_time_of_day_and_date(
+        api_event.update_time_of_day_and_date(
             self.event.id, self.new_time_of_day_id, self.new_date)
 
     def _undo(self):
-        db_services.Event.update_time_of_day_and_date(
+        api_event.update_time_of_day_and_date(
             self.event.id, self.event.time_of_day.id, self.event.date)
 
     def _redo(self):
-        db_services.Event.update_time_of_day_and_date(
+        api_event.update_time_of_day_and_date(
             self.event.id, self.new_time_of_day_id, self.new_date)
 
 
@@ -91,13 +102,13 @@ class UpdateNotes(Command):
         self.notes = notes
 
     def execute(self):
-        db_services.Event.update_notes(self.event.id, self.notes)
+        api_event.update_notes(self.event.id, self.notes)
 
     def _undo(self):
-        db_services.Event.update_notes(self.event.id, self.event.notes)
+        api_event.update_notes(self.event.id, self.event.notes)
 
     def _redo(self):
-        db_services.Event.update_notes(self.event.id, self.notes)
+        api_event.update_notes(self.event.id, self.notes)
 
 
 class Delete(Command):
@@ -108,13 +119,20 @@ class Delete(Command):
         self.containing_cast_groups = db_services.CastGroup.get(self.event_to_delete.cast_group.id).parent_groups
 
     def execute(self):
-        db_services.Event.delete(self.event_id)
+        api_event.delete(self.event_id)
 
     def _undo(self):
-        self.event_id = db_services.Event.create(self.event_to_delete)
+        # Vorher-Bug: self.event_id = Event.create(event_to_delete) (EventShow
+        # als UUID gespeichert). Bei Migration gefixt — nimmt jetzt .id.
+        recreated = api_event.create(
+            date=self.event_to_delete.date,
+            location_plan_period_id=self.event_to_delete.location_plan_period.id,
+            time_of_day_id=self.event_to_delete.time_of_day.id,
+        )
+        self.event_id = recreated.id
 
     def _redo(self):
-        db_services.Event.delete(self.event_id)
+        api_event.delete(self.event_id)
 
 
 class PutInFlag(Command):
@@ -124,13 +142,13 @@ class PutInFlag(Command):
         self.flag_id = flag_id
 
     def execute(self):
-        db_services.Event.put_in_flag(self.event_id, self.flag_id)
+        api_event.put_in_flag(self.event_id, self.flag_id)
 
     def _undo(self):
-        db_services.Event.remove_flag(self.event_id, self.flag_id)
+        api_event.remove_flag(self.event_id, self.flag_id)
 
     def _redo(self):
-        db_services.Event.put_in_flag(self.event_id, self.flag_id)
+        api_event.put_in_flag(self.event_id, self.flag_id)
 
 
 class RemoveFlag(Command):
@@ -140,13 +158,13 @@ class RemoveFlag(Command):
         self.flag_id = flag_id
 
     def execute(self):
-        db_services.Event.remove_flag(self.event_id, self.flag_id)
+        api_event.remove_flag(self.event_id, self.flag_id)
 
     def _undo(self):
-        db_services.Event.put_in_flag(self.event_id, self.flag_id)
+        api_event.put_in_flag(self.event_id, self.flag_id)
 
     def _redo(self):
-        db_services.Event.remove_flag(self.event_id, self.flag_id)
+        api_event.remove_flag(self.event_id, self.flag_id)
 
 
 class AddSkillGroup(Command):
@@ -157,13 +175,13 @@ class AddSkillGroup(Command):
         self.event: schemas.EventShow | None = None
 
     def execute(self):
-        self.event = db_services.Event.add_skill_group(self.event_id, self.skill_group_id)
+        self.event = api_event.add_skill_group(self.event_id, self.skill_group_id)
 
     def _undo(self):
-        self.event = db_services.Event.remove_skill_group(self.event_id, self.skill_group_id)
+        self.event = api_event.remove_skill_group(self.event_id, self.skill_group_id)
 
     def _redo(self):
-        self.event = db_services.Event.add_skill_group(self.event_id, self.skill_group_id)
+        self.event = api_event.add_skill_group(self.event_id, self.skill_group_id)
 
 class RemoveSkillGroup(Command):
     def __init__(self, event_id: UUID, skill_group_id: UUID):
@@ -173,10 +191,10 @@ class RemoveSkillGroup(Command):
         self.event: schemas.EventShow | None = None
 
     def execute(self):
-        self.event = db_services.Event.remove_skill_group(self.event_id, self.skill_group_id)
+        self.event = api_event.remove_skill_group(self.event_id, self.skill_group_id)
 
     def _undo(self):
-        self.event = db_services.Event.add_skill_group(self.event_id, self.skill_group_id)
+        self.event = api_event.add_skill_group(self.event_id, self.skill_group_id)
 
     def _redo(self):
-        self.event = db_services.Event.remove_skill_group(self.event_id, self.skill_group_id)
+        self.event = api_event.remove_skill_group(self.event_id, self.skill_group_id)

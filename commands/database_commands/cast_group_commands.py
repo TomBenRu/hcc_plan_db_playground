@@ -12,6 +12,7 @@ from uuid import UUID
 
 from database import db_services, schemas
 from commands.command_base_classes import Command
+from gui.api_client import cast_group as api_cast_group
 from tools.helper_functions import generate_fixed_cast_clear_text
 
 
@@ -22,13 +23,13 @@ class Create(Command):
         self.created_cast_group: schemas.CastGroupShow | None = None
 
     def execute(self):
-        self.created_cast_group = db_services.CastGroup.create(plan_period_id=self.plan_period_id)
+        self.created_cast_group = api_cast_group.create(plan_period_id=self.plan_period_id)
 
     def _undo(self):
-        db_services.CastGroup.delete(self.created_cast_group.id)
+        api_cast_group.delete(self.created_cast_group.id)
 
     def _redo(self):
-        self.created_cast_group = db_services.CastGroup.create(self.plan_period_id)
+        self.created_cast_group = api_cast_group.create(self.plan_period_id)
 
 
 class Delete(Command):
@@ -38,14 +39,14 @@ class Delete(Command):
         self.cast_group = db_services.CastGroup.get(cast_group_id)
 
     def execute(self):
-        db_services.CastGroup.delete(self.cast_group_id)
+        api_cast_group.delete(self.cast_group_id)
 
     def _undo(self):
-        db_services.CastGroup.create(plan_period_id=self.cast_group.plan_period.id,
+        api_cast_group.create(plan_period_id=self.cast_group.plan_period.id,
                                      restore_cast_group=self.cast_group)
 
     def _redo(self):
-        db_services.CastGroup.delete(self.cast_group_id)
+        api_cast_group.delete(self.cast_group_id)
 
 
 class SetNewParent(Command):
@@ -56,13 +57,13 @@ class SetNewParent(Command):
         self.new_parent_id = new_parent_id
 
     def execute(self):
-        db_services.CastGroup.set_new_parent(self.cast_group_id, self.new_parent_id)
+        api_cast_group.set_new_parent(self.cast_group_id, self.new_parent_id)
 
     def _undo(self):
-        db_services.CastGroup.remove_from_parent(self.cast_group_id, self.new_parent_id)
+        api_cast_group.remove_from_parent(self.cast_group_id, self.new_parent_id)
 
     def _redo(self):
-        db_services.CastGroup.set_new_parent(self.cast_group_id, self.new_parent_id)
+        api_cast_group.set_new_parent(self.cast_group_id, self.new_parent_id)
 
 
 class RemoveFromParent(Command):
@@ -72,13 +73,13 @@ class RemoveFromParent(Command):
         self.parent_group_id = parent_group_id
 
     def execute(self):
-        db_services.CastGroup.remove_from_parent(self.cast_group_id, self.parent_group_id)
+        api_cast_group.remove_from_parent(self.cast_group_id, self.parent_group_id)
 
     def _undo(self):
-        db_services.CastGroup.set_new_parent(self.cast_group_id, self.parent_group_id)
+        api_cast_group.set_new_parent(self.cast_group_id, self.parent_group_id)
 
     def _redo(self):
-        db_services.CastGroup.remove_from_parent(self.cast_group_id, self.parent_group_id)
+        api_cast_group.remove_from_parent(self.cast_group_id, self.parent_group_id)
 
 
 class UpdateFixedCast(Command):
@@ -94,15 +95,15 @@ class UpdateFixedCast(Command):
         cast_group = db_services.CastGroup.get(self.cast_group_id)
         self.fixed_cast_old = cast_group.fixed_cast
         self.fixed_cast_only_if_available_old = cast_group.fixed_cast_only_if_available
-        db_services.CastGroup.update_fixed_cast(self.cast_group_id, self.fixed_cast,
+        api_cast_group.update_fixed_cast(self.cast_group_id, self.fixed_cast,
                                                 self.fixed_cast_only_if_available)
 
     def _undo(self):
-        db_services.CastGroup.update_fixed_cast(self.cast_group_id, self.fixed_cast_old,
+        api_cast_group.update_fixed_cast(self.cast_group_id, self.fixed_cast_old,
                                                 self.fixed_cast_only_if_available_old)
 
     def _redo(self):
-        db_services.CastGroup.update_fixed_cast(self.cast_group_id, self.fixed_cast,
+        api_cast_group.update_fixed_cast(self.cast_group_id, self.fixed_cast,
                                                 self.fixed_cast_only_if_available)
 
     def __str__(self) -> str:
@@ -119,13 +120,13 @@ class UpdateNrActors(Command):
         self.nr_actors_old = db_services.CastGroup.get(cast_group_id).nr_actors
 
     def execute(self):
-        db_services.CastGroup.update_nr_actors(self.cast_group_id, self.nr_actors)
+        api_cast_group.update_nr_actors(self.cast_group_id, self.nr_actors)
 
     def _undo(self):
-        db_services.CastGroup.update_nr_actors(self.cast_group_id, self.nr_actors_old)
+        api_cast_group.update_nr_actors(self.cast_group_id, self.nr_actors_old)
 
     def _redo(self):
-        db_services.CastGroup.update_nr_actors(self.cast_group_id, self.nr_actors)
+        api_cast_group.update_nr_actors(self.cast_group_id, self.nr_actors)
 
     def __str__(self) -> str:
         return f"Anz. Mitarbeiter: {self.nr_actors_old} → {self.nr_actors}"
@@ -139,13 +140,13 @@ class UpdateStrictCastPref(Command):
         self.strict_cast_pref_old = db_services.CastGroup.get(cast_group_id).strict_cast_pref
 
     def execute(self):
-        db_services.CastGroup.update_strict_cast_pref(self.cast_group_id, self.strict_cast_pref)
+        api_cast_group.update_strict_cast_pref(self.cast_group_id, self.strict_cast_pref)
 
     def _undo(self):
-        db_services.CastGroup.update_strict_cast_pref(self.cast_group_id, self.strict_cast_pref_old)
+        api_cast_group.update_strict_cast_pref(self.cast_group_id, self.strict_cast_pref_old)
 
     def _redo(self):
-        db_services.CastGroup.update_strict_cast_pref(self.cast_group_id, self.strict_cast_pref)
+        api_cast_group.update_strict_cast_pref(self.cast_group_id, self.strict_cast_pref)
 
     def __str__(self) -> str:
         return f"Strenge Besetzungspräferenz: {self.strict_cast_pref_old} → {self.strict_cast_pref}"
@@ -160,17 +161,17 @@ class UpdatePreferFixedCastEvents(Command):
         self.result: schemas.CastGroupShow | None = None
 
     def execute(self):
-        self.result = db_services.CastGroup.update_prefer_fixed_cast_events(
+        self.result = api_cast_group.update_prefer_fixed_cast_events(
             self.cast_group_id, self.prefer_fixed_cast_events
         )
 
     def _undo(self):
-        self.result = db_services.CastGroup.update_prefer_fixed_cast_events(
+        self.result = api_cast_group.update_prefer_fixed_cast_events(
             self.cast_group_id, self.prefer_fixed_cast_events_old
         )
 
     def _redo(self):
-        self.result = db_services.CastGroup.update_prefer_fixed_cast_events(
+        self.result = api_cast_group.update_prefer_fixed_cast_events(
             self.cast_group_id, self.prefer_fixed_cast_events
         )
 
@@ -188,13 +189,13 @@ class UpdateCustomRule(Command):
         self.custom_rule_old = db_services.CastGroup.get(cast_group_id).custom_rule
 
     def execute(self):
-        db_services.CastGroup.update_custom_rule(self.cast_group_id, self.custom_rule)
+        api_cast_group.update_custom_rule(self.cast_group_id, self.custom_rule)
 
     def _undo(self):
-        db_services.CastGroup.update_custom_rule(self.cast_group_id, self.custom_rule_old)
+        api_cast_group.update_custom_rule(self.cast_group_id, self.custom_rule_old)
 
     def _redo(self):
-        db_services.CastGroup.update_custom_rule(self.cast_group_id, self.custom_rule)
+        api_cast_group.update_custom_rule(self.cast_group_id, self.custom_rule)
 
     def __str__(self) -> str:
         old_rule = self.custom_rule_old or "(keine)"
@@ -214,16 +215,16 @@ class UpdateCastRule(Command):
         self._new_rule_name: str | None = None
 
     def execute(self):
-        db_services.CastGroup.update_cast_rule(self.cast_group_id, self.cast_rule_id)
+        api_cast_group.update_cast_rule(self.cast_group_id, self.cast_rule_id)
         if self.cast_rule_id:
             cast_rule = db_services.CastRule.get(self.cast_rule_id)
             self._new_rule_name = cast_rule.name if cast_rule else None
 
     def _undo(self):
-        db_services.CastGroup.update_cast_rule(self.cast_group_id, self.cast_rule_id_old)
+        api_cast_group.update_cast_rule(self.cast_group_id, self.cast_rule_id_old)
 
     def _redo(self):
-        db_services.CastGroup.update_cast_rule(self.cast_group_id, self.cast_rule_id)
+        api_cast_group.update_cast_rule(self.cast_group_id, self.cast_rule_id)
 
     def __str__(self) -> str:
         old_rule = self._old_rule_name or "(keine)"

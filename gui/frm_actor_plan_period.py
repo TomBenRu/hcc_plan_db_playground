@@ -1001,12 +1001,14 @@ class FrmTabActorPlanPeriods(QWidget):
 
     def save_info_person(self):
         new_notes = self.te_notes_actor.toPlainText()
-        if new_notes == (self.person.notes or ''):
+        old_notes = self.person.notes or ''
+        if new_notes == old_notes:
             return
-        updated_person = self.person.model_copy(update={'notes': new_notes})
-        cmd = person_commands.Update(updated_person)
+        cmd = person_commands.UpdateNotes(
+            self.person.id, new_notes, notes_old=old_notes)
         self.controller.execute(cmd)
-        self.person = updated_person
+        # Cache lokal aktualisieren — Server liefert 204 No Content.
+        self.person.notes = new_notes
 
     @Slot(schemas.ActorPlanPeriod)
     def update_actor_plan_period(self, actor_plan_period: schemas.ActorPlanPeriod):

@@ -229,6 +229,18 @@ def update(person: schemas.PersonShow) -> schemas.Person:
         return schemas.Person.model_validate(person_db)
 
 
+def update_notes(person_id: UUID, notes: str) -> None:
+    """Aktualisiert nur das notes-Feld der Person. Kein Rueckgabewert —
+    Client mutiert sein Cache-Objekt selbst. Analog zu
+    ActorPlanPeriod.update_notes.
+    """
+    log_function_info()
+    with get_session() as session:
+        person_db = session.get(models.Person, person_id)
+        person_db.notes = notes
+        session.flush()
+
+
 def update_project_of_admin(person_id: UUID, project_id: UUID) -> schemas.PersonShow:
     log_function_info()
     with get_session() as session:

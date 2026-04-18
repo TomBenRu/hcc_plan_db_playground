@@ -56,6 +56,35 @@ class Update(Command):
         api_person.update(self.new_data)
 
 
+class UpdateNotes(Command):
+    """Aktualisiert nur das notes-Feld einer Person.
+
+    Schlanker Spezialfall von Update — vermeidet, dass das Widget die
+    komplette PersonShow-Struktur (mit allen Collections) laden und
+    zurueckschicken muss. Server liefert 204 No Content.
+
+    notes_old wird optional vom Aufrufer uebergeben (spart bei remote DB
+    einen Fetch der PersonShow-Hierarchie).
+    """
+
+    def __init__(self, person_id: UUID, notes: str, notes_old: str | None = None):
+        super().__init__()
+        self.person_id = person_id
+        self.notes = notes
+        if notes_old is None:
+            notes_old = db_services.Person.get(person_id).notes
+        self.notes_old = notes_old or ''
+
+    def execute(self):
+        api_person.update_notes(self.person_id, self.notes)
+
+    def _undo(self):
+        api_person.update_notes(self.person_id, self.notes_old)
+
+    def _redo(self):
+        api_person.update_notes(self.person_id, self.notes)
+
+
 class Delete(Command):
     def __init__(self, person_id: UUID):
         super().__init__()

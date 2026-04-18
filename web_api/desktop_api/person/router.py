@@ -2,7 +2,7 @@
 
 import uuid
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Response, status
 from pydantic import BaseModel
 
 from database import db_services, schemas
@@ -55,6 +55,10 @@ class UpdateAdminOfProjectBody(BaseModel):
     project_id: uuid.UUID
 
 
+class PersonNotesBody(BaseModel):
+    notes: str
+
+
 @router.post("", response_model=schemas.Person, status_code=status.HTTP_201_CREATED)
 def create_person(body: PersonCreateBody, _: DesktopUser):
     return db_services.Person.create(body.person, body.project_id, body.person_id)
@@ -73,6 +77,12 @@ def delete_person(person_id: uuid.UUID, _: DesktopUser):
 @router.post("/{person_id}/undelete", status_code=status.HTTP_204_NO_CONTENT)
 def undelete_person(person_id: uuid.UUID, _: DesktopUser):
     db_services.Person.undelete(person_id)
+
+
+@router.patch("/{person_id}/notes", status_code=204, response_class=Response)
+def update_person_notes(person_id: uuid.UUID, body: PersonNotesBody, _: DesktopUser):
+    """204 No Content — Client aktualisiert sein notes-Feld lokal."""
+    db_services.Person.update_notes(person_id, body.notes)
 
 
 @router.patch("/{person_id}/admin-of-project", response_model=schemas.PersonShow)

@@ -12,6 +12,29 @@ from commands.command_base_classes import Command
 from gui.api_client import project as api_project
 
 
+class Create(Command):
+    """Erstellt ein neues Projekt (Bootstrap-Aktion).
+
+    Project hat kein prep_delete-Feld und keine db_services.Project.delete —
+    Projekte werden im Regelbetrieb nie geloescht. Daher sind Undo/Redo no-ops.
+    Konsistent mit DeletePrepDeletes-Pattern fuer irreversible Aktionen.
+    """
+
+    def __init__(self, name: str):
+        super().__init__()
+        self.name = name
+        self.created_project: schemas.ProjectShow | None = None
+
+    def execute(self):
+        self.created_project = api_project.create(self.name)
+
+    def _undo(self):
+        ...
+
+    def _redo(self):
+        ...
+
+
 class UpdateProjectName(Command):
     def __init__(self, new_name: str, project_id: UUID):
         super().__init__()

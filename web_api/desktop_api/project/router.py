@@ -20,6 +20,12 @@ class NewTimeOfDayStandardResponse(BaseModel):
     old_standard_id: uuid.UUID | None
 
 
+@router.post("", response_model=schemas.ProjectShow, status_code=201)
+def create_project(body: ProjectNameBody, _: DesktopUser):
+    """Legt ein neues Projekt an. Bootstrap-Aktion — kein Soft-Delete vorhanden."""
+    return db_services.Project.create(body.name)
+
+
 @router.patch("/{project_id}/name", response_model=schemas.Project)
 def update_project_name(project_id: uuid.UUID, body: ProjectNameBody, _: DesktopUser):
     return db_services.Project.update_name(body.name, project_id)

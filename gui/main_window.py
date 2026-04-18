@@ -14,7 +14,7 @@ from httplib2 import ServerNotFoundError
 # xlsxwriter Imports werden lazy geladen für bessere Startup-Performance
 
 from commands import command_base_classes
-from commands.database_commands import plan_commands, team_commands, plan_period_commands
+from commands.database_commands import plan_commands, team_commands, plan_period_commands, project_commands
 from configuration import team_start_config, project_paths
 from configuration.google_calenders import curr_calendars_handler
 from configuration.main_geometry import geometry_manager, MainGeometry
@@ -556,8 +556,9 @@ class MainWindow(QMainWindow, TabCacheIntegration):
     def _create_new_project(self, start_config: team_start_config.StartConfig):
         dlg = DlgCreateProject(self)
         if dlg.exec():
-            project = db_services.Project.create(dlg.project_name)
-            self.project_id = project.id
+            cmd = project_commands.Create(dlg.project_name)
+            self.controller.execute(cmd)
+            self.project_id = cmd.created_project.id
             start_config.project_id = self.project_id
             team_start_config.curr_start_config_handler.save_config_to_file(start_config)
 

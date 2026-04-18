@@ -6,6 +6,11 @@ from database import schemas
 from gui.api_client.client import get_api_client
 
 
+def create(name: str) -> schemas.ProjectShow:
+    data = get_api_client().post("/api/v1/projects", json={"name": name})
+    return schemas.ProjectShow.model_validate(data)
+
+
 def update_name(name: str, project_id: uuid.UUID) -> schemas.Project:
     data = get_api_client().patch(f"/api/v1/projects/{project_id}/name",
                                   json={"name": name})

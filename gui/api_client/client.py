@@ -25,6 +25,7 @@ from __future__ import annotations
 
 import os
 from typing import Any
+from urllib.parse import urlparse
 
 import requests
 from requests import Response
@@ -129,9 +130,15 @@ class DesktopApiClient:
         stored = load_refresh_token()
         if not stored:
             return False
-        # Cookie mit passendem Pfad injizieren — /auth/refresh erwartet
-        # den Refresh-Token als httpOnly-Cookie.
-        self._session.cookies.set(_REFRESH_COOKIE, stored, path=_REFRESH_PATH)
+        # Cookie mit passender Domain + Pfad injizieren — /auth/refresh
+        # erwartet den Refresh-Token als httpOnly-Cookie. Explizites
+        # domain= ist wichtig, sonst haengt die Matching-Semantik von
+        # der cookielib-Version ab (requests sendet unscoped-Cookies
+        # je nach Policy ggf. gar nicht).
+        hostname = urlparse(self._base_url).hostname or "localhost"
+        self._session.cookies.set(
+            _REFRESH_COOKIE, stored, domain=hostname, path=_REFRESH_PATH,
+        )
         try:
             response = self._session.post(
                 f"{self._base_url}{_REFRESH_PATH}",
@@ -144,7 +151,13 @@ class DesktopApiClient:
             clear_refresh_token()
             self._session.cookies.clear()
             return False
-        self._access_token = response.json()["access_token"]
+        try:
+            self._access_token = response.json()["access_token"]
+        except (ValueError, KeyError):
+            # Server hat unerwartet kein JSON / kein access_token geliefert.
+            clear_refresh_token()
+            self._session.cookies.clear()
+            return False
         # Der Server hat via Set-Cookie ein rotiertes Refresh-Token geliefert;
         # aktualisiere den Keyring-Eintrag entsprechend.
         new_refresh = self._session.cookies.get(_REFRESH_COOKIE)
@@ -176,7 +189,13 @@ class DesktopApiClient:
             clear_refresh_token()
             self._session.cookies.clear()
             return False
-        self._access_token = response.json()["access_token"]
+        try:
+            self._access_token = response.json()["access_token"]
+        except (ValueError, KeyError):
+            self._access_token = None
+            clear_refresh_token()
+            self._session.cookies.clear()
+            return False
         new_refresh = self._session.cookies.get(_REFRESH_COOKIE)
         if new_refresh:
             try:

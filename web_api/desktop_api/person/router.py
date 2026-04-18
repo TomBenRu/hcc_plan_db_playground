@@ -66,6 +66,11 @@ def delete_person(person_id: uuid.UUID, _: DesktopUser):
     db_services.Person.delete(person_id)
 
 
+@router.post("/{person_id}/undelete", status_code=status.HTTP_204_NO_CONTENT)
+def undelete_person(person_id: uuid.UUID, _: DesktopUser):
+    db_services.Person.undelete(person_id)
+
+
 @router.post("/{person_id}/time-of-days/{time_of_day_id}", response_model=schemas.PersonShow)
 def put_in_time_of_day(person_id: uuid.UUID, time_of_day_id: uuid.UUID, _: DesktopUser):
     return db_services.Person.put_in_time_of_day(person_id, time_of_day_id)

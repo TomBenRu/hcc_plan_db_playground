@@ -87,13 +87,18 @@ def main() -> int:
             _fail("Nach undo() ist prep_delete nicht gesetzt")
         _ok(f"DB zeigt: prep_delete={db_after_undo.prep_delete}")
 
-        # redo() wuerde gegen denselben prep_deleted Record Person.create mit gleicher
-        # ID aufrufen — PK-Kollision. Das ist ein vorhandener Bug, nicht durch die
-        # Migration eingefuehrt. Ueberspringen.
+        print("4. Create.redo() — undelete via API (Bugfix)...")
+        cmd.redo()
+        db_after_redo = db_services.Person.get(created_id)
+        if db_after_redo.id != created_id:
+            _fail(f"redo() hat neue ID vergeben: {db_after_redo.id}")
+        if db_after_redo.prep_delete is not None:
+            _fail(f"Nach redo() ist prep_delete noch gesetzt: {db_after_redo.prep_delete}")
+        _ok(f"DB zeigt: ID={created_id} wiederhergestellt, prep_delete=None")
 
     finally:
         if created_id:
-            print("4. Cleanup: Test-Person hart loeschen...")
+            print("5. Cleanup: Test-Person hart loeschen...")
             _hard_delete_person(created_id)
             _ok(f"Test-Person {created_id} hart geloescht")
 

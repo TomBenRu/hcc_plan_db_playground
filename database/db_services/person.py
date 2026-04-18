@@ -290,6 +290,15 @@ def delete(person_id: UUID) -> schemas.Person:
         return schemas.Person.model_validate(person_db)
 
 
+def undelete(person_id: UUID) -> schemas.Person:
+    log_function_info()
+    with get_session() as session:
+        person_db = session.get(models.Person, person_id)
+        person_db.prep_delete = None
+        session.flush()
+        return schemas.Person.model_validate(person_db)
+
+
 def put_in_comb_loc_possible(person_id: UUID, comb_loc_possible_id: UUID) -> schemas.PersonShow:
     log_function_info()
     with get_session() as session:

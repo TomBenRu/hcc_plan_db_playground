@@ -35,7 +35,7 @@ class Create(Command):
 
     def _redo(self):
         if self.created_person:
-            api_person.create(self.person, self.project_id, self.created_person.id)
+            api_person.undelete(self.created_person.id)
 
 
 

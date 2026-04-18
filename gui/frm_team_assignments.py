@@ -18,7 +18,7 @@ from PySide6.QtWidgets import (
 
 from database import db_services, schemas
 from commands import command_base_classes
-from commands.database_commands import person_commands
+from commands.database_commands import person_commands, actor_plan_period_commands, avail_day_group_commands
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from tools.helper_functions import date_to_string
 
@@ -151,8 +151,11 @@ class DlgTeamAssignments(QDialog):
                         existing_apps = db_services.ActorPlanPeriod.get_all_from__plan_period(plan_period.id)
                         already_exists = any(app.person.id == self.person.id for app in existing_apps)
                         if not already_exists:
-                            new_actor_plan_period = db_services.ActorPlanPeriod.create(plan_period.id, self.person.id)
-                            db_services.AvailDayGroup.create(actor_plan_period_id=new_actor_plan_period.id)
+                            app_cmd = actor_plan_period_commands.Create(plan_period.id, self.person.id)
+                            self.controller.execute(app_cmd)
+                            self.controller.execute(
+                                avail_day_group_commands.Create(
+                                    loc_act_plan_period_id=app_cmd.created_actor_plan_period.id))
                             created_count += 1
 
                     if created_count > 0:

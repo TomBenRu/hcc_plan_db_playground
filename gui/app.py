@@ -25,6 +25,13 @@ def main():
 
     app = QApplication(sys.argv)
 
+    # === Auth vor allem anderen ===
+    # Silent-Login via Keyring-Refresh-Token; sonst LoginDialog. Abbruch → Exit.
+    from gui.auth.bootstrap import ensure_authenticated
+    if not ensure_authenticated():
+        logging.info("Login abgebrochen — App wird beendet.")
+        sys.exit(0)
+
     # === Splash Screen Setup ===
     try:
         splash = SplashScreen(minimum_display_time=2.0)  # Option A: 2s Minimum-Display-Time

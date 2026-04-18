@@ -10,6 +10,7 @@ from uuid import UUID
 
 from database import db_services, schemas
 from commands.command_base_classes import Command
+from gui.api_client import appointment as api_appointment, event as api_event
 from tools.helper_functions import date_to_string
 
 
@@ -21,13 +22,13 @@ class Create(Command):
         self.appointment_created: schemas.AppointmentShow | None = None
 
     def execute(self):
-        self.appointment_created = db_services.Appointment.create(self.appointment, self.plan_id)
+        self.appointment_created = api_appointment.create(self.appointment, self.plan_id)
 
     def _undo(self):
-        db_services.Appointment.delete(self.appointment_created.id)
+        api_appointment.delete(self.appointment_created.id)
 
     def _redo(self):
-        db_services.Appointment.undelete(self.appointment_created.id)
+        api_appointment.undelete(self.appointment_created.id)
 
 
 class CreateBulk(Command):
@@ -40,13 +41,13 @@ class CreateBulk(Command):
         self.created_ids: list[UUID] = []
 
     def execute(self):
-        self.created_ids = db_services.Appointment.create_bulk(self.appointments, self.plan_id)
+        self.created_ids = api_appointment.create_bulk(self.appointments, self.plan_id)
 
     def _undo(self):
-        db_services.Appointment.delete_bulk(self.created_ids)
+        api_appointment.delete_bulk(self.created_ids)
 
     def _redo(self):
-        db_services.Appointment.undelete_bulk(self.created_ids)
+        api_appointment.undelete_bulk(self.created_ids)
 
 
 class UpdateAvailDays(Command):
@@ -58,13 +59,13 @@ class UpdateAvailDays(Command):
         self.appointment = appointment if appointment is not None else db_services.Appointment.get(self.appointment_id)
 
     def execute(self):
-        db_services.Appointment.update_avail_days(self.appointment_id, self.avail_day_ids)
+        api_appointment.update_avail_days(self.appointment_id, self.avail_day_ids)
 
     def _undo(self):
-        db_services.Appointment.update_avail_days(self.appointment_id, [avd.id for avd in self.appointment.avail_days])
+        api_appointment.update_avail_days(self.appointment_id, [avd.id for avd in self.appointment.avail_days])
 
     def _redo(self):
-        db_services.Appointment.update_avail_days(self.appointment_id, self.avail_day_ids)
+        api_appointment.update_avail_days(self.appointment_id, self.avail_day_ids)
 
     def __str__(self) -> str:
         try:
@@ -87,13 +88,13 @@ class UpdateNotes(Command):
         self.notes = notes
 
     def execute(self):
-        db_services.Appointment.update_notes(self.appointment.id, self.notes)
+        api_appointment.update_notes(self.appointment.id, self.notes)
 
     def _undo(self):
-        db_services.Appointment.update_notes(self.appointment.id, self.appointment.notes)
+        api_appointment.update_notes(self.appointment.id, self.appointment.notes)
 
     def _redo(self):
-        db_services.Appointment.update_notes(self.appointment.id, self.notes)
+        api_appointment.update_notes(self.appointment.id, self.notes)
 
     def __str__(self) -> str:
         try:
@@ -120,15 +121,15 @@ class UpdateCurrEvent(Command):
         self.updated_event: schemas.EventShow | None = None
 
     def execute(self):
-        self.updated_event = db_services.Event.update_time_of_day_and_date(
+        self.updated_event = api_event.update_time_of_day_and_date(
             self.appointment.event.id, self.new_time_of_day_id, self.new_date)
 
     def _undo(self):
-        db_services.Event.update_time_of_day_and_date(
+        api_event.update_time_of_day_and_date(
             self.appointment.event.id, self.appointment.event.time_of_day.id, self.appointment.event.date)
 
     def _redo(self):
-        db_services.Event.update_time_of_day_and_date(
+        api_event.update_time_of_day_and_date(
             self.appointment.event.id, self.new_time_of_day_id, self.new_date)
 
     def __str__(self) -> str:
@@ -152,13 +153,13 @@ class UpdateEvent(Command):
         self.new_event_id = new_event_id
 
     def execute(self):
-        db_services.Appointment.update_event(self.appointment.id, self.new_event_id)
+        api_appointment.update_event(self.appointment.id, self.new_event_id)
 
     def _undo(self):
-        db_services.Appointment.update_event(self.appointment.id, self.appointment.event.id)
+        api_appointment.update_event(self.appointment.id, self.appointment.event.id)
 
     def _redo(self):
-        db_services.Appointment.update_event(self.appointment.id, self.new_event_id)
+        api_appointment.update_event(self.appointment.id, self.new_event_id)
 
 
 class UpdateGuests(Command):
@@ -170,13 +171,13 @@ class UpdateGuests(Command):
         self.appointment = appointment if appointment is not None else db_services.Appointment.get(self.appointment_id)
 
     def execute(self):
-        db_services.Appointment.update_guests(self.appointment_id, self.guests)
+        api_appointment.update_guests(self.appointment_id, self.guests)
 
     def _undo(self):
-        db_services.Appointment.update_guests(self.appointment_id, self.appointment.guests)
+        api_appointment.update_guests(self.appointment_id, self.appointment.guests)
 
     def _redo(self):
-        db_services.Appointment.update_guests(self.appointment_id, self.guests)
+        api_appointment.update_guests(self.appointment_id, self.guests)
 
     def __str__(self) -> str:
         try:

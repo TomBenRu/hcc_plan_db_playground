@@ -13,6 +13,7 @@ from uuid import UUID
 
 from database import db_services, schemas
 from commands.command_base_classes import Command
+from gui.api_client import plan as api_plan, excel_export_settings as api_excel_export_settings
 
 
 class Create(Command):
@@ -23,13 +24,13 @@ class Create(Command):
         self.plan: schemas.PlanShow | None = None
 
     def execute(self):
-        self.plan = db_services.Plan.create(self.plan_period_id, self.name)
+        self.plan = api_plan.create(self.plan_period_id, self.name)
 
     def _undo(self):
-        db_services.Plan.delete(self.plan.id)
+        api_plan.delete(self.plan.id)
 
     def _redo(self):
-        db_services.Plan.undelete(self.plan.id)
+        api_plan.undelete(self.plan.id)
 
 
 class Delete(Command):
@@ -38,13 +39,13 @@ class Delete(Command):
         self.plan_id = plan_id
 
     def execute(self):
-        db_services.Plan.delete(self.plan_id)
+        api_plan.delete(self.plan_id)
 
     def _undo(self):
-        db_services.Plan.undelete(self.plan_id)
+        api_plan.undelete(self.plan_id)
 
     def _redo(self):
-        db_services.Plan.delete(self.plan_id)
+        api_plan.delete(self.plan_id)
 
 
 class Undelete(Command):
@@ -53,13 +54,13 @@ class Undelete(Command):
         self.plan_id = plan_id
 
     def execute(self):
-        db_services.Plan.undelete(self.plan_id)
+        api_plan.undelete(self.plan_id)
 
     def _undo(self):
-        db_services.Plan.delete(self.plan_id)
+        api_plan.delete(self.plan_id)
 
     def _redo(self):
-        db_services.Plan.undelete(self.plan_id)
+        api_plan.undelete(self.plan_id)
 
 
 class DeletePrepDeleted(Command):
@@ -68,7 +69,7 @@ class DeletePrepDeleted(Command):
         self.plan_id = plan_id
 
     def execute(self):
-        db_services.Plan.delete_prep_deleted(self.plan_id)
+        api_plan.delete_prep_deleted(self.plan_id)
 
     def _undo(self):
         ...
@@ -86,13 +87,13 @@ class UpdateName(Command):
         self.updatet_plan: schemas.PlanShow | None = None
 
     def execute(self):
-        self.updatet_plan = db_services.Plan.update_name(self.plan_id, self.new_name)
+        self.updatet_plan = api_plan.update_name(self.plan_id, self.new_name)
 
     def _undo(self):
-        db_services.Plan.update_name(self.plan_id, self.old_name)
+        api_plan.update_name(self.plan_id, self.old_name)
 
     def _redo(self):
-        db_services.Plan.update_name(self.plan_id, self.new_name)
+        api_plan.update_name(self.plan_id, self.new_name)
 
 
 class UpdateLocationColumns(Command):
@@ -107,13 +108,13 @@ class UpdateLocationColumns(Command):
         return json.dumps({k: [str(u) for u in v] for k, v in self._location_columns.items()})
 
     def execute(self):
-        db_services.Plan.update_location_columns(self.plan_id, self.location_columns)
+        api_plan.update_location_columns(self.plan_id, self.location_columns)
 
     def _undo(self):
-        db_services.Plan.update_location_columns(self.plan_id, self.location_columns_old)
+        api_plan.update_location_columns(self.plan_id, self.location_columns_old)
 
     def _redo(self):
-        db_services.Plan.update_location_columns(self.plan_id, self.location_columns)
+        api_plan.update_location_columns(self.plan_id, self.location_columns)
 
     def __str__(self) -> str:
         num_locations = sum(len(locs) for locs in self._location_columns.values())
@@ -129,13 +130,13 @@ class UpdateNotes(Command):
         self.notes = notes
 
     def execute(self):
-        self.updated_plan = db_services.Plan.update_notes(self.plan_id, self.notes)
+        self.updated_plan = api_plan.update_notes(self.plan_id, self.notes)
 
     def _undo(self):
-        db_services.Plan.update_notes(self.plan_id, self.plan.notes)
+        api_plan.update_notes(self.plan_id, self.plan.notes)
 
     def _redo(self):
-        db_services.Plan.update_notes(self.plan_id, self.notes)
+        api_plan.update_notes(self.plan_id, self.notes)
 
 
 class SetBinding(Command):
@@ -148,15 +149,15 @@ class SetBinding(Command):
         self.previous_binding_plan_id: UUID | None = None
 
     def execute(self):
-        self.previous_binding_plan_id = db_services.Plan.set_binding(self.plan_id)
+        self.previous_binding_plan_id = api_plan.set_binding(self.plan_id)
 
     def _undo(self):
-        db_services.Plan.unset_binding(self.plan_id)
+        api_plan.unset_binding(self.plan_id)
         if self.previous_binding_plan_id:
-            db_services.Plan.set_binding(self.previous_binding_plan_id)
+            api_plan.set_binding(self.previous_binding_plan_id)
 
     def _redo(self):
-        db_services.Plan.set_binding(self.plan_id)
+        api_plan.set_binding(self.plan_id)
 
 
 class NewExcelExportSettings(Command):
@@ -169,14 +170,14 @@ class NewExcelExportSettings(Command):
         self.created_excel_settings: schemas.ExcelExportSettingsShow | None = None
 
     def execute(self):
-        self.created_excel_settings = db_services.ExcelExportSettings.create(self.excel_settings)
-        db_services.Plan.put_in_excel_settings(self.plan_id, self.created_excel_settings.id)
+        self.created_excel_settings = api_excel_export_settings.create(self.excel_settings)
+        api_plan.put_in_excel_settings(self.plan_id, self.created_excel_settings.id)
 
     def _undo(self):
-        db_services.Plan.put_in_excel_settings(self.plan_id, self.old_excel_settings_id)
+        api_plan.put_in_excel_settings(self.plan_id, self.old_excel_settings_id)
 
     def _redo(self):
-        db_services.Plan.put_in_excel_settings(self.plan_id, self.created_excel_settings.id)
+        api_plan.put_in_excel_settings(self.plan_id, self.created_excel_settings.id)
 
 
 class PutInExcelExportSettings(Command):
@@ -187,10 +188,10 @@ class PutInExcelExportSettings(Command):
         self.excel_settings_id = excel_settings_id
 
     def execute(self):
-        db_services.Plan.put_in_excel_settings(self.plan_id, self.excel_settings_id)
+        api_plan.put_in_excel_settings(self.plan_id, self.excel_settings_id)
 
     def _undo(self):
-        db_services.Plan.put_in_excel_settings(self.plan_id, self.old_excel_settings_id)
+        api_plan.put_in_excel_settings(self.plan_id, self.old_excel_settings_id)
 
     def _redo(self):
-        db_services.Plan.put_in_excel_settings(self.plan_id, self.excel_settings_id)
+        api_plan.put_in_excel_settings(self.plan_id, self.excel_settings_id)

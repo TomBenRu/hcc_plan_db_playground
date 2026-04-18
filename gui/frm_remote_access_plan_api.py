@@ -8,7 +8,7 @@ from PySide6.QtWidgets import (QDialog, QVBoxLayout, QGroupBox, QFormLayout, QCo
 from pydantic import BaseModel
 
 from commands import command_base_classes
-from commands.database_commands import entities_api_to_db_commands
+from commands.database_commands import entities_api_to_db_commands, plan_period_commands
 from configuration import api_remote_config
 from database import schemas_plan_api, db_services, schemas
 from database.schemas_plan_api import AvailDay, PlanPeriod
@@ -163,7 +163,7 @@ class DlgRemoteAccessPlanApi(QDialog):
                                            QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.Cancel)
             if question == QMessageBox.StandardButton.Cancel:
                 return
-            db_services.PlanPeriod.delete_prep_deletes(UUID(team_id))
+            self.controller.execute(plan_period_commands.DeletePrepDeletes(UUID(team_id)))
             for p in sorted(response.json(), key=lambda x: x['start']):
                 entity: schemas_plan_api.PlanPeriod = schemas_plan_api.PlanPeriod.model_validate(p)
                 plan_periods_in_db = db_services.PlanPeriod.get_all_from__project(self.project_id)

@@ -5,7 +5,7 @@ Hinweis: skill_group-Collection-Ops folgen in Phase 5d.
 
 import uuid
 
-from fastapi import APIRouter
+from fastapi import APIRouter, status
 from pydantic import BaseModel
 
 from database import db_services, schemas
@@ -22,6 +22,36 @@ class FixedCastBody(BaseModel):
 class NewTimeOfDayStandardResponse(BaseModel):
     location_of_work: schemas.LocationOfWorkShow
     old_standard_id: uuid.UUID | None
+
+
+class LocationCreateBody(BaseModel):
+    location: schemas.LocationOfWorkCreate
+    project_id: uuid.UUID
+
+
+class LocationNotesBody(BaseModel):
+    notes: str
+
+
+@router.post("", response_model=schemas.LocationOfWork, status_code=status.HTTP_201_CREATED)
+def create_location(body: LocationCreateBody, _: DesktopUser):
+    return db_services.LocationOfWork.create(body.location, body.project_id)
+
+
+@router.delete("/{location_id}", response_model=schemas.LocationOfWork)
+def delete_location(location_id: uuid.UUID, _: DesktopUser):
+    """Soft-Delete (setzt prep_delete)."""
+    return db_services.LocationOfWork.delete(location_id)
+
+
+@router.post("/{location_id}/undelete", response_model=schemas.LocationOfWork)
+def undelete_location(location_id: uuid.UUID, _: DesktopUser):
+    return db_services.LocationOfWork.undelete(location_id)
+
+
+@router.patch("/{location_id}/notes", response_model=schemas.LocationOfWorkShow)
+def update_location_notes(location_id: uuid.UUID, body: LocationNotesBody, _: DesktopUser):
+    return db_services.LocationOfWork.update_notes(location_id, body.notes)
 
 
 @router.put("/{location_id}", response_model=schemas.LocationOfWorkShow)

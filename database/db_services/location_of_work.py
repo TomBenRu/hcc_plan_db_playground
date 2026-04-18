@@ -250,6 +250,16 @@ def delete(location_id: UUID) -> schemas.LocationOfWork:
         return schemas.LocationOfWork.model_validate(loc_db)
 
 
+def undelete(location_id: UUID) -> schemas.LocationOfWork:
+    """Hebt das Soft-Delete einer LocationOfWork auf (Undo-Pfad)."""
+    log_function_info()
+    with get_session() as session:
+        loc_db = session.get(models.LocationOfWork, location_id)
+        loc_db.prep_delete = None
+        session.flush()
+        return schemas.LocationOfWork.model_validate(loc_db)
+
+
 def add_skill_group(location_id: UUID, skill_group_id: UUID) -> schemas.LocationOfWorkShow:
     log_function_info()
     with get_session() as session:

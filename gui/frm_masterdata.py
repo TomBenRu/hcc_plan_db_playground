@@ -580,6 +580,7 @@ class WidgetLocationsOfWork(QWidget):
         self.layout.addLayout(self.layout_buttons)
 
         self.project_id = project_id
+        self.controller = command_base_classes.ContrExecUndoRedo()
 
         self.locations = self.get_locations()
 
@@ -644,9 +645,9 @@ class WidgetLocationsOfWork(QWidget):
                                 QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)
         if res == QMessageBox.StandardButton.Yes:
             location_id = UUID(self.table_locations.item(row, self.table_locations.columnCount()-1).text())
-            deleted_location = db_services.LocationOfWork.delete(location_id)
+            self.controller.execute(location_of_work_commands.Delete(location_id))
             QMessageBox.information(self, self.tr('Delete'),
-                                  self.tr('Deleted:\n{}').format(deleted_location))
+                                  self.tr('Deleted:\n{}').format(text_location))
         self.refresh_table()
 
 
@@ -717,6 +718,7 @@ class DlgLocationData(QDialog):
 
         self.project_id = project_id
         self.project = db_services.Project.get(project_id)
+        self.controller = command_base_classes.ContrExecUndoRedo()
 
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
@@ -758,8 +760,9 @@ class DlgLocationData(QDialog):
 
         location = schemas.LocationOfWorkCreate(name=self.le_name.text(), address=address)
 
-        created = db_services.LocationOfWork.create(location, self.project_id)
-        QMessageBox.information(self, self.tr('Facility Created'), str(created))
+        cmd = location_of_work_commands.Create(location, self.project_id)
+        self.controller.execute(cmd)
+        QMessageBox.information(self, self.tr('Facility Created'), str(cmd.created_location))
         self.close()
 
     def reject(self):

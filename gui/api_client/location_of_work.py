@@ -6,6 +6,31 @@ from database import schemas
 from gui.api_client.client import get_api_client
 
 
+def create(location: schemas.LocationOfWorkCreate,
+           project_id: uuid.UUID) -> schemas.LocationOfWork:
+    data = get_api_client().post("/api/v1/locations-of-work", json={
+        "location": location.model_dump(mode="json"),
+        "project_id": str(project_id),
+    })
+    return schemas.LocationOfWork.model_validate(data)
+
+
+def delete(location_id: uuid.UUID) -> schemas.LocationOfWork:
+    data = get_api_client().delete(f"/api/v1/locations-of-work/{location_id}")
+    return schemas.LocationOfWork.model_validate(data)
+
+
+def undelete(location_id: uuid.UUID) -> schemas.LocationOfWork:
+    data = get_api_client().post(f"/api/v1/locations-of-work/{location_id}/undelete")
+    return schemas.LocationOfWork.model_validate(data)
+
+
+def update_notes(location_id: uuid.UUID, notes: str) -> schemas.LocationOfWorkShow:
+    data = get_api_client().patch(f"/api/v1/locations-of-work/{location_id}/notes",
+                                  json={"notes": notes})
+    return schemas.LocationOfWorkShow.model_validate(data)
+
+
 def update(location: schemas.LocationOfWorkShow) -> schemas.LocationOfWorkShow:
     data = get_api_client().put(f"/api/v1/locations-of-work/{location.id}",
                                 json=location.model_dump(mode="json"))

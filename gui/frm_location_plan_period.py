@@ -24,7 +24,7 @@ from tools import helper_functions
 from tools.actions import MenuToolbarAction
 from commands import command_base_classes
 from commands.database_commands import event_commands, cast_group_commands, location_plan_period_commands, \
-    time_of_day_commands
+    time_of_day_commands, location_of_work_commands
 from gui.frm_fixed_cast import DlgFixedCastBuilderLocationPlanPeriod, DlgFixedCastBuilderCastGroup
 from gui.observer import signal_handling
 
@@ -1096,13 +1096,13 @@ class FrmTabLocationPlanPeriods(QWidget):
             self.location_id__location_pp[str(self.location_id)] = cmd.updated_location_plan_period
 
     def save_info_location(self):
-        # TODO(api-migration Kat. B): LocationOfWork.update_notes Endpoint + Command fehlen.
-        # Bis dahin direkter db_services-Call, aber mit Dirty-Check zur DB-Entlastung.
         new_notes = self.te_notes_location.toPlainText()
         if new_notes == (self.location.notes or ''):
             return
+        self.controller.execute(
+            location_of_work_commands.UpdateNotes(
+                self.location_id, new_notes, notes_old=self.location.notes or ''))
         self.location.notes = new_notes
-        db_services.LocationOfWork.update_notes(self.location_id, new_notes)
 
     def edit_cast_groups_plan_period(self):
         visible_plan_period_ids = {location_pp.id for location_pp in self.location_plan_periods}

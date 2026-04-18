@@ -19,6 +19,67 @@ from commands.command_base_classes import Command, ContrExecUndoRedo
 from gui.api_client import location_of_work as api_low
 
 
+class Create(Command):
+    """LocationOfWork-Erstellung. Undo soft-loescht, Redo undelete (selbe ID)."""
+
+    def __init__(self, location: schemas.LocationOfWorkCreate, project_id: UUID):
+        super().__init__()
+        self.location = location.model_copy()
+        self.project_id = project_id
+        self.created_location: schemas.LocationOfWork | None = None
+
+    def execute(self):
+        self.created_location = api_low.create(self.location, self.project_id)
+
+    def _undo(self):
+        if self.created_location:
+            api_low.delete(self.created_location.id)
+
+    def _redo(self):
+        if self.created_location:
+            api_low.undelete(self.created_location.id)
+
+
+class Delete(Command):
+    """Soft-Delete mit Undo via undelete."""
+
+    def __init__(self, location_id: UUID):
+        super().__init__()
+        self.location_id = location_id
+
+    def execute(self):
+        api_low.delete(self.location_id)
+
+    def _undo(self):
+        api_low.undelete(self.location_id)
+
+    def _redo(self):
+        api_low.delete(self.location_id)
+
+
+class UpdateNotes(Command):
+    """Aktualisiert die Notizen der LocationOfWork. Altes notes-Feld kann
+    optional vom Aufrufer uebergeben werden (spart DB-Fetch bei remote DB).
+    """
+
+    def __init__(self, location_id: UUID, notes: str, notes_old: str | None = None):
+        super().__init__()
+        self.location_id = location_id
+        self.notes = notes
+        if notes_old is None:
+            notes_old = db_services.LocationOfWork.get(location_id).notes
+        self.notes_old = notes_old or ''
+
+    def execute(self):
+        api_low.update_notes(self.location_id, self.notes)
+
+    def _undo(self):
+        api_low.update_notes(self.location_id, self.notes_old)
+
+    def _redo(self):
+        api_low.update_notes(self.location_id, self.notes)
+
+
 class Update(Command):
     def __init__(self, location_of_work: schemas.LocationOfWorkShow):
         super().__init__()

@@ -195,6 +195,10 @@ class DesktopApiClient:
     def is_authenticated(self) -> bool:
         return self._access_token is not None
 
+    @property
+    def base_url(self) -> str:
+        return self._base_url
+
     # ── HTTP-Basis ────────────────────────────────────────────────────────────
 
     def _headers(self, *, json_body: bool = False) -> dict[str, str]:

@@ -11,7 +11,7 @@ from uuid import UUID
 
 from database import db_services, schemas
 from commands.command_base_classes import Command
-from gui.api_client import team as api_team
+from gui.api_client import team as api_team, excel_export_settings as api_excel_export_settings
 
 
 class PutInCombLocPossible(Command):
@@ -21,13 +21,13 @@ class PutInCombLocPossible(Command):
         self.comb_loc_poss_id = comb_loc_poss_id
 
     def execute(self):
-        db_services.Team.put_in_comb_loc_possible(self.team_id, self.comb_loc_poss_id)
+        api_team.put_in_comb_loc_possible(self.team_id, self.comb_loc_poss_id)
 
     def _undo(self):
-        db_services.Team.remove_comb_loc_possible(self.team_id, self.comb_loc_poss_id)
+        api_team.remove_comb_loc_possible(self.team_id, self.comb_loc_poss_id)
 
     def _redo(self):
-        db_services.Team.put_in_comb_loc_possible(self.team_id, self.comb_loc_poss_id)
+        api_team.put_in_comb_loc_possible(self.team_id, self.comb_loc_poss_id)
 
 
 class RemoveCombLocPossible(Command):
@@ -37,13 +37,13 @@ class RemoveCombLocPossible(Command):
         self.comb_loc_poss_id = comb_loc_poss_id
 
     def execute(self):
-        db_services.Team.remove_comb_loc_possible(self.team_id, self.comb_loc_poss_id)
+        api_team.remove_comb_loc_possible(self.team_id, self.comb_loc_poss_id)
 
     def _undo(self):
-        db_services.Team.put_in_comb_loc_possible(self.team_id, self.comb_loc_poss_id)
+        api_team.put_in_comb_loc_possible(self.team_id, self.comb_loc_poss_id)
 
     def _redo(self):
-        db_services.Team.remove_comb_loc_possible(self.team_id, self.comb_loc_poss_id)
+        api_team.remove_comb_loc_possible(self.team_id, self.comb_loc_poss_id)
 
 
 class ReplaceCombLocPossibles(Command):
@@ -65,15 +65,15 @@ class ReplaceCombLocPossibles(Command):
         self._result: dict[str, list[UUID]] | None = None
 
     def execute(self):
-        self._result = db_services.Team.replace_comb_loc_possibles(
+        self._result = api_team.replace_comb_loc_possibles(
             self.team_id, self.original_ids, self.pending_creates, self.current_combs)
 
     def _undo(self):
-        db_services.Team.restore_comb_loc_possibles(
+        api_team.restore_comb_loc_possibles(
             self.team_id, self._result['old_comb_ids'])
 
     def _redo(self):
-        db_services.Team.restore_comb_loc_possibles(
+        api_team.restore_comb_loc_possibles(
             self.team_id, self._result['new_comb_ids'])
 
 
@@ -87,14 +87,14 @@ class NewExcelExportSettings(Command):
         self.created_excel_settings: schemas.ExcelExportSettingsShow | None = None
 
     def execute(self):
-        self.created_excel_settings = db_services.ExcelExportSettings.create(self.excel_settings)
-        db_services.Team.put_in_excel_settings(self.team_id, self.created_excel_settings.id)
+        self.created_excel_settings = api_excel_export_settings.create(self.excel_settings)
+        api_team.put_in_excel_settings(self.team_id, self.created_excel_settings.id)
 
     def _undo(self):
-        db_services.Team.put_in_excel_settings(self.team_id, self.old_excel_settings_id)
+        api_team.put_in_excel_settings(self.team_id, self.old_excel_settings_id)
 
     def _redo(self):
-        db_services.Team.put_in_excel_settings(self.team_id, self.created_excel_settings.id)
+        api_team.put_in_excel_settings(self.team_id, self.created_excel_settings.id)
 
 
 class PutInExcelExportSettings(Command):
@@ -105,13 +105,13 @@ class PutInExcelExportSettings(Command):
         self.excel_settings_id = excel_settings_id
 
     def execute(self):
-        db_services.Team.put_in_excel_settings(self.team_id, self.excel_settings_id)
+        api_team.put_in_excel_settings(self.team_id, self.excel_settings_id)
 
     def _undo(self):
-        db_services.Team.put_in_excel_settings(self.team_id, self.old_excel_settings_id)
+        api_team.put_in_excel_settings(self.team_id, self.old_excel_settings_id)
 
     def _redo(self):
-        db_services.Team.put_in_excel_settings(self.team_id, self.excel_settings_id)
+        api_team.put_in_excel_settings(self.team_id, self.excel_settings_id)
 
 
 class UpdateNotes(Command):

@@ -80,3 +80,9 @@ def undo_replace_all_for_avail_days(avail_day_ids: list[uuid.UUID],
         "old_pref_ids_per_avail_day": {str(k): [str(i) for i in v]
                                         for k, v in old_pref_ids_per_avail_day.items()},
     })
+
+
+def delete_unused(person_id: uuid.UUID) -> list[uuid.UUID]:
+    data = get_api_client().post(
+        f"/api/v1/actor-partner-location-prefs/delete-unused-for-person/{person_id}")
+    return [uuid.UUID(i) for i in data]

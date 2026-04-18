@@ -108,3 +108,8 @@ def undo_replace_all_for_avail_days(body: UndoReplaceAllForAvailDaysBody, _: Des
     db_services.ActorPartnerLocationPref.undo_replace_all_for_avail_days(
         body.avail_day_ids, body.created_ids, body.old_pref_ids_per_avail_day,
     )
+
+
+@router.post("/delete-unused-for-person/{person_id}", response_model=list[uuid.UUID])
+def delete_unused(person_id: uuid.UUID, _: DesktopUser):
+    return db_services.ActorPartnerLocationPref.delete_unused(person_id)

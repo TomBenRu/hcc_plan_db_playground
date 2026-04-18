@@ -56,13 +56,13 @@ class PutInTimeOfDay(Command):
         self.time_of_day_id = time_of_day_id
 
     def execute(self):
-        db_services.Project.put_in_time_of_day(self.project_id, self.time_of_day_id)
+        api_project.put_in_time_of_day(self.project_id, self.time_of_day_id)
 
     def _undo(self):
-        db_services.Project.remove_in_time_of_day(self.project_id, self.time_of_day_id)
+        api_project.remove_in_time_of_day(self.project_id, self.time_of_day_id)
 
     def _redo(self):
-        db_services.Project.put_in_time_of_day(self.project_id, self.time_of_day_id)
+        api_project.put_in_time_of_day(self.project_id, self.time_of_day_id)
 
 
 class RemoveTimeOfDay(Command):
@@ -72,13 +72,13 @@ class RemoveTimeOfDay(Command):
         self.time_of_day_id = time_of_day_id
 
     def execute(self):
-        db_services.Project.remove_in_time_of_day(self.project_id, self.time_of_day_id)
+        api_project.remove_in_time_of_day(self.project_id, self.time_of_day_id)
 
     def _undo(self):
-        db_services.Project.put_in_time_of_day(self.project_id, self.time_of_day_id)
+        api_project.put_in_time_of_day(self.project_id, self.time_of_day_id)
 
     def _redo(self):
-        db_services.Project.remove_in_time_of_day(self.project_id, self.time_of_day_id)
+        api_project.remove_in_time_of_day(self.project_id, self.time_of_day_id)
 
 
 class NewTimeOfDayStandard(Command):
@@ -89,15 +89,15 @@ class NewTimeOfDayStandard(Command):
         self.old_t_o_d_standard_id = None
 
     def execute(self):
-        _, self.old_t_o_d_standard_id = db_services.Project.new_time_of_day_standard(self.project_id, self.time_of_day_id)
+        _, self.old_t_o_d_standard_id = api_project.new_time_of_day_standard(self.project_id, self.time_of_day_id)
 
     def _undo(self):
-        db_services.Project.remove_time_of_day_standard(self.project_id, self.time_of_day_id)
+        api_project.remove_time_of_day_standard(self.project_id, self.time_of_day_id)
         if self.old_t_o_d_standard_id:
-            db_services.Project.new_time_of_day_standard(self.project_id, self.old_t_o_d_standard_id)
+            api_project.new_time_of_day_standard(self.project_id, self.old_t_o_d_standard_id)
 
     def _redo(self):
-        db_services.Project.new_time_of_day_standard(self.project_id, self.time_of_day_id)
+        api_project.new_time_of_day_standard(self.project_id, self.time_of_day_id)
 
 
 class RemoveTimeOfDayStandard(Command):
@@ -107,13 +107,13 @@ class RemoveTimeOfDayStandard(Command):
         self.time_of_day_id = time_of_day_id
 
     def execute(self):
-        db_services.Project.remove_time_of_day_standard(self.project_id, self.time_of_day_id)
+        api_project.remove_time_of_day_standard(self.project_id, self.time_of_day_id)
 
     def _undo(self):
-        db_services.Project.new_time_of_day_standard(self.project_id, self.time_of_day_id)
+        api_project.new_time_of_day_standard(self.project_id, self.time_of_day_id)
 
     def _redo(self):
-        db_services.Project.remove_time_of_day_standard(self.project_id, self.time_of_day_id)
+        api_project.remove_time_of_day_standard(self.project_id, self.time_of_day_id)
 
 
 class NewTimeOfDayEnumStandard(Command):
@@ -122,13 +122,13 @@ class NewTimeOfDayEnumStandard(Command):
         self.time_of_day_enum_id = time_of_day_enum_id
 
     def execute(self):
-        project = db_services.Project.new_time_of_day_enum_standard(self.time_of_day_enum_id)
+        project = api_project.new_time_of_day_enum_standard(self.time_of_day_enum_id)
 
     def _undo(self):
-        project = db_services.Project.remove_time_of_day_enum_standard(self.time_of_day_enum_id)
+        project = api_project.remove_time_of_day_enum_standard(self.time_of_day_enum_id)
 
     def _redo(self):
-        project = db_services.Project.new_time_of_day_enum_standard(self.time_of_day_enum_id)
+        project = api_project.new_time_of_day_enum_standard(self.time_of_day_enum_id)
 
 
 class RemoveTimeOfDayEnumStandard(Command):
@@ -137,10 +137,10 @@ class RemoveTimeOfDayEnumStandard(Command):
         self.time_of_day_enum_id = time_of_day_enum_id
 
     def execute(self):
-        project = db_services.Project.remove_time_of_day_enum_standard(self.time_of_day_enum_id)
+        project = api_project.remove_time_of_day_enum_standard(self.time_of_day_enum_id)
 
     def _undo(self):
-        project = db_services.Project.new_time_of_day_enum_standard(self.time_of_day_enum_id)
+        project = api_project.new_time_of_day_enum_standard(self.time_of_day_enum_id)
 
     def _redo(self):
-        project = db_services.Project.remove_time_of_day_enum_standard(self.time_of_day_enum_id)
+        project = api_project.remove_time_of_day_enum_standard(self.time_of_day_enum_id)

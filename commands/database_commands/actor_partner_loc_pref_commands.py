@@ -12,6 +12,7 @@ from uuid import UUID
 
 from database import db_services, schemas
 from commands.command_base_classes import Command
+from gui.api_client import actor_partner_location_pref as api_aplp
 
 
 class Create(Command):
@@ -21,13 +22,13 @@ class Create(Command):
         self.created_actor_partner_loc_pref: schemas.ActorPartnerLocationPrefShow | None = None
 
     def execute(self):
-        self.created_actor_partner_loc_pref = db_services.ActorPartnerLocationPref.create(self.actor_partner_loc_pref)
+        self.created_actor_partner_loc_pref = api_aplp.create(self.actor_partner_loc_pref)
 
     def _undo(self):
-        db_services.ActorPartnerLocationPref.delete(self.created_actor_partner_loc_pref.id)
+        api_aplp.delete(self.created_actor_partner_loc_pref.id)
 
     def _redo(self):
-        db_services.ActorPartnerLocationPref.undelete(self.created_actor_partner_loc_pref.id)
+        api_aplp.undelete(self.created_actor_partner_loc_pref.id)
 
     def get_created_actor_partner_loc_pref(self) -> schemas.ActorPartnerLocationPrefShow:
         if not self.created_actor_partner_loc_pref:
@@ -70,15 +71,15 @@ class ReplaceAll(Command):
         self.old_apl_ids: list[UUID] = []
 
     def execute(self):
-        self.created_ids, self.old_apl_ids = db_services.ActorPartnerLocationPref.replace_all_for_model(
+        self.created_ids, self.old_apl_ids = api_aplp.replace_all_for_model(
             self.model_class_name, self.model_id, self.person_id, self.new_prefs)
 
     def _undo(self):
-        db_services.ActorPartnerLocationPref.undo_replace_all_for_model(
+        api_aplp.undo_replace_all_for_model(
             self.model_class_name, self.model_id, self.created_ids, self.old_apl_ids)
 
     def _redo(self):
-        self.created_ids, self.old_apl_ids = db_services.ActorPartnerLocationPref.replace_all_for_model(
+        self.created_ids, self.old_apl_ids = api_aplp.replace_all_for_model(
             self.model_class_name, self.model_id, self.person_id, self.new_prefs)
 
 
@@ -89,11 +90,11 @@ class DeleteUnused(Command):
         self.deleted_pref_ids: list[UUID] = []
 
     def execute(self):
-        self.deleted_pref_ids = db_services.ActorPartnerLocationPref.delete_unused(self.person_id)
+        self.deleted_pref_ids = api_aplp.delete_unused(self.person_id)
 
     def _undo(self):
         for pref_id in self.deleted_pref_ids:
-            db_services.ActorPartnerLocationPref.undelete(pref_id)
+            api_aplp.undelete(pref_id)
 
     def _redo(self):
-        self.deleted_pref_ids = db_services.ActorPartnerLocationPref.delete_unused(self.person_id)
+        self.deleted_pref_ids = api_aplp.delete_unused(self.person_id)

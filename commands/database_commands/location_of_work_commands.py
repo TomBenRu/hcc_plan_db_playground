@@ -16,6 +16,7 @@ from uuid import UUID
 from database import db_services, schemas
 from commands.database_commands import team_location_assignment_commands
 from commands.command_base_classes import Command, ContrExecUndoRedo
+from gui.api_client import location_of_work as api_low
 
 
 class Update(Command):
@@ -26,13 +27,13 @@ class Update(Command):
         self.updated_location_of_work: schemas.LocationOfWorkShow | None = None
 
     def execute(self):
-        self.updated_location_of_work = db_services.LocationOfWork.update(self.new_data)
+        self.updated_location_of_work = api_low.update(self.new_data)
 
     def _undo(self):
-        db_services.LocationOfWork.update(self.old_data)
+        api_low.update(self.old_data)
 
     def _redo(self):
-        db_services.LocationOfWork.update(self.new_data)
+        api_low.update(self.new_data)
 
 
 class PutInTimeOfDay(Command):
@@ -42,13 +43,13 @@ class PutInTimeOfDay(Command):
         self.time_of_day_id = time_of_day_id
 
     def execute(self):
-        db_services.LocationOfWork.put_in_time_of_day(self.location_of_work_id, self.time_of_day_id)
+        api_low.put_in_time_of_day(self.location_of_work_id, self.time_of_day_id)
 
     def _undo(self):
-        db_services.LocationOfWork.remove_in_time_of_day(self.location_of_work_id, self.time_of_day_id)
+        api_low.remove_in_time_of_day(self.location_of_work_id, self.time_of_day_id)
 
     def _redo(self):
-        db_services.LocationOfWork.put_in_time_of_day(self.location_of_work_id, self.time_of_day_id)
+        api_low.put_in_time_of_day(self.location_of_work_id, self.time_of_day_id)
 
 
 class RemoveTimeOfDay(Command):
@@ -58,13 +59,13 @@ class RemoveTimeOfDay(Command):
         self.time_of_day_id = time_of_day_id
 
     def execute(self):
-        db_services.LocationOfWork.remove_in_time_of_day(self.location_of_work_id, self.time_of_day_id)
+        api_low.remove_in_time_of_day(self.location_of_work_id, self.time_of_day_id)
 
     def _undo(self):
-        db_services.LocationOfWork.put_in_time_of_day(self.location_of_work_id, self.time_of_day_id)
+        api_low.put_in_time_of_day(self.location_of_work_id, self.time_of_day_id)
 
     def _redo(self):
-        db_services.LocationOfWork.remove_in_time_of_day(self.location_of_work_id, self.time_of_day_id)
+        api_low.remove_in_time_of_day(self.location_of_work_id, self.time_of_day_id)
 
 
 class NewTimeOfDayStandard(Command):
@@ -75,15 +76,15 @@ class NewTimeOfDayStandard(Command):
         self.old_t_o_d_standard_id = None
 
     def execute(self):
-        _, self.old_t_o_d_standard_id = db_services.LocationOfWork.new_time_of_day_standard(self.location_of_work_id, self.time_of_day_id)
+        _, self.old_t_o_d_standard_id = api_low.new_time_of_day_standard(self.location_of_work_id, self.time_of_day_id)
 
     def _undo(self):
-        db_services.LocationOfWork.remove_time_of_day_standard(self.location_of_work_id, self.time_of_day_id)
+        api_low.remove_time_of_day_standard(self.location_of_work_id, self.time_of_day_id)
         if self.old_t_o_d_standard_id:
-            db_services.LocationOfWork.new_time_of_day_standard(self.location_of_work_id, self.old_t_o_d_standard_id)
+            api_low.new_time_of_day_standard(self.location_of_work_id, self.old_t_o_d_standard_id)
 
     def _redo(self):
-        db_services.LocationOfWork.new_time_of_day_standard(self.location_of_work_id, self.time_of_day_id)
+        api_low.new_time_of_day_standard(self.location_of_work_id, self.time_of_day_id)
 
 
 class RemoveTimeOfDayStandard(Command):
@@ -93,13 +94,13 @@ class RemoveTimeOfDayStandard(Command):
         self.time_of_day_id = time_of_day_id
 
     def execute(self):
-        db_services.LocationOfWork.remove_time_of_day_standard(self.location_of_work_id, self.time_of_day_id)
+        api_low.remove_time_of_day_standard(self.location_of_work_id, self.time_of_day_id)
 
     def _undo(self):
-        db_services.LocationOfWork.new_time_of_day_standard(self.location_of_work_id, self.time_of_day_id)
+        api_low.new_time_of_day_standard(self.location_of_work_id, self.time_of_day_id)
 
     def _redo(self):
-        db_services.LocationOfWork.remove_time_of_day_standard(self.location_of_work_id, self.time_of_day_id)
+        api_low.remove_time_of_day_standard(self.location_of_work_id, self.time_of_day_id)
 
 
 class AssignToTeam(Command):
@@ -208,15 +209,15 @@ class UpdateFixedCast(Command):
         location_of_work = db_services.LocationOfWork.get(self.location_of_work_id)
         self.fixed_cast_old = location_of_work.fixed_cast
         self.fixed_cast_only_if_available_old = location_of_work.fixed_cast_only_if_available
-        db_services.LocationOfWork.update_fixed_cast(self.location_of_work_id, self.fixed_cast,
+        api_low.update_fixed_cast(self.location_of_work_id, self.fixed_cast,
                                                     self.fixed_cast_only_if_available)
 
     def _undo(self):
-        db_services.LocationOfWork.update_fixed_cast(self.location_of_work_id, self.fixed_cast_old,
+        api_low.update_fixed_cast(self.location_of_work_id, self.fixed_cast_old,
                                                     self.fixed_cast_only_if_available_old)
 
     def _redo(self):
-        db_services.LocationOfWork.update_fixed_cast(self.location_of_work_id, self.fixed_cast,
+        api_low.update_fixed_cast(self.location_of_work_id, self.fixed_cast,
                                                     self.fixed_cast_only_if_available)
 
 
@@ -228,16 +229,16 @@ class AddSkillGroup(Command):
         self.location_of_work: schemas.LocationOfWorkShow | None = None
 
     def execute(self):
-        self.location_of_work = db_services.LocationOfWork.add_skill_group(
+        self.location_of_work = api_low.add_skill_group(
             self.location_of_work_id, self.skill_group_id)
 
     def _undo(self):
         if self.location_of_work:
-            db_services.LocationOfWork.remove_skill_group(self.location_of_work_id, self.skill_group_id)
+            api_low.remove_skill_group(self.location_of_work_id, self.skill_group_id)
 
     def _redo(self):
         if self.location_of_work:
-            db_services.LocationOfWork.add_skill_group(self.location_of_work_id, self.skill_group_id)
+            api_low.add_skill_group(self.location_of_work_id, self.skill_group_id)
 
 
 class RemoveSkillGroup(Command):
@@ -248,13 +249,13 @@ class RemoveSkillGroup(Command):
         self.location_of_work: schemas.LocationOfWorkShow | None = None
 
     def execute(self):
-        self.location_of_work = db_services.LocationOfWork.remove_skill_group(
+        self.location_of_work = api_low.remove_skill_group(
             self.location_of_work_id, self.skill_group_id)
 
     def _undo(self):
         if self.location_of_work:
-            db_services.LocationOfWork.add_skill_group(self.location_of_work_id, self.skill_group_id)
+            api_low.add_skill_group(self.location_of_work_id, self.skill_group_id)
 
     def _redo(self):
         if self.location_of_work:
-            db_services.LocationOfWork.remove_skill_group(self.location_of_work_id, self.skill_group_id)
+            api_low.remove_skill_group(self.location_of_work_id, self.skill_group_id)

@@ -102,13 +102,13 @@ class PutInCombLocPossible(Command):
         self.comb_loc_poss_id = comb_loc_poss_id
 
     def execute(self):
-        db_services.AvailDay.put_in_comb_loc_possible(self.avail_day_id, self.comb_loc_poss_id)
+        api_avail_day.put_in_comb_loc_possible(self.avail_day_id, self.comb_loc_poss_id)
 
     def _undo(self):
-        db_services.AvailDay.remove_comb_loc_possible(self.avail_day_id, self.comb_loc_poss_id)
+        api_avail_day.remove_comb_loc_possible(self.avail_day_id, self.comb_loc_poss_id)
 
     def _redo(self):
-        db_services.AvailDay.put_in_comb_loc_possible(self.avail_day_id, self.comb_loc_poss_id)
+        api_avail_day.put_in_comb_loc_possible(self.avail_day_id, self.comb_loc_poss_id)
 
 
 class PutInCombLocPossibles(Command):
@@ -118,14 +118,14 @@ class PutInCombLocPossibles(Command):
         self.comb_loc_poss_ids = comb_loc_poss_ids
 
     def execute(self):
-        db_services.AvailDay.put_in_comb_loc_possibles(self.avail_day_id, self.comb_loc_poss_ids)
+        api_avail_day.put_in_comb_loc_possibles(self.avail_day_id, self.comb_loc_poss_ids)
 
     def _undo(self):
         for comb_loc_poss_id in self.comb_loc_poss_ids:
-            db_services.AvailDay.remove_comb_loc_possible(self.avail_day_id, comb_loc_poss_id)
+            api_avail_day.remove_comb_loc_possible(self.avail_day_id, comb_loc_poss_id)
 
     def _redo(self):
-        db_services.AvailDay.put_in_comb_loc_possibles(self.avail_day_id, self.comb_loc_poss_ids)
+        api_avail_day.put_in_comb_loc_possibles(self.avail_day_id, self.comb_loc_poss_ids)
 
 
 class RemoveCombLocPossible(Command):
@@ -135,13 +135,13 @@ class RemoveCombLocPossible(Command):
         self.comb_loc_poss_id = comb_loc_poss_id
 
     def execute(self):
-        db_services.AvailDay.remove_comb_loc_possible(self.avail_day_id, self.comb_loc_poss_id)
+        api_avail_day.remove_comb_loc_possible(self.avail_day_id, self.comb_loc_poss_id)
 
     def _undo(self):
-        db_services.AvailDay.put_in_comb_loc_possible(self.avail_day_id, self.comb_loc_poss_id)
+        api_avail_day.put_in_comb_loc_possible(self.avail_day_id, self.comb_loc_poss_id)
 
     def _redo(self):
-        db_services.AvailDay.remove_comb_loc_possible(self.avail_day_id, self.comb_loc_poss_id)
+        api_avail_day.remove_comb_loc_possible(self.avail_day_id, self.comb_loc_poss_id)
 
 
 class ClearCombLocPossibles(Command):
@@ -151,13 +151,13 @@ class ClearCombLocPossibles(Command):
         self.existing_comb_loc_poss_ids = existing_comb_loc_poss_ids
 
     def execute(self):
-        db_services.AvailDay.clear_comb_loc_possibles(self.avail_day_id)
+        api_avail_day.clear_comb_loc_possibles(self.avail_day_id)
 
     def _undo(self):
-        db_services.AvailDay.put_in_comb_loc_possibles(self.avail_day_id, self.existing_comb_loc_poss_ids)
+        api_avail_day.put_in_comb_loc_possibles(self.avail_day_id, self.existing_comb_loc_poss_ids)
 
     def _redo(self):
-        db_services.AvailDay.clear_comb_loc_possibles(self.avail_day_id)
+        api_avail_day.clear_comb_loc_possibles(self.avail_day_id)
 
 
 class PutInActorLocationPref(Command):
@@ -167,13 +167,13 @@ class PutInActorLocationPref(Command):
         self.actor_loc_pref_id = actor_loc_pref_id
 
     def execute(self):
-        db_services.AvailDay.put_in_location_pref(self.avail_day_id, self.actor_loc_pref_id)
+        api_avail_day.put_in_location_pref(self.avail_day_id, self.actor_loc_pref_id)
 
     def _undo(self):
-        db_services.AvailDay.remove_location_pref(self.avail_day_id, self.actor_loc_pref_id)
+        api_avail_day.remove_location_pref(self.avail_day_id, self.actor_loc_pref_id)
 
     def _redo(self):
-        db_services.AvailDay.put_in_location_pref(self.avail_day_id, self.actor_loc_pref_id)
+        api_avail_day.put_in_location_pref(self.avail_day_id, self.actor_loc_pref_id)
 
 
 class PutInActorLocationPrefs(Command):
@@ -183,14 +183,14 @@ class PutInActorLocationPrefs(Command):
         self.actor_loc_pref_ids = actor_loc_pref_ids
 
     def execute(self):
-        db_services.AvailDay.put_in_location_prefs(self.avail_day_id, self.actor_loc_pref_ids)
+        api_avail_day.put_in_location_prefs(self.avail_day_id, self.actor_loc_pref_ids)
 
     def _undo(self):
         for actor_loc_pref_id in self.actor_loc_pref_ids:
-            db_services.AvailDay.remove_location_pref(self.avail_day_id, actor_loc_pref_id)
+            api_avail_day.remove_location_pref(self.avail_day_id, actor_loc_pref_id)
 
     def _redo(self):
-        db_services.AvailDay.put_in_location_prefs(self.avail_day_id, self.actor_loc_pref_ids)
+        api_avail_day.put_in_location_prefs(self.avail_day_id, self.actor_loc_pref_ids)
 
 
 class RemoveActorLocationPref(Command):
@@ -200,13 +200,13 @@ class RemoveActorLocationPref(Command):
         self.actor_loc_pref_id = actor_loc_pref_id
 
     def execute(self):
-        db_services.AvailDay.remove_location_pref(self.avail_day_id, self.actor_loc_pref_id)
+        api_avail_day.remove_location_pref(self.avail_day_id, self.actor_loc_pref_id)
 
     def _undo(self):
-        db_services.AvailDay.put_in_location_pref(self.avail_day_id, self.actor_loc_pref_id)
+        api_avail_day.put_in_location_pref(self.avail_day_id, self.actor_loc_pref_id)
 
     def _redo(self):
-        db_services.AvailDay.remove_location_pref(self.avail_day_id, self.actor_loc_pref_id)
+        api_avail_day.remove_location_pref(self.avail_day_id, self.actor_loc_pref_id)
 
 
 class ClearActorLocationPrefs(Command):
@@ -216,13 +216,13 @@ class ClearActorLocationPrefs(Command):
         self.existing_actor_loc_pref_ids = existing_actor_loc_pref_ids
 
     def execute(self):
-        db_services.AvailDay.clear_location_prefs(self.avail_day_id)
+        api_avail_day.clear_location_prefs(self.avail_day_id)
 
     def _undo(self):
-        db_services.AvailDay.put_in_location_prefs(self.avail_day_id, self.existing_actor_loc_pref_ids)
+        api_avail_day.put_in_location_prefs(self.avail_day_id, self.existing_actor_loc_pref_ids)
 
     def _redo(self):
-        db_services.AvailDay.clear_location_prefs(self.avail_day_id)
+        api_avail_day.clear_location_prefs(self.avail_day_id)
 
 
 class PutInActorPartnerLocationPref(Command):
@@ -232,13 +232,13 @@ class PutInActorPartnerLocationPref(Command):
         self.actor_partner_loc_pref_id = actor_partner_loc_pref_id
 
     def execute(self):
-        db_services.AvailDay.put_in_partner_location_pref(self.avail_day_id, self.actor_partner_loc_pref_id)
+        api_avail_day.put_in_partner_location_pref(self.avail_day_id, self.actor_partner_loc_pref_id)
 
     def _undo(self):
-        db_services.AvailDay.remove_partner_location_pref(self.avail_day_id, self.actor_partner_loc_pref_id)
+        api_avail_day.remove_partner_location_pref(self.avail_day_id, self.actor_partner_loc_pref_id)
 
     def _redo(self):
-        db_services.AvailDay.put_in_partner_location_pref(self.avail_day_id, self.actor_partner_loc_pref_id)
+        api_avail_day.put_in_partner_location_pref(self.avail_day_id, self.actor_partner_loc_pref_id)
 
 
 class PutInActorPartnerLocationPrefs(Command):
@@ -248,14 +248,14 @@ class PutInActorPartnerLocationPrefs(Command):
         self.actor_partner_loc_pref_ids = actor_partner_loc_pref_ids
 
     def execute(self):
-        db_services.AvailDay.put_in_partner_location_prefs(self.avail_day_id, self.actor_partner_loc_pref_ids)
+        api_avail_day.put_in_partner_location_prefs(self.avail_day_id, self.actor_partner_loc_pref_ids)
 
     def _undo(self):
         for actor_partner_loc_pref_id in self.actor_partner_loc_pref_ids:
-            db_services.AvailDay.remove_partner_location_pref(self.avail_day_id, actor_partner_loc_pref_id)
+            api_avail_day.remove_partner_location_pref(self.avail_day_id, actor_partner_loc_pref_id)
 
     def _redo(self):
-        db_services.AvailDay.put_in_partner_location_prefs(self.avail_day_id, self.actor_partner_loc_pref_ids)
+        api_avail_day.put_in_partner_location_prefs(self.avail_day_id, self.actor_partner_loc_pref_ids)
 
 
 class RemoveActorPartnerLocationPref(Command):
@@ -265,13 +265,13 @@ class RemoveActorPartnerLocationPref(Command):
         self.actor_partner_loc_pref_id = actor_partner_loc_pref_id
 
     def execute(self):
-        db_services.AvailDay.remove_partner_location_pref(self.avail_day_id, self.actor_partner_loc_pref_id)
+        api_avail_day.remove_partner_location_pref(self.avail_day_id, self.actor_partner_loc_pref_id)
 
     def _undo(self):
-        db_services.AvailDay.put_in_partner_location_pref(self.avail_day_id, self.actor_partner_loc_pref_id)
+        api_avail_day.put_in_partner_location_pref(self.avail_day_id, self.actor_partner_loc_pref_id)
 
     def _redo(self):
-        db_services.AvailDay.remove_partner_location_pref(self.avail_day_id, self.actor_partner_loc_pref_id)
+        api_avail_day.remove_partner_location_pref(self.avail_day_id, self.actor_partner_loc_pref_id)
 
 
 class ClearActorPartnerLocationPrefs(Command):
@@ -285,13 +285,13 @@ class ClearActorPartnerLocationPrefs(Command):
             self.existing_actor_partner_loc_pref_ids = existing_actor_partner_loc_pref_ids
 
     def execute(self):
-        db_services.AvailDay.clear_partner_location_prefs(self.avail_day_id)
+        api_avail_day.clear_partner_location_prefs(self.avail_day_id)
 
     def _undo(self):
-        db_services.AvailDay.put_in_partner_location_prefs(self.avail_day_id, self.existing_actor_partner_loc_pref_ids)
+        api_avail_day.put_in_partner_location_prefs(self.avail_day_id, self.existing_actor_partner_loc_pref_ids)
 
     def _redo(self):
-        db_services.AvailDay.clear_partner_location_prefs(self.avail_day_id)
+        api_avail_day.clear_partner_location_prefs(self.avail_day_id)
 
 
 class ReplacePartnerPrefsForAvailDays(Command):
@@ -335,16 +335,16 @@ class ResetAllAvailDaysActorPartnerLocationPrefsToDefaults(Command):
         )
 
     def execute(self):
-        db_services.AvailDay.reset_all_avail_days_partner_location_prefs_of_actor_plan_period_to_defaults(
+        api_avail_day.reset_all_avail_days_partner_location_prefs_of_actor_plan_period_to_defaults(
             self.actor_plan_period_id)
 
     def _undo(self):
         for avail_day_id, actor_partner_loc_pref_ids in self.existing_actor_partner_loc_pref_ids_per_avail_day.items():
-            db_services.AvailDay.clear_partner_location_prefs(avail_day_id)
-            db_services.AvailDay.put_in_partner_location_prefs(avail_day_id, actor_partner_loc_pref_ids)
+            api_avail_day.clear_partner_location_prefs(avail_day_id)
+            api_avail_day.put_in_partner_location_prefs(avail_day_id, actor_partner_loc_pref_ids)
 
     def _redo(self):
-        db_services.AvailDay.reset_all_avail_days_partner_location_prefs_of_actor_plan_period_to_defaults(
+        api_avail_day.reset_all_avail_days_partner_location_prefs_of_actor_plan_period_to_defaults(
             self.actor_plan_period_id)
 
 
@@ -361,16 +361,16 @@ class ResetAllAvailDaysActorLocationPrefsToDefaults(Command):
         )
 
     def execute(self):
-        db_services.AvailDay.reset_all_avail_days_location_prefs_of_actor_plan_period_to_defaults(
+        api_avail_day.reset_all_avail_days_location_prefs_of_actor_plan_period_to_defaults(
             self.actor_plan_period_id)
 
     def _undo(self):
         for avail_day_id, actor_loc_pref_ids in self.existing_actor_loc_pref_ids_per_avail_day.items():
-            db_services.AvailDay.clear_location_prefs(avail_day_id)
-            db_services.AvailDay.put_in_location_prefs(avail_day_id, actor_loc_pref_ids)
+            api_avail_day.clear_location_prefs(avail_day_id)
+            api_avail_day.put_in_location_prefs(avail_day_id, actor_loc_pref_ids)
 
     def _redo(self):
-        db_services.AvailDay.reset_all_avail_days_location_prefs_of_actor_plan_period_to_defaults(
+        api_avail_day.reset_all_avail_days_location_prefs_of_actor_plan_period_to_defaults(
             self.actor_plan_period_id)
 
 
@@ -395,17 +395,17 @@ class ReplaceAvailDayCombLocPossibles(Command):
         self._result: dict | None = None
 
     def execute(self):
-        self._result = db_services.AvailDay.replace_comb_loc_possibles_for_avail_days(
+        self._result = api_avail_day.replace_comb_loc_possibles_for_avail_days(
             self.avail_day_ids, self.person_id,
             self.original_ids, self.pending_creates, self.current_combs)
 
     def _undo(self):
-        db_services.AvailDay.restore_comb_loc_possibles_for_avail_days(
+        api_avail_day.restore_comb_loc_possibles_for_avail_days(
             self._result['old_comb_ids_per_avail_day'])
 
     def _redo(self):
         redo_target = {avd_id: self._result['new_comb_ids'] for avd_id in self.avail_day_ids}
-        db_services.AvailDay.restore_comb_loc_possibles_for_avail_days(redo_target)
+        api_avail_day.restore_comb_loc_possibles_for_avail_days(redo_target)
 
 
 class ReplaceAvailDayLocationPrefs(Command):
@@ -426,16 +426,16 @@ class ReplaceAvailDayLocationPrefs(Command):
         self._result: dict | None = None
 
     def execute(self):
-        self._result = db_services.AvailDay.replace_location_prefs_for_avail_days(
+        self._result = api_avail_day.replace_location_prefs_for_avail_days(
             self.avail_day_ids, self.person_id, self.project_id, self.location_id_to_score)
 
     def _undo(self):
-        db_services.AvailDay.restore_location_prefs_for_avail_days(
+        api_avail_day.restore_location_prefs_for_avail_days(
             self._result['old_pref_ids_per_avail_day'])
 
     def _redo(self):
         redo_target = {avd_id: self._result['new_pref_ids'] for avd_id in self.avail_day_ids}
-        db_services.AvailDay.restore_location_prefs_for_avail_days(redo_target)
+        api_avail_day.restore_location_prefs_for_avail_days(redo_target)
 
 
 class ResetAllAvailDaysCombLocPossiblesToDefaults(Command):
@@ -451,16 +451,16 @@ class ResetAllAvailDaysCombLocPossiblesToDefaults(Command):
         )
 
     def execute(self):
-        db_services.AvailDay.reset_all_avail_days_comb_loc_possibles_of_actor_plan_period_to_defaults(
+        api_avail_day.reset_all_avail_days_comb_loc_possibles_of_actor_plan_period_to_defaults(
             self.actor_plan_period_id)
 
     def _undo(self):
         for avail_day_id, comb_loc_poss_ids in self.existing_comb_loc_poss_ids_per_avail_day.items():
-            db_services.AvailDay.clear_comb_loc_possibles(avail_day_id)
-            db_services.AvailDay.put_in_comb_loc_possibles(avail_day_id, comb_loc_poss_ids)
+            api_avail_day.clear_comb_loc_possibles(avail_day_id)
+            api_avail_day.put_in_comb_loc_possibles(avail_day_id, comb_loc_poss_ids)
 
     def _redo(self):
-        db_services.AvailDay.reset_all_avail_days_comb_loc_possibles_of_actor_plan_period_to_defaults(
+        api_avail_day.reset_all_avail_days_comb_loc_possibles_of_actor_plan_period_to_defaults(
             self.actor_plan_period_id)
 
 
@@ -472,15 +472,15 @@ class AddSkill(Command):
         self.updated_object: schemas.PersonShow | None = None
 
     def execute(self):
-        self.updated_object = db_services.AvailDay.add_skill(self.avail_day_id, self.skill_id)
+        self.updated_object = api_avail_day.add_skill(self.avail_day_id, self.skill_id)
 
     def _undo(self):
         if self.updated_object:
-            db_services.AvailDay.remove_skill(self.updated_object.id, self.skill_id)
+            api_avail_day.remove_skill(self.updated_object.id, self.skill_id)
 
     def _redo(self):
         if self.updated_object:
-            db_services.AvailDay.add_skill(self.updated_object.id, self.skill_id)
+            api_avail_day.add_skill(self.updated_object.id, self.skill_id)
 
 class RemoveSkill(Command):
     def __init__(self, avail_day_id: UUID, skill_id: UUID):
@@ -490,15 +490,15 @@ class RemoveSkill(Command):
         self.updated_object: schemas.AvailDayShow | None = None
 
     def execute(self):
-        self.updated_object = db_services.AvailDay.remove_skill(self.avail_day_id, self.skill_id)
+        self.updated_object = api_avail_day.remove_skill(self.avail_day_id, self.skill_id)
 
     def _undo(self):
         if self.updated_object:
-            db_services.AvailDay.add_skill(self.updated_object.id, self.skill_id)
+            api_avail_day.add_skill(self.updated_object.id, self.skill_id)
 
     def _redo(self):
         if self.updated_object:
-            db_services.AvailDay.remove_skill(self.updated_object.id, self.skill_id)
+            api_avail_day.remove_skill(self.updated_object.id, self.skill_id)
 
 
 class RemoveAllSkillsFromAllAvailDays(Command):
@@ -514,14 +514,14 @@ class RemoveAllSkillsFromAllAvailDays(Command):
         )
 
     def execute(self):
-        db_services.AvailDay.clear_all_skills_of_actor_plan_period(self.actor_plan_period_id)
+        api_avail_day.clear_all_skills_of_actor_plan_period(self.actor_plan_period_id)
 
     def _undo(self):
         for avail_day_id, skill_ids in self.existing_skill_ids_per_avail_day.items():
-            db_services.AvailDay.put_in_skills(avail_day_id, skill_ids)
+            api_avail_day.put_in_skills(avail_day_id, skill_ids)
 
     def _redo(self):
-        db_services.AvailDay.clear_all_skills_of_actor_plan_period(self.actor_plan_period_id)
+        api_avail_day.clear_all_skills_of_actor_plan_period(self.actor_plan_period_id)
 
 
 class ResetAllSkillsOfAllAvailDaysToPersonDefaults(Command):
@@ -537,14 +537,14 @@ class ResetAllSkillsOfAllAvailDaysToPersonDefaults(Command):
         )
 
     def execute(self):
-        db_services.AvailDay.reset_all_skills_of_actor_plan_period_to_person_defaults(
+        api_avail_day.reset_all_skills_of_actor_plan_period_to_person_defaults(
             self.actor_plan_period_id)
 
     def _undo(self):
         for avail_day_id, skill_ids in self.existing_skill_ids_per_avail_day.items():
-            db_services.AvailDay.clear_skills(avail_day_id)
-            db_services.AvailDay.put_in_skills(avail_day_id, skill_ids)
+            api_avail_day.clear_skills(avail_day_id)
+            api_avail_day.put_in_skills(avail_day_id, skill_ids)
 
     def _redo(self):
-        db_services.AvailDay.reset_all_skills_of_actor_plan_period_to_person_defaults(
+        api_avail_day.reset_all_skills_of_actor_plan_period_to_person_defaults(
             self.actor_plan_period_id)

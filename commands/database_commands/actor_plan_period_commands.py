@@ -36,18 +36,18 @@ class ReplaceCombLocPossibles(Command):
         self._result: dict[str, list[UUID]] | None = None
 
     def execute(self):
-        self._result = db_services.ActorPlanPeriod.replace_comb_loc_possibles(
+        self._result = api_app.replace_comb_loc_possibles(
             self.actor_plan_period_id, self.person_id,
             self.original_ids, self.pending_creates, self.current_combs,
         )
 
     def _undo(self):
-        db_services.ActorPlanPeriod.restore_comb_loc_possibles(
+        api_app.restore_comb_loc_possibles(
             self.actor_plan_period_id, self._result['old_comb_ids']
         )
 
     def _redo(self):
-        db_services.ActorPlanPeriod.restore_comb_loc_possibles(
+        api_app.restore_comb_loc_possibles(
             self.actor_plan_period_id, self._result['new_comb_ids']
         )
 
@@ -92,13 +92,13 @@ class PutInTimeOfDay(Command):
         self.time_of_day_id = time_of_day_id
 
     def execute(self):
-        db_services.ActorPlanPeriod.put_in_time_of_day(self.actor_plan_period_id, self.time_of_day_id)
+        api_app.put_in_time_of_day(self.actor_plan_period_id, self.time_of_day_id)
 
     def _undo(self):
-        db_services.ActorPlanPeriod.remove_in_time_of_day(self.actor_plan_period_id, self.time_of_day_id)
+        api_app.remove_in_time_of_day(self.actor_plan_period_id, self.time_of_day_id)
 
     def _redo(self):
-        db_services.ActorPlanPeriod.put_in_time_of_day(self.actor_plan_period_id, self.time_of_day_id)
+        api_app.put_in_time_of_day(self.actor_plan_period_id, self.time_of_day_id)
 
 
 class RemoveTimeOfDay(Command):
@@ -108,13 +108,13 @@ class RemoveTimeOfDay(Command):
         self.time_of_day_id = time_of_day_id
 
     def execute(self):
-        db_services.ActorPlanPeriod.remove_in_time_of_day(self.actor_plan_period_id, self.time_of_day_id)
+        api_app.remove_in_time_of_day(self.actor_plan_period_id, self.time_of_day_id)
 
     def _undo(self):
-        db_services.ActorPlanPeriod.put_in_time_of_day(self.actor_plan_period_id, self.time_of_day_id)
+        api_app.put_in_time_of_day(self.actor_plan_period_id, self.time_of_day_id)
 
     def _redo(self):
-        db_services.ActorPlanPeriod.remove_in_time_of_day(self.actor_plan_period_id, self.time_of_day_id)
+        api_app.remove_in_time_of_day(self.actor_plan_period_id, self.time_of_day_id)
 
 
 class NewTimeOfDayStandard(Command):
@@ -125,16 +125,16 @@ class NewTimeOfDayStandard(Command):
         self.old_t_o_d_standard_id = None
 
     def execute(self):
-        _, self.old_t_o_d_standard_id = db_services.ActorPlanPeriod.new_time_of_day_standard(self.actor_plan_period_id,
+        _, self.old_t_o_d_standard_id = api_app.new_time_of_day_standard(self.actor_plan_period_id,
                                                                                              self.time_of_day_id)
 
     def _undo(self):
-        db_services.ActorPlanPeriod.remove_time_of_day_standard(self.actor_plan_period_id, self.time_of_day_id)
+        api_app.remove_time_of_day_standard(self.actor_plan_period_id, self.time_of_day_id)
         if self.old_t_o_d_standard_id:
-            db_services.ActorPlanPeriod.new_time_of_day_standard(self.actor_plan_period_id, self.old_t_o_d_standard_id)
+            api_app.new_time_of_day_standard(self.actor_plan_period_id, self.old_t_o_d_standard_id)
 
     def _redo(self):
-        db_services.ActorPlanPeriod.new_time_of_day_standard(self.actor_plan_period_id, self.time_of_day_id)
+        api_app.new_time_of_day_standard(self.actor_plan_period_id, self.time_of_day_id)
 
 
 class RemoveTimeOfDayStandard(Command):
@@ -144,13 +144,13 @@ class RemoveTimeOfDayStandard(Command):
         self.time_of_day_id = time_of_day_id
 
     def execute(self):
-        db_services.ActorPlanPeriod.remove_time_of_day_standard(self.actor_plan_period_id, self.time_of_day_id)
+        api_app.remove_time_of_day_standard(self.actor_plan_period_id, self.time_of_day_id)
 
     def _undo(self):
-        db_services.ActorPlanPeriod.new_time_of_day_standard(self.actor_plan_period_id, self.time_of_day_id)
+        api_app.new_time_of_day_standard(self.actor_plan_period_id, self.time_of_day_id)
 
     def _redo(self):
-        db_services.ActorPlanPeriod.remove_time_of_day_standard(self.actor_plan_period_id, self.time_of_day_id)
+        api_app.remove_time_of_day_standard(self.actor_plan_period_id, self.time_of_day_id)
 
 
 class PutInCombLocPossible(Command):
@@ -160,13 +160,13 @@ class PutInCombLocPossible(Command):
         self.comb_loc_poss_id = comb_loc_poss_id
 
     def execute(self):
-        db_services.ActorPlanPeriod.put_in_comb_loc_possible(self.actor_plan_period_id, self.comb_loc_poss_id)
+        api_app.put_in_comb_loc_possible(self.actor_plan_period_id, self.comb_loc_poss_id)
 
     def _undo(self):
-        db_services.ActorPlanPeriod.remove_comb_loc_possible(self.actor_plan_period_id, self.comb_loc_poss_id)
+        api_app.remove_comb_loc_possible(self.actor_plan_period_id, self.comb_loc_poss_id)
 
     def _redo(self):
-        db_services.ActorPlanPeriod.put_in_comb_loc_possible(self.actor_plan_period_id, self.comb_loc_poss_id)
+        api_app.put_in_comb_loc_possible(self.actor_plan_period_id, self.comb_loc_poss_id)
 
 
 class RemoveCombLocPossible(Command):
@@ -176,13 +176,13 @@ class RemoveCombLocPossible(Command):
         self.comb_loc_poss_id = comb_loc_poss_id
 
     def execute(self):
-        db_services.ActorPlanPeriod.remove_comb_loc_possible(self.actor_plan_period_id, self.comb_loc_poss_id)
+        api_app.remove_comb_loc_possible(self.actor_plan_period_id, self.comb_loc_poss_id)
 
     def _undo(self):
-        db_services.ActorPlanPeriod.put_in_comb_loc_possible(self.actor_plan_period_id, self.comb_loc_poss_id)
+        api_app.put_in_comb_loc_possible(self.actor_plan_period_id, self.comb_loc_poss_id)
 
     def _redo(self):
-        db_services.ActorPlanPeriod.remove_comb_loc_possible(self.actor_plan_period_id, self.comb_loc_poss_id)
+        api_app.remove_comb_loc_possible(self.actor_plan_period_id, self.comb_loc_poss_id)
 
 
 class PutInActorLocationPref(Command):
@@ -192,13 +192,13 @@ class PutInActorLocationPref(Command):
         self.actor_loc_pref_id = actor_loc_pref_id
 
     def execute(self):
-        db_services.ActorPlanPeriod.put_in_location_pref(self.actor_plan_period_id, self.actor_loc_pref_id)
+        api_app.put_in_location_pref(self.actor_plan_period_id, self.actor_loc_pref_id)
 
     def _undo(self):
-        db_services.ActorPlanPeriod.remove_location_pref(self.actor_plan_period_id, self.actor_loc_pref_id)
+        api_app.remove_location_pref(self.actor_plan_period_id, self.actor_loc_pref_id)
 
     def _redo(self):
-        db_services.ActorPlanPeriod.put_in_location_pref(self.actor_plan_period_id, self.actor_loc_pref_id)
+        api_app.put_in_location_pref(self.actor_plan_period_id, self.actor_loc_pref_id)
 
 
 class RemoveActorLocationPref(Command):
@@ -208,13 +208,13 @@ class RemoveActorLocationPref(Command):
         self.actor_loc_pref_id = actor_loc_pref_id
 
     def execute(self):
-        db_services.ActorPlanPeriod.remove_location_pref(self.actor_plan_period_id, self.actor_loc_pref_id)
+        api_app.remove_location_pref(self.actor_plan_period_id, self.actor_loc_pref_id)
 
     def _undo(self):
-        db_services.ActorPlanPeriod.put_in_location_pref(self.actor_plan_period_id, self.actor_loc_pref_id)
+        api_app.put_in_location_pref(self.actor_plan_period_id, self.actor_loc_pref_id)
 
     def _redo(self):
-        db_services.ActorPlanPeriod.remove_location_pref(self.actor_plan_period_id, self.actor_loc_pref_id)
+        api_app.remove_location_pref(self.actor_plan_period_id, self.actor_loc_pref_id)
 
 
 class UpdateLocationPrefsBulk(Command):
@@ -231,17 +231,17 @@ class UpdateLocationPrefsBulk(Command):
         self._result: dict[str, list[UUID]] | None = None
 
     def execute(self):
-        self._result = db_services.ActorPlanPeriod.update_location_prefs_bulk(
+        self._result = api_app.update_location_prefs_bulk(
             self.actor_plan_period_id, self.location_id_to_score
         )
 
     def _undo(self):
-        db_services.ActorPlanPeriod.restore_location_prefs_bulk(
+        api_app.restore_location_prefs_bulk(
             self.actor_plan_period_id, self._result['old_pref_ids']
         )
 
     def _redo(self):
-        self._result = db_services.ActorPlanPeriod.update_location_prefs_bulk(
+        self._result = api_app.update_location_prefs_bulk(
             self.actor_plan_period_id, self.location_id_to_score
         )
 
@@ -253,15 +253,15 @@ class PutInActorPartnerLocationPref(Command):
         self.actor_partner_loc_pref_id = actor_partner_loc_pref_id
 
     def execute(self):
-        db_services.ActorPlanPeriod.put_in_partner_location_pref(self.actor_plan_period_id,
+        api_app.put_in_partner_location_pref(self.actor_plan_period_id,
                                                                  self.actor_partner_loc_pref_id)
 
     def _undo(self):
-        db_services.ActorPlanPeriod.remove_partner_location_pref(self.actor_plan_period_id,
+        api_app.remove_partner_location_pref(self.actor_plan_period_id,
                                                                  self.actor_partner_loc_pref_id)
 
     def _redo(self):
-        db_services.ActorPlanPeriod.put_in_partner_location_pref(self.actor_plan_period_id,
+        api_app.put_in_partner_location_pref(self.actor_plan_period_id,
                                                                  self.actor_partner_loc_pref_id)
 
 
@@ -272,15 +272,15 @@ class RemoveActorPartnerLocationPref(Command):
         self.actor_partner_loc_pref_id = actor_partner_loc_pref_id
 
     def execute(self):
-        db_services.ActorPlanPeriod.remove_partner_location_pref(self.actor_plan_period_id,
+        api_app.remove_partner_location_pref(self.actor_plan_period_id,
                                                                  self.actor_partner_loc_pref_id)
 
     def _undo(self):
-        db_services.ActorPlanPeriod.put_in_partner_location_pref(self.actor_plan_period_id,
+        api_app.put_in_partner_location_pref(self.actor_plan_period_id,
                                                                  self.actor_partner_loc_pref_id)
 
     def _redo(self):
-        db_services.ActorPlanPeriod.remove_partner_location_pref(self.actor_plan_period_id,
+        api_app.remove_partner_location_pref(self.actor_plan_period_id,
                                                                  self.actor_partner_loc_pref_id)
 
 

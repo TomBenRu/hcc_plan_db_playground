@@ -63,13 +63,13 @@ class PutInTimeOfDay(Command):
         self.time_of_day_id = time_of_day_id
 
     def execute(self):
-        db_services.Person.put_in_time_of_day(self.person_id, self.time_of_day_id)
+        api_person.put_in_time_of_day(self.person_id, self.time_of_day_id)
 
     def _undo(self):
-        db_services.Person.remove_in_time_of_day(self.person_id, self.time_of_day_id)
+        api_person.remove_in_time_of_day(self.person_id, self.time_of_day_id)
 
     def _redo(self):
-        db_services.Person.put_in_time_of_day(self.person_id, self.time_of_day_id)
+        api_person.put_in_time_of_day(self.person_id, self.time_of_day_id)
 
 
 class RemoveTimeOfDay(Command):
@@ -79,13 +79,13 @@ class RemoveTimeOfDay(Command):
         self.time_of_day_id = time_of_day_id
 
     def execute(self):
-        db_services.Person.remove_in_time_of_day(self.person_id, self.time_of_day_id)
+        api_person.remove_in_time_of_day(self.person_id, self.time_of_day_id)
 
     def _undo(self):
-        db_services.Person.put_in_time_of_day(self.person_id, self.time_of_day_id)
+        api_person.put_in_time_of_day(self.person_id, self.time_of_day_id)
 
     def _redo(self):
-        db_services.Person.remove_in_time_of_day(self.person_id, self.time_of_day_id)
+        api_person.remove_in_time_of_day(self.person_id, self.time_of_day_id)
 
 
 class NewTimeOfDayStandard(Command):
@@ -96,15 +96,15 @@ class NewTimeOfDayStandard(Command):
         self.old_t_o_d_standard_id = None
 
     def execute(self):
-        _, self.old_t_o_d_standard_id = db_services.Person.new_time_of_day_standard(self.person_id, self.time_of_day_id)
+        _, self.old_t_o_d_standard_id = api_person.new_time_of_day_standard(self.person_id, self.time_of_day_id)
 
     def _undo(self):
-        db_services.Person.remove_time_of_day_standard(self.person_id, self.time_of_day_id)
+        api_person.remove_time_of_day_standard(self.person_id, self.time_of_day_id)
         if self.old_t_o_d_standard_id:
-            db_services.Person.new_time_of_day_standard(self.person_id, self.old_t_o_d_standard_id)
+            api_person.new_time_of_day_standard(self.person_id, self.old_t_o_d_standard_id)
 
     def _redo(self):
-        db_services.Person.new_time_of_day_standard(self.person_id, self.time_of_day_id)
+        api_person.new_time_of_day_standard(self.person_id, self.time_of_day_id)
 
 
 class RemoveTimeOfDayStandard(Command):
@@ -114,13 +114,13 @@ class RemoveTimeOfDayStandard(Command):
         self.time_of_day_id = time_of_day_id
 
     def execute(self):
-        db_services.Person.remove_time_of_day_standard(self.person_id, self.time_of_day_id)
+        api_person.remove_time_of_day_standard(self.person_id, self.time_of_day_id)
 
     def _undo(self):
-        db_services.Person.new_time_of_day_standard(self.person_id, self.time_of_day_id)
+        api_person.new_time_of_day_standard(self.person_id, self.time_of_day_id)
 
     def _redo(self):
-        db_services.Person.remove_time_of_day_standard(self.person_id, self.time_of_day_id)
+        api_person.remove_time_of_day_standard(self.person_id, self.time_of_day_id)
 
 
 class PutInCombLocPossible(Command):
@@ -130,13 +130,13 @@ class PutInCombLocPossible(Command):
         self.comb_loc_poss_id = comb_loc_poss_id
 
     def execute(self):
-        db_services.Person.put_in_comb_loc_possible(self.person_id, self.comb_loc_poss_id)
+        api_person.put_in_comb_loc_possible(self.person_id, self.comb_loc_poss_id)
 
     def _undo(self):
-        db_services.Person.remove_comb_loc_possible(self.person_id, self.comb_loc_poss_id)
+        api_person.remove_comb_loc_possible(self.person_id, self.comb_loc_poss_id)
 
     def _redo(self):
-        db_services.Person.put_in_comb_loc_possible(self.person_id, self.comb_loc_poss_id)
+        api_person.put_in_comb_loc_possible(self.person_id, self.comb_loc_poss_id)
 
 
 class RemoveCombLocPossible(Command):
@@ -146,13 +146,13 @@ class RemoveCombLocPossible(Command):
         self.comb_loc_poss_id = comb_loc_poss_id
 
     def execute(self):
-        db_services.Person.remove_comb_loc_possible(self.person_id, self.comb_loc_poss_id)
+        api_person.remove_comb_loc_possible(self.person_id, self.comb_loc_poss_id)
 
     def _undo(self):
-        db_services.Person.put_in_comb_loc_possible(self.person_id, self.comb_loc_poss_id)
+        api_person.put_in_comb_loc_possible(self.person_id, self.comb_loc_poss_id)
 
     def _redo(self):
-        db_services.Person.remove_comb_loc_possible(self.person_id, self.comb_loc_poss_id)
+        api_person.remove_comb_loc_possible(self.person_id, self.comb_loc_poss_id)
 
 
 class ReplaceCombLocPossibles(Command):
@@ -174,15 +174,15 @@ class ReplaceCombLocPossibles(Command):
         self._result: dict[str, list[UUID]] | None = None
 
     def execute(self):
-        self._result = db_services.Person.replace_comb_loc_possibles(
+        self._result = api_person.replace_comb_loc_possibles(
             self.person_id, self.original_ids, self.pending_creates, self.current_combs)
 
     def _undo(self):
-        db_services.Person.restore_comb_loc_possibles(
+        api_person.restore_comb_loc_possibles(
             self.person_id, self._result['old_comb_ids'])
 
     def _redo(self):
-        db_services.Person.restore_comb_loc_possibles(
+        api_person.restore_comb_loc_possibles(
             self.person_id, self._result['new_comb_ids'])
 
 
@@ -193,13 +193,13 @@ class PutInActorLocationPref(Command):
         self.actor_loc_pref_id = actor_loc_pref_id
 
     def execute(self):
-        db_services.Person.put_in_location_pref(self.person_id, self.actor_loc_pref_id)
+        api_person.put_in_location_pref(self.person_id, self.actor_loc_pref_id)
 
     def _undo(self):
-        db_services.Person.remove_location_pref(self.person_id, self.actor_loc_pref_id)
+        api_person.remove_location_pref(self.person_id, self.actor_loc_pref_id)
 
     def _redo(self):
-        db_services.Person.put_in_location_pref(self.person_id, self.actor_loc_pref_id)
+        api_person.put_in_location_pref(self.person_id, self.actor_loc_pref_id)
 
 
 class RemoveActorLocationPref(Command):
@@ -209,13 +209,13 @@ class RemoveActorLocationPref(Command):
         self.actor_loc_pref_id = actor_loc_pref_id
 
     def execute(self):
-        db_services.Person.remove_location_pref(self.person_id, self.actor_loc_pref_id)
+        api_person.remove_location_pref(self.person_id, self.actor_loc_pref_id)
 
     def _undo(self):
-        db_services.Person.put_in_location_pref(self.person_id, self.actor_loc_pref_id)
+        api_person.put_in_location_pref(self.person_id, self.actor_loc_pref_id)
 
     def _redo(self):
-        db_services.Person.remove_location_pref(self.person_id, self.actor_loc_pref_id)
+        api_person.remove_location_pref(self.person_id, self.actor_loc_pref_id)
 
 
 class UpdateLocationPrefsBulk(Command):
@@ -232,17 +232,17 @@ class UpdateLocationPrefsBulk(Command):
         self._result: dict[str, list[UUID]] | None = None
 
     def execute(self):
-        self._result = db_services.Person.update_location_prefs_bulk(
+        self._result = api_person.update_location_prefs_bulk(
             self.person_id, self.project_id, self.location_id_to_score
         )
 
     def _undo(self):
-        db_services.Person.restore_location_prefs_bulk(
+        api_person.restore_location_prefs_bulk(
             self.person_id, self._result['old_pref_ids']
         )
 
     def _redo(self):
-        self._result = db_services.Person.update_location_prefs_bulk(
+        self._result = api_person.update_location_prefs_bulk(
             self.person_id, self.project_id, self.location_id_to_score
         )
 
@@ -254,13 +254,13 @@ class PutInActorPartnerLocationPref(Command):
         self.actor_partner_loc_pref_id = actor_partner_loc_pref_id
 
     def execute(self):
-        db_services.Person.put_in_partner_location_pref(self.person_id, self.actor_partner_loc_pref_id)
+        api_person.put_in_partner_location_pref(self.person_id, self.actor_partner_loc_pref_id)
 
     def _undo(self):
-        db_services.Person.remove_partner_location_pref(self.person_id, self.actor_partner_loc_pref_id)
+        api_person.remove_partner_location_pref(self.person_id, self.actor_partner_loc_pref_id)
 
     def _redo(self):
-        db_services.Person.put_in_partner_location_pref(self.person_id, self.actor_partner_loc_pref_id)
+        api_person.put_in_partner_location_pref(self.person_id, self.actor_partner_loc_pref_id)
 
 
 class RemoveActorPartnerLocationPref(Command):
@@ -270,13 +270,13 @@ class RemoveActorPartnerLocationPref(Command):
         self.actor_partner_loc_pref_id = actor_partner_loc_pref_id
 
     def execute(self):
-        db_services.Person.remove_partner_location_pref(self.person_id, self.actor_partner_loc_pref_id)
+        api_person.remove_partner_location_pref(self.person_id, self.actor_partner_loc_pref_id)
 
     def _undo(self):
-        db_services.Person.put_in_partner_location_pref(self.person_id, self.actor_partner_loc_pref_id)
+        api_person.put_in_partner_location_pref(self.person_id, self.actor_partner_loc_pref_id)
 
     def _redo(self):
-        db_services.Person.remove_partner_location_pref(self.person_id, self.actor_partner_loc_pref_id)
+        api_person.remove_partner_location_pref(self.person_id, self.actor_partner_loc_pref_id)
 
 
 class AssignToTeam(Command):
@@ -428,13 +428,13 @@ class PutInFlag(Command):
         self.flag_id = flag_id
 
     def execute(self):
-        db_services.Person.put_in_flag(self.person_id, self.flag_id)
+        api_person.put_in_flag(self.person_id, self.flag_id)
 
     def _undo(self):
-        db_services.Person.remove_flag(self.person_id, self.flag_id)
+        api_person.remove_flag(self.person_id, self.flag_id)
 
     def _redo(self):
-        db_services.Person.put_in_flag(self.person_id, self.flag_id)
+        api_person.put_in_flag(self.person_id, self.flag_id)
 
 
 class RemoveFlag(Command):
@@ -444,13 +444,13 @@ class RemoveFlag(Command):
         self.flag_id = flag_id
 
     def execute(self):
-        db_services.Person.remove_flag(self.person_id, self.flag_id)
+        api_person.remove_flag(self.person_id, self.flag_id)
 
     def _undo(self):
-        db_services.Person.put_in_flag(self.person_id, self.flag_id)
+        api_person.put_in_flag(self.person_id, self.flag_id)
 
     def _redo(self):
-        db_services.Person.remove_flag(self.person_id, self.flag_id)
+        api_person.remove_flag(self.person_id, self.flag_id)
 
 class AddSkill(Command):
     def __init__(self, person_id: UUID, skill_id: UUID):
@@ -460,15 +460,15 @@ class AddSkill(Command):
         self.updated_object: schemas.PersonShow | None = None
 
     def execute(self):
-        self.updated_object = db_services.Person.add_skill(self.person_id, self.skill_id)
+        self.updated_object = api_person.add_skill(self.person_id, self.skill_id)
 
     def _undo(self):
         if self.updated_object:
-            self.updated_object = db_services.Person.remove_skill(self.updated_object.id, self.skill_id)
+            self.updated_object = api_person.remove_skill(self.updated_object.id, self.skill_id)
 
     def _redo(self):
         if self.updated_object:
-            self.updated_object = db_services.Person.add_skill(self.updated_object.id, self.skill_id)
+            self.updated_object = api_person.add_skill(self.updated_object.id, self.skill_id)
 
 class RemoveSkill(Command):
     def __init__(self, person_id: UUID, skill_id: UUID):
@@ -478,12 +478,12 @@ class RemoveSkill(Command):
         self.updated_object: schemas.PersonShow | None = None
 
     def execute(self):
-        self.updated_object = db_services.Person.remove_skill(self.person_id, self.skill_id)
+        self.updated_object = api_person.remove_skill(self.person_id, self.skill_id)
 
     def _undo(self):
         if self.updated_object:
-            self.updated_object = db_services.Person.add_skill(self.updated_object.id, self.skill_id)
+            self.updated_object = api_person.add_skill(self.updated_object.id, self.skill_id)
 
     def _redo(self):
         if self.updated_object:
-            self.updated_object = db_services.Person.remove_skill(self.updated_object.id, self.skill_id)
+            self.updated_object = api_person.remove_skill(self.updated_object.id, self.skill_id)

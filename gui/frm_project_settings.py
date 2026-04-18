@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (QDialog, QWidget, QGridLayout, QLabel, QLineEdit,
 
 from database import db_services
 from commands import command_base_classes
-from commands.database_commands import project_commands, person_commands
+from commands.database_commands import project_commands, person_commands, excel_export_settings_commands
 from . import frm_time_of_day, frm_cast_rule
 from .frm_excel_settings import DlgExcelExportSettings
 from .frm_skills import DlgEditSkills
@@ -190,8 +190,9 @@ class DlgSettingsProject(QDialog):
     def edit_excel_export_settings(self):
         dlg = DlgExcelExportSettings(self, self.project.excel_export_settings)
         if dlg.exec():
-            updated_excel_settings = db_services.ExcelExportSettings.update(dlg.excel_settings)
+            self.controller.execute(
+                excel_export_settings_commands.Update(dlg.excel_settings))
             QMessageBox.information(self, self.tr('Excel Export Settings'),
-                                  self.tr('Update completed:\n{}').format(updated_excel_settings))
+                                  self.tr('Update completed:\n{}').format(dlg.excel_settings))
             self.project = db_services.Project.get(self.project_id)
             self.fill_excel_colors()

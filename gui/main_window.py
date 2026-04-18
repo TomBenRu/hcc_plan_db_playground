@@ -14,7 +14,8 @@ from httplib2 import ServerNotFoundError
 # xlsxwriter Imports werden lazy geladen für bessere Startup-Performance
 
 from commands import command_base_classes
-from commands.database_commands import plan_commands, team_commands, plan_period_commands, project_commands
+from commands.database_commands import plan_commands, team_commands, plan_period_commands, project_commands, \
+    excel_export_settings_commands
 from configuration import team_start_config, project_paths
 from configuration.google_calenders import curr_calendars_handler
 from configuration.main_geometry import geometry_manager, MainGeometry
@@ -673,7 +674,8 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                                                         team.project)
         if dlg.exec():
             if dlg.curr_excel_settings_id == dlg.excel_settings.id:
-                db_services.ExcelExportSettings.update(dlg.excel_settings)
+                self.controller.execute(
+                    excel_export_settings_commands.Update(dlg.excel_settings))
             elif dlg.curr_excel_settings_id is None:
                 self.controller.execute(
                     team_commands.NewExcelExportSettings(
@@ -704,7 +706,8 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             self, plan_widget.plan.excel_export_settings, team)
         if dlg.exec():
             if dlg.curr_excel_settings_id == dlg.excel_settings.id:
-                db_services.ExcelExportSettings.update(dlg.excel_settings)
+                self.controller.execute(
+                    excel_export_settings_commands.Update(dlg.excel_settings))
             elif dlg.curr_excel_settings_id is None:
                 self.controller.execute(
                     plan_commands.NewExcelExportSettings(

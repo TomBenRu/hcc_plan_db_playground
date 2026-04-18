@@ -88,7 +88,10 @@ class DesktopApiClient:
     @classmethod
     def get_instance(cls) -> DesktopApiClient:
         if cls._instance is None:
-            url = os.environ.get("DESKTOP_API_URL", "http://localhost:8000")
+            # Default 127.0.0.1 statt "localhost": vermeidet den IPv6-Fallback-
+            # Timeout auf Windows (::1 scheitert ~2s bis zum Retry auf IPv4).
+            # Auf anderen OS meistens unschaedlich, aber auch nicht schlechter.
+            url = os.environ.get("DESKTOP_API_URL", "http://127.0.0.1:8000")
             cls._instance = cls(url)
         return cls._instance
 

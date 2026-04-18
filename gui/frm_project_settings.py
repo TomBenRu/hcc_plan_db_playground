@@ -7,7 +7,7 @@ from PySide6.QtWidgets import (QDialog, QWidget, QGridLayout, QLabel, QLineEdit,
 
 from database import db_services
 from commands import command_base_classes
-from commands.database_commands import project_commands
+from commands.database_commands import project_commands, person_commands
 from . import frm_time_of_day, frm_cast_rule
 from .frm_excel_settings import DlgExcelExportSettings
 from .frm_skills import DlgEditSkills
@@ -138,12 +138,18 @@ class DlgSettingsProject(QDialog):
             self.fill_teams()
 
     def save_admin(self):
-        updated_person = db_services.Person.update_project_of_admin(self.cb_admin.currentData().id, self.project_id)
+        new_admin = self.cb_admin.currentData()
+        old_admin_id = self.project.admin.id if self.project.admin else None
+        if old_admin_id == new_admin.id:
+            return
+        self.controller.execute(
+            person_commands.UpdateAdminOfProject(new_admin.id, self.project_id,
+                                                  old_admin_id=old_admin_id))
         QMessageBox.information(self, self.tr('Project'),
                               self.tr('Admin of project "{}" is now "{} {}"').format(
                                   self.project.name,
-                                  updated_person.f_name,
-                                  updated_person.l_name))
+                                  new_admin.f_name,
+                                  new_admin.l_name))
         self.project = db_services.Project.get(self.project_id)
         self.fill_admins()
 

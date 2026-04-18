@@ -51,6 +51,10 @@ class RestoreLocationPrefsBulkBody(BaseModel):
     pref_ids_to_restore: list[uuid.UUID]
 
 
+class UpdateAdminOfProjectBody(BaseModel):
+    project_id: uuid.UUID
+
+
 @router.post("", response_model=schemas.Person, status_code=status.HTTP_201_CREATED)
 def create_person(body: PersonCreateBody, _: DesktopUser):
     return db_services.Person.create(body.person, body.project_id, body.person_id)
@@ -69,6 +73,18 @@ def delete_person(person_id: uuid.UUID, _: DesktopUser):
 @router.post("/{person_id}/undelete", status_code=status.HTTP_204_NO_CONTENT)
 def undelete_person(person_id: uuid.UUID, _: DesktopUser):
     db_services.Person.undelete(person_id)
+
+
+@router.patch("/{person_id}/admin-of-project", response_model=schemas.PersonShow)
+def update_admin_of_project(person_id: uuid.UUID, body: UpdateAdminOfProjectBody, _: DesktopUser):
+    """Macht die Person zum Admin des angegebenen Projekts (Projekt-Seite ersetzt)."""
+    return db_services.Person.update_project_of_admin(person_id, body.project_id)
+
+
+@router.delete("/{person_id}/admin-of-project", response_model=schemas.PersonShow)
+def clear_admin_of_project(person_id: uuid.UUID, _: DesktopUser):
+    """Entfernt die Admin-Zuordnung der Person (Undo-Gegenstueck)."""
+    return db_services.Person.clear_project_of_admin(person_id)
 
 
 @router.post("/{person_id}/time-of-days/{time_of_day_id}", response_model=schemas.PersonShow)

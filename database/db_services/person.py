@@ -238,6 +238,16 @@ def update_project_of_admin(person_id: UUID, project_id: UUID) -> schemas.Person
         return schemas.PersonShow.model_validate(person_db)
 
 
+def clear_project_of_admin(person_id: UUID) -> schemas.PersonShow:
+    """Entfernt die Admin-Zuordnung der Person zu ihrem Projekt (Undo-Pfad)."""
+    log_function_info()
+    with get_session() as session:
+        person_db = session.get(models.Person, person_id)
+        person_db.project_of_admin = None
+        session.flush()
+        return schemas.PersonShow.model_validate(person_db)
+
+
 def put_in_time_of_day(person_id: UUID, time_of_day_id: UUID) -> schemas.PersonShow:
     log_function_info()
     with get_session() as session:

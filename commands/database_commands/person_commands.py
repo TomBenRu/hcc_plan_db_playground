@@ -71,6 +71,38 @@ class Delete(Command):
         api_person.delete(self.person_id)
 
 
+class UpdateAdminOfProject(Command):
+    """Macht Person zum Admin des Projekts.
+
+    old_admin_id wird optional vom Aufrufer uebergeben (vermeidet einen
+    Project-Fetch bei remote DB). War vorher keiner, wird _had_old_admin
+    auf False gesetzt und Undo entfernt die Admin-Zuordnung komplett.
+    """
+
+    _SENTINEL = object()
+
+    def __init__(self, person_id: UUID, project_id: UUID, old_admin_id=_SENTINEL):
+        super().__init__()
+        self.person_id = person_id
+        self.project_id = project_id
+        if old_admin_id is UpdateAdminOfProject._SENTINEL:
+            project = db_services.Project.get(project_id)
+            old_admin_id = project.admin.id if project.admin else None
+        self.old_admin_id: UUID | None = old_admin_id
+
+    def execute(self):
+        api_person.update_admin_of_project(self.person_id, self.project_id)
+
+    def _undo(self):
+        if self.old_admin_id is not None:
+            api_person.update_admin_of_project(self.old_admin_id, self.project_id)
+        else:
+            api_person.clear_admin_of_project(self.person_id)
+
+    def _redo(self):
+        api_person.update_admin_of_project(self.person_id, self.project_id)
+
+
 class PutInTimeOfDay(Command):
     def __init__(self, person_id: UUID, time_of_day_id: UUID):
         super().__init__()

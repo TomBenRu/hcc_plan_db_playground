@@ -30,6 +30,17 @@ def undelete(person_id: uuid.UUID) -> None:
     get_api_client().post(f"/api/v1/persons/{person_id}/undelete")
 
 
+def update_admin_of_project(person_id: uuid.UUID, project_id: uuid.UUID) -> schemas.PersonShow:
+    data = get_api_client().patch(f"/api/v1/persons/{person_id}/admin-of-project",
+                                  json={"project_id": str(project_id)})
+    return schemas.PersonShow.model_validate(data)
+
+
+def clear_admin_of_project(person_id: uuid.UUID) -> schemas.PersonShow:
+    data = get_api_client().delete(f"/api/v1/persons/{person_id}/admin-of-project")
+    return schemas.PersonShow.model_validate(data)
+
+
 def put_in_time_of_day(person_id: uuid.UUID, time_of_day_id: uuid.UUID) -> schemas.PersonShow:
     data = get_api_client().post(f"/api/v1/persons/{person_id}/time-of-days/{time_of_day_id}")
     return schemas.PersonShow.model_validate(data)

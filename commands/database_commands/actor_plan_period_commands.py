@@ -10,6 +10,7 @@ from uuid import UUID
 
 from database import db_services, schemas
 from commands.command_base_classes import Command
+from gui.api_client import actor_plan_period as api_app
 
 
 class ReplaceCombLocPossibles(Command):
@@ -59,13 +60,13 @@ class Create(Command):
         self.created_actor_plan_period: schemas.ActorPlanPeriodShow | None = None
 
     def execute(self):
-        self.created_actor_plan_period = db_services.ActorPlanPeriod.create(self.plan_period_id, self.person_id)
+        self.created_actor_plan_period = api_app.create(self.plan_period_id, self.person_id)
 
     def _undo(self):
-        db_services.ActorPlanPeriod.delete(self.created_actor_plan_period.id)
+        api_app.delete(self.created_actor_plan_period.id)
 
     def _redo(self):
-        db_services.ActorPlanPeriod.create(self.plan_period_id, self.person_id, self.created_actor_plan_period.id)
+        api_app.create(self.plan_period_id, self.person_id, self.created_actor_plan_period.id)
 
 
 class Update(Command):
@@ -75,13 +76,13 @@ class Update(Command):
         self.old_data = db_services.ActorPlanPeriod.get(actor_plan_period.id)
 
     def execute(self):
-        db_services.ActorPlanPeriod.update(self.new_data)
+        api_app.update(self.new_data)
 
     def _undo(self):
-        db_services.ActorPlanPeriod.update(self.old_data)
+        api_app.update(self.old_data)
 
     def _redo(self):
-        db_services.ActorPlanPeriod.update(self.new_data)
+        api_app.update(self.new_data)
 
 
 class PutInTimeOfDay(Command):
@@ -294,15 +295,15 @@ class UpdateRequestedAssignments(Command):
         self.required_assignments_old = self.actor_plan_period_old.required_assignments
 
     def execute(self):
-        db_services.ActorPlanPeriod.update_requested_assignments(
+        api_app.update_requested_assignments(
             self.actor_plan_period_id, self.requested_assignments, self.required_assignments)
 
     def _undo(self):
-        db_services.ActorPlanPeriod.update_requested_assignments(
+        api_app.update_requested_assignments(
             self.actor_plan_period_id, self.requested_assignments_old, self.required_assignments_old)
 
     def _redo(self):
-        db_services.ActorPlanPeriod.update_requested_assignments(
+        api_app.update_requested_assignments(
             self.actor_plan_period_id, self.requested_assignments, self.required_assignments)
 
 
@@ -315,16 +316,14 @@ class UpdateNotes(Command):
         self.notes_old = db_services.ActorPlanPeriod.get(actor_plan_period_id).notes
 
     def execute(self):
-        self.updated_actor_plan_period = db_services.ActorPlanPeriod.update_notes(
-            schemas.ActorPlanPeriodUpdateNotes(id=self.actor_plan_period_id, notes=self.notes)
-        )
+        self.updated_actor_plan_period = api_app.update_notes(
+            self.actor_plan_period_id, self.notes)
 
     def _undo(self):
-        self.updated_actor_plan_period = db_services.ActorPlanPeriod.update_notes(
-            schemas.ActorPlanPeriodUpdateNotes(id=self.actor_plan_period_id, notes=self.notes_old)
-        )
+        self.updated_actor_plan_period = api_app.update_notes(
+            self.actor_plan_period_id, self.notes_old)
 
     def _redo(self):
-        self.updated_actor_plan_period = db_services.ActorPlanPeriod.update_notes(
-            schemas.ActorPlanPeriodUpdateNotes(id=self.actor_plan_period_id, notes=self.notes)
+        self.updated_actor_plan_period = api_app.update_notes(
+            self.actor_plan_period_id, self.notes
         )

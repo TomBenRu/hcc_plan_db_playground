@@ -17,6 +17,7 @@ from uuid import UUID
 
 from database import db_services, schemas
 from commands.command_base_classes import Command
+from gui.api_client import location_plan_period as api_lpp
 
 
 class Create(Command):
@@ -27,15 +28,15 @@ class Create(Command):
         self.created_location_plan_period: schemas.LocationPlanPeriodShow | None = None
 
     def execute(self):
-        self.created_location_plan_period = db_services.LocationPlanPeriod.create(
+        self.created_location_plan_period = api_lpp.create(
             self.plan_period_id, self.location_of_work_id)
 
     def _undo(self):
-        db_services.LocationPlanPeriod.delete(self.created_location_plan_period.id)
+        api_lpp.delete(self.created_location_plan_period.id)
 
     def _redo(self):
-        db_services.LocationPlanPeriod.create(self.plan_period_id, self.location_of_work_id,
-                                              self.created_location_plan_period.id)
+        api_lpp.create(self.plan_period_id, self.location_of_work_id,
+                        self.created_location_plan_period.id)
 
 
 class CreateLocationPlanPeriodsFromDate(Command):
@@ -55,15 +56,15 @@ class CreateLocationPlanPeriodsFromDate(Command):
         for pp in self.get_plan_periods():
             if self.location_id in {lpp.location_of_work.id for lpp in pp.location_plan_periods}:
                 continue
-            self.location_plan_periods.append(db_services.LocationPlanPeriod.create(pp.id, self.location_id))
+            self.location_plan_periods.append(api_lpp.create(pp.id, self.location_id))
 
     def _undo(self):
         for lpp in self.location_plan_periods:
-            db_services.LocationPlanPeriod.delete(lpp.id)
+            api_lpp.delete(lpp.id)
 
     def _redo(self):
         for lpp in self.location_plan_periods:
-            db_services.LocationPlanPeriod.create(lpp.plan_period.id, lpp.location_of_work.id, lpp.id)
+            api_lpp.create(lpp.plan_period.id, lpp.location_of_work.id, lpp.id)
 
 
 class PutInTimeOfDay(Command):
@@ -252,16 +253,16 @@ class UpdateFixedCast(Command):
         self.fixed_cast_old = location_plan_period.fixed_cast
         self.fixed_cast_only_if_available_old = location_plan_period.fixed_cast_only_if_available
 
-        db_services.LocationPlanPeriod.update_fixed_cast(self.location_plan_period_id, self.fixed_cast,
-                                                         self.fixed_cast_only_if_available)
+        api_lpp.update_fixed_cast(self.location_plan_period_id, self.fixed_cast,
+                                   self.fixed_cast_only_if_available)
 
     def _undo(self):
-        db_services.LocationPlanPeriod.update_fixed_cast(self.location_plan_period_id, self.fixed_cast_old,
-                                                         self.fixed_cast_only_if_available_old)
+        api_lpp.update_fixed_cast(self.location_plan_period_id, self.fixed_cast_old,
+                                   self.fixed_cast_only_if_available_old)
 
     def _redo(self):
-        db_services.LocationPlanPeriod.update_fixed_cast(self.location_plan_period_id, self.fixed_cast,
-                                                         self.fixed_cast_only_if_available)
+        api_lpp.update_fixed_cast(self.location_plan_period_id, self.fixed_cast,
+                                   self.fixed_cast_only_if_available)
 
 
 class UpdateNumActors(Command):
@@ -274,14 +275,14 @@ class UpdateNumActors(Command):
 
     def execute(self):
         self.num_actors_old = db_services.LocationPlanPeriod.get(self.location_plan_period_id).nr_actors
-        self.updated_location_plan_period = db_services.LocationPlanPeriod.update_num_actors(
+        self.updated_location_plan_period = api_lpp.update_num_actors(
             self.location_plan_period_id, self.num_actors)
 
     def _undo(self):
-        self.updated_location_plan_period = db_services.LocationPlanPeriod.update_num_actors(
+        self.updated_location_plan_period = api_lpp.update_num_actors(
             self.location_plan_period_id, self.num_actors_old)
 
     def _redo(self):
-        self.updated_location_plan_period = db_services.LocationPlanPeriod.update_num_actors(
+        self.updated_location_plan_period = api_lpp.update_num_actors(
             self.location_plan_period_id, self.num_actors)
 

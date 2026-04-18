@@ -12,6 +12,7 @@ from uuid import UUID
 
 from database import db_services, schemas
 from commands.command_base_classes import Command
+from gui.api_client import avail_day as api_avail_day
 
 
 class Create(Command):
@@ -21,13 +22,21 @@ class Create(Command):
         self.created_avail_day: schemas.AvailDayShow | None = None
 
     def execute(self):
-        self.created_avail_day = db_services.AvailDay.create(self.avail_day)
+        self.created_avail_day = api_avail_day.create(
+            date=self.avail_day.date,
+            actor_plan_period_id=self.avail_day.actor_plan_period.id,
+            time_of_day_id=self.avail_day.time_of_day.id,
+        )
 
     def _undo(self):
-        db_services.AvailDay.delete(self.created_avail_day.id)
+        api_avail_day.delete(self.created_avail_day.id)
 
     def _redo(self):
-        self.created_avail_day = db_services.AvailDay.create(self.avail_day)
+        self.created_avail_day = api_avail_day.create(
+            date=self.avail_day.date,
+            actor_plan_period_id=self.avail_day.actor_plan_period.id,
+            time_of_day_id=self.avail_day.time_of_day.id,
+        )
 
 
 class Delete(Command):
@@ -37,15 +46,19 @@ class Delete(Command):
         self.avail_day_to_delete = db_services.AvailDay.get(avail_day_id)
 
     def execute(self):
-        db_services.AvailDay.delete(self.avail_day_id)
+        api_avail_day.delete(self.avail_day_id)
 
     def _undo(self):
         """todo: Schwierigkeit: Beim Löschen wurden unter Umständen kaskadenweise AvailDayGroups gelöscht.
            diese können auf diese Weise nicht wiederhergestellt werden."""
-        self.avail_day_id = db_services.AvailDay.create(self.avail_day_to_delete).id
+        self.avail_day_id = api_avail_day.create(
+            date=self.avail_day_to_delete.date,
+            actor_plan_period_id=self.avail_day_to_delete.actor_plan_period.id,
+            time_of_day_id=self.avail_day_to_delete.time_of_day.id,
+        ).id
 
     def _redo(self):
-        db_services.AvailDay.delete(self.avail_day_id)
+        api_avail_day.delete(self.avail_day_id)
 
 
 class UpdateTimeOfDays(Command):
@@ -56,13 +69,13 @@ class UpdateTimeOfDays(Command):
         self.old_time_of_days = db_services.AvailDay.get(avail_day_id).time_of_days
 
     def execute(self):
-        db_services.AvailDay.update_time_of_days(self.avail_day_id, self.new_time_of_days)
+        api_avail_day.update_time_of_days(self.avail_day_id, self.new_time_of_days)
 
     def _undo(self):
-        db_services.AvailDay.update_time_of_days(self.avail_day_id, self.old_time_of_days)
+        api_avail_day.update_time_of_days(self.avail_day_id, self.old_time_of_days)
 
     def _redo(self):
-        db_services.AvailDay.update_time_of_days(self.avail_day_id, self.new_time_of_days)
+        api_avail_day.update_time_of_days(self.avail_day_id, self.new_time_of_days)
 
 
 class UpdateTimeOfDay(Command):
@@ -73,13 +86,13 @@ class UpdateTimeOfDay(Command):
         self.new_time_of_day_id = new_time_of_day_id
 
     def execute(self):
-        db_services.AvailDay.update_time_of_day(self.avail_day.id, self.new_time_of_day_id)
+        api_avail_day.update_time_of_day(self.avail_day.id, self.new_time_of_day_id)
 
     def _undo(self):
-        db_services.AvailDay.update_time_of_day(self.avail_day.id, self.old_time_of_day_id)
+        api_avail_day.update_time_of_day(self.avail_day.id, self.old_time_of_day_id)
 
     def _redo(self):
-        db_services.AvailDay.update_time_of_day(self.avail_day.id, self.new_time_of_day_id)
+        api_avail_day.update_time_of_day(self.avail_day.id, self.new_time_of_day_id)
 
 
 class PutInCombLocPossible(Command):

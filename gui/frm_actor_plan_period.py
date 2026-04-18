@@ -23,11 +23,13 @@ from export_to_file import avail_days_to_xlsx
 from gui import (frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, frm_group_mode,
                  frm_time_of_day, widget_styles, frm_requested_assignments, frm_skills)
 from gui.custom_widgets import side_menu, BaseConfigButton
+from gui.custom_widgets.custom_text_edits import NotesTextEdit
 from gui.frm_remote_access_plan_api import plan_api_handler
 from tools.actions import MenuToolbarAction
 from commands import command_base_classes
 from commands.database_commands import (actor_plan_period_commands, avail_day_commands,
-                                        actor_loc_pref_commands, actor_partner_loc_pref_commands)
+                                        actor_loc_pref_commands, actor_partner_loc_pref_commands,
+                                        person_commands)
 from gui.observer import signal_handling
 from tools.helper_functions import date_to_string, time_to_string, setup_form_help, warn_and_clear_undo_redo_if_plans_open
 
@@ -263,11 +265,15 @@ class ButtonLocationCombinations(BaseConfigButton):
         if not avail_days_at_date:
             avail_days_at_date = self.avail_days_at_date()
 
-        for avd in avail_days_at_date:
-            for comb_avd in avd.combination_locations_possibles:
-                db_services.AvailDay.remove_comb_loc_possible(avd.id, comb_avd.id)
-            for comb_app in self.actor_plan_period.combination_locations_possibles:
-                db_services.AvailDay.put_in_comb_loc_possible(avd.id, comb_app.id)
+        self.controller.execute(
+            avail_day_commands.ReplaceAvailDayCombLocPossibles(
+                avail_day_ids=[avd.id for avd in avail_days_at_date],
+                person_id=self.actor_plan_period.person.id,
+                original_ids=set(),
+                pending_creates=[],
+                current_combs=list(self.actor_plan_period.combination_locations_possibles),
+            )
+        )
 
 
     def get_person(self) -> schemas.PersonShow:
@@ -401,11 +407,19 @@ class ButtonLocationPreferences(BaseConfigButton):
         if not avail_days_at_date:
             avail_days_at_date = self.avail_days_at_date()
 
-        for avd in avail_days_at_date:
-            for pref_avd in avd.actor_location_prefs_defaults:
-                db_services.AvailDay.remove_location_pref(avd.id, pref_avd.id)
-            for pref_app in self.actor_plan_period.actor_location_prefs_defaults:
-                db_services.AvailDay.put_in_location_pref(avd.id, pref_app.id)
+        location_id_to_score = {
+            pref.location_of_work.id: pref.score
+            for pref in self.actor_plan_period.actor_location_prefs_defaults
+            if not pref.prep_delete
+        }
+        self.controller.execute(
+            avail_day_commands.ReplaceAvailDayLocationPrefs(
+                avail_day_ids=[avd.id for avd in avail_days_at_date],
+                person_id=self.actor_plan_period.person.id,
+                project_id=self.actor_plan_period.project.id,
+                location_id_to_score=location_id_to_score,
+            )
+        )
 
     def _open_edit_dialog(self) -> None:
         """Öffnet den Dialog zur Bearbeitung der Standort-Präferenzen."""
@@ -783,6 +797,8 @@ class FrmTabActorPlanPeriods(QWidget):
         signal_handling.handler_actor_plan_period.signal_update_app_in_app_tab_widget.connect(self.update_actor_plan_period)
         signal_handling.handler_actor_plan_period.signal_reload_app_notes_in_app_tab_widget.connect(self.reload_actor_plan_period_notes)
 
+        self.controller = command_base_classes.ContrExecUndoRedo()
+
         self.plan_period = db_services.PlanPeriod.get_for_actor_tab(plan_period.id)
         self.team = self.plan_period.team
         self.actor_plan_periods = self.plan_period.actor_plan_periods
@@ -809,8 +825,8 @@ class FrmTabActorPlanPeriods(QWidget):
         font_lb_notes = self.lb_notes_pp.font()
         font_lb_notes.setBold(True)
         self.lb_notes_pp.setFont(font_lb_notes)
-        self.te_notes_pp = QTextEdit()
-        self.te_notes_pp.textChanged.connect(self.save_info_actor_pp)
+        self.te_notes_pp = NotesTextEdit()
+        self.te_notes_pp.editing_finished.connect(self.save_info_actor_pp)
         self.te_notes_pp.setFixedHeight(180)
         self.te_notes_pp.setDisabled(True)
 
@@ -819,8 +835,8 @@ class FrmTabActorPlanPeriods(QWidget):
         font_lb_notes = self.lb_notes_actor.font()
         font_lb_notes.setBold(True)
         self.lb_notes_actor.setFont(font_lb_notes)
-        self.te_notes_actor = QTextEdit()
-        self.te_notes_actor.textChanged.connect(self.save_info_person)
+        self.te_notes_actor = NotesTextEdit()
+        self.te_notes_actor.editing_finished.connect(self.save_info_person)
         self.te_notes_actor.setFixedHeight(180)
         self.te_notes_actor.setDisabled(True)
 
@@ -958,30 +974,37 @@ class FrmTabActorPlanPeriods(QWidget):
             widget.deleteLater()
 
     def notes_app_setup(self):
-        self.te_notes_pp.textChanged.disconnect()
         self.te_notes_pp.clear()
         self.te_notes_pp.setText(self.pers_id__actor_pp[str(self.person_id)].notes)
-        self.te_notes_pp.textChanged.connect(self.save_info_actor_pp)
 
     def notes_person_setup(self):
-        self.te_notes_actor.textChanged.disconnect()
         self.te_notes_actor.clear()
         self.te_notes_actor.setText(self.person.notes)
-        self.te_notes_actor.textChanged.connect(self.save_info_person)
 
     def info_text_setup(self):
         self.notes_app_setup()
         self.notes_person_setup()
 
     def save_info_actor_pp(self):
-        updated_actor_plan_period = db_services.ActorPlanPeriod.update_notes(
-            schemas.ActorPlanPeriodUpdateNotes(id=self.pers_id__actor_pp[str(self.person_id)].id,
-                                               notes=self.te_notes_pp.toPlainText()))
-        self.pers_id__actor_pp[str(updated_actor_plan_period.person.id)] = updated_actor_plan_period
+        app_show = self.pers_id__actor_pp[str(self.person_id)]
+        new_notes = self.te_notes_pp.toPlainText()
+        if new_notes == (app_show.notes or ''):
+            return
+        cmd = actor_plan_period_commands.UpdateNotes(app_show.id, new_notes)
+        self.controller.execute(cmd)
+        if cmd.updated_actor_plan_period is not None:
+            self.pers_id__actor_pp[str(cmd.updated_actor_plan_period.person.id)] = (
+                cmd.updated_actor_plan_period
+            )
 
     def save_info_person(self):
-        self.person.notes = self.te_notes_actor.toPlainText()
-        updated_actor = db_services.Person.update(self.person)
+        new_notes = self.te_notes_actor.toPlainText()
+        if new_notes == (self.person.notes or ''):
+            return
+        updated_person = self.person.model_copy(update={'notes': new_notes})
+        cmd = person_commands.Update(updated_person)
+        self.controller.execute(cmd)
+        self.person = updated_person
 
     @Slot(schemas.ActorPlanPeriod)
     def update_actor_plan_period(self, actor_plan_period: schemas.ActorPlanPeriod):

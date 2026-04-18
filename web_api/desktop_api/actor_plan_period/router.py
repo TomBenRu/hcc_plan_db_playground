@@ -77,8 +77,9 @@ def update_actor_plan_period(app_id: uuid.UUID, body: schemas.ActorPlanPeriodSho
     return db_services.ActorPlanPeriod.update(body)
 
 
-@router.patch("/{app_id}/notes", response_model=schemas.ActorPlanPeriodShow)
+@router.patch("/{app_id}/notes", response_model=schemas.ActorPlanPeriod)
 def update_app_notes(app_id: uuid.UUID, body: AppNotesBody, _: DesktopUser):
+    """Flaches Response-Schema — Client mutiert sein Notes-Feld lokal."""
     update_data = schemas.ActorPlanPeriodUpdateNotes(id=app_id, notes=body.notes)
     return db_services.ActorPlanPeriod.update_notes(update_data)
 

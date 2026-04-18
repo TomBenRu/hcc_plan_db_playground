@@ -308,12 +308,24 @@ class UpdateRequestedAssignments(Command):
 
 
 class UpdateNotes(Command):
-    def __init__(self, actor_plan_period_id: UUID, notes: str):
+    """Aktualisiert das notes-Feld einer ActorPlanPeriod.
+
+    notes_old wird optional vom Aufrufer uebergeben (vermeidet einen
+    DB-Fetch der schweren ActorPlanPeriodShow-Hierarchie bei remote DB).
+    Der Widget-Caller kennt den alten Wert ohnehin aus seinem Cache.
+    Response ist das leichte ActorPlanPeriod-Schema — der Caller
+    aktualisiert sein Cache-Objekt selbst.
+    """
+
+    def __init__(self, actor_plan_period_id: UUID, notes: str,
+                 notes_old: str | None = None):
         super().__init__()
         self.actor_plan_period_id = actor_plan_period_id
-        self.updated_actor_plan_period: schemas.ActorPlanPeriodShow | None = None
+        self.updated_actor_plan_period: schemas.ActorPlanPeriod | None = None
         self.notes = notes
-        self.notes_old = db_services.ActorPlanPeriod.get(actor_plan_period_id).notes
+        if notes_old is None:
+            notes_old = db_services.ActorPlanPeriod.get(actor_plan_period_id).notes
+        self.notes_old = notes_old or ''
 
     def execute(self):
         self.updated_actor_plan_period = api_app.update_notes(

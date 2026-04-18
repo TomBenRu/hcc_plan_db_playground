@@ -988,14 +988,16 @@ class FrmTabActorPlanPeriods(QWidget):
     def save_info_actor_pp(self):
         app_show = self.pers_id__actor_pp[str(self.person_id)]
         new_notes = self.te_notes_pp.toPlainText()
-        if new_notes == (app_show.notes or ''):
+        old_notes = app_show.notes or ''
+        if new_notes == old_notes:
             return
-        cmd = actor_plan_period_commands.UpdateNotes(app_show.id, new_notes)
+        cmd = actor_plan_period_commands.UpdateNotes(
+            app_show.id, new_notes, notes_old=old_notes)
         self.controller.execute(cmd)
-        if cmd.updated_actor_plan_period is not None:
-            self.pers_id__actor_pp[str(cmd.updated_actor_plan_period.person.id)] = (
-                cmd.updated_actor_plan_period
-            )
+        # Cache lokal aktualisieren — der Server-Response ist absichtlich
+        # ein leichtes ActorPlanPeriod (nicht Show), um die 140-KB-
+        # Response-Bloat-Falle zu vermeiden.
+        app_show.notes = new_notes
 
     def save_info_person(self):
         new_notes = self.te_notes_actor.toPlainText()

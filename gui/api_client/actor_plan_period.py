@@ -26,10 +26,11 @@ def update(actor_plan_period: schemas.ActorPlanPeriodShow) -> schemas.ActorPlanP
     return schemas.ActorPlanPeriodShow.model_validate(data)
 
 
-def update_notes(app_id: uuid.UUID, notes: str | None) -> schemas.ActorPlanPeriodShow:
+def update_notes(app_id: uuid.UUID, notes: str | None) -> schemas.ActorPlanPeriod:
+    """Flaches Response-Schema — Widget mutiert sein Notes-Feld lokal."""
     data = get_api_client().patch(f"/api/v1/actor-plan-periods/{app_id}/notes",
                                   json={"notes": notes})
-    return schemas.ActorPlanPeriodShow.model_validate(data)
+    return schemas.ActorPlanPeriod.model_validate(data)
 
 
 def update_requested_assignments(app_id: uuid.UUID, requested_assignments: int,

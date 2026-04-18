@@ -169,13 +169,20 @@ def update(actor_plan_period: schemas.ActorPlanPeriodShow) -> schemas.ActorPlanP
         return schemas.ActorPlanPeriodShow.model_validate(app)
 
 
-def update_notes(actor_plan_period: schemas.ActorPlanPeriodUpdateNotes) -> schemas.ActorPlanPeriodShow:
+def update_notes(actor_plan_period: schemas.ActorPlanPeriodUpdateNotes) -> schemas.ActorPlanPeriod:
+    """Aktualisiert nur das notes-Feld.
+
+    Rueckgabe bewusst leichtes ActorPlanPeriod (nicht Show) — ein
+    Notes-Write braucht keine ~140 KB Response mit allen AvailDays,
+    Prefs, Combinations etc. Client aktualisiert das Notes-Feld
+    stattdessen lokal in seinem Cache.
+    """
     log_function_info()
     with get_session() as session:
         app = session.get(models.ActorPlanPeriod, actor_plan_period.id)
         app.notes = actor_plan_period.notes
         session.flush()
-        return schemas.ActorPlanPeriodShow.model_validate(app)
+        return schemas.ActorPlanPeriod.model_validate(app)
 
 
 def update_requested_assignments(actor_plan_period_id: UUID,

@@ -9,7 +9,7 @@ import datetime
 from uuid import UUID
 
 from sqlalchemy.orm import joinedload, selectinload
-from sqlmodel import select, update
+from sqlmodel import select
 
 from .. import schemas, models
 from ..database import get_session
@@ -173,17 +173,14 @@ def update_notes(actor_plan_period: schemas.ActorPlanPeriodUpdateNotes) -> None:
     """Aktualisiert nur das notes-Feld. Kein Rueckgabewert — der Client
     weiss, was er geschrieben hat, und aktualisiert seinen Cache selbst.
 
-    Direkt-UPDATE ohne vorherigen SELECT: statt session.get(...) +
-    attribute-assign + flush (= 2 DB-Roundtrips) ein einzelner
-    UPDATE-Statement (= 1 RTT). Spart bei remote DB ~1 RTT pro Call.
+    Vermeidet bei remote DB mehrere lazy-loaded Queries (person, project,
+    address, plan_period, team), die bei model_validate ausgeloest wuerden.
     """
     log_function_info()
     with get_session() as session:
-        session.execute(
-            update(models.ActorPlanPeriod)
-            .where(models.ActorPlanPeriod.id == actor_plan_period.id)
-            .values(notes=actor_plan_period.notes)
-        )
+        app = session.get(models.ActorPlanPeriod, actor_plan_period.id)
+        app.notes = actor_plan_period.notes
+        session.flush()
 
 
 def update_requested_assignments(actor_plan_period_id: UUID,

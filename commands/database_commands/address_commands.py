@@ -21,15 +21,15 @@ class Create(Command):
         self.created_address: schemas.Address | None = None
 
     def execute(self):
-        self.created_address = db_services.Address.create(self.address)
+        self.created_address = api_address.create(self.address)
 
     def _undo(self):
         if self.created_address:
-            db_services.Address.delete(self.created_address.id)
+            api_address.delete(self.created_address.id)
 
     def _redo(self):
         if self.created_address:
-            db_services.Address.undelete(self.created_address.id)
+            api_address.undelete(self.created_address.id)
 
 
 class Update(Command):
@@ -59,10 +59,10 @@ class Delete(Command):
         self.address_data = db_services.Address.get(address_id)
 
     def execute(self):
-        db_services.Address.delete(self.address_id)
+        api_address.delete(self.address_id)
 
     def _undo(self):
-        db_services.Address.undelete(self.address_id)
+        api_address.undelete(self.address_id)
 
     def _redo(self):
-        db_services.Address.delete(self.address_id)
+        api_address.delete(self.address_id)

@@ -13,6 +13,7 @@ from uuid import UUID
 
 from database import db_services, schemas
 from commands.command_base_classes import Command
+from gui.api_client import team_location_assign as api_tla
 
 
 class Create(Command):
@@ -21,15 +22,15 @@ class Create(Command):
         self.start = start
         self.location = db_services.LocationOfWork.get(location_id)
         self.team = db_services.Team.get(team_id)
-        self.created_team_loc_assign: schemas.TeamLocationAssign | None = None
+        self.created_team_loc_assign: schemas.TeamLocationAssignShow | None = None
 
     def execute(self):
-        tla = schemas.TeamLocationAssignCreate(start=self.start, end=None, location_of_work=self.location,
-                                               team=self.team)
-        self.created_team_loc_assign = db_services.TeamLocationAssign.create(tla)
+        self.created_team_loc_assign = api_tla.create(
+            location_of_work_id=self.location.id, team_id=self.team.id, start=self.start,
+        )
 
     def _undo(self):
-        db_services.TeamLocationAssign.delete(self.created_team_loc_assign.id)
+        api_tla.delete(self.created_team_loc_assign.id)
 
     def _redo(self):
         self.execute()
@@ -43,10 +44,10 @@ class ChangeEndDate(Command):
         self.old_end_date = db_services.TeamLocationAssign.get(assignment_id).end
 
     def execute(self):
-        db_services.TeamLocationAssign.set_end_date(self.assignment_id, self.end_date)
+        api_tla.set_end_date(self.assignment_id, self.end_date)
 
     def _undo(self):
-        db_services.TeamLocationAssign.set_end_date(self.assignment_id, self.old_end_date)
+        api_tla.set_end_date(self.assignment_id, self.old_end_date)
 
     def _redo(self):
         self.execute()
@@ -59,11 +60,15 @@ class Delete(Command):
 
 
     def execute(self):
-        db_services.TeamLocationAssign.delete(self.assignment_id)
+        api_tla.delete(self.assignment_id)
 
     def _undo(self):
-        db_services.TeamLocationAssign.create(schemas.TeamLocationAssignCreate(**self.assignment.model_dump()),
-                                              self.assignment_id)
+        api_tla.create(
+            location_of_work_id=self.assignment.location_of_work.id,
+            team_id=self.assignment.team.id,
+            start=self.assignment.start, end=self.assignment.end,
+            assign_id=self.assignment_id,
+        )
 
     def _redo(self):
         self.execute()

@@ -11,6 +11,7 @@ from uuid import UUID
 
 from database import db_services, schemas
 from commands.command_base_classes import Command
+from gui.api_client import team as api_team
 
 
 class PutInCombLocPossible(Command):
@@ -122,10 +123,10 @@ class UpdateNotes(Command):
         self.updated_team: schemas.TeamShow | None = None
 
     def execute(self):
-        self.updated_team = db_services.Team.update_notes(self.team_id, self.notes)
+        self.updated_team = api_team.update_notes(self.team_id, self.notes)
 
     def _undo(self):
-        db_services.Team.update_notes(self.team_id, self.team.notes)
+        api_team.update_notes(self.team_id, self.team.notes)
 
     def _redo(self):
-        db_services.Team.update_notes(self.team_id, self.notes)
+        api_team.update_notes(self.team_id, self.notes)

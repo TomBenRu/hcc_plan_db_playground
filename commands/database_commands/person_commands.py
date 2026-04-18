@@ -16,6 +16,7 @@ from uuid import UUID
 from database import db_services, schemas
 from commands.database_commands import team_actor_assignment_commands
 from commands.command_base_classes import Command, ContrExecUndoRedo
+from gui.api_client import person as api_person
 
 
 class Create(Command):
@@ -26,15 +27,15 @@ class Create(Command):
         self.created_person: schemas.PersonShow | None = None
 
     def execute(self):
-        self.created_person = db_services.Person.create(self.person, self.project_id)
+        self.created_person = api_person.create(self.person, self.project_id)
 
     def _undo(self):
         if self.created_person:
-            db_services.Person.delete(self.created_person.id)
+            api_person.delete(self.created_person.id)
 
     def _redo(self):
         if self.created_person:
-            db_services.Person.create(self.person, self.project_id, self.created_person.id)
+            api_person.create(self.person, self.project_id, self.created_person.id)
 
 
 
@@ -46,13 +47,13 @@ class Update(Command):
         self.updated_person: schemas.Person | None = None
 
     def execute(self):
-        self.updated_person = db_services.Person.update(self.new_data)
+        self.updated_person = api_person.update(self.new_data)
 
     def _undo(self):
-        db_services.Person.update(self.old_data)
+        api_person.update(self.old_data)
 
     def _redo(self):
-        db_services.Person.update(self.new_data)
+        api_person.update(self.new_data)
 
 
 class PutInTimeOfDay(Command):

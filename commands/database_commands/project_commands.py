@@ -9,6 +9,7 @@ from uuid import UUID
 
 from database import db_services, schemas
 from commands.command_base_classes import Command
+from gui.api_client import project as api_project
 
 
 class UpdateProjectName(Command):
@@ -20,13 +21,13 @@ class UpdateProjectName(Command):
 
     def execute(self):
         self.old_name = db_services.Project.get(self.project_id).name
-        updated_project = db_services.Project.update_name(self.new_name, self.project_id)
+        api_project.update_name(self.new_name, self.project_id)
 
     def _undo(self):
-        updated_project = db_services.Project.update_name(self.old_name, self.project_id)
+        api_project.update_name(self.old_name, self.project_id)
 
     def _redo(self):
-        updated_project = db_services.Project.update_name(self.new_name, self.project_id)
+        api_project.update_name(self.new_name, self.project_id)
 
     def __repr__(self):
         return f'{self.old_name=}, {self.new_name=}'
@@ -39,13 +40,13 @@ class Update(Command):
         self.old_data: schemas.ProjectShow = db_services.Project.get(project.id)
 
     def execute(self):
-        db_services.Project.update(self.new_data)
+        api_project.update(self.new_data)
 
     def _undo(self):
-        db_services.Project.update(self.old_data)
+        api_project.update(self.old_data)
 
     def _redo(self):
-        db_services.Project.update(self.new_data)
+        api_project.update(self.new_data)
 
 
 class PutInTimeOfDay(Command):

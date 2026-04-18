@@ -2,7 +2,7 @@
 
 import uuid
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, Response, status
 from pydantic import BaseModel
 
 from database import db_services, schemas
@@ -77,11 +77,12 @@ def update_actor_plan_period(app_id: uuid.UUID, body: schemas.ActorPlanPeriodSho
     return db_services.ActorPlanPeriod.update(body)
 
 
-@router.patch("/{app_id}/notes", response_model=schemas.ActorPlanPeriod)
+@router.patch("/{app_id}/notes", status_code=204, response_class=Response)
 def update_app_notes(app_id: uuid.UUID, body: AppNotesBody, _: DesktopUser):
-    """Flaches Response-Schema — Client mutiert sein Notes-Feld lokal."""
+    """204 No Content — Client aktualisiert sein Notes-Feld lokal und
+    braucht keine Server-Antwort."""
     update_data = schemas.ActorPlanPeriodUpdateNotes(id=app_id, notes=body.notes)
-    return db_services.ActorPlanPeriod.update_notes(update_data)
+    db_services.ActorPlanPeriod.update_notes(update_data)
 
 
 @router.patch("/{app_id}/requested-assignments", response_model=schemas.ActorPlanPeriodShow)

@@ -313,29 +313,24 @@ class UpdateNotes(Command):
     notes_old wird optional vom Aufrufer uebergeben (vermeidet einen
     DB-Fetch der schweren ActorPlanPeriodShow-Hierarchie bei remote DB).
     Der Widget-Caller kennt den alten Wert ohnehin aus seinem Cache.
-    Response ist das leichte ActorPlanPeriod-Schema — der Caller
-    aktualisiert sein Cache-Objekt selbst.
+    Server liefert 204 No Content — der Caller aktualisiert sein
+    Cache-Objekt selbst.
     """
 
     def __init__(self, actor_plan_period_id: UUID, notes: str,
                  notes_old: str | None = None):
         super().__init__()
         self.actor_plan_period_id = actor_plan_period_id
-        self.updated_actor_plan_period: schemas.ActorPlanPeriod | None = None
         self.notes = notes
         if notes_old is None:
             notes_old = db_services.ActorPlanPeriod.get(actor_plan_period_id).notes
         self.notes_old = notes_old or ''
 
     def execute(self):
-        self.updated_actor_plan_period = api_app.update_notes(
-            self.actor_plan_period_id, self.notes)
+        api_app.update_notes(self.actor_plan_period_id, self.notes)
 
     def _undo(self):
-        self.updated_actor_plan_period = api_app.update_notes(
-            self.actor_plan_period_id, self.notes_old)
+        api_app.update_notes(self.actor_plan_period_id, self.notes_old)
 
     def _redo(self):
-        self.updated_actor_plan_period = api_app.update_notes(
-            self.actor_plan_period_id, self.notes
-        )
+        api_app.update_notes(self.actor_plan_period_id, self.notes)

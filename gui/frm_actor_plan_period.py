@@ -1885,11 +1885,15 @@ class FrmActorPlanPeriod(QWidget):
                 if reply == QMessageBox.StandardButton.No:
                     return False
 
-            save_command_notes = actor_plan_period_commands.UpdateNotes(actor_plan_period.id, notes)
+            save_command_notes = actor_plan_period_commands.UpdateNotes(
+                actor_plan_period.id, notes, notes_old=actor_plan_period.notes or '')
             controller.execute(save_command_notes)
 
+            # Server liefert 204 No Content — lokalen Stand selbst aktualisieren
+            # und im Signal weiterreichen.
+            actor_plan_period.notes = notes
             signal_handling.handler_actor_plan_period.update_app_in_app_tab_widget(
-                save_command_notes.updated_actor_plan_period)
+                actor_plan_period)
             if actor_plan_period.id == self.actor_plan_period.id:
                 signal_handling.handler_actor_plan_period.reload_app_notes_in_app_tab_widget(
                     actor_plan_period.plan_period.id, actor_plan_period.person.id)

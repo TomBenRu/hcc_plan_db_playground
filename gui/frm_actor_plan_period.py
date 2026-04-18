@@ -29,7 +29,7 @@ from tools.actions import MenuToolbarAction
 from commands import command_base_classes
 from commands.database_commands import (actor_plan_period_commands, avail_day_commands,
                                         actor_loc_pref_commands, actor_partner_loc_pref_commands,
-                                        person_commands)
+                                        person_commands, time_of_day_commands)
 from gui.observer import signal_handling
 from tools.helper_functions import date_to_string, time_to_string, setup_form_help, warn_and_clear_undo_redo_if_plans_open
 
@@ -1475,8 +1475,10 @@ class FrmActorPlanPeriod(QWidget):
                     avail_day,
                     time_of_day.id)
             )
-        db_services.TimeOfDay.delete_unused(self.actor_plan_period.project.id)
-        db_services.TimeOfDay.delete_prep_deletes(self.actor_plan_period.project.id)
+        self.controller_avail_days.execute(
+            time_of_day_commands.DeleteUnusedInProject(self.actor_plan_period.project.id))
+        self.controller_avail_days.execute(
+            time_of_day_commands.DeletePrepDeletesInProject(self.actor_plan_period.project.id))
 
         self.actor_plan_period = db_services.ActorPlanPeriod.get_for_mask(self.actor_plan_period.id)
         self.reset_chk_field()

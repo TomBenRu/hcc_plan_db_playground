@@ -23,7 +23,8 @@ from gui.frm_skill_groups import DlgSkillGroups
 from tools import helper_functions
 from tools.actions import MenuToolbarAction
 from commands import command_base_classes
-from commands.database_commands import event_commands, cast_group_commands, location_plan_period_commands
+from commands.database_commands import event_commands, cast_group_commands, location_plan_period_commands, \
+    time_of_day_commands
 from gui.frm_fixed_cast import DlgFixedCastBuilderLocationPlanPeriod, DlgFixedCastBuilderCastGroup
 from gui.observer import signal_handling
 
@@ -1546,8 +1547,10 @@ class FrmLocationPlanPeriod(QWidget):
                     event,
                     time_of_day.id)
             )
-        db_services.TimeOfDay.delete_unused(self.location_plan_period.project.id)
-        db_services.TimeOfDay.delete_prep_deletes(self.location_plan_period.project.id)
+        self.controller.execute(
+            time_of_day_commands.DeleteUnusedInProject(self.location_plan_period.project.id))
+        self.controller.execute(
+            time_of_day_commands.DeletePrepDeletesInProject(self.location_plan_period.project.id))
 
         self.location_plan_period = db_services.LocationPlanPeriod.get(self.location_plan_period.id)
         self.reset_chk_field()

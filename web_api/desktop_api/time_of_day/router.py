@@ -47,3 +47,15 @@ def delete_time_of_day(time_of_day_id: uuid.UUID, _: DesktopUser):
 @router.post("/{time_of_day_id}/undelete", response_model=schemas.TimeOfDay)
 def undo_delete_time_of_day(time_of_day_id: uuid.UUID, _: DesktopUser):
     return db_services.TimeOfDay.undo_delete(time_of_day_id)
+
+
+@router.delete("/projects/{project_id}/unused", status_code=status.HTTP_204_NO_CONTENT)
+def delete_unused_in_project(project_id: uuid.UUID, _: DesktopUser):
+    """Soft-loescht alle unreferenzierten TimeOfDays des Projekts."""
+    db_services.TimeOfDay.delete_unused(project_id)
+
+
+@router.delete("/projects/{project_id}/prep-deleted", status_code=status.HTTP_204_NO_CONTENT)
+def delete_prep_deletes_in_project(project_id: uuid.UUID, _: DesktopUser):
+    """Hartes Loeschen aller prep-deleted TimeOfDays des Projekts (irreversibel)."""
+    db_services.TimeOfDay.delete_prep_deletes(project_id)

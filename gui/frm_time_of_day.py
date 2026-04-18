@@ -373,12 +373,14 @@ class DlgTimeOfDaysEditList(QDialog):
             self.table_time_of_days.setItem(row, 4, QTableWidgetItem(text_standard))
 
     def accept(self) -> None:
-        db_services.TimeOfDay.delete_unused(self.builder.project_id)
+        self.controller.execute(
+            time_of_day_commands.DeleteUnusedInProject(self.builder.project_id))
         super().accept()
 
     def reject(self) -> None:
         self.controller.undo_all()
-        db_services.TimeOfDay.delete_unused(self.builder.project_id)
+        self.controller.execute(
+            time_of_day_commands.DeleteUnusedInProject(self.builder.project_id))
         super().reject()
 
     def new_time_of_day(self):

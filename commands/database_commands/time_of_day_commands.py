@@ -6,11 +6,15 @@ Enthält:
   Bietet `get_created_time_of_day_id()` für nachfolgende Commands.
 - `Update`: Ändert Name, Start, Ende und TimeOfDayEnum; speichert Vorher-Zustand.
 - `Delete`: Soft-löscht; Undo via `undo_delete`.
+- `DeleteUnusedInProject` / `DeletePrepDeletesInProject`: Cleanup-Aktionen
+  mit no-op Undo/Redo. Werden durch die geplante generische DB-Reinigung
+  mittelfristig abgelöst (siehe project_general_db_cleanup_planned).
 """
 from uuid import UUID
 
 from database import schemas, db_services
 from commands.command_base_classes import Command
+from gui.api_client import time_of_day as api_time_of_day
 
 
 class Create(Command):
@@ -64,3 +68,47 @@ class Delete(Command):
 
     def _redo(self):
         db_services.TimeOfDay.delete(self.time_of_day_id)
+
+
+class DeleteUnusedInProject(Command):
+    """Soft-loescht alle unreferenzierten TimeOfDays des Projekts.
+
+    Bulk-Cleanup ohne feine Einzelschritt-Semantik. Undo/Redo sind no-ops —
+    Wiederherstellung einzelner orphaned TODs waere teuer und kein
+    realistischer User-Flow. Siehe project_general_db_cleanup_planned
+    (wird mittelfristig durch generische Reinigung ersetzt).
+    """
+
+    def __init__(self, project_id: UUID):
+        super().__init__()
+        self.project_id = project_id
+
+    def execute(self):
+        api_time_of_day.delete_unused_in_project(self.project_id)
+
+    def _undo(self):
+        ...
+
+    def _redo(self):
+        ...
+
+
+class DeletePrepDeletesInProject(Command):
+    """Hartes Loeschen aller prep-deleted TimeOfDays des Projekts.
+
+    Irreversibel (hard-delete); Undo/Redo no-ops. Wird mittelfristig durch
+    generische Reinigung ersetzt.
+    """
+
+    def __init__(self, project_id: UUID):
+        super().__init__()
+        self.project_id = project_id
+
+    def execute(self):
+        api_time_of_day.delete_prep_deletes_in_project(self.project_id)
+
+    def _undo(self):
+        ...
+
+    def _redo(self):
+        ...

@@ -33,3 +33,11 @@ def delete(time_of_day_id: uuid.UUID) -> schemas.TimeOfDay:
 def undo_delete(time_of_day_id: uuid.UUID) -> schemas.TimeOfDay:
     data = get_api_client().post(f"/api/v1/time-of-days/{time_of_day_id}/undelete")
     return schemas.TimeOfDay.model_validate(data)
+
+
+def delete_unused_in_project(project_id: uuid.UUID) -> None:
+    get_api_client().delete(f"/api/v1/time-of-days/projects/{project_id}/unused")
+
+
+def delete_prep_deletes_in_project(project_id: uuid.UUID) -> None:
+    get_api_client().delete(f"/api/v1/time-of-days/projects/{project_id}/prep-deleted")

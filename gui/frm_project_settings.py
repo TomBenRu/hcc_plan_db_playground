@@ -6,6 +6,8 @@ from PySide6.QtWidgets import (QDialog, QWidget, QGridLayout, QLabel, QLineEdit,
                                QGroupBox, QPushButton, QMessageBox)
 
 from database import db_services
+from commands import command_base_classes
+from commands.database_commands import project_commands
 from . import frm_time_of_day, frm_cast_rule
 from .frm_excel_settings import DlgExcelExportSettings
 from .frm_skills import DlgEditSkills
@@ -20,6 +22,7 @@ class DlgSettingsProject(QDialog):
         self.setWindowTitle(self.tr('Project Settings'))
 
         self.project_id = project_id
+        self.controller = command_base_classes.ContrExecUndoRedo()
 
         self.project = db_services.Project.get(project_id)
 
@@ -121,9 +124,13 @@ class DlgSettingsProject(QDialog):
                 self.color_widgets[i].setStyleSheet(f'background-color: {color}; border: 1px solid black;')
 
     def save_name(self):
-        project_updated = db_services.Project.update_name(self.le_name.text(), self.project_id)
+        new_name = self.le_name.text()
+        if new_name == self.project.name:
+            return
+        self.controller.execute(project_commands.UpdateProjectName(new_name, self.project_id))
+        self.project = db_services.Project.get(self.project_id)
         QMessageBox.information(self, self.tr('Project'),
-                              self.tr('Name has been updated:\n{}').format(project_updated))
+                              self.tr('Name has been updated:\n{}').format(new_name))
 
     def edit_team(self):
         if FrmTeam(self, self.project, self.cb_teams.currentData()).exec():
@@ -156,25 +163,6 @@ class DlgSettingsProject(QDialog):
         dlg = DlgTimeOfDayEnumsEditList(self, self.project)
         if dlg.exec():
             self.project = db_services.Project.get(self.project.id)
-
-        return
-        dlg = DlgTimeOfDayEnum(self, self.project, self.cb_time_of_day_enums.currentData())
-        if dlg.exec():
-            if dlg.chk_new_mode.isChecked():
-                created_time_of_day_enum = db_services.TimeOfDayEnum.create(dlg.new_time_of_day_enum)
-                QMessageBox.information(self, self.tr('New Time of Day Category'),
-                                      str(created_time_of_day_enum))
-            elif dlg.to_delete_status:
-                db_services.TimeOfDayEnum.delete(dlg.curr_time_of_day_enum.id)
-                QMessageBox.information(self, self.tr('Deleted Time of Day Category'),
-                                      str(dlg.curr_time_of_day_enum))
-            else:
-                updated_time_of_day_enum = db_services.TimeOfDayEnum.update(dlg.curr_time_of_day_enum)
-                QMessageBox.information(self, self.tr('Updated Time of Day Category'),
-                                      str(updated_time_of_day_enum))
-
-            self.project = db_services.Project.get(self.project_id)
-            self.fill_time_of_day_enums()
 
     def edit_skills(self):
         dlg = DlgEditSkills(self, self.project_id)

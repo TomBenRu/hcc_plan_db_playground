@@ -56,6 +56,21 @@ class Update(Command):
         api_person.update(self.new_data)
 
 
+class Delete(Command):
+    def __init__(self, person_id: UUID):
+        super().__init__()
+        self.person_id = person_id
+
+    def execute(self):
+        api_person.delete(self.person_id)
+
+    def _undo(self):
+        api_person.undelete(self.person_id)
+
+    def _redo(self):
+        api_person.delete(self.person_id)
+
+
 class PutInTimeOfDay(Command):
     def __init__(self, person_id: UUID, time_of_day_id: UUID):
         super().__init__()

@@ -180,8 +180,9 @@ class WidgetPerson(QWidget):
         if res == QMessageBox.StandardButton.Yes:
             person_id = self.table_persons.item(row, 0).data(Qt.ItemDataRole.UserRole)
             try:
-                deleted_person = db_services.Person.delete(person_id)
-                QMessageBox.information(self, self.tr('Delete'), self.tr('Deleted:\n{}').format(deleted_person))
+                self.controller.execute(person_commands.Delete(person_id))
+                QMessageBox.information(self, self.tr('Delete'),
+                                        self.tr('Deleted:\n{}').format(text_person))
             except Exception as e:
                 QMessageBox.critical(self, self.tr('Error'), self.tr('Error: {}').format(e))
         self.refresh_table()

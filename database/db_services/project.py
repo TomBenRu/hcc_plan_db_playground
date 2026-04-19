@@ -114,8 +114,13 @@ def remove_time_of_day_standard(project_id: UUID, time_of_day_id: UUID) -> schem
     log_function_info()
     with get_session() as session:
         project_db = session.get(models.Project, project_id)
-        project_db.time_of_day_standards.remove(session.get(models.TimeOfDay, time_of_day_id))
-        session.flush()
+        tod = session.get(models.TimeOfDay, time_of_day_id)
+        # Idempotent: No-op, wenn TOD nicht (mehr) in der Standards-Liste steht
+        # (z. B. weil der Caller sowohl time-of-days als auch time-of-day-standards
+        # sequentiell aufraeumt und die Cascade bereits einen Teil erledigt hat).
+        if tod in project_db.time_of_day_standards:
+            project_db.time_of_day_standards.remove(tod)
+            session.flush()
         return schemas.ProjectShow.model_validate(project_db)
 
 

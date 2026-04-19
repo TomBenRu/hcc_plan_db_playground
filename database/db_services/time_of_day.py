@@ -35,12 +35,27 @@ def get_all_from_location_plan_period(location_plan_period_id: UUID) -> list[sch
 
 
 def create(time_of_day: schemas.TimeOfDayCreate, project_id: UUID) -> schemas.TimeOfDay:
+    return create_by_ids(
+        name=time_of_day.name,
+        time_of_day_enum_id=time_of_day.time_of_day_enum.id,
+        start=time_of_day.start,
+        end=time_of_day.end,
+        project_id=project_id,
+    )
+
+
+def create_by_ids(name: str, time_of_day_enum_id: UUID,
+                  start: datetime.time, end: datetime.time,
+                  project_id: UUID) -> schemas.TimeOfDay:
+    """Erstellt TimeOfDay direkt ueber IDs — ohne Pre-Load schwerer
+    Show-Schemas. Sinnvoll fuer API-Endpunkte, die nur IDs im Body haben.
+    """
     log_function_info()
     with get_session() as session:
-        tod = models.TimeOfDay(name=time_of_day.name,
-                               time_of_day_enum=session.get(models.TimeOfDayEnum, time_of_day.time_of_day_enum.id),
+        tod = models.TimeOfDay(name=name,
+                               time_of_day_enum=session.get(models.TimeOfDayEnum, time_of_day_enum_id),
                                project=session.get(models.Project, project_id),
-                               start=time_of_day.start, end=time_of_day.end)
+                               start=start, end=end)
         session.add(tod)
         session.flush()
         return schemas.TimeOfDay.model_validate(tod)

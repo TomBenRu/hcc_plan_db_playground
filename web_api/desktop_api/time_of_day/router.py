@@ -23,15 +23,13 @@ class TimeOfDayCreateBody(BaseModel):
 
 @router.post("", response_model=schemas.TimeOfDay, status_code=status.HTTP_201_CREATED)
 def create_time_of_day(body: TimeOfDayCreateBody, _: DesktopUser):
-    tode = db_services.TimeOfDayEnum.get(body.time_of_day_enum_id)
-    project_standard = (db_services.Project.get(body.project_standard_id)
-                        if body.project_standard_id else None)
-    tod_create = schemas.TimeOfDayCreate(
-        name=body.name, time_of_day_enum=tode,
-        start=body.start, end=body.end,
-        project_standard=project_standard,
+    return db_services.TimeOfDay.create_by_ids(
+        name=body.name,
+        time_of_day_enum_id=body.time_of_day_enum_id,
+        start=body.start,
+        end=body.end,
+        project_id=body.project_id,
     )
-    return db_services.TimeOfDay.create(tod_create, body.project_id)
 
 
 @router.put("/{time_of_day_id}", response_model=schemas.TimeOfDay)

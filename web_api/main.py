@@ -2,7 +2,8 @@ from contextlib import asynccontextmanager
 from urllib.parse import quote
 
 from fastapi import Depends, FastAPI, Request
-from fastapi.responses import RedirectResponse
+from fastapi.responses import JSONResponse, RedirectResponse
+from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, text
 
 from web_api.auth.router import router as auth_router
@@ -55,6 +56,27 @@ app.include_router(swap_requests_router)
 async def login_required_handler(request: Request, exc: LoginRequired) -> RedirectResponse:
     """Leitet zu /auth/login?next=... weiter wenn eine geschützte Route ohne Token aufgerufen wird."""
     return RedirectResponse(url=f"/auth/login?next={quote(exc.next_url)}")
+
+
+@app.exception_handler(IntegrityError)
+async def integrity_error_handler(request: Request, exc: IntegrityError) -> JSONResponse:
+    """DB-Constraint-Verletzung → 409 Conflict statt 500 Internal Server Error.
+
+    Fuer UNIQUE-Verletzungen liefert psycopg2 eine DETAIL-Zeile, die wir als
+    User-Message weitergeben. Fallback: der allgemeine Exception-String.
+    """
+    orig = getattr(exc, "orig", None)
+    if orig is not None:
+        detail = getattr(orig, "diag", None)
+        message = getattr(detail, "message_detail", None) if detail else None
+        if not message:
+            message = str(orig).strip().splitlines()[0] if str(orig).strip() else str(exc)
+    else:
+        message = str(exc)
+    return JSONResponse(
+        status_code=409,
+        content={"detail": message},
+    )
 
 
 @app.get("/", include_in_schema=False)

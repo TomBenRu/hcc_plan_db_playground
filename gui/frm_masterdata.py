@@ -21,6 +21,7 @@ from gui import frm_time_of_day, frm_comb_loc_possible, frm_actor_loc_prefs, frm
 from commands import command_base_classes
 from commands.database_commands import person_commands, location_of_work_commands, \
     location_plan_period_commands, event_group_commands, address_commands, actor_partner_loc_pref_commands
+from gui.api_client.client import ApiError
 from tools.helper_functions import date_to_string, setup_form_help
 from .frm_fixed_cast import DlgFixedCastBuilderLocationOfWork
 from gui.custom_widgets.tabbars import TabBar
@@ -763,7 +764,25 @@ class DlgLocationData(QDialog):
         location = schemas.LocationOfWorkCreate(name=self.le_name.text(), address=address)
 
         cmd = location_of_work_commands.Create(location, self.project_id)
-        self.controller.execute(cmd)
+        try:
+            self.controller.execute(cmd)
+        except ApiError as exc:
+            # 409 Conflict: typischerweise UNIQUE-Violation (Name bereits vergeben).
+            # Andere ApiError: Server-/Validierungsproblem — als saubere Message anzeigen.
+            if exc.status_code == 409:
+                QMessageBox.warning(
+                    self,
+                    self.tr('Facility — Duplicate'),
+                    self.tr('Ein Standort mit diesem Namen existiert bereits (ggf. zum Loeschen '
+                            'vorgemerkt).\nBitte waehle einen anderen Namen.'),
+                )
+            else:
+                QMessageBox.critical(
+                    self,
+                    self.tr('Facility Create Error'),
+                    self.tr('Fehler: {}').format(exc.detail),
+                )
+            return
         QMessageBox.information(self, self.tr('Facility Created'), str(cmd.created_location))
         self.close()
 

@@ -33,12 +33,11 @@ class EventTimeOfDaysBody(BaseModel):
 
 @router.post("", response_model=schemas.EventShow, status_code=status.HTTP_201_CREATED)
 def create_event(body: EventCreateBody, _: DesktopUser):
-    lpp = db_services.LocationPlanPeriod.get(body.location_plan_period_id)
-    tod = db_services.TimeOfDay.get(body.time_of_day_id)
-    event_create = schemas.EventCreate(
-        location_plan_period=lpp, date=body.date, time_of_day=tod, flags=[]
+    return db_services.Event.create_by_ids(
+        location_plan_period_id=body.location_plan_period_id,
+        date=body.date,
+        time_of_day_id=body.time_of_day_id,
     )
-    return db_services.Event.create(event_create)
 
 
 @router.delete("/{event_id}", response_model=schemas.EventShow)

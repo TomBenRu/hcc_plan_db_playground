@@ -196,20 +196,30 @@ def get_from__location_pp_date(location_plan_period_id: UUID, date: datetime.dat
 
 def create(event: schemas.EventCreate) -> schemas.EventShow:
     """Erstellt Event mit zugehöriger EventGroup und CastGroup (inlined)."""
+    return create_by_ids(
+        location_plan_period_id=event.location_plan_period.id,
+        date=event.date,
+        time_of_day_id=event.time_of_day.id,
+    )
+
+
+def create_by_ids(location_plan_period_id: UUID, date: datetime.date,
+                  time_of_day_id: UUID) -> schemas.EventShow:
+    """Erstellt Event + EventGroup + CastGroup direkt ueber IDs — ohne Pre-Load
+    schwerer Show-Schemas. Sinnvoll fuer API-Endpunkte, die nur IDs im Body haben.
+    """
     log_function_info()
     with get_session() as session:
-        lpp = session.get(models.LocationPlanPeriod, event.location_plan_period.id)
+        lpp = session.get(models.LocationPlanPeriod, location_plan_period_id)
         master_eg = lpp.event_group
-        # EventGroup erstellen (inlined)
         eg = models.EventGroup(event_group=master_eg)
         session.add(eg)
-        # CastGroup erstellen (inlined)
         cg = models.CastGroup(nr_actors=lpp.nr_actors, plan_period=lpp.plan_period,
                               fixed_cast=lpp.fixed_cast, fixed_cast_only_if_available=lpp.fixed_cast_only_if_available)
         session.add(cg)
         session.flush()
-        event_db = models.Event(date=event.date,
-                                time_of_day=session.get(models.TimeOfDay, event.time_of_day.id),
+        event_db = models.Event(date=date,
+                                time_of_day=session.get(models.TimeOfDay, time_of_day_id),
                                 event_group=eg, cast_group=cg, location_plan_period=lpp)
         session.add(event_db)
         session.flush()

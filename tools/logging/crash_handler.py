@@ -36,7 +36,27 @@ class CrashHandler:
             if issubclass(exc_type, KeyboardInterrupt):
                 self._original_excepthook(exc_type, exc_value, exc_traceback)
                 return
-            
+
+            # ApiAuthError aus unserem API-Client: kein Crash-Pfad.
+            # 401 = Sitzung abgelaufen (App beenden, Re-Login noetig).
+            # 403 = Authentifiziert, aber keine Berechtigung (App laeuft weiter).
+            if exc_type.__name__ == "ApiAuthError":
+                status_code = getattr(exc_value, 'status_code', None)
+                if status_code == 401:
+                    logging.warning(f"Auth session expired: {exc_value}")
+                    self._show_auth_expired_dialog()
+                    if self.app_reference and hasattr(self.app_reference, 'quit'):
+                        try:
+                            self.app_reference.quit()
+                        except Exception:
+                            pass
+                    return
+                if status_code == 403:
+                    logging.warning(f"Forbidden: {exc_value}")
+                    self._show_forbidden_dialog(exc_value)
+                    return
+                # Unerwarteter Status auf ApiAuthError: faellt durch in Crash-Pfad.
+
             # Crash-Kontext loggen
             self.system_logger.log_crash_context("Main thread exception")
             
@@ -175,8 +195,8 @@ class CrashHandler:
         """Zeigt user-friendly Error-Dialog"""
         try:
             QMessageBox.critical(
-                None, 
-                "Anwendungsfehler", 
+                None,
+                "Anwendungsfehler",
                 f"Ein kritischer Fehler ist aufgetreten:\n\n"
                 f"{exc_type.__name__}: {str(exc_value)[:200]}\n\n"
                 f"Details wurden in die Log-Datei geschrieben:\n{self.log_file_path}\n\n"
@@ -186,6 +206,31 @@ class CrashHandler:
             # Fallback wenn Qt nicht verfügbar
             print(f"Critical error: {exc_type.__name__}: {exc_value}")
             print(f"Log file: {self.log_file_path}")
+
+    def _show_auth_expired_dialog(self):
+        """Zeigt freundlichen Hinweis bei abgelaufener/ungueltiger Sitzung (HTTP 401)."""
+        try:
+            QMessageBox.warning(
+                None,
+                "Sitzung abgelaufen",
+                "Ihre Sitzung ist abgelaufen oder ungueltig.\n\n"
+                "Bitte starten Sie die Anwendung neu und melden Sie sich erneut an."
+            )
+        except Exception:
+            print("Auth session expired. Please restart the application and log in again.")
+
+    def _show_forbidden_dialog(self, exc_value):
+        """Zeigt Hinweis bei fehlender Berechtigung (HTTP 403)."""
+        detail = getattr(exc_value, 'detail', None) or str(exc_value)
+        try:
+            QMessageBox.warning(
+                None,
+                "Keine Berechtigung",
+                "Sie haben keine Berechtigung fuer diese Aktion.\n\n"
+                f"Details: {str(detail)[:200]}"
+            )
+        except Exception:
+            print(f"Forbidden: {detail}")
     
     def _write_emergency_log(self, message: str):
         """Schreibt Emergency-Log falls normales Logging fehlschlägt"""

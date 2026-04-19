@@ -59,8 +59,11 @@ class LocationPlanPeriodData:
         return True
 
     def _save_new_event(self, date, t_o_d):
-        existing_events_on_day = [event for event in self.location_plan_period.events
-                                  if event.date == date and not event.prep_delete]
+        existing_events_on_day = [
+            e for e in db_services.Event.get_from__location_pp_date(
+                self.location_plan_period.id, date)
+            if not e.prep_delete
+        ]
         event_new = schemas.EventCreate(date=date, location_plan_period=self.location_plan_period,
                                         time_of_day=t_o_d, flags=[])
         save_command = event_commands.Create(event_new)

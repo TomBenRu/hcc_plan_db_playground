@@ -26,7 +26,7 @@ def update_notes(lpp_id: uuid.UUID, notes: str) -> schemas.LocationPlanPeriodSho
     return schemas.LocationPlanPeriodShow.model_validate(data)
 
 
-def update_fixed_cast(lpp_id: uuid.UUID, fixed_cast: str,
+def update_fixed_cast(lpp_id: uuid.UUID, fixed_cast: str | None,
                       fixed_cast_only_if_available: bool) -> schemas.LocationPlanPeriodShow:
     data = get_api_client().patch(f"/api/v1/location-plan-periods/{lpp_id}/fixed-cast", json={
         "fixed_cast": fixed_cast,

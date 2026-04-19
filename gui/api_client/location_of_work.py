@@ -37,7 +37,7 @@ def update(location: schemas.LocationOfWorkShow) -> schemas.LocationOfWorkShow:
     return schemas.LocationOfWorkShow.model_validate(data)
 
 
-def update_fixed_cast(location_id: uuid.UUID, fixed_cast: str,
+def update_fixed_cast(location_id: uuid.UUID, fixed_cast: str | None,
                       fixed_cast_only_if_available: bool) -> schemas.LocationOfWorkShow:
     data = get_api_client().patch(f"/api/v1/locations-of-work/{location_id}/fixed-cast", json={
         "fixed_cast": fixed_cast,

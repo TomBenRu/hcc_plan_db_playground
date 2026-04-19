@@ -37,7 +37,7 @@ def remove_from_parent(cg_id: uuid.UUID, parent_group_id: uuid.UUID) -> schemas.
     return schemas.CastGroupShow.model_validate(data)
 
 
-def update_fixed_cast(cg_id: uuid.UUID, fixed_cast: str,
+def update_fixed_cast(cg_id: uuid.UUID, fixed_cast: str | None,
                        fixed_cast_only_if_available: bool) -> schemas.CastGroupShow:
     data = get_api_client().patch(f"/api/v1/cast-groups/{cg_id}/fixed-cast", json={
         "fixed_cast": fixed_cast,

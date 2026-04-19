@@ -22,7 +22,8 @@ class LppNotesBody(BaseModel):
 
 
 class LppFixedCastBody(BaseModel):
-    fixed_cast: str
+    # None erlaubt — User kann Fixed-Cast komplett leeren.
+    fixed_cast: str | None = None
     fixed_cast_only_if_available: bool
 
 

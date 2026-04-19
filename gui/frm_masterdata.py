@@ -644,7 +644,9 @@ class WidgetLocationsOfWork(QWidget):
                                 self.tr('Do you really want to permanently delete the data of...\n{}?').format(text_location),
                                 QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)
         if res == QMessageBox.StandardButton.Yes:
-            location_id = UUID(self.table_locations.item(row, self.table_locations.columnCount()-1).text())
+            # UUID liegt als UserRole-Data auf Spalte 0 (analog Person-Delete),
+            # NICHT als Text in der letzten Spalte — dort steht nr_actors.
+            location_id = self.table_locations.item(row, 0).data(Qt.ItemDataRole.UserRole)
             self.controller.execute(location_of_work_commands.Delete(location_id))
             QMessageBox.information(self, self.tr('Delete'),
                                   self.tr('Deleted:\n{}').format(text_location))

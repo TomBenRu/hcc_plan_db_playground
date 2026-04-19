@@ -82,6 +82,10 @@ class DesktopApiClient:
         self._base_url = base_url.rstrip("/")
         self._access_token: str | None = None
         self._session = requests.Session()
+        # True, wenn der User beim Login "Angemeldet bleiben" gewaehlt hat
+        # (oder via Silent-Login aus dem Keyring kam). Steuert, ob rotierte
+        # Refresh-Tokens aus /auth/refresh in den Keyring geschrieben werden.
+        self._persist_refresh: bool = False
 
     # ── Singleton ─────────────────────────────────────────────────────────────
 
@@ -114,6 +118,7 @@ class DesktopApiClient:
         self._access_token = response.json()["access_token"]
 
         refresh_value = self._session.cookies.get(_REFRESH_COOKIE)
+        self._persist_refresh = bool(remember)
         if remember and refresh_value:
             try:
                 save_refresh_token(refresh_value)
@@ -166,6 +171,8 @@ class DesktopApiClient:
             clear_refresh_token()
             self._session.cookies.clear()
             return False
+        # Silent-Login bedeutet: der User hatte "Angemeldet bleiben" gewaehlt.
+        self._persist_refresh = True
         # Der Server hat via Set-Cookie ein rotiertes Refresh-Token geliefert;
         # aktualisiere den Keyring-Eintrag entsprechend.
         new_refresh = self._session.cookies.get(_REFRESH_COOKIE)
@@ -207,12 +214,16 @@ class DesktopApiClient:
             clear_refresh_token()
             self._session.cookies.clear()
             return False
-        new_refresh = self._session.cookies.get(_REFRESH_COOKIE)
-        if new_refresh:
-            try:
-                save_refresh_token(new_refresh)
-            except TokenStoreError:
-                pass
+        # Nur in den Keyring schreiben, wenn der User der Persistenz zugestimmt
+        # hat. Andernfalls bleibt das neue Refresh-Token ausschliesslich im
+        # Session-Cookie-Jar und ist mit dem Prozessende verloren.
+        if self._persist_refresh:
+            new_refresh = self._session.cookies.get(_REFRESH_COOKIE)
+            if new_refresh:
+                try:
+                    save_refresh_token(new_refresh)
+                except TokenStoreError:
+                    pass
         return True
 
     def logout(self) -> None:
@@ -220,6 +231,7 @@ class DesktopApiClient:
         self._access_token = None
         self._session.cookies.clear()
         clear_refresh_token()
+        self._persist_refresh = False
 
     @property
     def is_authenticated(self) -> bool:

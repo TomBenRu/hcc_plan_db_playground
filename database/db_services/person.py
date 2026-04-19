@@ -273,8 +273,10 @@ def remove_in_time_of_day(person_id: UUID, time_of_day_id: UUID) -> schemas.Pers
     log_function_info()
     with get_session() as session:
         person_db = session.get(models.Person, person_id)
-        person_db.time_of_days.remove(session.get(models.TimeOfDay, time_of_day_id))
-        session.flush()
+        tod = session.get(models.TimeOfDay, time_of_day_id)
+        if tod in person_db.time_of_days:
+            person_db.time_of_days.remove(tod)
+            session.flush()
         return schemas.PersonShow.model_validate(person_db)
 
 
@@ -298,8 +300,10 @@ def remove_time_of_day_standard(person_id: UUID, time_of_day_id: UUID) -> schema
     log_function_info()
     with get_session() as session:
         person_db = session.get(models.Person, person_id)
-        person_db.time_of_day_standards.remove(session.get(models.TimeOfDay, time_of_day_id))
-        session.flush()
+        tod = session.get(models.TimeOfDay, time_of_day_id)
+        if tod in person_db.time_of_day_standards:
+            person_db.time_of_day_standards.remove(tod)
+            session.flush()
         return schemas.PersonShow.model_validate(person_db)
 
 

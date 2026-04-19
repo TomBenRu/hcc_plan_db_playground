@@ -98,8 +98,10 @@ def remove_in_time_of_day(location_plan_period_id: UUID, time_of_day_id: UUID) -
     log_function_info()
     with get_session() as session:
         lpp = session.get(models.LocationPlanPeriod, location_plan_period_id)
-        lpp.time_of_days.remove(session.get(models.TimeOfDay, time_of_day_id))
-        session.flush()
+        tod = session.get(models.TimeOfDay, time_of_day_id)
+        if tod in lpp.time_of_days:
+            lpp.time_of_days.remove(tod)
+            session.flush()
         return schemas.LocationPlanPeriodShow.model_validate(lpp)
 
 
@@ -107,8 +109,10 @@ def remove_time_of_day_standard(location_plan_period_id: UUID, time_of_day_id: U
     log_function_info()
     with get_session() as session:
         lpp = session.get(models.LocationPlanPeriod, location_plan_period_id)
-        lpp.time_of_day_standards.remove(session.get(models.TimeOfDay, time_of_day_id))
-        session.flush()
+        tod = session.get(models.TimeOfDay, time_of_day_id)
+        if tod in lpp.time_of_day_standards:
+            lpp.time_of_day_standards.remove(tod)
+            session.flush()
         return schemas.LocationPlanPeriodShow.model_validate(lpp)
 
 

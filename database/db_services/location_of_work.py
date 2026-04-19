@@ -199,8 +199,10 @@ def remove_in_time_of_day(location_of_work_id: UUID, time_of_day_id: UUID) -> sc
     log_function_info()
     with get_session() as session:
         loc_db = session.get(models.LocationOfWork, location_of_work_id)
-        loc_db.time_of_days.remove(session.get(models.TimeOfDay, time_of_day_id))
-        session.flush()
+        tod = session.get(models.TimeOfDay, time_of_day_id)
+        if tod in loc_db.time_of_days:
+            loc_db.time_of_days.remove(tod)
+            session.flush()
         return schemas.LocationOfWorkShow.model_validate(loc_db)
 
 
@@ -224,9 +226,10 @@ def remove_time_of_day_standard(location_of_work_id: UUID, time_of_day_id: UUID)
     log_function_info()
     with get_session() as session:
         loc_db = session.get(models.LocationOfWork, location_of_work_id)
-        if loc_db.time_of_day_standards:
-            loc_db.time_of_day_standards.remove(session.get(models.TimeOfDay, time_of_day_id))
-        session.flush()
+        tod = session.get(models.TimeOfDay, time_of_day_id)
+        if tod in loc_db.time_of_day_standards:
+            loc_db.time_of_day_standards.remove(tod)
+            session.flush()
         return schemas.LocationOfWorkShow.model_validate(loc_db)
 
 

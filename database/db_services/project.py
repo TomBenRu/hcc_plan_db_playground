@@ -89,8 +89,10 @@ def remove_in_time_of_day(project_id: UUID, time_of_day_id: UUID) -> schemas.Pro
     log_function_info()
     with get_session() as session:
         project_db = session.get(models.Project, project_id)
-        project_db.time_of_days.remove(session.get(models.TimeOfDay, time_of_day_id))
-        session.flush()
+        tod = session.get(models.TimeOfDay, time_of_day_id)
+        if tod in project_db.time_of_days:
+            project_db.time_of_days.remove(tod)
+            session.flush()
         return schemas.ProjectShow.model_validate(project_db)
 
 

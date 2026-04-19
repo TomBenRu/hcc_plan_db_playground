@@ -207,8 +207,10 @@ def remove_in_time_of_day(actor_plan_period_id: UUID, time_of_day_id: UUID) -> s
     log_function_info()
     with get_session() as session:
         app = session.get(models.ActorPlanPeriod, actor_plan_period_id)
-        app.time_of_days.remove(session.get(models.TimeOfDay, time_of_day_id))
-        session.flush()
+        tod = session.get(models.TimeOfDay, time_of_day_id)
+        if tod in app.time_of_days:
+            app.time_of_days.remove(tod)
+            session.flush()
         return schemas.ActorPlanPeriodShow.model_validate(app)
 
 
@@ -216,8 +218,10 @@ def remove_time_of_day_standard(actor_plan_period_id: UUID, time_of_day_id: UUID
     log_function_info()
     with get_session() as session:
         app = session.get(models.ActorPlanPeriod, actor_plan_period_id)
-        app.time_of_day_standards.remove(session.get(models.TimeOfDay, time_of_day_id))
-        session.flush()
+        tod = session.get(models.TimeOfDay, time_of_day_id)
+        if tod in app.time_of_day_standards:
+            app.time_of_day_standards.remove(tod)
+            session.flush()
         return schemas.ActorPlanPeriodShow.model_validate(app)
 
 

@@ -65,12 +65,11 @@ class RestoreLocationPrefsForAvailDaysBody(BaseModel):
 
 @router.post("", response_model=schemas.AvailDayShow, status_code=status.HTTP_201_CREATED)
 def create_avail_day(body: AvailDayCreateBody, _: DesktopUser):
-    actor_plan_period = db_services.ActorPlanPeriod.get(body.actor_plan_period_id)
-    time_of_day = db_services.TimeOfDay.get(body.time_of_day_id)
-    avail_day_create = schemas.AvailDayCreate(
-        date=body.date, actor_plan_period=actor_plan_period, time_of_day=time_of_day
+    return db_services.AvailDay.create_by_ids(
+        date=body.date,
+        actor_plan_period_id=body.actor_plan_period_id,
+        time_of_day_id=body.time_of_day_id,
     )
-    return db_services.AvailDay.create(avail_day_create)
 
 
 @router.delete("/{avail_day_id}", response_model=schemas.AvailDayShow)

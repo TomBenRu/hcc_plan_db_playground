@@ -240,16 +240,27 @@ def get_from__avail_day_group(avail_day_group_id) -> schemas.AvailDayShow | None
 
 def create(avail_day: schemas.AvailDayCreate) -> schemas.AvailDayShow:
     """Erstellt AvailDay mit zugehöriger AvailDayGroup (inlined)."""
+    return create_by_ids(
+        date=avail_day.date,
+        actor_plan_period_id=avail_day.actor_plan_period.id,
+        time_of_day_id=avail_day.time_of_day.id,
+    )
+
+
+def create_by_ids(date: datetime.date, actor_plan_period_id: UUID,
+                  time_of_day_id: UUID) -> schemas.AvailDayShow:
+    """Erstellt AvailDay + AvailDayGroup direkt ueber IDs — ohne Pre-Load
+    schwerer Schemas. Sinnvoll fuer API-Endpunkte, die nur IDs im Body haben.
+    """
     log_function_info()
     with get_session() as session:
-        app = session.get(models.ActorPlanPeriod, avail_day.actor_plan_period.id)
+        app = session.get(models.ActorPlanPeriod, actor_plan_period_id)
         master_adg = app.avail_day_group
-        # AvailDayGroup erstellen (inlined)
         adg = models.AvailDayGroup(avail_day_group=master_adg)
         session.add(adg)
         session.flush()
-        ad = models.AvailDay(date=avail_day.date,
-                             time_of_day=session.get(models.TimeOfDay, avail_day.time_of_day.id),
+        ad = models.AvailDay(date=date,
+                             time_of_day=session.get(models.TimeOfDay, time_of_day_id),
                              avail_day_group=adg, actor_plan_period=app)
         session.add(ad)
         session.flush()

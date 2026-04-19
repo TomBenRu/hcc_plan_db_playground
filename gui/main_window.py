@@ -29,6 +29,7 @@ from sat_solver import solver_main
 
 from tools import open_file_or_folder
 from tools.helper_functions import date_to_string
+from .api_client.client import get_api_client
 from . import frm_comb_loc_possible, frm_settings_solver_params, frm_excel_settings
 from .concurrency.general_worker import WorkerGeneral
 from .frm_appointments_to_google_calendar import DlgSendAppointmentsToGoogleCal
@@ -154,6 +155,10 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                               self.tr('Exit Program'),
                               None, self.exit,
                               'Alt+F4'),
+            MenuToolbarAction(self, None,
+                              self.tr('Logout'),
+                              self.tr('Log out and close the application.'),
+                              self.logout),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'address-book-blue.png'),
                               self.tr('Master Data...'),
                               self.tr('Edit master data of employees and work locations.'),
@@ -290,7 +295,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                                                        self.actions['export_avail_days_to_excel']]
                                },
                                self.actions['lookup_for_excel_plan_folder'],
-                               None, self.actions['exit']],
+                               None, self.actions['logout'], self.actions['exit']],
             self.tr('&Teams'): [{self.tr('Edit Teams'): [self.put_teams_to__teams_edit_menu]}, None,
                                 self._put_clients_to_menu,
                                 None, self.actions['master_data']],
@@ -1615,6 +1620,20 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                 self.actions_teams_in_clients_menu[self.curr_team.id].setChecked(True)
 
     def exit(self):
+        self.close()
+
+    def logout(self):
+        reply = QMessageBox.warning(
+            self,
+            self.tr('Logout'),
+            self.tr('Do you really want to log out?\n'
+                    'Local authentication tokens will be removed and the application will close.'),
+            QMessageBox.Yes | QMessageBox.No,
+            QMessageBox.No,
+        )
+        if reply != QMessageBox.Yes:
+            return
+        get_api_client().logout()
         self.close()
 
     def closeEvent(self, event=QCloseEvent):

@@ -77,10 +77,11 @@
 {% block content %}
 
 {% set status_labels = {
-    "":          "Alle",
-    "pending":   "Offen",
-    "withdrawn": "Zurückgezogen",
-    "resolved":  "Gelöst",
+    "":                           "Alle",
+    "pending":                    "Offen",
+    "withdrawn":                  "Zurückgezogen",
+    "resolved":                   "Gelöst",
+    "superseded_by_cast_change":  "Besetzung geändert",
 } %}
 {% set filter_val = status_filter if status_filter else "" %}
 
@@ -165,6 +166,15 @@
                       {% if status_filter == 'resolved' %}active{% endif %}">
                 <span class="w-2 h-2 rounded-full flex-shrink-0 bg-green-400"></span>
                 Gelöst
+            </a>
+
+            {# Besetzung geändert #}
+            <a href="?status_filter=superseded_by_cast_change"
+               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                      border-transparent text-sm font-sans text-slate-400
+                      {% if status_filter == 'superseded_by_cast_change' %}active{% endif %}">
+                <span class="w-2 h-2 rounded-full flex-shrink-0 bg-purple-400"></span>
+                Besetzung geändert
             </a>
 
         </div>

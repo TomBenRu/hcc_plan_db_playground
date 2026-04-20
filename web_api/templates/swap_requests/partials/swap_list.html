@@ -1,26 +1,29 @@
 {% set status_labels = {
-    "pending":                 "Ausstehend",
-    "accepted_by_target":      "Zugestimmt",
-    "rejected_by_target":      "Abgelehnt",
-    "confirmed_by_dispatcher": "Bestätigt",
-    "rejected_by_dispatcher":  "Abgelehnt (Dispatcher)",
-    "withdrawn":               "Zurückgezogen",
+    "pending":                    "Ausstehend",
+    "accepted_by_target":         "Zugestimmt",
+    "rejected_by_target":         "Abgelehnt",
+    "confirmed_by_dispatcher":    "Bestätigt",
+    "rejected_by_dispatcher":     "Abgelehnt (Dispatcher)",
+    "withdrawn":                  "Zurückgezogen",
+    "superseded_by_cast_change":  "Besetzung geändert",
 } %}
 {% set status_colors = {
-    "pending":                 "#f59e0b",
-    "accepted_by_target":      "#3b82f6",
-    "rejected_by_target":      "#94a3b8",
-    "confirmed_by_dispatcher": "#22c55e",
-    "rejected_by_dispatcher":  "#ef4444",
-    "withdrawn":               "#94a3b8",
+    "pending":                    "#f59e0b",
+    "accepted_by_target":         "#3b82f6",
+    "rejected_by_target":         "#94a3b8",
+    "confirmed_by_dispatcher":    "#22c55e",
+    "rejected_by_dispatcher":     "#ef4444",
+    "withdrawn":                  "#94a3b8",
+    "superseded_by_cast_change":  "#a78bfa",
 } %}
 {% set status_badge_styles = {
-    "pending":                 "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:ring-amber-700/50",
-    "accepted_by_target":      "bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:ring-blue-700/50",
-    "rejected_by_target":      "bg-slate-50 text-slate-500 ring-slate-200 dark:bg-slate-700/30 dark:text-slate-400 dark:ring-slate-600/50",
-    "confirmed_by_dispatcher": "bg-green-50 text-green-700 ring-green-200 dark:bg-green-900/30 dark:text-green-400 dark:ring-green-700/50",
-    "rejected_by_dispatcher":  "bg-red-50 text-red-700 ring-red-200 dark:bg-red-900/30 dark:text-red-400 dark:ring-red-700/50",
-    "withdrawn":               "bg-slate-50 text-slate-500 ring-slate-200 dark:bg-slate-700/30 dark:text-slate-400 dark:ring-slate-600/50",
+    "pending":                    "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:ring-amber-700/50",
+    "accepted_by_target":         "bg-blue-50 text-blue-700 ring-blue-200 dark:bg-blue-900/30 dark:text-blue-400 dark:ring-blue-700/50",
+    "rejected_by_target":         "bg-slate-50 text-slate-500 ring-slate-200 dark:bg-slate-700/30 dark:text-slate-400 dark:ring-slate-600/50",
+    "confirmed_by_dispatcher":    "bg-green-50 text-green-700 ring-green-200 dark:bg-green-900/30 dark:text-green-400 dark:ring-green-700/50",
+    "rejected_by_dispatcher":     "bg-red-50 text-red-700 ring-red-200 dark:bg-red-900/30 dark:text-red-400 dark:ring-red-700/50",
+    "withdrawn":                  "bg-slate-50 text-slate-500 ring-slate-200 dark:bg-slate-700/30 dark:text-slate-400 dark:ring-slate-600/50",
+    "superseded_by_cast_change":  "bg-purple-50 text-purple-700 ring-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:ring-purple-700/50",
 } %}
 {% set months_de = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"] %}
 

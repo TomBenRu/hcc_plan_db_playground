@@ -2,9 +2,10 @@
 {% set months_de = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"] %}
 
 {% set status_config = {
-    "pending":   {"label": "Offen",           "color": "#F59E0B", "badge": "bg-amber-50 text-amber-700 ring-amber-200"},
-    "withdrawn": {"label": "Zurückgezogen",   "color": "#94A3B8", "badge": "bg-slate-50 text-slate-500 ring-slate-200"},
-    "resolved":  {"label": "Gelöst",          "color": "#22C55E", "badge": "bg-green-50 text-green-700 ring-green-200"},
+    "pending":                    {"label": "Offen",              "color": "#F59E0B", "badge": "bg-amber-50 text-amber-700 ring-amber-200"},
+    "withdrawn":                  {"label": "Zurückgezogen",      "color": "#94A3B8", "badge": "bg-slate-50 text-slate-500 ring-slate-200"},
+    "resolved":                   {"label": "Gelöst",             "color": "#22C55E", "badge": "bg-green-50 text-green-700 ring-green-200"},
+    "superseded_by_cast_change":  {"label": "Besetzung geändert", "color": "#A78BFA", "badge": "bg-purple-50 text-purple-700 ring-purple-200"},
 } %}
 {% set scfg = status_config.get(c.status.value, {"label": c.status.value, "color": "#94A3B8", "badge": ""}) %}
 

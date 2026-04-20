@@ -73,12 +73,13 @@
 {% block content %}
 
 {% set status_labels = {
-    "":                         "Alle",
-    "pending":                  "Ausstehend",
-    "accepted_by_target":       "Zugestimmt",
-    "rejected_by_target":       "Abgelehnt",
-    "confirmed_by_dispatcher":  "Bestätigt",
-    "withdrawn":                "Zurückgezogen",
+    "":                           "Alle",
+    "pending":                    "Ausstehend",
+    "accepted_by_target":         "Zugestimmt",
+    "rejected_by_target":         "Abgelehnt",
+    "confirmed_by_dispatcher":    "Bestätigt",
+    "withdrawn":                  "Zurückgezogen",
+    "superseded_by_cast_change":  "Besetzung geändert",
 } %}
 {% set filter_val = status_filter if status_filter else "" %}
 
@@ -175,6 +176,14 @@
                       {% if filter_val == 'rejected_by_target' %}active{% endif %}">
                 <span class="w-2 h-2 rounded-full flex-shrink-0 bg-red-400"></span>
                 Abgelehnt
+            </a>
+
+            <a href="?status_filter=superseded_by_cast_change"
+               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                      border-transparent text-sm font-sans text-slate-400
+                      {% if filter_val == 'superseded_by_cast_change' %}active{% endif %}">
+                <span class="w-2 h-2 rounded-full flex-shrink-0 bg-purple-400"></span>
+                Besetzung geändert
             </a>
 
         </div>

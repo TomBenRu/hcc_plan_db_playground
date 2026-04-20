@@ -68,6 +68,18 @@ def create_takeover_offer(
             detail="Nur Mitglieder des Benachrichtigungskreises können eine Übernahme anbieten.",
         )
 
+    duplicate = session.execute(
+        sa_select(TakeoverOffer.id)
+        .where(TakeoverOffer.cancellation_request_id == cancellation_id)
+        .where(TakeoverOffer.web_user_id == web_user.id)
+        .where(TakeoverOffer.status == TakeoverOfferStatus.pending)
+    ).first()
+    if duplicate is not None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            detail="Sie haben bereits ein offenes Übernahme-Angebot für diese Absage.",
+        )
+
     offer = TakeoverOffer(
         cancellation_request_id=cancellation_id,
         web_user_id=web_user.id,

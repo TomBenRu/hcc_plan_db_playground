@@ -312,6 +312,29 @@ def get_takeover_offers_for_cancellation(
     ]
 
 
+def withdraw_takeover_offer(
+    session: Session,
+    cancellation_id: uuid.UUID,
+    offer_id: uuid.UUID,
+    web_user: WebUser,
+) -> None:
+    """Anbieter zieht eigenes Übernahme-Angebot zurück."""
+    offer = session.get(TakeoverOffer, offer_id)
+    if offer is None or offer.cancellation_request_id != cancellation_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Übernahme-Angebot nicht gefunden.")
+    if offer.web_user_id != web_user.id:
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Kein Zugriff.")
+    if offer.status != TakeoverOfferStatus.pending:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            detail="Dieses Übernahme-Angebot kann nicht mehr zurückgezogen werden.",
+        )
+
+    offer.status = TakeoverOfferStatus.rejected
+    session.add(offer)
+    session.flush()
+
+
 def _utcnow():
     from datetime import timezone
     return datetime.now(timezone.utc)

@@ -3,7 +3,7 @@
 import uuid
 
 from fastapi import HTTPException, status
-from sqlalchemy import select as sa_select, update as sa_update
+from sqlalchemy import select as sa_select
 from sqlmodel import Session
 
 from database.models import (
@@ -13,74 +13,305 @@ from database.models import (
     AvailDayAppointmentLink,
     CastGroup,
     Event,
+    LocationOfWork,
+    LocationPlanPeriod,
+    Person,
     Plan,
+    TimeOfDay,
 )
 from web_api.availability.service import create_avail_day, find_avail_day
+from web_api.email.service import EmailPayload
+from web_api.inbox.service import create_inbox_message
 from web_api.models.web_models import (
     CancellationRequest,
     CancellationStatus,
+    InboxMessageType,
     SwapRequest,
     SwapRequestStatus,
+    TakeoverOffer,
+    TakeoverOfferStatus,
     WebUser,
 )
+from web_api.templating import templates
+
+
+# ── Notification-Helfer ───────────────────────────────────────────────
+
+
+def _render_cast_removal_email(snapshot: dict) -> str:
+    return templates.get_template("emails/cast_member_removed.html").render(snapshot=snapshot)
+
+
+def _load_cast_removal_context(session: Session, appointment_id: uuid.UUID) -> dict:
+    """Lädt Termin-Kontext (Datum, Ort, Zeitfenster) für die Snapshot-Anzeige."""
+    row = session.execute(
+        sa_select(
+            Event.date.label("event_date"),
+            LocationOfWork.name.label("location_name"),
+            TimeOfDay.name.label("time_of_day_name"),
+            TimeOfDay.start.label("time_start"),
+        )
+        .select_from(Appointment)
+        .join(Event, Event.id == Appointment.event_id)
+        .join(LocationPlanPeriod, LocationPlanPeriod.id == Event.location_plan_period_id)
+        .join(LocationOfWork, LocationOfWork.id == LocationPlanPeriod.location_of_work_id)
+        .join(TimeOfDay, TimeOfDay.id == Event.time_of_day_id)
+        .where(Appointment.id == appointment_id)
+    ).mappings().first()
+    return dict(row) if row else {}
+
+
+def _build_snapshot(
+    ctx: dict,
+    *,
+    request_type: str,
+    recipient_role: str,
+    removed_person_name: str,
+    partner_name: str = "",
+) -> dict:
+    return {
+        "event_date": str(ctx.get("event_date", "")),
+        "location_name": ctx.get("location_name", ""),
+        "time_of_day_name": ctx.get("time_of_day_name", ""),
+        "request_type": request_type,
+        "recipient_role": recipient_role,
+        "removed_person_name": removed_person_name,
+        "partner_name": partner_name,
+    }
 
 
 def _cancel_open_requests_for_removed_persons(
     session: Session,
     appointment_id: uuid.UUID,
     removed_person_ids: set[uuid.UUID],
-) -> None:
-    """Setzt pending Cancel-/Swap-Requests der entfernten Personen auf withdrawn.
+    *,
+    exclude_cancellation_ids: frozenset[uuid.UUID] = frozenset(),
+    exclude_swap_ids: frozenset[uuid.UUID] = frozenset(),
+) -> list[EmailPayload]:
+    """Setzt pending Cancel-/Swap-/Takeover-Requests der entfernten Personen
+    auf superseded_by_cast_change und erzeugt Inbox-Messages + Email-Payloads
+    für alle Betroffenen.
 
-    Wird bei Appointment-Membership-Änderungen (reassign, avail_days-Update)
-    aufgerufen — Requests anderer, weiter zugewiesener Personen bleiben
-    unberührt. Workflow-Pfade (accept_takeover_offer, confirm_swap_request)
-    setzen den Status ihrer aktiven Request anschliessend via ORM explizit
-    auf resolved bzw. confirmed_by_dispatcher — der hier gemachte withdrawn-
-    Flip bleibt in dem Fall transient und wird vom späteren ORM-UPDATE
-    überschrieben.
+    Empfänger:
+    - CancellationRequest → die entfernte Person (Antragstellerin).
+    - Pending TakeoverOffer zu dieser Cancellation → der Anbieter.
+    - SwapRequest mit entfernter Person → entfernte Person UND die Gegenseite.
+
+    exclude_*_ids: Workflow-Pfade (accept_takeover_offer / confirm_swap_request)
+    verwalten ihre aktive Request selbst und setzen den finalen Status
+    (resolved / confirmed_by_dispatcher) anschließend — diese IDs können
+    übergeben werden, damit der Helper sie weder auf superseded flippt noch
+    Benachrichtigungen erzeugt.
     """
+    payloads: list[EmailPayload] = []
     if not removed_person_ids:
-        return
-    web_user_ids = list(session.execute(
-        sa_select(WebUser.id).where(WebUser.person_id.in_(removed_person_ids))
+        return payloads
+
+    removed_web_users = list(session.execute(
+        sa_select(WebUser).where(WebUser.person_id.in_(removed_person_ids))
     ).scalars().all())
-    if not web_user_ids:
-        return
-    session.execute(
-        sa_update(CancellationRequest)
+    if not removed_web_users:
+        return payloads
+
+    removed_wu_ids = {u.id for u in removed_web_users}
+
+    # Betroffene Requests und Offers vorab laden (für Batch-Empfänger-Load)
+    cancel_reqs = list(session.execute(
+        sa_select(CancellationRequest)
         .where(CancellationRequest.appointment_id == appointment_id)
-        .where(CancellationRequest.web_user_id.in_(web_user_ids))
+        .where(CancellationRequest.web_user_id.in_(removed_wu_ids))
         .where(CancellationRequest.status == CancellationStatus.pending)
-        .values(status=CancellationStatus.withdrawn)
-    )
-    session.execute(
-        sa_update(SwapRequest)
+    ).scalars().all())
+    cancel_reqs = [cr for cr in cancel_reqs if cr.id not in exclude_cancellation_ids]
+
+    cr_ids = [cr.id for cr in cancel_reqs]
+    offers_by_cr: dict[uuid.UUID, list[TakeoverOffer]] = {}
+    if cr_ids:
+        all_offers = list(session.execute(
+            sa_select(TakeoverOffer)
+            .where(TakeoverOffer.cancellation_request_id.in_(cr_ids))
+            .where(TakeoverOffer.status == TakeoverOfferStatus.pending)
+        ).scalars().all())
+        for o in all_offers:
+            offers_by_cr.setdefault(o.cancellation_request_id, []).append(o)
+
+    swap_reqs_raw = list(session.execute(
+        sa_select(SwapRequest)
         .where(
             (
                 (SwapRequest.requester_appointment_id == appointment_id)
-                & (SwapRequest.requester_web_user_id.in_(web_user_ids))
+                & (SwapRequest.requester_web_user_id.in_(removed_wu_ids))
             )
             | (
                 (SwapRequest.target_appointment_id == appointment_id)
-                & (SwapRequest.target_web_user_id.in_(web_user_ids))
+                & (SwapRequest.target_web_user_id.in_(removed_wu_ids))
             )
         )
-        .where(SwapRequest.status.in_([SwapRequestStatus.pending, SwapRequestStatus.accepted_by_target]))
-        .values(status=SwapRequestStatus.withdrawn)
-    )
+        .where(SwapRequest.status.in_([
+            SwapRequestStatus.pending,
+            SwapRequestStatus.accepted_by_target,
+        ]))
+    ).scalars().all())
+    swap_reqs = [sw for sw in swap_reqs_raw if sw.id not in exclude_swap_ids]
+
+    if not cancel_reqs and not swap_reqs:
+        return payloads
+
+    # Batch-Load aller benötigten WebUser + Person (statt N+1 im Loop)
+    relevant_wu_ids: set[uuid.UUID] = set(removed_wu_ids)
+    for cr in cancel_reqs:
+        for o in offers_by_cr.get(cr.id, []):
+            relevant_wu_ids.add(o.web_user_id)
+    for sw in swap_reqs:
+        relevant_wu_ids.add(sw.requester_web_user_id)
+        relevant_wu_ids.add(sw.target_web_user_id)
+
+    all_users = list(session.execute(
+        sa_select(WebUser).where(WebUser.id.in_(relevant_wu_ids))
+    ).scalars().all())
+    users_by_id = {u.id: u for u in all_users}
+    person_ids = {u.person_id for u in all_users if u.person_id}
+    persons_by_id: dict[uuid.UUID, Person] = {}
+    if person_ids:
+        all_persons = list(session.execute(
+            sa_select(Person).where(Person.id.in_(person_ids))
+        ).scalars().all())
+        persons_by_id = {p.id: p for p in all_persons}
+
+    def _name(wu_id: uuid.UUID | None) -> str:
+        if wu_id is None:
+            return "?"
+        user = users_by_id.get(wu_id)
+        if user is None:
+            return "?"
+        if user.person_id:
+            p = persons_by_id.get(user.person_id)
+            if p is not None:
+                return f"{p.f_name} {p.l_name}"
+        return user.email or "?"
+
+    ctx = _load_cast_removal_context(session, appointment_id)
+
+    # ── 1. CancellationRequests + Takeover-Kaskade ────────────────────
+    for cr in cancel_reqs:
+        cr.status = CancellationStatus.superseded_by_cast_change
+        user = users_by_id.get(cr.web_user_id)
+        removed_name = _name(cr.web_user_id)
+
+        if user is not None:
+            snapshot = _build_snapshot(
+                ctx,
+                request_type="cancellation",
+                recipient_role="affected_self",
+                removed_person_name=removed_name,
+            )
+            create_inbox_message(
+                session,
+                recipient_id=user.id,
+                msg_type=InboxMessageType.dispatcher_removed_from_cast,
+                reference_id=cr.id,
+                reference_type="cancellation_request",
+                snapshot_data=snapshot,
+            )
+            if user.email:
+                payloads.append(EmailPayload(
+                    to=[user.email],
+                    subject="Cast-Änderung: Deine Absage-Anfrage ist obsolet",
+                    html_body=_render_cast_removal_email(snapshot),
+                ))
+
+        for offer in offers_by_cr.get(cr.id, []):
+            offer.status = TakeoverOfferStatus.superseded_by_cast_change
+            offerer = users_by_id.get(offer.web_user_id)
+            if offerer is None:
+                continue
+            offerer_snapshot = _build_snapshot(
+                ctx,
+                request_type="takeover_offer",
+                recipient_role="offerer",
+                removed_person_name=removed_name,
+            )
+            create_inbox_message(
+                session,
+                recipient_id=offerer.id,
+                msg_type=InboxMessageType.dispatcher_removed_from_cast,
+                reference_id=offer.id,
+                reference_type="takeover_offer",
+                snapshot_data=offerer_snapshot,
+            )
+            if offerer.email:
+                payloads.append(EmailPayload(
+                    to=[offerer.email],
+                    subject="Cast-Änderung: Dein Übernahme-Angebot ist obsolet",
+                    html_body=_render_cast_removal_email(offerer_snapshot),
+                ))
+
+    # ── 2. SwapRequests: beide Seiten benachrichtigen ─────────────────
+    for swap in swap_reqs:
+        swap.status = SwapRequestStatus.superseded_by_cast_change
+        removed_is_requester = (
+            swap.requester_appointment_id == appointment_id
+            and swap.requester_web_user_id in removed_wu_ids
+        )
+        removed_is_target = (
+            swap.target_appointment_id == appointment_id
+            and swap.target_web_user_id in removed_wu_ids
+        )
+        requester_name = _name(swap.requester_web_user_id)
+        target_name = _name(swap.target_web_user_id)
+        removed_name = requester_name if removed_is_requester else target_name
+
+        for wu_id, is_removed, partner in [
+            (swap.requester_web_user_id, removed_is_requester, target_name),
+            (swap.target_web_user_id, removed_is_target, requester_name),
+        ]:
+            user = users_by_id.get(wu_id)
+            if user is None:
+                continue
+            role = "affected_self" if is_removed else "affected_partner"
+            snapshot = _build_snapshot(
+                ctx,
+                request_type="swap_request",
+                recipient_role=role,
+                removed_person_name=removed_name,
+                partner_name=partner,
+            )
+            create_inbox_message(
+                session,
+                recipient_id=user.id,
+                msg_type=InboxMessageType.dispatcher_removed_from_cast,
+                reference_id=swap.id,
+                reference_type="swap_request",
+                snapshot_data=snapshot,
+            )
+            if user.email:
+                subject = (
+                    "Cast-Änderung: Deine Tausch-Anfrage ist obsolet"
+                    if is_removed
+                    else "Cast-Änderung: Dein Tausch-Partner wurde entfernt"
+                )
+                payloads.append(EmailPayload(
+                    to=[user.email],
+                    subject=subject,
+                    html_body=_render_cast_removal_email(snapshot),
+                ))
+
+    session.flush()
+    return payloads
 
 
 def update_appointment_avail_days(
     session: Session,
     appointment_id: uuid.UUID,
     new_avail_day_ids: list[uuid.UUID],
-) -> None:
+) -> list[EmailPayload]:
     """Ändert die AvailDay-Liste eines Appointments + cleant Requests entfernter User.
 
     Ermittelt vorab, welche Personen das Appointment verlieren, schreibt die
     neue M:N-Zuordnung direkt auf der übergebenen Session und flippt offene
-    Requests der entfernten User auf withdrawn — alles in einer Transaktion.
+    Requests der entfernten User auf superseded_by_cast_change — alles in
+    einer Transaktion. Gibt die Liste der zu versendenden Email-Payloads
+    zurück (Caller dispatched via BackgroundTasks).
     """
     old_person_ids = set(session.execute(
         sa_select(ActorPlanPeriod.person_id)
@@ -110,7 +341,9 @@ def update_appointment_avail_days(
     appointment.avail_days.extend(avds_by_id[aid] for aid in new_avail_day_ids)
     session.flush()
 
-    _cancel_open_requests_for_removed_persons(session, appointment_id, removed_person_ids)
+    return _cancel_open_requests_for_removed_persons(
+        session, appointment_id, removed_person_ids
+    )
 
 
 def reassign_appointment(
@@ -118,19 +351,35 @@ def reassign_appointment(
     appointment_id: uuid.UUID,
     old_person_id: uuid.UUID,
     new_person_id: uuid.UUID,
-) -> None:
+    *,
+    exclude_cancellation_ids: frozenset[uuid.UUID] = frozenset(),
+    exclude_swap_ids: frozenset[uuid.UUID] = frozenset(),
+) -> list[EmailPayload]:
     """Verschiebt einen Appointment von old_person zu new_person via AvailDay-Reassignment.
 
     Ablauf:
-    1. Offene Cancel-/Swap-Requests für den Termin auf withdrawn setzen.
-    2. Alten AvailDayAppointmentLink des old_person finden und löschen.
-    3. ActorPlanPeriod des new_person in der selben PlanPeriod laden.
+    1. Offene Cancel-/Swap-/Takeover-Requests der old_person auf
+       superseded_by_cast_change flippen + Benachrichtigungen erzeugen
+       (Workflow-Pfade können ihre aktive Request via exclude_*_ids
+       ausklammern — sie setzen den finalen Status selbst).
+    2. Alten AvailDayAppointmentLink der old_person finden und löschen.
+    3. ActorPlanPeriod der new_person in der selben PlanPeriod laden.
     4. Bestehenden AvailDay suchen oder neuen anlegen.
     5. Neuen AvailDayAppointmentLink erstellen.
-    """
-    _cancel_open_requests_for_removed_persons(session, appointment_id, {old_person_id})
+    6. fixed_cast der CastGroup löschen (manuelle Zuweisung überschreibt
+       den Constraint).
 
-    # 1. Alten Link + AvailDay des old_person finden
+    Gibt die Liste der zu versendenden Email-Payloads zurück.
+    """
+    email_payloads = _cancel_open_requests_for_removed_persons(
+        session,
+        appointment_id,
+        {old_person_id},
+        exclude_cancellation_ids=exclude_cancellation_ids,
+        exclude_swap_ids=exclude_swap_ids,
+    )
+
+    # 1. Alten Link + AvailDay der old_person finden
     old_link_row = session.execute(
         sa_select(AvailDayAppointmentLink, AvailDay)
         .join(AvailDay, AvailDay.id == AvailDayAppointmentLink.avail_day_id)
@@ -167,7 +416,7 @@ def reassign_appointment(
     time_of_day_id: uuid.UUID = appt_row["time_of_day_id"]
     cast_group_id: uuid.UUID = appt_row["cast_group_id"]
 
-    # 3. ActorPlanPeriod des new_person in derselben PlanPeriod finden
+    # 3. ActorPlanPeriod der new_person in derselben PlanPeriod finden
     new_app = session.execute(
         sa_select(ActorPlanPeriod)
         .where(ActorPlanPeriod.plan_period_id == plan_period_id)
@@ -193,13 +442,13 @@ def reassign_appointment(
     session.add(new_link)
     session.flush()
 
-    # 6. fixed_cast der CastGroup löschen — manuelle Zuweisung überschreibt den Constraint;
-    #    andernfalls meldet validate_plan einen Fehler, weil die neue Person nicht im
-    #    fixed_cast-Ausdruck enthalten ist.
+    # 6. fixed_cast der CastGroup löschen
     cast_group = session.get(CastGroup, cast_group_id)
     if cast_group is not None and cast_group.fixed_cast is not None:
         cast_group.fixed_cast = None
         session.flush()
+
+    return email_payloads
 
 
 def swap_appointments(
@@ -208,13 +457,14 @@ def swap_appointments(
     person_a_id: uuid.UUID,
     appt_b_id: uuid.UUID,
     person_b_id: uuid.UUID,
-) -> None:
+    *,
+    exclude_swap_ids: frozenset[uuid.UUID] = frozenset(),
+) -> list[EmailPayload]:
     """Tauscht zwei Appointments zwischen zwei Personen.
 
     Löscht beide alten Links zuerst (flush), dann legt neue an — verhindert
     UniqueConstraint-Konflikte falls beide AvailDays identisch wären.
     """
-    # Alte Links finden
     def _find_link(appointment_id: uuid.UUID, person_id: uuid.UUID):
         return session.execute(
             sa_select(AvailDayAppointmentLink)
@@ -233,6 +483,12 @@ def swap_appointments(
         session.delete(link_b)
     session.flush()
 
-    # Neu-Zuordnung: A → person_b, B → person_a
-    reassign_appointment(session, appt_a_id, person_a_id, person_b_id)
-    reassign_appointment(session, appt_b_id, person_b_id, person_a_id)
+    payloads = reassign_appointment(
+        session, appt_a_id, person_a_id, person_b_id,
+        exclude_swap_ids=exclude_swap_ids,
+    )
+    payloads += reassign_appointment(
+        session, appt_b_id, person_b_id, person_a_id,
+        exclude_swap_ids=exclude_swap_ids,
+    )
+    return payloads

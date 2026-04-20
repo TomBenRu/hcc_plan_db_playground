@@ -170,12 +170,16 @@ def accept_takeover_offer(
             detail="Person des Anbieters nicht gefunden.",
         )
 
-    # Plan-Anpassung: alten AvailDay-Link entfernen, neuen erstellen
-    reassign_appointment(
+    # Plan-Anpassung: alten AvailDay-Link entfernen, neuen erstellen.
+    # Die aktive Cancellation wird unten explizit auf resolved gesetzt —
+    # exclude sie hier, damit der Helper sie nicht stumm auf superseded flippt
+    # oder eine obsolet-Benachrichtigung an den Absagenden sendet.
+    cast_removal_payloads = reassign_appointment(
         session,
         appointment_id=cr.appointment_id,
         old_person_id=requester_user.person_id,
         new_person_id=offerer_user.person_id,
+        exclude_cancellation_ids=frozenset({cancellation_id}),
     )
 
     # Angebot akzeptieren
@@ -255,7 +259,7 @@ def accept_takeover_offer(
                 snapshot_data=tagged_snapshot,
             )
 
-    email_payloads: list[EmailPayload] = []
+    email_payloads: list[EmailPayload] = list(cast_removal_payloads)
     if notify_emails:
         html = _render_email(
             "takeover_accepted.html",

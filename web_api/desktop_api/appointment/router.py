@@ -2,13 +2,15 @@
 
 import uuid
 
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, BackgroundTasks, Depends, status
 from pydantic import BaseModel
 from sqlmodel import Session
 
 from database import db_services, schemas
+from web_api.config import get_settings
 from web_api.dependencies import get_db_session
 from web_api.desktop_api.auth import DesktopUser
+from web_api.email.service import send_emails_background
 from web_api.plan_adjustment.service import reassign_appointment, update_appointment_avail_days
 
 router = APIRouter(prefix="/appointments", tags=["desktop-appointments"])
@@ -85,10 +87,14 @@ def undelete_appointments_bulk(body: AppointmentBulkIdsBody, _: DesktopUser):
 def update_avail_days(
     appointment_id: uuid.UUID,
     body: AppointmentAvailDaysBody,
+    background_tasks: BackgroundTasks,
     _: DesktopUser,
     session: Session = Depends(get_db_session),
+    settings=Depends(get_settings),
 ):
-    update_appointment_avail_days(session, appointment_id, body.avail_day_ids)
+    email_payloads = update_appointment_avail_days(session, appointment_id, body.avail_day_ids)
+    if email_payloads:
+        background_tasks.add_task(send_emails_background, email_payloads, settings)
 
 
 @router.patch("/{appointment_id}/notes", status_code=status.HTTP_204_NO_CONTENT)
@@ -120,7 +126,13 @@ def undelete_appointment(appointment_id: uuid.UUID, _: DesktopUser):
 def reassign(
     appointment_id: uuid.UUID,
     body: AppointmentReassignBody,
+    background_tasks: BackgroundTasks,
     _: DesktopUser,
     session: Session = Depends(get_db_session),
+    settings=Depends(get_settings),
 ):
-    reassign_appointment(session, appointment_id, body.old_person_id, body.new_person_id)
+    email_payloads = reassign_appointment(
+        session, appointment_id, body.old_person_id, body.new_person_id
+    )
+    if email_payloads:
+        background_tasks.add_task(send_emails_background, email_payloads, settings)

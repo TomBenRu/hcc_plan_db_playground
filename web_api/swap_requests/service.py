@@ -392,13 +392,16 @@ def confirm_swap_request(
             detail="Person-Verknüpfung fehlt bei einem der Tauschpartner.",
         )
 
-    # Plan-Anpassung
-    swap_appointments(
+    # Plan-Anpassung. Die aktive SwapRequest wird unten auf confirmed_by_dispatcher
+    # gesetzt — exclude sie hier, damit der Helper sie nicht stumm auf superseded
+    # flippt oder eine obsolet-Benachrichtigung an die Partner sendet.
+    cast_removal_payloads = swap_appointments(
         session,
         appt_a_id=swap.requester_appointment_id,
         person_a_id=requester_user.person_id,
         appt_b_id=swap.target_appointment_id,
         person_b_id=target_user.person_id,
+        exclude_swap_ids=frozenset({swap.id}),
     )
 
     swap.status = SwapRequestStatus.confirmed_by_dispatcher
@@ -425,7 +428,7 @@ def confirm_swap_request(
                 snapshot_data=snapshot,
             )
 
-    email_payloads: list[EmailPayload] = []
+    email_payloads: list[EmailPayload] = list(cast_removal_payloads)
     if notify_emails:
         html = _render_email("swap_confirmed.html", snapshot=snapshot)
         email_payloads.append(

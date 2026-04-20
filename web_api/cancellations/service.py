@@ -479,6 +479,12 @@ def create_cancellation(
             detail="Für diesen Termin existiert bereits eine offene Tausch-Anfrage.",
         )
 
+    if ctx["event_date"] < date.today():
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Absage nicht mehr möglich: Termin liegt in der Vergangenheit.",
+        )
+
     settings = get_effective_deadline(session, ctx["team_id"])
     if settings.deadline_hours > 0 and ctx["time_start"]:
         appointment_dt = datetime.combine(ctx["event_date"], ctx["time_start"])

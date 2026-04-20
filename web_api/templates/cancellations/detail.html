@@ -6,14 +6,16 @@
 {% block content %}
 {% set months_de = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"] %}
 {% set status_styles = {
-    "pending":   "bg-amber-50 text-amber-700 ring-amber-200",
-    "withdrawn": "bg-slate-50 text-slate-500 ring-slate-200",
-    "resolved":  "bg-green-50 text-green-700 ring-green-200",
+    "pending":                    "bg-amber-50 text-amber-700 ring-amber-200",
+    "withdrawn":                  "bg-slate-50 text-slate-500 ring-slate-200",
+    "resolved":                   "bg-green-50 text-green-700 ring-green-200",
+    "superseded_by_cast_change":  "bg-purple-50 text-purple-700 ring-purple-200",
 } %}
 {% set status_labels = {
-    "pending":   "Offen",
-    "withdrawn": "Zurückgezogen",
-    "resolved":  "Gelöst",
+    "pending":                    "Offen",
+    "withdrawn":                  "Zurückgezogen",
+    "resolved":                   "Gelöst",
+    "superseded_by_cast_change":  "Besetzung geändert",
 } %}
 
 <div class="max-w-2xl mx-auto px-4 py-8 animate-fade-up">
@@ -102,6 +104,8 @@
                         <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 bg-green-50 text-green-700 ring-green-200 dark:bg-green-900/30 dark:text-green-400 dark:ring-green-700/50">Akzeptiert</span>
                         {% elif offer.status.value == "rejected" %}
                         <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 bg-slate-50 text-slate-500 ring-slate-200 dark:bg-slate-700/30 dark:text-slate-400 dark:ring-slate-600/50">Abgelehnt</span>
+                        {% elif offer.status.value == "superseded_by_cast_change" %}
+                        <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 bg-purple-50 text-purple-700 ring-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:ring-purple-700/50">Besetzung geändert</span>
                         {% endif %}
                         {% if is_dispatcher and offer.status.value == "pending" and detail.status.value == "pending" %}
                         <form hx-post="/cancellations/{{ detail.id }}/takeover-offers/{{ offer.id }}/accept"

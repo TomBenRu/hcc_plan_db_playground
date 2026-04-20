@@ -14,8 +14,24 @@
     "swap_withdrawn":            {"label": "Tausch zurückgezogen",       "color": "#94A3B8"},
 } %}
 
+{# Differenzierte Labels für dispatcher_removed_from_cast — Key ist request_type|recipient_role aus snapshot_data. Farbe einheitlich purple-400. #}
+{% set removed_labels = {
+    "cancellation|affected_self":      "Absage durch Besetzungswechsel obsolet",
+    "swap_request|affected_self":      "Tausch-Anfrage durch Besetzungswechsel obsolet",
+    "swap_request|affected_partner":   "Tausch-Partner aus Besetzung entfernt",
+    "takeover_offer|offerer":          "Übernahme-Angebot obsolet",
+} %}
+{% set removed_color = "#A78BFA" %}
+
 {# Farbe der prominentesten (neuesten/ungelesenen) Nachricht bestimmen #}
-{% set first_cfg = type_config.get(group.messages[0].type.value, {"label": group.messages[0].type.value, "color": "#94A3B8"}) %}
+{% set _first = group.messages[0] %}
+{% if _first.type.value == "dispatcher_removed_from_cast" %}
+    {% set _sd = _first.snapshot_data or {} %}
+    {% set _key = (_sd.get("request_type") or "") + "|" + (_sd.get("recipient_role") or "") %}
+    {% set first_cfg = {"label": removed_labels.get(_key, "Besetzung geändert"), "color": removed_color} %}
+{% else %}
+    {% set first_cfg = type_config.get(_first.type.value, {"label": _first.type.value, "color": "#94A3B8"}) %}
+{% endif %}
 
 <details {% if group.has_unread %}open{% endif %}
          class="group/details bg-white dark:bg-slate-800 rounded-xl border overflow-hidden
@@ -97,7 +113,13 @@
     {# ── Nachrichten-Liste ─────────────────────────────────────────────────── #}
     <div class="border-t border-slate-100 dark:border-slate-700/50 divide-y divide-slate-50 dark:divide-slate-700/30">
         {% for item in group.messages %}
-        {% set cfg = type_config.get(item.type.value, {"label": item.type.value, "color": "#94A3B8"}) %}
+        {% if item.type.value == "dispatcher_removed_from_cast" %}
+            {% set _sd = item.snapshot_data or {} %}
+            {% set _key = (_sd.get("request_type") or "") + "|" + (_sd.get("recipient_role") or "") %}
+            {% set cfg = {"label": removed_labels.get(_key, "Besetzung geändert"), "color": removed_color} %}
+        {% else %}
+            {% set cfg = type_config.get(item.type.value, {"label": item.type.value, "color": "#94A3B8"}) %}
+        {% endif %}
 
         <div id="inbox-item-{{ item.id }}"
              class="flex items-center gap-3 px-5 py-3

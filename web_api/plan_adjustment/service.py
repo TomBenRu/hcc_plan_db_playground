@@ -21,38 +21,96 @@ from web_api.models.web_models import (
     CancellationStatus,
     SwapRequest,
     SwapRequestStatus,
+    WebUser,
 )
 
 
-def _cancel_open_requests_for_appointment(
+def _cancel_open_requests_for_removed_persons(
     session: Session,
     appointment_id: uuid.UUID,
+    removed_person_ids: set[uuid.UUID],
 ) -> None:
-    """Setzt offene Cancellation- und Swap-Requests für appointment_id auf withdrawn.
+    """Setzt pending Cancel-/Swap-Requests der entfernten Personen auf withdrawn.
 
-    Wird beim Dispatcher-Direkteingriff (Reassign/Swap) aufgerufen, damit
-    User-Requests für den betroffenen Termin nicht verwaist im pending-
-    Status verbleiben. Workflow-Pfade (accept_takeover_offer,
-    confirm_swap_request) setzen den Status ihrer aktiven Request
-    anschliessend via ORM explizit auf resolved bzw.
-    confirmed_by_dispatcher — der hier gemachte withdrawn-Flip bleibt
-    in dem Fall transient und wird vom späteren ORM-UPDATE überschrieben.
+    Wird bei Appointment-Membership-Änderungen (reassign, avail_days-Update)
+    aufgerufen — Requests anderer, weiter zugewiesener Personen bleiben
+    unberührt. Workflow-Pfade (accept_takeover_offer, confirm_swap_request)
+    setzen den Status ihrer aktiven Request anschliessend via ORM explizit
+    auf resolved bzw. confirmed_by_dispatcher — der hier gemachte withdrawn-
+    Flip bleibt in dem Fall transient und wird vom späteren ORM-UPDATE
+    überschrieben.
     """
+    if not removed_person_ids:
+        return
+    web_user_ids = list(session.execute(
+        sa_select(WebUser.id).where(WebUser.person_id.in_(removed_person_ids))
+    ).scalars().all())
+    if not web_user_ids:
+        return
     session.execute(
         sa_update(CancellationRequest)
         .where(CancellationRequest.appointment_id == appointment_id)
+        .where(CancellationRequest.web_user_id.in_(web_user_ids))
         .where(CancellationRequest.status == CancellationStatus.pending)
         .values(status=CancellationStatus.withdrawn)
     )
     session.execute(
         sa_update(SwapRequest)
         .where(
-            (SwapRequest.requester_appointment_id == appointment_id)
-            | (SwapRequest.target_appointment_id == appointment_id)
+            (
+                (SwapRequest.requester_appointment_id == appointment_id)
+                & (SwapRequest.requester_web_user_id.in_(web_user_ids))
+            )
+            | (
+                (SwapRequest.target_appointment_id == appointment_id)
+                & (SwapRequest.target_web_user_id.in_(web_user_ids))
+            )
         )
         .where(SwapRequest.status.in_([SwapRequestStatus.pending, SwapRequestStatus.accepted_by_target]))
         .values(status=SwapRequestStatus.withdrawn)
     )
+
+
+def update_appointment_avail_days(
+    session: Session,
+    appointment_id: uuid.UUID,
+    new_avail_day_ids: list[uuid.UUID],
+) -> None:
+    """Ändert die AvailDay-Liste eines Appointments + cleant Requests entfernter User.
+
+    Ermittelt vorab, welche Personen das Appointment verlieren, schreibt die
+    neue M:N-Zuordnung direkt auf der übergebenen Session und flippt offene
+    Requests der entfernten User auf withdrawn — alles in einer Transaktion.
+    """
+    old_person_ids = set(session.execute(
+        sa_select(ActorPlanPeriod.person_id)
+        .join(AvailDay, AvailDay.actor_plan_period_id == ActorPlanPeriod.id)
+        .join(AvailDayAppointmentLink, AvailDayAppointmentLink.avail_day_id == AvailDay.id)
+        .where(AvailDayAppointmentLink.appointment_id == appointment_id)
+    ).scalars().all())
+
+    new_person_ids: set[uuid.UUID] = set()
+    avds_by_id: dict[uuid.UUID, AvailDay] = {}
+    if new_avail_day_ids:
+        new_person_ids = set(session.execute(
+            sa_select(ActorPlanPeriod.person_id)
+            .join(AvailDay, AvailDay.actor_plan_period_id == ActorPlanPeriod.id)
+            .where(AvailDay.id.in_(new_avail_day_ids))
+        ).scalars().all())
+        avds_by_id = {
+            ad.id: ad for ad in session.execute(
+                sa_select(AvailDay).where(AvailDay.id.in_(new_avail_day_ids))
+            ).scalars().all()
+        }
+
+    removed_person_ids = old_person_ids - new_person_ids
+
+    appointment = session.get(Appointment, appointment_id)
+    appointment.avail_days.clear()
+    appointment.avail_days.extend(avds_by_id[aid] for aid in new_avail_day_ids)
+    session.flush()
+
+    _cancel_open_requests_for_removed_persons(session, appointment_id, removed_person_ids)
 
 
 def reassign_appointment(
@@ -70,7 +128,7 @@ def reassign_appointment(
     4. Bestehenden AvailDay suchen oder neuen anlegen.
     5. Neuen AvailDayAppointmentLink erstellen.
     """
-    _cancel_open_requests_for_appointment(session, appointment_id)
+    _cancel_open_requests_for_removed_persons(session, appointment_id, {old_person_id})
 
     # 1. Alten Link + AvailDay des old_person finden
     old_link_row = session.execute(

@@ -9,7 +9,7 @@ from sqlmodel import Session
 from database import db_services, schemas
 from web_api.dependencies import get_db_session
 from web_api.desktop_api.auth import DesktopUser
-from web_api.plan_adjustment.service import reassign_appointment
+from web_api.plan_adjustment.service import reassign_appointment, update_appointment_avail_days
 
 router = APIRouter(prefix="/appointments", tags=["desktop-appointments"])
 
@@ -82,8 +82,13 @@ def undelete_appointments_bulk(body: AppointmentBulkIdsBody, _: DesktopUser):
 
 
 @router.patch("/{appointment_id}/avail-days", status_code=status.HTTP_204_NO_CONTENT)
-def update_avail_days(appointment_id: uuid.UUID, body: AppointmentAvailDaysBody, _: DesktopUser):
-    db_services.Appointment.update_avail_days(appointment_id, body.avail_day_ids)
+def update_avail_days(
+    appointment_id: uuid.UUID,
+    body: AppointmentAvailDaysBody,
+    _: DesktopUser,
+    session: Session = Depends(get_db_session),
+):
+    update_appointment_avail_days(session, appointment_id, body.avail_day_ids)
 
 
 @router.patch("/{appointment_id}/notes", status_code=status.HTTP_204_NO_CONTENT)

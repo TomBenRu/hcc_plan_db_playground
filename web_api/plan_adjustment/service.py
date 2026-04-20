@@ -3,7 +3,7 @@
 import uuid
 
 from fastapi import HTTPException, status
-from sqlalchemy import select as sa_select
+from sqlalchemy import select as sa_select, update as sa_update
 from sqlmodel import Session
 
 from database.models import (
@@ -16,6 +16,43 @@ from database.models import (
     Plan,
 )
 from web_api.availability.service import create_avail_day, find_avail_day
+from web_api.models.web_models import (
+    CancellationRequest,
+    CancellationStatus,
+    SwapRequest,
+    SwapRequestStatus,
+)
+
+
+def _cancel_open_requests_for_appointment(
+    session: Session,
+    appointment_id: uuid.UUID,
+) -> None:
+    """Setzt offene Cancellation- und Swap-Requests für appointment_id auf withdrawn.
+
+    Wird beim Dispatcher-Direkteingriff (Reassign/Swap) aufgerufen, damit
+    User-Requests für den betroffenen Termin nicht verwaist im pending-
+    Status verbleiben. Workflow-Pfade (accept_takeover_offer,
+    confirm_swap_request) setzen den Status ihrer aktiven Request
+    anschliessend via ORM explizit auf resolved bzw.
+    confirmed_by_dispatcher — der hier gemachte withdrawn-Flip bleibt
+    in dem Fall transient und wird vom späteren ORM-UPDATE überschrieben.
+    """
+    session.execute(
+        sa_update(CancellationRequest)
+        .where(CancellationRequest.appointment_id == appointment_id)
+        .where(CancellationRequest.status == CancellationStatus.pending)
+        .values(status=CancellationStatus.withdrawn)
+    )
+    session.execute(
+        sa_update(SwapRequest)
+        .where(
+            (SwapRequest.requester_appointment_id == appointment_id)
+            | (SwapRequest.target_appointment_id == appointment_id)
+        )
+        .where(SwapRequest.status.in_([SwapRequestStatus.pending, SwapRequestStatus.accepted_by_target]))
+        .values(status=SwapRequestStatus.withdrawn)
+    )
 
 
 def reassign_appointment(
@@ -27,11 +64,14 @@ def reassign_appointment(
     """Verschiebt einen Appointment von old_person zu new_person via AvailDay-Reassignment.
 
     Ablauf:
-    1. Alten AvailDayAppointmentLink des old_person finden und löschen.
-    2. ActorPlanPeriod des new_person in der selben PlanPeriod laden.
-    3. Bestehenden AvailDay suchen oder neuen anlegen.
-    4. Neuen AvailDayAppointmentLink erstellen.
+    1. Offene Cancel-/Swap-Requests für den Termin auf withdrawn setzen.
+    2. Alten AvailDayAppointmentLink des old_person finden und löschen.
+    3. ActorPlanPeriod des new_person in der selben PlanPeriod laden.
+    4. Bestehenden AvailDay suchen oder neuen anlegen.
+    5. Neuen AvailDayAppointmentLink erstellen.
     """
+    _cancel_open_requests_for_appointment(session, appointment_id)
+
     # 1. Alten Link + AvailDay des old_person finden
     old_link_row = session.execute(
         sa_select(AvailDayAppointmentLink, AvailDay)

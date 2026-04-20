@@ -5,7 +5,7 @@ from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import select as sa_select
+from sqlalchemy import select as sa_select, update as sa_update
 from sqlmodel import Session
 
 from database.models import (
@@ -574,6 +574,13 @@ def withdraw_cancellation(
     cr.status = CancellationStatus.withdrawn
     session.add(cr)
     session.flush()
+
+    session.execute(
+        sa_update(TakeoverOffer)
+        .where(TakeoverOffer.cancellation_request_id == cancellation_id)
+        .where(TakeoverOffer.status == TakeoverOfferStatus.pending)
+        .values(status=TakeoverOfferStatus.rejected)
+    )
 
     ctx = _load_appointment_context(session, cr.appointment_id)
     person = session.get(Person, web_user.person_id) if web_user.person_id else None

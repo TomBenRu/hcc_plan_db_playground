@@ -145,6 +145,18 @@ def create_swap_request(
                     detail="Für einen der Termine existiert bereits eine offene Absage.",
                 )
 
+        duplicate_swap = session.execute(
+            sa_select(SwapRequest.id)
+            .where(SwapRequest.requester_appointment_id == requester_appt_id)
+            .where(SwapRequest.target_appointment_id == target_appt_id)
+            .where(SwapRequest.status.in_([SwapRequestStatus.pending, SwapRequestStatus.accepted_by_target]))
+        ).first()
+        if duplicate_swap is not None:
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                detail="Für diese Termin-Kombination existiert bereits eine offene Tausch-Anfrage.",
+            )
+
         # Wenn eine konkrete target_web_user_id übergeben wurde (aus Browse-Formular),
         # direkt verwenden — verhindert Selbst-Tausch bei Gruppen-Appointments.
         if target_web_user_id is not None and len(target_appt_ids) == 1:

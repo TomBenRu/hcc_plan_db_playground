@@ -78,6 +78,7 @@ class CancellationStatus(str, enum.Enum):
     pending = "pending"
     resolved = "resolved"
     withdrawn = "withdrawn"
+    superseded_by_cast_change = "superseded_by_cast_change"
 
 
 class NotificationSource(str, enum.Enum):
@@ -97,6 +98,7 @@ class InboxMessageType(str, enum.Enum):
     swap_confirmed = "swap_confirmed"
     swap_rejected = "swap_rejected"
     swap_withdrawn = "swap_withdrawn"
+    dispatcher_removed_from_cast = "dispatcher_removed_from_cast"
 
 
 # ── Absage-Workflow — Modelle ─────────────────────────────────────────────────
@@ -201,6 +203,7 @@ class TakeoverOfferStatus(str, enum.Enum):
     pending = "pending"
     accepted = "accepted"
     rejected = "rejected"
+    superseded_by_cast_change = "superseded_by_cast_change"
 
 
 class SwapRequestStatus(str, enum.Enum):
@@ -210,6 +213,7 @@ class SwapRequestStatus(str, enum.Enum):
     confirmed_by_dispatcher = "confirmed_by_dispatcher"
     rejected_by_dispatcher = "rejected_by_dispatcher"
     withdrawn = "withdrawn"
+    superseded_by_cast_change = "superseded_by_cast_change"
 
 
 class TakeoverOffer(SQLModel, table=True):

@@ -40,6 +40,7 @@ _ROLE_TYPES: dict[str, set[str]] = {
         "swap_accepted_by_target",
         "swap_confirmed",
         "swap_rejected",
+        "swap_withdrawn",
     },
 }
 

@@ -96,6 +96,7 @@ class InboxMessageType(str, enum.Enum):
     swap_accepted_by_target = "swap_accepted_by_target"
     swap_confirmed = "swap_confirmed"
     swap_rejected = "swap_rejected"
+    swap_withdrawn = "swap_withdrawn"
 
 
 # ── Absage-Workflow — Modelle ─────────────────────────────────────────────────

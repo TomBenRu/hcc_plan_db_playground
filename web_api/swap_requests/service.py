@@ -443,7 +443,7 @@ def withdraw_swap_request(
     session: Session,
     swap_id: uuid.UUID,
     requester_user: WebUser,
-) -> None:
+) -> list[EmailPayload]:
     """Anfragender zieht Tausch-Anfrage zurück."""
     swap = session.get(SwapRequest, swap_id)
     if swap is None:
@@ -459,6 +459,31 @@ def withdraw_swap_request(
     swap.status = SwapRequestStatus.withdrawn
     session.add(swap)
     session.flush()
+
+    target_user = session.get(WebUser, swap.target_web_user_id)
+    req_ctx = _load_appointment_context(session, swap.requester_appointment_id)
+    snapshot = _build_swap_snapshot(session, swap, req_ctx)
+
+    email_payloads: list[EmailPayload] = []
+    if target_user:
+        create_inbox_message(
+            session,
+            recipient_id=target_user.id,
+            msg_type=InboxMessageType.swap_withdrawn,
+            reference_id=swap.id,
+            reference_type="swap_request",
+            snapshot_data=snapshot,
+        )
+        html = _render_email("swap_withdrawn.html", snapshot=snapshot)
+        email_payloads.append(
+            EmailPayload(
+                to=[target_user.email],
+                subject="Tausch-Anfrage zurückgezogen",
+                html_body=html,
+            )
+        )
+
+    return email_payloads
 
 
 def get_swap_requests_for_user(

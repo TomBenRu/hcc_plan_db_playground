@@ -361,11 +361,13 @@ def post_confirm_swap(
 def post_withdraw_swap(
     request: Request,
     swap_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
     user: LoggedInUser,
     session: Session = Depends(get_db_session),
+    settings=Depends(get_settings),
 ):
     try:
-        withdraw_swap_request(session, swap_id, user)
+        email_payloads = withdraw_swap_request(session, swap_id, user)
     except HTTPException as exc:
         return templates.TemplateResponse(
             "swap_requests/partials/error.html",
@@ -373,6 +375,7 @@ def post_withdraw_swap(
             headers=_ERROR_HEADERS,
         )
     session.commit()
+    background_tasks.add_task(send_emails_background, email_payloads, settings)
 
     swaps = get_swap_requests_for_user(session, user.id)
     return templates.TemplateResponse(

@@ -54,3 +54,15 @@ def dispatcher_cancellations(
             "status_filter": status_filter,
         },
     )
+
+
+@router.get("/plan", response_class=HTMLResponse)
+def dispatcher_plan(
+    request: Request,
+    user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+):
+    return templates.TemplateResponse(
+        "dispatcher/plan.html",
+        {"request": request, "user": user},
+    )

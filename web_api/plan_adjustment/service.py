@@ -42,6 +42,10 @@ def _render_cast_removal_email(snapshot: dict) -> str:
     return templates.get_template("emails/cast_member_removed.html").render(snapshot=snapshot)
 
 
+def _render_plan_unbound_email(snapshot: dict) -> str:
+    return templates.get_template("emails/plan_unbound.html").render(snapshot=snapshot)
+
+
 def _load_cast_removal_context(session: Session, appointment_id: uuid.UUID) -> dict:
     """Lädt Termin-Kontext (Datum, Ort, Zeitfenster) für die Snapshot-Anzeige."""
     row = session.execute(
@@ -449,6 +453,173 @@ def reassign_appointment(
         session.flush()
 
     return email_payloads
+
+
+def _build_plan_unbind_snapshot(ctx: dict, *, request_type: str) -> dict:
+    return {
+        "event_date": str(ctx.get("event_date", "")),
+        "location_name": ctx.get("location_name", ""),
+        "time_of_day_name": ctx.get("time_of_day_name", ""),
+        "request_type": request_type,
+    }
+
+
+def cancel_open_requests_for_unbound_plan(
+    session: Session,
+    plan_id: uuid.UUID,
+) -> list[EmailPayload]:
+    """Plan wurde auf nicht-verbindlich zurückgesetzt → alle offenen Requests
+    für Appointments in diesem Plan auf superseded_by_plan_unbind setzen.
+
+    Empfänger (eine Inbox-Message + E-Mail pro Request):
+    - CancellationRequest → Antragstellerin.
+    - Pending TakeoverOffer zu dieser Cancellation → Anbieter (Kaskade).
+    - SwapRequest → beide Seiten (requester + target, auch bei
+      Cross-Plan-Swaps, wo nur eine Seite im unbound Plan liegt).
+
+    Kein exclude_*_ids-Parameter: der Toggle-Endpoint selbst setzt keinen
+    nachgelagerten finalen Status, also gibt es nichts auszuschließen.
+    """
+    payloads: list[EmailPayload] = []
+
+    appointment_ids = list(session.execute(
+        sa_select(Appointment.id).where(Appointment.plan_id == plan_id)
+    ).scalars().all())
+    if not appointment_ids:
+        return payloads
+
+    cancel_reqs = list(session.execute(
+        sa_select(CancellationRequest)
+        .where(CancellationRequest.appointment_id.in_(appointment_ids))
+        .where(CancellationRequest.status == CancellationStatus.pending)
+    ).scalars().all())
+
+    swap_reqs = list(session.execute(
+        sa_select(SwapRequest)
+        .where(
+            SwapRequest.requester_appointment_id.in_(appointment_ids)
+            | SwapRequest.target_appointment_id.in_(appointment_ids)
+        )
+        .where(SwapRequest.status.in_([
+            SwapRequestStatus.pending,
+            SwapRequestStatus.accepted_by_target,
+        ]))
+    ).scalars().all())
+
+    cr_ids = [cr.id for cr in cancel_reqs]
+    offers_by_cr: dict[uuid.UUID, list[TakeoverOffer]] = {}
+    if cr_ids:
+        all_offers = list(session.execute(
+            sa_select(TakeoverOffer)
+            .where(TakeoverOffer.cancellation_request_id.in_(cr_ids))
+            .where(TakeoverOffer.status == TakeoverOfferStatus.pending)
+        ).scalars().all())
+        for o in all_offers:
+            offers_by_cr.setdefault(o.cancellation_request_id, []).append(o)
+
+    if not cancel_reqs and not swap_reqs:
+        return payloads
+
+    # Relevante WebUser-IDs sammeln und batch-laden
+    relevant_wu_ids: set[uuid.UUID] = set()
+    for cr in cancel_reqs:
+        relevant_wu_ids.add(cr.web_user_id)
+        for o in offers_by_cr.get(cr.id, []):
+            relevant_wu_ids.add(o.web_user_id)
+    for sw in swap_reqs:
+        relevant_wu_ids.add(sw.requester_web_user_id)
+        relevant_wu_ids.add(sw.target_web_user_id)
+
+    all_users = list(session.execute(
+        sa_select(WebUser).where(WebUser.id.in_(relevant_wu_ids))
+    ).scalars().all())
+    users_by_id = {u.id: u for u in all_users}
+
+    # Termin-Kontext pro unique appointment_id vorladen (über Cancel-, Swap- und
+    # beide Swap-Seiten, auch Cross-Plan)
+    unique_appt_ids: set[uuid.UUID] = set()
+    for cr in cancel_reqs:
+        unique_appt_ids.add(cr.appointment_id)
+    for sw in swap_reqs:
+        unique_appt_ids.add(sw.requester_appointment_id)
+        unique_appt_ids.add(sw.target_appointment_id)
+    ctxs_by_appt_id: dict[uuid.UUID, dict] = {
+        aid: _load_cast_removal_context(session, aid) for aid in unique_appt_ids
+    }
+
+    # 1. CancellationRequests + Takeover-Kaskade
+    for cr in cancel_reqs:
+        cr.status = CancellationStatus.superseded_by_plan_unbind
+        ctx = ctxs_by_appt_id.get(cr.appointment_id, {})
+        snapshot = _build_plan_unbind_snapshot(ctx, request_type="cancellation")
+        user = users_by_id.get(cr.web_user_id)
+        if user is not None:
+            create_inbox_message(
+                session,
+                recipient_id=user.id,
+                msg_type=InboxMessageType.plan_unbound,
+                reference_id=cr.id,
+                reference_type="cancellation_request",
+                snapshot_data=snapshot,
+            )
+            if user.email:
+                payloads.append(EmailPayload(
+                    to=[user.email],
+                    subject="Plan nicht mehr aktuell: Deine Absage-Anfrage ist obsolet",
+                    html_body=_render_plan_unbound_email(snapshot),
+                ))
+
+        for offer in offers_by_cr.get(cr.id, []):
+            offer.status = TakeoverOfferStatus.superseded_by_plan_unbind
+            offerer = users_by_id.get(offer.web_user_id)
+            if offerer is None:
+                continue
+            offerer_snapshot = _build_plan_unbind_snapshot(ctx, request_type="takeover_offer")
+            create_inbox_message(
+                session,
+                recipient_id=offerer.id,
+                msg_type=InboxMessageType.plan_unbound,
+                reference_id=offer.id,
+                reference_type="takeover_offer",
+                snapshot_data=offerer_snapshot,
+            )
+            if offerer.email:
+                payloads.append(EmailPayload(
+                    to=[offerer.email],
+                    subject="Plan nicht mehr aktuell: Dein Übernahme-Angebot ist obsolet",
+                    html_body=_render_plan_unbound_email(offerer_snapshot),
+                ))
+
+    # 2. SwapRequests — beide Seiten benachrichtigen (jede Seite mit ihrem
+    #    eigenen Termin-Kontext, auch bei Cross-Plan-Swaps)
+    for swap in swap_reqs:
+        swap.status = SwapRequestStatus.superseded_by_plan_unbind
+        for wu_id, appt_id in [
+            (swap.requester_web_user_id, swap.requester_appointment_id),
+            (swap.target_web_user_id, swap.target_appointment_id),
+        ]:
+            user = users_by_id.get(wu_id)
+            if user is None:
+                continue
+            ctx = ctxs_by_appt_id.get(appt_id, {})
+            snapshot = _build_plan_unbind_snapshot(ctx, request_type="swap_request")
+            create_inbox_message(
+                session,
+                recipient_id=user.id,
+                msg_type=InboxMessageType.plan_unbound,
+                reference_id=swap.id,
+                reference_type="swap_request",
+                snapshot_data=snapshot,
+            )
+            if user.email:
+                payloads.append(EmailPayload(
+                    to=[user.email],
+                    subject="Plan nicht mehr aktuell: Deine Tausch-Anfrage ist obsolet",
+                    html_body=_render_plan_unbound_email(snapshot),
+                ))
+
+    session.flush()
+    return payloads
 
 
 def swap_appointments(

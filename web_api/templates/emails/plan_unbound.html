@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="de">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Plan nicht mehr aktuell</title>
+<style>
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #f8fafc; margin: 0; padding: 24px; color: #334155; }
+  .card { background: white; border-radius: 12px; max-width: 540px; margin: 0 auto; padding: 32px; border: 1px solid #e2e8f0; }
+  .badge { display: inline-block; background: #f1f5f9; color: #475569; border-radius: 999px; padding: 2px 10px; font-size: 11px; font-weight: 600; }
+  .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; margin-top: 16px; margin-bottom: 4px; }
+  .value { font-size: 14px; color: #1e293b; }
+  .footer { margin-top: 24px; font-size: 11px; color: #94a3b8; text-align: center; }
+  h1 { font-size: 18px; font-weight: 700; color: #0f172a; margin: 0 0 4px; }
+  p.lead { font-size: 13px; color:#64748b; margin: 4px 0 20px; }
+</style>
+</head>
+<body>
+<div class="card">
+  <p style="margin:0 0 16px"><span class="badge">Plan nicht mehr aktuell</span></p>
+
+  {% if snapshot.request_type == "cancellation" %}
+    <h1>Deine Absage-Anfrage ist obsolet</h1>
+    <p class="lead">
+      Der Plan für diesen Termin wurde auf nicht-verbindlich zurückgesetzt.
+      Deine offene Absage-Anfrage wurde daher automatisch auf
+      &bdquo;obsolet&ldquo; gesetzt.
+    </p>
+  {% elif snapshot.request_type == "swap_request" %}
+    <h1>Deine Tausch-Anfrage ist obsolet</h1>
+    <p class="lead">
+      Der Plan für diesen Termin wurde auf nicht-verbindlich zurückgesetzt.
+      Deine offene Tausch-Anfrage wurde daher automatisch auf
+      &bdquo;obsolet&ldquo; gesetzt.
+    </p>
+  {% elif snapshot.request_type == "takeover_offer" %}
+    <h1>Dein Übernahme-Angebot ist obsolet</h1>
+    <p class="lead">
+      Der Plan für die zugrundeliegende Absage wurde auf nicht-verbindlich
+      zurückgesetzt. Dein Übernahme-Angebot wurde daher automatisch auf
+      &bdquo;obsolet&ldquo; gesetzt.
+    </p>
+  {% endif %}
+
+  <div class="label">Termin</div>
+  <div class="value">{{ snapshot.location_name }}</div>
+  <div class="value" style="color:#64748b; font-size:12px; margin-top:2px;">
+    {{ snapshot.event_date }}{% if snapshot.time_of_day_name %} &middot; {{ snapshot.time_of_day_name }}{% endif %}
+  </div>
+
+  <div class="footer">hcc plan &middot; Diese Nachricht wurde automatisch generiert.</div>
+</div>
+</body>
+</html>

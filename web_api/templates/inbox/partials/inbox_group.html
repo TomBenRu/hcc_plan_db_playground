@@ -23,12 +23,22 @@
 } %}
 {% set removed_color = "#A78BFA" %}
 
+{# Differenzierte Labels für plan_unbound — Key ist request_type aus snapshot_data. #}
+{% set plan_unbound_labels = {
+    "cancellation":    "Absage durch Plan-Rücksetzung obsolet",
+    "swap_request":    "Tausch-Anfrage durch Plan-Rücksetzung obsolet",
+    "takeover_offer":  "Übernahme-Angebot durch Plan-Rücksetzung obsolet",
+} %}
+
 {# Farbe der prominentesten (neuesten/ungelesenen) Nachricht bestimmen #}
 {% set _first = group.messages[0] %}
 {% if _first.type.value == "dispatcher_removed_from_cast" %}
     {% set _sd = _first.snapshot_data or {} %}
     {% set _key = (_sd.get("request_type") or "") + "|" + (_sd.get("recipient_role") or "") %}
     {% set first_cfg = {"label": removed_labels.get(_key, "Besetzung geändert"), "color": removed_color} %}
+{% elif _first.type.value == "plan_unbound" %}
+    {% set _req = (_first.snapshot_data or {}).get("request_type") or "" %}
+    {% set first_cfg = {"label": plan_unbound_labels.get(_req, "Plan nicht mehr aktuell"), "color": removed_color} %}
 {% else %}
     {% set first_cfg = type_config.get(_first.type.value, {"label": _first.type.value, "color": "#94A3B8"}) %}
 {% endif %}
@@ -117,6 +127,9 @@
             {% set _sd = item.snapshot_data or {} %}
             {% set _key = (_sd.get("request_type") or "") + "|" + (_sd.get("recipient_role") or "") %}
             {% set cfg = {"label": removed_labels.get(_key, "Besetzung geändert"), "color": removed_color} %}
+        {% elif item.type.value == "plan_unbound" %}
+            {% set _req = (item.snapshot_data or {}).get("request_type") or "" %}
+            {% set cfg = {"label": plan_unbound_labels.get(_req, "Plan nicht mehr aktuell"), "color": removed_color} %}
         {% else %}
             {% set cfg = type_config.get(item.type.value, {"label": item.type.value, "color": "#94A3B8"}) %}
         {% endif %}

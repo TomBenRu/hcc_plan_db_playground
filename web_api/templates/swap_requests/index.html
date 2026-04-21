@@ -80,6 +80,7 @@
     "confirmed_by_dispatcher":    "Bestätigt",
     "withdrawn":                  "Zurückgezogen",
     "superseded_by_cast_change":  "Besetzung geändert",
+    "superseded_by_plan_unbind":  "Plan nicht mehr aktuell",
 } %}
 {% set filter_val = status_filter if status_filter else "" %}
 
@@ -184,6 +185,14 @@
                       {% if filter_val == 'superseded_by_cast_change' %}active{% endif %}">
                 <span class="w-2 h-2 rounded-full flex-shrink-0 bg-purple-400"></span>
                 Besetzung geändert
+            </a>
+
+            <a href="?status_filter=superseded_by_plan_unbind"
+               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                      border-transparent text-sm font-sans text-slate-400
+                      {% if filter_val == 'superseded_by_plan_unbind' %}active{% endif %}">
+                <span class="w-2 h-2 rounded-full flex-shrink-0 bg-purple-400"></span>
+                Plan nicht mehr aktuell
             </a>
 
         </div>

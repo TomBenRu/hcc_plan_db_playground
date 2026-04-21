@@ -1,37 +1,250 @@
-{% extends "base.html" %}
+{% extends "_calendar_base.html" %}
 
-{% block title %}Team-Pläne — hcc plan{% endblock %}
+{% block calendar_page_title %}Team-Pläne — hcc plan{% endblock %}
 
-{% block nav %}
-    {% include "partials/nav.html" %}
+{% block head %}
+    {{ super() }}
+    <style>
+        /* ── Mobile-Layout für Team-Filter (<1024px) ──────────────────────── */
+        /* Auf Desktop bleibt die Section im normalen, gestapelten Sidebar-Flow.
+           Auf Mobile wird sie zur horizontalen Chip-Reihe mit Scroll. */
+        @media (max-width: 1023px) {
+            .cal-sidebar .team-filter-section {
+                display: flex !important;
+                flex-direction: row;
+                align-items: center;
+                gap: 0.75rem;
+                margin-bottom: 0 !important;
+                flex: 1 1 100%;   /* eigene Zeile in der wrap'enden Sidebar */
+                min-width: 0;
+            }
+            .cal-sidebar .team-filter-section > label {
+                flex-shrink: 0;
+                margin-bottom: 0 !important;
+            }
+            .cal-sidebar .team-filter-section > ul {
+                display: flex !important;
+                flex-direction: row;
+                gap: 0.375rem;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+                flex: 1;
+                min-width: 0;
+                padding: 0.125rem 0;
+                margin: 0;
+                list-style: none;
+            }
+            .cal-sidebar .team-filter-section > ul > li {
+                flex-shrink: 0;
+                margin: 0;
+            }
+            .cal-sidebar .team-filter-section > ul > li > label {
+                padding: 0.25rem 0.625rem !important;
+                margin: 0 !important;
+                white-space: nowrap;
+                background: rgba(255, 255, 255, 0.04);
+                border-radius: 9999px;
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                gap: 0.5rem !important;
+            }
+            .cal-sidebar .team-filter-section > ul::-webkit-scrollbar {
+                height: 2px;
+            }
+            .cal-sidebar .team-filter-section > ul::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.2);
+                border-radius: 1px;
+            }
+        }
+    </style>
 {% endblock %}
 
-{% block content %}
-<div class="min-h-[calc(100vh-56px)] flex items-center justify-center bg-slate-50 dark:bg-slate-900 px-5">
-    <div class="max-w-lg w-full bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm p-10 text-center animate-fade-up">
+{% block calendar_role_label %}Disposition{% endblock %}
 
-        <div class="w-14 h-14 rounded-2xl bg-sky-50 dark:bg-sky-900/20 flex items-center justify-center mx-auto mb-5">
-            <svg class="w-7 h-7 text-sky-500" fill="none" stroke="currentColor" stroke-width="1.75" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round"
-                      d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"/>
-            </svg>
-        </div>
+{% block calendar_title %}Team-Pläne{% endblock %}
 
-        <p class="text-xs uppercase tracking-widest font-semibold text-slate-400 mb-2 font-sans">Disposition</p>
-        <h1 class="font-display text-2xl font-semibold text-slate-800 dark:text-slate-100 mb-3">Team-Pläne</h1>
-        <p class="text-sm text-slate-500 dark:text-slate-400 leading-relaxed mb-8">
-            Diese Ansicht befindet sich in Entwicklung.<br>
-            Hier können Dispatcher bald die Pläne aller zugeordneten Teams einsehen und bearbeiten.
+{% block calendar_subtitle %}
+    <span class="text-slate-300 font-medium">{{ total_appointments }}</span>
+    Termin{% if total_appointments != 1 %}e{% endif %}
+    {% if my_teams|length > 1 %}
+        · {{ my_teams|length }} Teams
+    {% endif %}
+{% endblock %}
+
+{% block calendar_sidebar_sections %}
+    <!-- Team-Filter -->
+    <div class="sidebar-section sidebar-section-mobile team-filter-section mb-6">
+        <label class="block text-xs font-semibold tracking-widest text-slate-500 uppercase mb-2.5 font-sans">
+            Teams
+        </label>
+
+        {% if my_teams %}
+        <ul class="space-y-1">
+            <!-- "Alle Teams" -->
+            <li>
+                <label class="flex items-center gap-2.5 cursor-pointer group py-1 px-2 -mx-2 rounded-md hover:bg-white/5 transition-colors">
+                    <input type="checkbox"
+                           class="team-filter-all w-3.5 h-3.5 rounded accent-brand"
+                           {% if not selected_team_ids %}checked{% endif %}>
+                    <span class="text-sm font-medium text-slate-300 group-hover:text-slate-100 transition-colors font-sans">
+                        Alle Teams
+                    </span>
+                </label>
+            </li>
+
+            <!-- Einzel-Teams -->
+            {% for team in my_teams %}
+            <li>
+                <label class="flex items-center gap-2.5 cursor-pointer group py-1 px-2 -mx-2 rounded-md hover:bg-white/5 transition-colors">
+                    <input type="checkbox"
+                           class="team-filter w-3.5 h-3.5 rounded accent-brand"
+                           value="{{ team.id }}"
+                           {% if team.id|string in selected_team_ids %}checked{% endif %}>
+                    <span class="text-sm text-slate-400 group-hover:text-slate-200 transition-colors font-sans truncate">
+                        {{ team.name }}
+                    </span>
+                </label>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-xs text-slate-600 font-sans italic leading-relaxed">
+            Ihnen ist aktuell kein Team zugewiesen.
         </p>
-
-        <a href="/dashboard"
-           class="inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 transition-colors font-sans">
-            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
-            </svg>
-            Zurück zum Dashboard
-        </a>
-
+        {% endif %}
     </div>
-</div>
+
+    <!-- Location-Legende (wird bei Team-Filter-Change per JS neu aufgebaut) -->
+    <div id="location-legend-section" class="sidebar-section mb-6"
+         {% if not location_legend %}style="display: none;"{% endif %}>
+        <label class="block text-xs font-semibold tracking-widest text-slate-500 uppercase mb-2.5 font-sans">
+            Einsatzorte
+        </label>
+        <ul id="location-legend-list" class="space-y-2">
+            {% for loc in location_legend %}
+            <li class="flex items-center gap-2.5 group">
+                <span
+                    class="w-2 h-2 rounded-full flex-shrink-0 ring-1 ring-white/10"
+                    data-legend-color="{{ loc.color }}"
+                    style="background-color: {{ loc.color }}; box-shadow: 0 0 6px {{ loc.color }}60;"
+                ></span>
+                <span class="text-sm text-slate-400 font-sans truncate group-hover:text-slate-200 transition-colors">
+                    {{ loc.name }}
+                </span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}
+
+{% block calendar_event_source_url %}{{ events_url }}{% endblock %}
+
+{% block calendar_detail_url_prefix %}/dispatcher/plan/appointments/{% endblock %}
+
+{% block calendar_extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const allCheckbox = document.querySelector('.team-filter-all');
+    const teamCheckboxes = document.querySelectorAll('.team-filter');
+
+    function currentSelection() {
+        return Array.from(teamCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+    }
+
+    function syncAllCheckbox() {
+        if (!allCheckbox) return;
+        allCheckbox.checked = currentSelection().length === 0;
+    }
+
+    function refreshCalendar() {
+        const selected = currentSelection();
+
+        // URL im Browser aktualisieren (shareable Deep-Link)
+        const url = new URL(window.location);
+        url.searchParams.delete('teams');
+        selected.forEach(t => url.searchParams.append('teams', t));
+        history.replaceState({}, '', url);
+
+        // FullCalendar-Event-Source austauschen
+        const sources = window.hccCalendar.getEventSources();
+        sources.forEach(s => s.remove());
+
+        const params = new URLSearchParams();
+        selected.forEach(t => params.append('teams', t));
+        const eventsUrl = '/dispatcher/plan/events' + (params.toString() ? '?' + params.toString() : '');
+        window.hccCalendar.addEventSource({ url: eventsUrl, method: 'GET' });
+    }
+
+    teamCheckboxes.forEach(cb => {
+        cb.addEventListener('change', function () {
+            syncAllCheckbox();
+            refreshCalendar();
+        });
+    });
+
+    if (allCheckbox) {
+        allCheckbox.addEventListener('change', function () {
+            if (this.checked) {
+                // "Alle" aktiviert → individuelle abwählen
+                teamCheckboxes.forEach(cb => { cb.checked = false; });
+                refreshCalendar();
+            } else {
+                // "Alle" kann nicht allein deaktiviert werden — mindestens einer muss aktiv sein
+                if (currentSelection().length === 0) {
+                    this.checked = true;
+                }
+            }
+        });
+    }
+
+    // ── Location-Legende synchron zu sichtbaren Events halten ───────────────────
+    // Spiegelt die Server-Logik: aggregiere nach location_id, behalte First-Occurrence-Order.
+    function rebuildLocationLegend(events) {
+        const section = document.getElementById('location-legend-section');
+        const list = document.getElementById('location-legend-list');
+        if (!section || !list) return;
+
+        const seen = new Map();  // location_id → {name, color}
+        events.forEach(ev => {
+            const locId = ev.extendedProps && ev.extendedProps.location_id;
+            const locName = (ev.extendedProps && ev.extendedProps.location_name) || ev.title;
+            if (locId && !seen.has(locId)) {
+                seen.set(locId, { name: locName, color: ev.backgroundColor });
+            }
+        });
+
+        if (seen.size === 0) {
+            section.style.display = 'none';
+            list.innerHTML = '';
+            return;
+        }
+        section.style.display = '';
+
+        // <ul> neu befüllen
+        list.innerHTML = '';
+        seen.forEach(entry => {
+            const li = document.createElement('li');
+            li.className = 'flex items-center gap-2.5 group';
+
+            const dot = document.createElement('span');
+            dot.className = 'w-2 h-2 rounded-full flex-shrink-0 ring-1 ring-white/10';
+            dot.setAttribute('data-legend-color', entry.color);
+            dot.style.backgroundColor = entry.color;
+            dot.style.boxShadow = '0 0 6px ' + entry.color + '60';
+
+            const label = document.createElement('span');
+            label.className = 'text-sm text-slate-400 font-sans truncate group-hover:text-slate-200 transition-colors';
+            label.textContent = entry.name;
+
+            li.appendChild(dot);
+            li.appendChild(label);
+            list.appendChild(li);
+        });
+
+        // Colorblind-Remapping auf die neuen DOM-Elemente anwenden
+        if (window.hccCalendar.refreshColors) window.hccCalendar.refreshColors();
+    }
+
+    window.hccCalendar.on('eventsSet', rebuildLocationLegend);
+});
+</script>
 {% endblock %}

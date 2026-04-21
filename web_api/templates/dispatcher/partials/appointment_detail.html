@@ -1,0 +1,136 @@
+{# HTMX-Partial: Termin-Details für die Dispatcher-Plan-Ansicht. #}
+{# Kontext: event (CalendarEvent), coworkers (list[CoWorker]) #}
+
+{% set months_de = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"] %}
+{% set days_de   = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"] %}
+
+<div class="p-5 h-full flex flex-col" style="font-family: 'Outfit', sans-serif;">
+
+    <!-- Farbstreifen oben + Location-Badge -->
+    <div class="rounded-xl overflow-hidden mb-4 shadow-sm border border-slate-100">
+        <div class="h-1.5 w-full"
+             data-event-color="{{ event.color }}"
+             style="background-color: {{ event.color }};"></div>
+
+        <div class="bg-white p-4">
+            <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                    <p class="text-xs font-semibold tracking-widest uppercase mb-1"
+                       data-event-color="{{ event.color }}"
+                       style="color: {{ event.color }};">Einsatzort</p>
+                    <h2 class="text-base font-semibold text-slate-800 leading-snug truncate"
+                        style="font-family: 'Fraunces', Georgia, serif; letter-spacing: -0.01em;">
+                        {{ event.location_name }}
+                    </h2>
+                </div>
+                <button
+                    onclick="clearDetail()"
+                    title="Schließen"
+                    class="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center
+                           text-slate-400 hover:text-slate-700 hover:bg-slate-100
+                           transition-colors focus:outline-none focus:ring-2 focus:ring-slate-300"
+                >
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M6 18L18 6M6 6l12 12"/>
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Datum -->
+    <div class="bg-white rounded-xl border border-slate-100 shadow-sm p-4 mb-3">
+        <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-2">Datum</p>
+        <div class="flex items-center gap-3">
+            <div class="flex-shrink-0 w-10 h-10 rounded-lg flex flex-col items-center justify-center text-white text-center leading-none"
+                 style="background-color: #0C1628;">
+                <span class="text-xs font-semibold text-brand">
+                    {{ months_de[event.event_date.month - 1] }}
+                </span>
+                <span class="text-base font-bold -mt-0.5">{{ event.event_date.day }}</span>
+            </div>
+            <div>
+                <p class="text-sm font-semibold text-slate-700">
+                    {{ days_de[event.event_date.weekday()] }},
+                    {{ event.event_date.day }}. {{ months_de[event.event_date.month - 1] }} {{ event.event_date.year }}
+                </p>
+                {% if event.time_of_day_name %}
+                <p class="text-xs text-slate-400 mt-0.5">{{ event.time_of_day_name }}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Uhrzeit -->
+    {% if event.time_start or event.time_end %}
+    <div class="bg-white rounded-xl border border-slate-100 shadow-sm p-4 mb-3">
+        <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-2">Uhrzeit</p>
+        <div class="flex items-center gap-2">
+            <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                      d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+            </svg>
+            <span class="text-sm font-medium text-slate-700">
+                {% if event.time_start %}{{ event.time_start.strftime("%H:%M") }}{% endif %}
+                {% if event.time_start and event.time_end %} – {% endif %}
+                {% if event.time_end %}{{ event.time_end.strftime("%H:%M") }} Uhr{% endif %}
+            </span>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Planperiode -->
+    <div class="bg-white rounded-xl border border-slate-100 shadow-sm p-4 mb-3">
+        <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-2">Planperiode</p>
+        <p class="text-xs text-slate-600">
+            {{ event.period_start.day }}. {{ months_de[event.period_start.month - 1] }} {{ event.period_start.year }}
+            &ndash;
+            {{ event.period_end.day }}. {{ months_de[event.period_end.month - 1] }} {{ event.period_end.year }}
+        </p>
+    </div>
+
+    <!-- Notizen -->
+    {% if event.appointment_notes %}
+    <div class="bg-amber-50 rounded-xl border border-amber-100 p-4 mb-3">
+        <p class="text-xs font-semibold tracking-widest uppercase text-amber-500 mb-2">Anmerkung</p>
+        <p class="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{{ event.appointment_notes }}</p>
+    </div>
+    {% endif %}
+
+    <!-- Eingesetzte Mitarbeiter -->
+    {% if coworkers %}
+    <div class="bg-white rounded-xl border border-slate-100 shadow-sm p-4 mb-3">
+        <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-3">
+            Eingesetzte Mitarbeiter
+            <span class="ml-1 text-slate-300 font-normal normal-case tracking-normal">({{ coworkers | length }})</span>
+        </p>
+        <ul class="space-y-2">
+            {% for cw in coworkers %}
+            <li class="flex items-center gap-2.5">
+                <span class="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold text-white flex-shrink-0"
+                      style="background-color: #0C1628; font-family: 'Outfit', sans-serif;">
+                    {{ cw.initials }}
+                </span>
+                <span class="text-sm text-slate-700 font-sans">{{ cw.full_name }}</span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
+    <!-- Platzhalter: Bearbeiten-Funktionen folgen in späterem Commit -->
+    <div class="mt-auto pt-2 pb-1 text-center">
+        <p class="text-xs text-slate-400 font-sans italic">
+            Bearbeiten-Funktionen folgen in Kürze.
+        </p>
+    </div>
+
+</div>
+
+<script>
+function clearDetail() {
+    document.querySelectorAll('.fc-event').forEach(el => el.classList.remove('fc-event--active'));
+    document.getElementById('appointment-detail').innerHTML = '';
+    document.getElementById('detail-panel')?.classList.remove('has-content');
+}
+</script>

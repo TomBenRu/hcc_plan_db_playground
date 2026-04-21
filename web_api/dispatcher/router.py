@@ -1,16 +1,35 @@
 """Router: Dispatcher-Endpoints."""
 
-from fastapi import APIRouter, Depends, Query, Request
+import uuid
+from datetime import date
+
+from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
 from fastapi.responses import HTMLResponse
 from sqlmodel import Session
 
 from web_api.auth.dependencies import WebUserRole, require_role
-from web_api.models.web_models import WebUser
 from web_api.cancellations.service import get_cancellations_for_dispatcher
 from web_api.dependencies import get_db_session
+from web_api.dispatcher.service import (
+    filter_allowed_team_ids,
+    get_appointment_detail_for_dispatcher,
+    get_appointments_for_teams,
+    get_teams_for_dispatcher,
+)
+from web_api.employees.service import get_coworkers_for_appointment
+from web_api.models.web_models import WebUser
 from web_api.templating import templates
 
 router = APIRouter(prefix="/dispatcher", tags=["dispatcher"])
+
+
+def _require_person_id(user: WebUser) -> uuid.UUID:
+    if user.person_id is None:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            detail="Kein Person-Eintrag mit diesem Konto verknüpft",
+        )
+    return user.person_id
 
 
 @router.get("/swap-requests", response_class=HTMLResponse)
@@ -56,13 +75,123 @@ def dispatcher_cancellations(
     )
 
 
+# ── Team-Pläne ────────────────────────────────────────────────────────────────
+
+
 @router.get("/plan", response_class=HTMLResponse)
 def dispatcher_plan(
     request: Request,
     user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
     session: Session = Depends(get_db_session),
+    teams: list[uuid.UUID] = Query(default_factory=list),
 ):
+    person_id = _require_person_id(user)
+    my_teams = get_teams_for_dispatcher(session, person_id)
+    allowed_ids = [t.id for t in my_teams]
+    effective_ids = filter_allowed_team_ids(teams, allowed_ids)
+
+    # Initial-Datum: heute; FullCalendar springt bei Deep-Link via URL-State woanders hin,
+    # aber das ist JS-Sache, nicht Server.
+    initial_date = date.today().isoformat()
+
+    # Location-Legende aus den tatsächlich sichtbaren Events aufbauen
+    all_events = get_appointments_for_teams(session, effective_ids)
+    seen: dict[uuid.UUID, tuple[str, str]] = {}
+    for ev in all_events:
+        if ev.location_id not in seen:
+            seen[ev.location_id] = (ev.location_name, ev.color)
+    location_legend = [
+        {"name": name, "color": color}
+        for name, color in seen.values()
+    ]
+
+    # Event-Source-URL: bei expliziten Team-IDs als Query-Params anhängen,
+    # sonst leerer Suffix → Server liefert alle erlaubten Teams.
+    selected_for_url = teams if teams else []
+    if selected_for_url:
+        qs = "&".join(f"teams={tid}" for tid in selected_for_url)
+        events_url = f"/dispatcher/plan/events?{qs}"
+    else:
+        events_url = "/dispatcher/plan/events"
+
     return templates.TemplateResponse(
         "dispatcher/plan.html",
-        {"request": request, "user": user},
+        {
+            "request": request,
+            "user": user,
+            "my_teams": my_teams,
+            "selected_team_ids": [str(tid) for tid in selected_for_url],
+            "location_legend": location_legend,
+            "initial_date": initial_date,
+            "total_appointments": len(all_events),
+            "events_url": events_url,
+        },
+    )
+
+
+@router.get("/plan/events")
+def dispatcher_plan_events(
+    user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    teams: list[uuid.UUID] = Query(default_factory=list),
+    start: date | None = Query(default=None),
+    end: date | None = Query(default=None),
+):
+    """FullCalendar-JSON-Endpoint mit Team-Filter."""
+    person_id = _require_person_id(user)
+    my_teams = get_teams_for_dispatcher(session, person_id)
+    allowed_ids = [t.id for t in my_teams]
+    effective_ids = filter_allowed_team_ids(teams, allowed_ids)
+
+    events = get_appointments_for_teams(session, effective_ids, start, end)
+
+    def _dt(d: date, t) -> str:
+        if t:
+            return f"{d.isoformat()}T{t.strftime('%H:%M:%S')}"
+        return d.isoformat()
+
+    return [
+        {
+            "id": str(ev.appointment_id),
+            "title": ev.location_name,
+            "start": _dt(ev.event_date, ev.time_start),
+            "end": _dt(ev.event_date, ev.time_end),
+            "allDay": ev.time_start is None,
+            "color": ev.color,
+            "extendedProps": {
+                "time_of_day": ev.time_of_day_name or "",
+                "time_start": ev.time_start.strftime("%H:%M") if ev.time_start else "",
+                "time_end": ev.time_end.strftime("%H:%M") if ev.time_end else "",
+                "notes": ev.appointment_notes or "",
+                "plan_period_id": str(ev.plan_period_id),
+                "team_id": str(ev.team_id) if ev.team_id else "",
+                "location_id": str(ev.location_id),
+                "location_name": ev.location_name,
+            },
+        }
+        for ev in events
+    ]
+
+
+@router.get("/plan/appointments/{appointment_id}", response_class=HTMLResponse)
+def dispatcher_appointment_detail(
+    request: Request,
+    appointment_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+):
+    """HTMX-Fragment: Termin-Details für die Dispatcher-Plan-Ansicht."""
+    person_id = _require_person_id(user)
+    my_teams = get_teams_for_dispatcher(session, person_id)
+    allowed_ids = [t.id for t in my_teams]
+
+    event = get_appointment_detail_for_dispatcher(session, appointment_id, allowed_ids)
+    if event is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+
+    coworkers = get_coworkers_for_appointment(session, appointment_id)
+
+    return templates.TemplateResponse(
+        "dispatcher/partials/appointment_detail.html",
+        {"request": request, "event": event, "coworkers": coworkers},
     )

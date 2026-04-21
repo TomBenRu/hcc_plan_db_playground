@@ -270,7 +270,9 @@
             min-height: unset !important;
         }
         .cal-sidebar .sidebar-spacer,
-        .cal-sidebar .sidebar-section:not(.sidebar-period-select) { display: none !important; }
+        .cal-sidebar .sidebar-section:not(.sidebar-period-select):not(.sidebar-section-mobile) { display: none !important; }
+        /* Opt-in: Sections mit Klasse `sidebar-section-mobile` bleiben auf Mobile sichtbar
+           und werden vom Kind-Template für das jeweilige Mobile-Layout gestylt. */
         .fc .fc-toolbar-title { font-size: 1rem; }
 
         /* Bottom-Sheet: Vollbreite, 60vh, Slide-in von unten */
@@ -496,6 +498,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     // Für Kind-Templates zugänglich machen (z. B. Dispatcher-Team-Filter → refetchEvents())
     window.hccCalendar = calendar;
+    // Farben auf neu eingefügte Legend-/Event-DOM-Elemente anwenden (Colorblind-Remap)
+    window.hccCalendar.refreshColors = applyEventColors;
 
     // Navigate calendar to start of selected plan period (wird nur aktiv, wenn #period-select existiert)
     window.jumpToPeriod = function (select) {

@@ -169,15 +169,15 @@ class SetBinding(Command):
         self.previous_binding_plan_id: UUID | None = None
 
     def execute(self):
-        self.previous_binding_plan_id = api_plan.set_binding(self.plan_id)
+        self.previous_binding_plan_id = api_plan.set_is_binding(self.plan_id, True)
 
     def _undo(self):
-        api_plan.unset_binding(self.plan_id)
+        api_plan.set_is_binding(self.plan_id, False)
         if self.previous_binding_plan_id:
-            api_plan.set_binding(self.previous_binding_plan_id)
+            api_plan.set_is_binding(self.previous_binding_plan_id, True)
 
     def _redo(self):
-        api_plan.set_binding(self.plan_id)
+        api_plan.set_is_binding(self.plan_id, True)
 
 
 class NewExcelExportSettings(Command):

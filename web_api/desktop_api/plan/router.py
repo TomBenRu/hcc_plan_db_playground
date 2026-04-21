@@ -2,11 +2,16 @@
 
 import uuid
 
-from fastapi import APIRouter, status
+from fastapi import APIRouter, BackgroundTasks, Depends, status
 from pydantic import BaseModel
+from sqlmodel import Session
 
 from database import db_services, schemas
+from web_api.config import get_settings
+from web_api.dependencies import get_db_session
 from web_api.desktop_api.auth import DesktopUser
+from web_api.email.service import send_emails_background
+from web_api.plan_adjustment.service import set_plan_is_binding
 
 router = APIRouter(prefix="/plans", tags=["desktop-plans"])
 teams_router = APIRouter(prefix="/teams", tags=["desktop-plans"])
@@ -37,8 +42,12 @@ class PlanExcelSettingsBody(BaseModel):
     excel_settings_id: uuid.UUID
 
 
-class SetBindingResponse(BaseModel):
-    previous_plan_id: uuid.UUID | None
+class PlanSetIsBindingBody(BaseModel):
+    is_binding: bool
+
+
+class PlanIsBindingResponse(BaseModel):
+    previous_plan_id: uuid.UUID | None = None
 
 
 # ── Endpunkte ─────────────────────────────────────────────────────────────────
@@ -64,15 +73,19 @@ def update_location_columns(plan_id: uuid.UUID, body: PlanLocationColumnsBody, _
     db_services.Plan.update_location_columns(plan_id, body.location_columns)
 
 
-@router.post("/{plan_id}/binding", response_model=SetBindingResponse)
-def set_binding(plan_id: uuid.UUID, _: DesktopUser):
-    previous_plan_id = db_services.Plan.set_binding(plan_id)
-    return SetBindingResponse(previous_plan_id=previous_plan_id)
-
-
-@router.delete("/{plan_id}/binding", status_code=status.HTTP_204_NO_CONTENT)
-def unset_binding(plan_id: uuid.UUID, _: DesktopUser):
-    db_services.Plan.unset_binding(plan_id)
+@router.patch("/{plan_id}/is-binding", response_model=PlanIsBindingResponse)
+def set_is_binding(
+    plan_id: uuid.UUID,
+    body: PlanSetIsBindingBody,
+    background_tasks: BackgroundTasks,
+    _: DesktopUser,
+    session: Session = Depends(get_db_session),
+    settings=Depends(get_settings),
+):
+    previous_plan_id, payloads = set_plan_is_binding(session, plan_id, body.is_binding)
+    if payloads:
+        background_tasks.add_task(send_emails_background, payloads, settings)
+    return PlanIsBindingResponse(previous_plan_id=previous_plan_id)
 
 
 @router.delete("/{plan_id}", status_code=status.HTTP_204_NO_CONTENT)

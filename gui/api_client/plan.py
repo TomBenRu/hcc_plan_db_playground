@@ -30,14 +30,18 @@ def update_location_columns(plan_id: uuid.UUID, location_columns: str) -> None:
                            json={"location_columns": location_columns})
 
 
-def set_binding(plan_id: uuid.UUID) -> uuid.UUID | None:
-    data = get_api_client().post(f"/api/v1/plans/{plan_id}/binding")
-    prev = data.get("previous_plan_id") if data else None
+def set_is_binding(plan_id: uuid.UUID, is_binding: bool) -> uuid.UUID | None:
+    """PATCH /plans/{plan_id}/is-binding.
+
+    Returns previous_plan_id (falls bei is_binding=True ein anderer Plan der
+    selben Periode entbunden wurde), sonst None.
+    """
+    data = get_api_client().patch(
+        f"/api/v1/plans/{plan_id}/is-binding",
+        json={"is_binding": is_binding},
+    )
+    prev = (data or {}).get("previous_plan_id")
     return uuid.UUID(prev) if prev else None
-
-
-def unset_binding(plan_id: uuid.UUID) -> None:
-    get_api_client().delete(f"/api/v1/plans/{plan_id}/binding")
 
 
 def delete(plan_id: uuid.UUID) -> None:

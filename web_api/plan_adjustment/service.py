@@ -622,6 +622,54 @@ def cancel_open_requests_for_unbound_plan(
     return payloads
 
 
+def set_plan_is_binding(
+    session: Session,
+    plan_id: uuid.UUID,
+    is_binding: bool,
+) -> tuple[uuid.UUID | None, list[EmailPayload]]:
+    """Setzt Plan.is_binding atomar + flippt abhängige Requests.
+
+    Bei is_binding=True: vorigen verbindlichen Plan der selben Periode
+    entbinden und dessen offene Requests via
+    cancel_open_requests_for_unbound_plan auf superseded flippen.
+    Bei is_binding=False: Requests dieses Plans flippen.
+
+    Returns (previous_plan_id, email_payloads). previous_plan_id ist die
+    ID des vorher verbindlichen Plans, falls einer entbunden wurde
+    (True-Pfad), sonst None. Idempotent: wenn der Plan schon den
+    gewünschten Zustand hat, passiert nichts.
+    """
+    plan = session.get(Plan, plan_id)
+    if plan is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Plan nicht gefunden")
+
+    payloads: list[EmailPayload] = []
+    previous_plan_id: uuid.UUID | None = None
+
+    if is_binding:
+        if not plan.is_binding:
+            prev = session.execute(
+                sa_select(Plan)
+                .where(Plan.plan_period_id == plan.plan_period_id)
+                .where(Plan.is_binding == True)  # noqa: E712
+                .where(Plan.id != plan_id)
+            ).scalars().first()
+            if prev is not None:
+                prev.is_binding = False
+                previous_plan_id = prev.id
+                session.flush()  # FALSE vor TRUE committen (Unique pro Periode)
+                payloads.extend(cancel_open_requests_for_unbound_plan(session, prev.id))
+            plan.is_binding = True
+            session.flush()
+    else:
+        if plan.is_binding:
+            plan.is_binding = False
+            session.flush()
+            payloads.extend(cancel_open_requests_for_unbound_plan(session, plan_id))
+
+    return previous_plan_id, payloads
+
+
 def swap_appointments(
     session: Session,
     appt_a_id: uuid.UUID,

@@ -7,7 +7,7 @@ Spiegelt `web_api/employees/service.py`, filtert jedoch auf Team-Ebene
 import json
 import uuid
 from dataclasses import dataclass
-from datetime import date
+from datetime import date, time
 from typing import Any
 
 from fastapi import HTTPException, status
@@ -225,6 +225,21 @@ def _compute_initials(f_name: str | None, l_name: str | None) -> str:
     return "?"
 
 
+def _interval_minutes(start: time, end: time) -> tuple[int, int]:
+    """Normalisiert ein TimeOfDay-Intervall auf Minuten seit Tages-Start.
+
+    Slots können über Mitternacht reichen (z. B. 22:00–02:00). Wenn
+    `end < start`, wird `end += 24h` addiert — so ist der Vergleich
+    monoton und das übliche `a_start <= b_start AND a_end >= b_end`-
+    Containment funktioniert korrekt für alle Fälle.
+    """
+    start_min = start.hour * 60 + start.minute
+    end_min = end.hour * 60 + end.minute
+    if end_min < start_min:
+        end_min += 24 * 60
+    return start_min, end_min
+
+
 def get_team_availability_for_appointment(
     session: Session,
     appointment_id: uuid.UUID,
@@ -232,20 +247,30 @@ def get_team_availability_for_appointment(
     """Alle Team-Mitarbeiter der Plan-Periode mit Verfügbarkeits- und
     Zuordnungs-Meta für den Event-Slot dieses Appointments.
 
-    Liefert pro Person, ob sie für den Slot einen `AvailDay` hat
-    (`is_available`) und ob sie dem Appointment bereits zugeordnet ist
-    (`is_currently_assigned`). Im Default-Rendering zeigt das UI nur
-    diejenigen mit mindestens einem der beiden Flags; der „Alle"-Toggle
-    schaltet auf die vollständige Liste um.
+    Eine Person gilt als `is_available`, wenn sie am Event-Datum einen
+    `AvailDay` hat, dessen Zeit-Intervall das Event-Intervall einschließt
+    (`avail.start ≤ event.start` und `avail.end ≥ event.end`). TimeOfDay-
+    IDs werden **nicht** direkt verglichen — im Datenmodell werden
+    TimeOfDay-Instanzen auf jeder Hierarchie-Ebene neu angelegt
+    (Project → Person → ActorPlanPeriod → AvailDay), mit potenziell
+    abweichenden start/end-Werten. Der Intervall-Vergleich ist der
+    semantisch korrekte Match. Mitternachts-Spannen werden via
+    `_interval_minutes` normalisiert (end += 24h bei end < start).
+
+    `is_currently_assigned` bleibt unabhängig über die Link-Chain zur
+    ActorPlanPeriod ermittelt — auch Solver-Zuordnungen mit vom Slot
+    abweichendem time_of_day werden korrekt als zugeordnet gemeldet.
     """
     ctx_row = session.execute(
         sa_select(
             Event.date.label("event_date"),
-            Event.time_of_day_id.label("time_of_day_id"),
+            TimeOfDay.start.label("event_start"),
+            TimeOfDay.end.label("event_end"),
             Plan.plan_period_id.label("plan_period_id"),
         )
         .select_from(Appointment)
         .join(Event, Event.id == Appointment.event_id)
+        .join(TimeOfDay, TimeOfDay.id == Event.time_of_day_id)
         .join(Plan, Plan.id == Appointment.plan_id)
         .where(Appointment.id == appointment_id)
     ).mappings().first()
@@ -253,13 +278,12 @@ def get_team_availability_for_appointment(
         return []
 
     event_date = ctx_row["event_date"]
-    time_of_day_id = ctx_row["time_of_day_id"]
     plan_period_id = ctx_row["plan_period_id"]
+    event_start_min, event_end_min = _interval_minutes(
+        ctx_row["event_start"], ctx_row["event_end"]
+    )
 
     # ActorPlanPeriod-IDs, die aktuell an diesem Appointment zugeordnet sind.
-    # Wir joinen über den AvailDayAppointmentLink, unabhängig davon, ob der
-    # zugeordnete AvailDay mit dem Slot (date/time_of_day) exakt übereinstimmt —
-    # Solver-generierte Zuordnungen können abweichende AvailDays nutzen.
     current_app_ids = set(session.execute(
         sa_select(AvailDay.actor_plan_period_id)
         .join(AvailDayAppointmentLink,
@@ -267,39 +291,59 @@ def get_team_availability_for_appointment(
         .where(AvailDayAppointmentLink.appointment_id == appointment_id)
     ).scalars().all())
 
-    stmt = (
+    # Alle Personen der Plan-Periode
+    person_rows = session.execute(
         sa_select(
             Person.id.label("person_id"),
             Person.f_name,
             Person.l_name,
             ActorPlanPeriod.id.label("actor_plan_period_id"),
-            AvailDay.id.label("avail_day_id"),
         )
         .select_from(ActorPlanPeriod)
         .join(Person, Person.id == ActorPlanPeriod.person_id)
-        .outerjoin(
-            AvailDay,
-            (AvailDay.actor_plan_period_id == ActorPlanPeriod.id)
-            & (AvailDay.date == event_date)
-            & (AvailDay.time_of_day_id == time_of_day_id)
-            & (AvailDay.prep_delete.is_(None))
-        )
         .where(ActorPlanPeriod.plan_period_id == plan_period_id)
         .order_by(Person.l_name, Person.f_name)
-    )
-    rows = session.execute(stmt).mappings().all()
+    ).mappings().all()
+
+    # Alle AvailDays am Event-Datum für diese Plan-Periode, inkl. Intervall-Werte
+    avail_rows = session.execute(
+        sa_select(
+            AvailDay.id.label("avail_day_id"),
+            AvailDay.actor_plan_period_id.label("actor_plan_period_id"),
+            TimeOfDay.start.label("avail_start"),
+            TimeOfDay.end.label("avail_end"),
+        )
+        .select_from(AvailDay)
+        .join(ActorPlanPeriod, ActorPlanPeriod.id == AvailDay.actor_plan_period_id)
+        .join(TimeOfDay, TimeOfDay.id == AvailDay.time_of_day_id)
+        .where(ActorPlanPeriod.plan_period_id == plan_period_id)
+        .where(AvailDay.date == event_date)
+        .where(AvailDay.prep_delete.is_(None))
+    ).mappings().all()
+
+    # Gruppiere AvailDays nach ActorPlanPeriod; pro Person den ersten AvailDay
+    # finden, dessen Intervall das Event-Intervall einschließt.
+    avails_by_app: dict[uuid.UUID, list[dict]] = {}
+    for a in avail_rows:
+        avails_by_app.setdefault(a["actor_plan_period_id"], []).append(dict(a))
 
     result: list[CastCandidate] = []
-    for r in rows:
-        avail_day_id = r["avail_day_id"]
+    for p in person_rows:
+        app_id = p["actor_plan_period_id"]
+        matching_avail_id: uuid.UUID | None = None
+        for a in avails_by_app.get(app_id, []):
+            a_start_min, a_end_min = _interval_minutes(a["avail_start"], a["avail_end"])
+            if a_start_min <= event_start_min and a_end_min >= event_end_min:
+                matching_avail_id = a["avail_day_id"]
+                break
         result.append(CastCandidate(
-            person_id=r["person_id"],
-            full_name=f"{r['f_name']} {r['l_name']}",
-            initials=_compute_initials(r["f_name"], r["l_name"]),
-            actor_plan_period_id=r["actor_plan_period_id"],
-            is_currently_assigned=r["actor_plan_period_id"] in current_app_ids,
-            is_available=avail_day_id is not None,
-            avail_day_id=avail_day_id,
+            person_id=p["person_id"],
+            full_name=f"{p['f_name']} {p['l_name']}",
+            initials=_compute_initials(p["f_name"], p["l_name"]),
+            actor_plan_period_id=app_id,
+            is_currently_assigned=app_id in current_app_ids,
+            is_available=matching_avail_id is not None,
+            avail_day_id=matching_avail_id,
         ))
     return result
 

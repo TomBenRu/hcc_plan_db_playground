@@ -3,21 +3,26 @@
 import uuid
 from datetime import date
 
-from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, status
+from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Query, Request, status
 from fastapi.responses import HTMLResponse
 from sqlmodel import Session
 
 from database.models import Appointment
 from web_api.auth.dependencies import WebUserRole, require_role
 from web_api.cancellations.service import get_cancellations_for_dispatcher
+from web_api.config import get_settings
 from web_api.dependencies import get_db_session
 from web_api.dispatcher.dependencies import require_team_dispatcher_for_appointment
 from web_api.dispatcher.service import (
     filter_allowed_team_ids,
     get_appointment_detail_for_dispatcher,
     get_appointments_for_teams,
+    get_cast_status_for_appointment,
+    get_team_availability_for_appointment,
     get_teams_for_dispatcher,
+    replace_cast_for_appointment,
 )
+from web_api.email.service import send_emails_background
 from web_api.employees.service import get_coworkers_for_appointment
 from web_api.models.web_models import WebUser
 from web_api.templating import templates
@@ -208,7 +213,7 @@ def dispatcher_appointment_detail(
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
     coworkers = get_coworkers_for_appointment(session, appointment_id)
-    appointment = session.get(Appointment, appointment_id)  # für Notes-Partial-Mutation
+    appointment = session.get(Appointment, appointment_id)  # für Notes-/Cast-Partial-Mutation
 
     return templates.TemplateResponse(
         "dispatcher/partials/appointment_detail.html",
@@ -217,6 +222,9 @@ def dispatcher_appointment_detail(
             "event": event,
             "coworkers": coworkers,
             "appointment": appointment,
+            "cast_count": event.cast_count,
+            "cast_required": event.cast_required,
+            "is_understaffed": event.is_understaffed,
         },
     )
 
@@ -240,6 +248,91 @@ def dispatcher_notes_fragment(
         template_name,
         {"request": request, "appointment": appointment},
     )
+
+
+# ── Cast-Edit ─────────────────────────────────────────────────────────────────
+
+
+@router.get("/plan/appointments/{appointment_id}/cast", response_class=HTMLResponse)
+def dispatcher_cast_fragment(
+    request: Request,
+    edit: bool = Query(default=False),
+    show_all: bool = Query(default=False),
+    appointment: Appointment = Depends(require_team_dispatcher_for_appointment),
+    session: Session = Depends(get_db_session),
+):
+    """HTMX-Fragment: Cast-Anzeige (Display) oder Cast-Edit-Formular.
+
+    Im Edit-Modus zeigt `show_all=True` alle Team-Mitarbeiter (inkl. nicht-
+    verfügbarer als ausgegraute Einträge mit Tooltip), `show_all=False`
+    nur aktuell zugeordnete und verfügbare.
+    """
+    if edit:
+        candidates = get_team_availability_for_appointment(session, appointment.id)
+        return templates.TemplateResponse(
+            "dispatcher/partials/cast_edit.html",
+            {
+                "request": request,
+                "appointment": appointment,
+                "candidates": candidates,
+                "show_all": show_all,
+            },
+        )
+
+    # Display-Modus: Status + Mitarbeiter-Liste
+    status_data = get_cast_status_for_appointment(session, appointment.id)
+    coworkers = get_coworkers_for_appointment(session, appointment.id)
+    return templates.TemplateResponse(
+        "dispatcher/partials/cast_display.html",
+        {
+            "request": request,
+            "appointment": appointment,
+            "coworkers": coworkers,
+            "cast_count": status_data["cast_count"],
+            "cast_required": status_data["cast_required"],
+            "is_understaffed": status_data["is_understaffed"],
+        },
+    )
+
+
+@router.patch("/plan/appointments/{appointment_id}/avail-days", response_class=HTMLResponse)
+def dispatcher_update_cast(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    person_ids: list[uuid.UUID] = Form(default_factory=list),
+    appointment: Appointment = Depends(require_team_dispatcher_for_appointment),
+    session: Session = Depends(get_db_session),
+    settings=Depends(get_settings),
+):
+    """Speichert Cast-Änderung; dispatcht Notifications; liefert Display-Fragment.
+
+    Der Response-Header `HX-Trigger: hcc:cast-changed` sorgt dafür, dass der
+    Dispatcher-Plan-Kalender nach dem Swap refetchEvents() aufruft — so
+    bleibt der Event-Chip (inkl. Unterbesetzungs-Dot) konsistent.
+    """
+    payloads = replace_cast_for_appointment(session, appointment.id, person_ids)
+    session.commit()
+    if payloads:
+        background_tasks.add_task(send_emails_background, payloads, settings)
+
+    status_data = get_cast_status_for_appointment(session, appointment.id)
+    coworkers = get_coworkers_for_appointment(session, appointment.id)
+    response = templates.TemplateResponse(
+        "dispatcher/partials/cast_display.html",
+        {
+            "request": request,
+            "appointment": appointment,
+            "coworkers": coworkers,
+            "cast_count": status_data["cast_count"],
+            "cast_required": status_data["cast_required"],
+            "is_understaffed": status_data["is_understaffed"],
+        },
+    )
+    response.headers["HX-Trigger"] = "hcc:cast-changed"
+    return response
+
+
+# ── Notes-Edit ────────────────────────────────────────────────────────────────
 
 
 @router.patch("/plan/appointments/{appointment_id}/notes", response_class=HTMLResponse)

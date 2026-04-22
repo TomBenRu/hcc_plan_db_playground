@@ -1,0 +1,67 @@
+{# HTMX-Partial: Cast-Edit-Formular. #}
+{# Kontext: appointment, candidates (list[CastCandidate]), show_all (bool) #}
+
+<form id="cast-section"
+      hx-patch="/dispatcher/plan/appointments/{{ appointment.id }}/avail-days"
+      hx-target="#cast-section"
+      hx-swap="outerHTML"
+      class="bg-white rounded-xl border border-slate-200 shadow-sm p-4 mb-3">
+
+    <div class="flex items-center justify-between gap-2 mb-3">
+        <p class="text-xs font-semibold tracking-widest uppercase text-slate-400">
+            Cast bearbeiten
+        </p>
+        <label class="flex items-center gap-1.5 cursor-pointer">
+            <input type="checkbox"
+                   class="w-3 h-3 rounded accent-slate-500"
+                   {% if show_all %}checked{% endif %}
+                   hx-get="/dispatcher/plan/appointments/{{ appointment.id }}/cast?edit=1&show_all={% if show_all %}0{% else %}1{% endif %}"
+                   hx-target="#cast-section"
+                   hx-swap="outerHTML">
+            <span class="text-[11px] text-slate-500 dark:text-slate-400 font-sans">Alle Team-Mitarbeiter</span>
+        </label>
+    </div>
+
+    <ul class="space-y-1 mb-4 max-h-72 overflow-y-auto pr-1">
+        {% for c in candidates %}
+        {% if c.is_available or c.is_currently_assigned or show_all %}
+        <li>
+            <label class="flex items-center gap-2.5 cursor-pointer group py-1 px-2 -mx-2 rounded-md
+                          hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors
+                          {% if not c.is_available and not c.is_currently_assigned %}opacity-60{% endif %}"
+                   {% if not c.is_available and not c.is_currently_assigned %}
+                   title="Keine Verfügbarkeit für diesen Slot — beim Speichern wird automatisch eine angelegt"
+                   {% endif %}>
+                <input type="checkbox"
+                       name="person_ids"
+                       value="{{ c.person_id }}"
+                       class="w-3.5 h-3.5 rounded accent-brand"
+                       {% if c.is_currently_assigned %}checked{% endif %}>
+                <span class="w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-semibold text-white flex-shrink-0"
+                      style="background-color: #0C1628; font-family: 'Outfit', sans-serif;">
+                    {{ c.initials }}
+                </span>
+                <span class="text-sm text-slate-700 dark:text-slate-300 font-sans truncate flex-1">{{ c.full_name }}</span>
+                {% if not c.is_available and not c.is_currently_assigned %}
+                <span class="text-[10px] text-slate-400 dark:text-slate-500 italic flex-shrink-0">nicht verfügbar</span>
+                {% endif %}
+            </label>
+        </li>
+        {% endif %}
+        {% endfor %}
+    </ul>
+
+    <div class="flex items-center justify-end gap-2">
+        <button type="button"
+                hx-get="/dispatcher/plan/appointments/{{ appointment.id }}/cast"
+                hx-target="#cast-section"
+                hx-swap="outerHTML"
+                class="text-xs text-slate-500 hover:text-slate-700 dark:hover:text-slate-300 transition-colors font-sans px-3 py-1.5">
+            Abbrechen
+        </button>
+        <button type="submit"
+                class="text-xs font-medium text-white bg-brand hover:bg-brand-600 rounded-lg px-3 py-1.5 transition-colors font-sans">
+            Speichern
+        </button>
+    </div>
+</form>

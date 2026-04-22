@@ -271,6 +271,13 @@ document.addEventListener('DOMContentLoaded', function () {
         understaffedCheckbox.addEventListener('change', refreshCalendar);
     }
 
+    // Nach Cast-Change (PATCH /avail-days) sendet der Server HX-Trigger
+    // „hcc:cast-changed" — Kalender refreshen, damit Besetzungs-Status
+    // auf den Event-Chips (Unterbesetzungs-Dot) aktuell bleibt.
+    document.body.addEventListener('hcc:cast-changed', function () {
+        if (window.hccCalendar) window.hccCalendar.refetchEvents();
+    });
+
     // ── Location-Legende synchron zu sichtbaren Events halten ───────────────────
     // Spiegelt die Server-Logik: aggregiere nach location_id, behalte First-Occurrence-Order.
     function rebuildLocationLegend(events) {

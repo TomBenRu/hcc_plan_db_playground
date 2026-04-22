@@ -27,8 +27,10 @@ from database.models import (
     Person,
     Plan,
     PlanPeriod,
+    Project,
     Team,
     TimeOfDay,
+    TimeOfDayEnum,
 )
 from web_api.availability.service import create_avail_day, find_avail_day
 from web_api.email.service import EmailPayload
@@ -266,12 +268,18 @@ def get_team_availability_for_appointment(
             Event.date.label("event_date"),
             TimeOfDay.start.label("event_start"),
             TimeOfDay.end.label("event_end"),
+            TimeOfDayEnum.time_index.label("event_time_index"),
             Plan.plan_period_id.label("plan_period_id"),
+            Project.use_simple_time_slots.label("use_simple"),
         )
         .select_from(Appointment)
         .join(Event, Event.id == Appointment.event_id)
         .join(TimeOfDay, TimeOfDay.id == Event.time_of_day_id)
+        .join(TimeOfDayEnum, TimeOfDayEnum.id == TimeOfDay.time_of_day_enum_id)
         .join(Plan, Plan.id == Appointment.plan_id)
+        .join(PlanPeriod, PlanPeriod.id == Plan.plan_period_id)
+        .join(Team, Team.id == PlanPeriod.team_id)
+        .join(Project, Project.id == Team.project_id)
         .where(Appointment.id == appointment_id)
     ).mappings().first()
     if ctx_row is None:
@@ -279,6 +287,8 @@ def get_team_availability_for_appointment(
 
     event_date = ctx_row["event_date"]
     plan_period_id = ctx_row["plan_period_id"]
+    use_simple = bool(ctx_row["use_simple"])
+    event_time_index = int(ctx_row["event_time_index"])
     event_start_min, event_end_min = _interval_minutes(
         ctx_row["event_start"], ctx_row["event_end"]
     )
@@ -305,35 +315,48 @@ def get_team_availability_for_appointment(
         .order_by(Person.l_name, Person.f_name)
     ).mappings().all()
 
-    # Alle AvailDays am Event-Datum für diese Plan-Periode, inkl. Intervall-Werte
+    # Alle AvailDays am Event-Datum für diese Plan-Periode.
+    # `avail_time_index` wird für den Simple-Modus verwendet, `avail_start`/
+    # `avail_end` für den Intervall-Modus — in einer Query geladen, im
+    # Matching-Loop verzweigt.
     avail_rows = session.execute(
         sa_select(
             AvailDay.id.label("avail_day_id"),
             AvailDay.actor_plan_period_id.label("actor_plan_period_id"),
             TimeOfDay.start.label("avail_start"),
             TimeOfDay.end.label("avail_end"),
+            TimeOfDayEnum.time_index.label("avail_time_index"),
         )
         .select_from(AvailDay)
         .join(ActorPlanPeriod, ActorPlanPeriod.id == AvailDay.actor_plan_period_id)
         .join(TimeOfDay, TimeOfDay.id == AvailDay.time_of_day_id)
+        .join(TimeOfDayEnum, TimeOfDayEnum.id == TimeOfDay.time_of_day_enum_id)
         .where(ActorPlanPeriod.plan_period_id == plan_period_id)
         .where(AvailDay.date == event_date)
         .where(AvailDay.prep_delete.is_(None))
     ).mappings().all()
 
     # Gruppiere AvailDays nach ActorPlanPeriod; pro Person den ersten AvailDay
-    # finden, dessen Intervall das Event-Intervall einschließt.
+    # finden, der das Match-Kriterium erfüllt. Kriterium ist modus-abhängig:
+    # - Simple-Modus: gleicher `time_index`.
+    # - Intervall-Modus (Default): `avail.start ≤ event.start AND avail.end ≥ event.end`
+    #   (mit Mitternachts-Normalisierung via _interval_minutes).
     avails_by_app: dict[uuid.UUID, list[dict]] = {}
     for a in avail_rows:
         avails_by_app.setdefault(a["actor_plan_period_id"], []).append(dict(a))
+
+    def _is_match(a: dict) -> bool:
+        if use_simple:
+            return int(a["avail_time_index"]) == event_time_index
+        a_start_min, a_end_min = _interval_minutes(a["avail_start"], a["avail_end"])
+        return a_start_min <= event_start_min and a_end_min >= event_end_min
 
     result: list[CastCandidate] = []
     for p in person_rows:
         app_id = p["actor_plan_period_id"]
         matching_avail_id: uuid.UUID | None = None
         for a in avails_by_app.get(app_id, []):
-            a_start_min, a_end_min = _interval_minutes(a["avail_start"], a["avail_end"])
-            if a_start_min <= event_start_min and a_end_min >= event_end_min:
+            if _is_match(a):
                 matching_avail_id = a["avail_day_id"]
                 break
         result.append(CastCandidate(

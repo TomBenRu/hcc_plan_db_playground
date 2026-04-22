@@ -412,6 +412,7 @@ class Project(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     name: str = Field(max_length=50, unique=True)
     active: bool = Field(default=False)
+    use_simple_time_slots: bool = Field(default=False)
     created_at: datetime = Field(default_factory=_utcnow, sa_column=_created_at_col())
     last_modified: datetime = Field(default_factory=_utcnow, sa_column=_last_modified_col())
 

@@ -8,11 +8,14 @@ import uuid
 from dataclasses import dataclass
 from datetime import date
 
+from sqlalchemy import func
 from sqlalchemy import select as sa_select
 from sqlmodel import Session
 
 from database.models import (
     Appointment,
+    AvailDayAppointmentLink,
+    CastGroup,
     Event,
     LocationOfWork,
     LocationPlanPeriod,
@@ -53,10 +56,21 @@ def get_appointments_for_teams(
     if not team_ids:
         return []
 
+    # Subquery: AvailDay-Count pro Appointment (= „besetzt durch Mitarbeiter")
+    avail_count_subq = (
+        sa_select(
+            AvailDayAppointmentLink.appointment_id.label("appointment_id"),
+            func.count(AvailDayAppointmentLink.avail_day_id).label("avail_count"),
+        )
+        .group_by(AvailDayAppointmentLink.appointment_id)
+        .subquery()
+    )
+
     stmt = (
         sa_select(
             Appointment.id.label("appointment_id"),
             Appointment.notes.label("appointment_notes"),
+            Appointment.guests.label("guests"),
             Event.date.label("event_date"),
             LocationOfWork.name.label("location_name"),
             LocationOfWork.id.label("location_id"),
@@ -67,6 +81,8 @@ def get_appointments_for_teams(
             PlanPeriod.start.label("period_start"),
             PlanPeriod.end.label("period_end"),
             PlanPeriod.team_id.label("team_id"),
+            CastGroup.nr_actors.label("cast_required"),
+            func.coalesce(avail_count_subq.c.avail_count, 0).label("avail_count"),
         )
         .select_from(Appointment)
         .join(Event, Event.id == Appointment.event_id)
@@ -77,6 +93,9 @@ def get_appointments_for_teams(
         .join(TimeOfDay, TimeOfDay.id == Event.time_of_day_id)
         .join(Plan, Plan.id == Appointment.plan_id)
         .join(PlanPeriod, PlanPeriod.id == Plan.plan_period_id)
+        .join(CastGroup, CastGroup.id == Event.cast_group_id)
+        .outerjoin(avail_count_subq,
+                   avail_count_subq.c.appointment_id == Appointment.id)
         .where(Plan.is_binding.is_(True))
         .where(Plan.prep_delete.is_(None))
         .where(PlanPeriod.team_id.in_(team_ids))
@@ -92,8 +111,12 @@ def get_appointments_for_teams(
 
     rows = session.execute(stmt).mappings().all()
 
-    return [
-        CalendarEvent(
+    result: list[CalendarEvent] = []
+    for r in rows:
+        guests_count = len(r["guests"] or [])
+        cast_count = int(r["avail_count"]) + guests_count
+        cast_required = int(r["cast_required"])
+        result.append(CalendarEvent(
             appointment_id=r["appointment_id"],
             event_date=r["event_date"],
             location_name=r["location_name"],
@@ -107,9 +130,11 @@ def get_appointments_for_teams(
             period_start=r["period_start"],
             period_end=r["period_end"],
             team_id=r["team_id"],
-        )
-        for r in rows
-    ]
+            cast_count=cast_count,
+            cast_required=cast_required,
+            is_understaffed=cast_count < cast_required,
+        ))
+    return result
 
 
 def get_appointment_detail_for_dispatcher(

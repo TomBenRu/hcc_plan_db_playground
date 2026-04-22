@@ -75,6 +75,10 @@ class CalendarEvent:
     has_pending_cancellation: bool = False
     has_active_swap_request: bool = False
     is_past_deadline: bool = False
+    # Besetzungs-Metadaten (Defaults: neutral, damit Employee-Pfad unverändert bleibt)
+    cast_count: int = 0
+    cast_required: int = 0
+    is_understaffed: bool = False
 
 
 @dataclass

@@ -5,6 +5,54 @@
 {% block head %}
     {{ super() }}
     <style>
+        /* ── Unterbesetzungs-Marker ───────────────────────────────────────── */
+        /* Roter Dot oben rechts am Event-Chip (Monats- und Wochenansicht) */
+        .fc-event-understaffed.fc-daygrid-event,
+        .fc-event-understaffed.fc-timegrid-event {
+            position: relative;
+        }
+        .fc-event-understaffed.fc-daygrid-event::after,
+        .fc-event-understaffed.fc-timegrid-event::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #ef4444;             /* red-500 */
+            box-shadow: 0 0 0 1.5px #ffffff;       /* weißer Ring für Sichtbarkeit */
+            z-index: 1;
+        }
+        /* Dark-Mode: Ring passt sich der Card-Farbe an */
+        [data-theme="dark"] .fc-event-understaffed.fc-daygrid-event::after,
+        [data-theme="dark"] .fc-event-understaffed.fc-timegrid-event::after {
+            box-shadow: 0 0 0 1.5px #1E293B;       /* slate-800 */
+        }
+        /* Colorblind-Modus: Vermillion statt Rot (Okabe-Ito) */
+        [data-theme="colorblind"] .fc-event-understaffed.fc-daygrid-event::after,
+        [data-theme="colorblind"] .fc-event-understaffed.fc-timegrid-event::after {
+            background-color: #D55E00;
+        }
+        /* Listen-Ansicht: roter Dot direkt vor dem Event-Titel */
+        .fc-list-event.fc-event-understaffed .fc-list-event-title a::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #ef4444;
+            margin-right: 8px;
+            vertical-align: middle;
+            box-shadow: 0 0 0 1.5px #ffffff;
+        }
+        [data-theme="dark"] .fc-list-event.fc-event-understaffed .fc-list-event-title a::before {
+            box-shadow: 0 0 0 1.5px #1E293B;
+        }
+        [data-theme="colorblind"] .fc-list-event.fc-event-understaffed .fc-list-event-title a::before {
+            background-color: #D55E00;
+        }
+
         /* ── Mobile-Layout für Team-Filter (<1024px) ──────────────────────── */
         /* Auf Desktop bleibt die Section im normalen, gestapelten Sidebar-Flow.
            Auf Mobile wird sie zur horizontalen Chip-Reihe mit Scroll. */

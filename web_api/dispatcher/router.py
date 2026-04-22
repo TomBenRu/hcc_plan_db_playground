@@ -169,6 +169,9 @@ def dispatcher_plan_events(
                 "team_id": str(ev.team_id) if ev.team_id else "",
                 "location_id": str(ev.location_id),
                 "location_name": ev.location_name,
+                "cast_count": ev.cast_count,
+                "cast_required": ev.cast_required,
+                "is_understaffed": ev.is_understaffed,
             },
         }
         for ev in events

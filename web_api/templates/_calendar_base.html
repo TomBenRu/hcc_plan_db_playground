@@ -466,6 +466,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 console.warn('Termine konnten nicht geladen werden.');
             },
         }],
+        eventClassNames: function (info) {
+            // Generische Klassen basierend auf extendedProps — rollenspezifisch
+            // gesetzte Flags können so per CSS angesprochen werden.
+            const classes = [];
+            if (info.event.extendedProps.is_understaffed) {
+                classes.push('fc-event-understaffed');
+            }
+            return classes;
+        },
         eventClick: function (info) {
             // Visual active state
             document.querySelectorAll('.fc-event').forEach(el =>

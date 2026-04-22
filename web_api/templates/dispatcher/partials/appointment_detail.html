@@ -89,13 +89,8 @@
         </p>
     </div>
 
-    <!-- Notizen -->
-    {% if event.appointment_notes %}
-    <div class="bg-amber-50 rounded-xl border border-amber-100 p-4 mb-3">
-        <p class="text-xs font-semibold tracking-widest uppercase text-amber-500 mb-2">Anmerkung</p>
-        <p class="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{{ event.appointment_notes }}</p>
-    </div>
-    {% endif %}
+    <!-- Notizen (editierbar via HTMX-Swap) -->
+    {% include "dispatcher/partials/notes_display.html" %}
 
     <!-- Eingesetzte Mitarbeiter -->
     {% if coworkers %}
@@ -118,10 +113,10 @@
     </div>
     {% endif %}
 
-    <!-- Platzhalter: Bearbeiten-Funktionen folgen in späterem Commit -->
+    <!-- Platzhalter: weitere Aktionen (Cast, Termine) folgen in späteren Commits -->
     <div class="mt-auto pt-2 pb-1 text-center">
         <p class="text-xs text-slate-400 font-sans italic">
-            Bearbeiten-Funktionen folgen in Kürze.
+            Weitere Bearbeiten-Funktionen folgen in Kürze.
         </p>
     </div>
 

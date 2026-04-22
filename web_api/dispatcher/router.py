@@ -3,13 +3,15 @@
 import uuid
 from datetime import date
 
-from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi import APIRouter, Depends, Form, HTTPException, Query, Request, status
 from fastapi.responses import HTMLResponse
 from sqlmodel import Session
 
+from database.models import Appointment
 from web_api.auth.dependencies import WebUserRole, require_role
 from web_api.cancellations.service import get_cancellations_for_dispatcher
 from web_api.dependencies import get_db_session
+from web_api.dispatcher.dependencies import require_team_dispatcher_for_appointment
 from web_api.dispatcher.service import (
     filter_allowed_team_ids,
     get_appointment_detail_for_dispatcher,
@@ -190,8 +192,55 @@ def dispatcher_appointment_detail(
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 
     coworkers = get_coworkers_for_appointment(session, appointment_id)
+    appointment = session.get(Appointment, appointment_id)  # für Notes-Partial-Mutation
 
     return templates.TemplateResponse(
         "dispatcher/partials/appointment_detail.html",
-        {"request": request, "event": event, "coworkers": coworkers},
+        {
+            "request": request,
+            "event": event,
+            "coworkers": coworkers,
+            "appointment": appointment,
+        },
+    )
+
+
+# ── Notes-Edit ────────────────────────────────────────────────────────────────
+
+
+@router.get("/plan/appointments/{appointment_id}/notes", response_class=HTMLResponse)
+def dispatcher_notes_fragment(
+    request: Request,
+    edit: bool = Query(default=False),
+    appointment: Appointment = Depends(require_team_dispatcher_for_appointment),
+):
+    """HTMX-Fragment: Notiz-Anzeige (edit=False) oder Edit-Form (edit=True)."""
+    template_name = (
+        "dispatcher/partials/notes_edit.html"
+        if edit
+        else "dispatcher/partials/notes_display.html"
+    )
+    return templates.TemplateResponse(
+        template_name,
+        {"request": request, "appointment": appointment},
+    )
+
+
+@router.patch("/plan/appointments/{appointment_id}/notes", response_class=HTMLResponse)
+def dispatcher_update_notes(
+    request: Request,
+    notes: str = Form(default=""),
+    appointment: Appointment = Depends(require_team_dispatcher_for_appointment),
+    session: Session = Depends(get_db_session),
+):
+    """Speichert Notiz-Text; gibt das aktualisierte Display-Fragment zurück.
+
+    Leerer Text (nach strip) wird als `None` gespeichert → Notiz gilt als
+    entfernt, Display-Partial rendert den „Anmerkung hinzufügen"-Button.
+    """
+    appointment.notes = notes.strip() or None
+    session.commit()
+    return templates.TemplateResponse(
+        "dispatcher/partials/notes_display.html",
+        {"request": request, "appointment": appointment},
     )

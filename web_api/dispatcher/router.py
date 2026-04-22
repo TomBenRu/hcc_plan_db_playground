@@ -86,6 +86,7 @@ def dispatcher_plan(
     user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
     session: Session = Depends(get_db_session),
     teams: list[uuid.UUID] = Query(default_factory=list),
+    only_understaffed: bool = Query(default=False),
 ):
     person_id = _require_person_id(user)
     my_teams = get_teams_for_dispatcher(session, person_id)
@@ -97,7 +98,9 @@ def dispatcher_plan(
     initial_date = date.today().isoformat()
 
     # Location-Legende aus den tatsächlich sichtbaren Events aufbauen
-    all_events = get_appointments_for_teams(session, effective_ids)
+    all_events = get_appointments_for_teams(
+        session, effective_ids, only_understaffed=only_understaffed
+    )
     seen: dict[uuid.UUID, tuple[str, str]] = {}
     for ev in all_events:
         if ev.location_id not in seen:
@@ -107,14 +110,14 @@ def dispatcher_plan(
         for name, color in seen.values()
     ]
 
-    # Event-Source-URL: bei expliziten Team-IDs als Query-Params anhängen,
-    # sonst leerer Suffix → Server liefert alle erlaubten Teams.
+    # Event-Source-URL: Team-IDs und Filter-Flag als Query-Params anhängen
     selected_for_url = teams if teams else []
-    if selected_for_url:
-        qs = "&".join(f"teams={tid}" for tid in selected_for_url)
-        events_url = f"/dispatcher/plan/events?{qs}"
-    else:
-        events_url = "/dispatcher/plan/events"
+    params: list[str] = [f"teams={tid}" for tid in selected_for_url]
+    if only_understaffed:
+        params.append("only_understaffed=1")
+    events_url = "/dispatcher/plan/events"
+    if params:
+        events_url = f"{events_url}?{'&'.join(params)}"
 
     return templates.TemplateResponse(
         "dispatcher/plan.html",
@@ -123,6 +126,7 @@ def dispatcher_plan(
             "user": user,
             "my_teams": my_teams,
             "selected_team_ids": [str(tid) for tid in selected_for_url],
+            "only_understaffed": only_understaffed,
             "location_legend": location_legend,
             "initial_date": initial_date,
             "total_appointments": len(all_events),
@@ -136,16 +140,25 @@ def dispatcher_plan_events(
     user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
     session: Session = Depends(get_db_session),
     teams: list[uuid.UUID] = Query(default_factory=list),
+    only_understaffed: bool = Query(default=False),
     start: date | None = Query(default=None),
     end: date | None = Query(default=None),
 ):
-    """FullCalendar-JSON-Endpoint mit Team-Filter."""
+    """FullCalendar-JSON-Endpoint mit Team- und Unterbesetzungs-Filter.
+
+    Der Filter wirkt als Intersection: wenn `teams` gesetzt ist, werden
+    nur Events der gewählten Teams geladen; wenn zusätzlich
+    `only_understaffed=True` ist, davon nur die unterbesetzten.
+    """
     person_id = _require_person_id(user)
     my_teams = get_teams_for_dispatcher(session, person_id)
     allowed_ids = [t.id for t in my_teams]
     effective_ids = filter_allowed_team_ids(teams, allowed_ids)
 
-    events = get_appointments_for_teams(session, effective_ids, start, end)
+    events = get_appointments_for_teams(
+        session, effective_ids, start, end,
+        only_understaffed=only_understaffed,
+    )
 
     def _dt(d: date, t) -> str:
         if t:

@@ -4,9 +4,11 @@ Spiegelt `web_api/employees/service.py`, filtert jedoch auf Team-Ebene
 (PlanPeriod.team_id) statt auf Person-Ebene (ActorPlanPeriod.person_id).
 """
 
+import json
 import uuid
 from dataclasses import dataclass
 from datetime import date
+from typing import Any
 
 from sqlalchemy import func
 from sqlalchemy import select as sa_select
@@ -25,6 +27,23 @@ from database.models import (
     TimeOfDay,
 )
 from web_api.employees.service import CalendarEvent, location_color
+
+
+def _guest_count(value: Any) -> int:
+    """Zählt Gäste robust — auch wenn SQLAlchemy den JSON-Wert als String
+    durchreicht statt ihn zu dekodieren. Fallback: 0 bei leerem/ungültigem
+    Wert statt Zeichen-Zählen.
+    """
+    if isinstance(value, (list, tuple)):
+        return len(value)
+    if isinstance(value, str) and value.strip():
+        try:
+            parsed = json.loads(value)
+            if isinstance(parsed, (list, tuple)):
+                return len(parsed)
+        except (ValueError, TypeError):
+            pass
+    return 0
 
 
 @dataclass
@@ -51,8 +70,15 @@ def get_appointments_for_teams(
     team_ids: list[uuid.UUID],
     start_date: date | None = None,
     end_date: date | None = None,
+    only_understaffed: bool = False,
 ) -> list[CalendarEvent]:
-    """Alle Appointments der angegebenen Teams als CalendarEvents."""
+    """Alle Appointments der angegebenen Teams als CalendarEvents.
+
+    Mit `only_understaffed=True` wird das Ergebnis nach dem CalendarEvent-
+    Build gefiltert (Python-Filter, nicht SQL-HAVING — die is_understaffed-
+    Berechnung kombiniert avail-count und JSON-Guests-Länge und lässt sich
+    nicht trivial in SQL ausdrücken).
+    """
     if not team_ids:
         return []
 
@@ -113,7 +139,7 @@ def get_appointments_for_teams(
 
     result: list[CalendarEvent] = []
     for r in rows:
-        guests_count = len(r["guests"] or [])
+        guests_count = _guest_count(r["guests"])
         cast_count = int(r["avail_count"]) + guests_count
         cast_required = int(r["cast_required"])
         result.append(CalendarEvent(
@@ -134,6 +160,9 @@ def get_appointments_for_teams(
             cast_required=cast_required,
             is_understaffed=cast_count < cast_required,
         ))
+
+    if only_understaffed:
+        result = [ev for ev in result if ev.is_understaffed]
     return result
 
 

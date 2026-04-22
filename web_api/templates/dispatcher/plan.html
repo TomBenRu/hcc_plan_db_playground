@@ -102,6 +102,11 @@
                 background: rgba(255, 255, 255, 0.2);
                 border-radius: 1px;
             }
+            /* Unterbesetzungs-Filter bekommt auch eine eigene Zeile auf Mobile */
+            .cal-sidebar .understaffed-filter-section {
+                flex: 1 1 100%;
+                margin-bottom: 0 !important;
+            }
         }
     </style>
 {% endblock %}
@@ -161,6 +166,19 @@
         {% endif %}
     </div>
 
+    <!-- Unterbesetzungs-Filter -->
+    <div class="sidebar-section sidebar-section-mobile understaffed-filter-section mb-6">
+        <label class="flex items-center gap-2.5 cursor-pointer group py-1 px-2 -mx-2 rounded-md hover:bg-white/5 transition-colors">
+            <input type="checkbox"
+                   id="only-understaffed"
+                   class="w-3.5 h-3.5 rounded accent-red-500"
+                   {% if only_understaffed %}checked{% endif %}>
+            <span class="text-sm text-slate-400 group-hover:text-slate-200 transition-colors font-sans">
+                Nur unterbesetzte
+            </span>
+        </label>
+    </div>
+
     <!-- Location-Legende (wird bei Team-Filter-Change per JS neu aufgebaut) -->
     <div id="location-legend-section" class="sidebar-section mb-6"
          {% if not location_legend %}style="display: none;"{% endif %}>
@@ -193,6 +211,7 @@
 document.addEventListener('DOMContentLoaded', function () {
     const allCheckbox = document.querySelector('.team-filter-all');
     const teamCheckboxes = document.querySelectorAll('.team-filter');
+    const understaffedCheckbox = document.getElementById('only-understaffed');
 
     function currentSelection() {
         return Array.from(teamCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
@@ -205,11 +224,14 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function refreshCalendar() {
         const selected = currentSelection();
+        const onlyUnderstaffed = understaffedCheckbox && understaffedCheckbox.checked;
 
         // URL im Browser aktualisieren (shareable Deep-Link)
         const url = new URL(window.location);
         url.searchParams.delete('teams');
+        url.searchParams.delete('only_understaffed');
         selected.forEach(t => url.searchParams.append('teams', t));
+        if (onlyUnderstaffed) url.searchParams.set('only_understaffed', '1');
         history.replaceState({}, '', url);
 
         // FullCalendar-Event-Source austauschen
@@ -218,6 +240,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
         const params = new URLSearchParams();
         selected.forEach(t => params.append('teams', t));
+        if (onlyUnderstaffed) params.set('only_understaffed', '1');
         const eventsUrl = '/dispatcher/plan/events' + (params.toString() ? '?' + params.toString() : '');
         window.hccCalendar.addEventSource({ url: eventsUrl, method: 'GET' });
     }
@@ -242,6 +265,10 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
             }
         });
+    }
+
+    if (understaffedCheckbox) {
+        understaffedCheckbox.addEventListener('change', refreshCalendar);
     }
 
     // ── Location-Legende synchron zu sichtbaren Events halten ───────────────────

@@ -1,0 +1,40 @@
+{# HTMX-Partial: Projekt-Einstellungs-Card. #}
+{# Kontext: project (Project), saved (bool) #}
+
+<div id="settings-card" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm p-6 mb-3">
+    <form hx-post="/admin/project-settings"
+          hx-trigger="change from:input[type=checkbox]"
+          hx-target="#settings-card"
+          hx-swap="outerHTML"
+          class="space-y-4">
+
+        <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0">
+                <p class="font-medium text-sm text-slate-800 dark:text-slate-100">
+                    Einfache Tageszeiten
+                </p>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                    Verfügbarkeits-Match läuft über den Slot-Typ (Vormittag, Nachmittag, …) statt über konkrete Start-/End-Zeiten. Mitarbeiter-Eingaben bei der Verfügbarkeitsplanung vereinfachen sich entsprechend.
+                </p>
+            </div>
+            <!-- Tailwind Toggle-Switch -->
+            <label class="relative inline-flex items-center cursor-pointer flex-shrink-0 mt-1">
+                <input type="checkbox"
+                       name="use_simple_time_slots"
+                       value="on"
+                       class="sr-only peer"
+                       {% if project.use_simple_time_slots %}checked{% endif %}>
+                <div class="w-10 h-5 bg-slate-200 dark:bg-slate-700 rounded-full peer peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-brand/30 peer-checked:bg-brand after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:after:translate-x-5 peer-checked:after:border-white"></div>
+            </label>
+        </div>
+
+        {% if saved %}
+        <div class="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400 font-sans">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+            </svg>
+            Gespeichert
+        </div>
+        {% endif %}
+    </form>
+</div>

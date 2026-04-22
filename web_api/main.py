@@ -6,6 +6,7 @@ from fastapi.responses import JSONResponse, RedirectResponse
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, text
 
+from web_api.admin.router import router as admin_router
 from web_api.auth.router import router as auth_router
 from web_api.desktop_api.router import router as desktop_api_router
 from web_api.cancellations.router import router as cancellations_router
@@ -40,6 +41,7 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+app.include_router(admin_router)
 app.include_router(auth_router)
 app.include_router(desktop_api_router)
 app.include_router(dashboard_router)

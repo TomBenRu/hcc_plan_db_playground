@@ -1,0 +1,1 @@
+"""Admin-Endpoints für projektweite Einstellungen."""

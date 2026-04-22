@@ -1144,6 +1144,9 @@ class FrmActorPlanPeriod(QWidget):
 
     def reload_actor_plan_period_and_set_instance_variables(self, event=None):
         self.actor_plan_period = db_services.ActorPlanPeriod.get_for_mask(self.actor_plan_period.id)
+        # Parent-Cache synchron halten: beim Wechsel zurück auf diesen Mitarbeiter
+        # soll der frisch geladene Stand verwendet werden, nicht der veraltete Cache-Eintrag.
+        self.parent.pers_id__actor_pp_show[str(self.actor_plan_period.person.id)] = self.actor_plan_period
         self.set_instance_variables()
         signal_handling.handler_plan_tabs.reload_all_plan_period_plans_from_db(self.actor_plan_period.plan_period.id)
         signal_handling.handler_plan_tabs.refresh_all_plan_period_plans_from_db(self.actor_plan_period.plan_period.id)

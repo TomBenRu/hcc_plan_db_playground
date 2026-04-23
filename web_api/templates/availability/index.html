@@ -346,6 +346,7 @@
             </div>
 
             <!-- Meine Tageszeiten (Desktop: zwischen Dropdowns und Toggle sichtbar) -->
+            {% if not view_model.is_simple_mode %}
             <a href="/availability/time-of-days"
                class="hidden lg:flex items-center gap-2.5 px-3 py-2.5 rounded-xl mb-3
                       bg-brand/10 border border-brand/20 text-sm font-semibold text-brand
@@ -356,6 +357,7 @@
                 </svg>
                 Meine Tageszeiten
             </a>
+            {% endif %}
 
             <!-- Mobile: Einstellungen-Toggle (nur auf < 1024px sichtbar) -->
             <button class="sidebar-settings-toggle hidden w-full items-center justify-between py-2.5 mt-1
@@ -380,6 +382,7 @@
             <div class="sidebar-settings">
 
                 <!-- Meine Tageszeiten (Mobile: oben im aufgeklappten Panel) -->
+                {% if not view_model.is_simple_mode %}
                 <a href="/availability/time-of-days"
                    class="lg:hidden flex items-center gap-2.5 px-3 py-2.5 rounded-xl mb-4
                           bg-brand/10 border border-brand/20 text-sm font-semibold text-brand
@@ -390,6 +393,7 @@
                     </svg>
                     Meine Tageszeiten
                 </a>
+                {% endif %}
 
                 <!-- Deadline-Badge -->
                 <div class="mb-4">

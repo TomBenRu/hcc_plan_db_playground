@@ -6,9 +6,10 @@ from datetime import date, time, timedelta
 from fastapi import APIRouter, Depends, Form, HTTPException, Query, status
 from fastapi.requests import Request
 from fastapi.responses import HTMLResponse
+from sqlalchemy import select as sa_select
 from sqlmodel import Session
 
-from database.models import ActorPlanPeriod
+from database.models import ActorPlanPeriod, AvailDay, Person, TimeOfDay, TimeOfDayEnum
 from web_api.auth.dependencies import LoggedInUser
 from web_api.dependencies import get_db_session
 from web_api.availability import service
@@ -25,6 +26,19 @@ def _require_person(user: LoggedInUser) -> uuid.UUID:
             detail="Kein Person-Eintrag mit diesem Konto verknüpft",
         )
     return user.person_id
+
+
+def _require_intervall_mode(session: Session, person_id: uuid.UUID) -> None:
+    """Guard: blockiert Aktionen, die im Simple-Modus nicht zulässig sind.
+
+    Im Simple-Modus werden Person-TODs automatisch aus Project-Defaults
+    abgeleitet; manuelles Bearbeiten bleibt deaktiviert.
+    """
+    if service.is_simple_mode_for_person(session, person_id):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            detail="Im Simple-Modus werden Tageszeiten vom Projekt verwaltet",
+        )
 
 
 # ── Hauptseite ────────────────────────────────────────────────────────────────
@@ -182,12 +196,18 @@ def day_panel(
     app = service.authorize_actor_plan_period(session, person_id, actor_plan_period_id)
     pp = app.plan_period
     is_locked = pp.closed or date.today() > pp.deadline
-    detail = service.get_day_detail(
-        session, actor_plan_period_id, person_id, day, is_locked,
-    )
+    is_simple = service.is_simple_mode_for_person(session, person_id)
+    if is_simple:
+        detail = service.get_day_detail_simple(
+            session, actor_plan_period_id, person_id, day, is_locked,
+        )
+    else:
+        detail = service.get_day_detail(
+            session, actor_plan_period_id, person_id, day, is_locked,
+        )
     return templates.TemplateResponse(
         "availability/partials/day_panel.html",
-        {"request": request, "detail": detail},
+        {"request": request, "detail": detail, "is_simple_mode": is_simple},
     )
 
 
@@ -216,7 +236,7 @@ def create_avail_day(
     detail = service.get_day_detail(session, actor_plan_period_id, person_id, day, is_locked)
     return templates.TemplateResponse(
         "availability/partials/day_panel.html",
-        {"request": request, "detail": detail},
+        {"request": request, "detail": detail, "is_simple_mode": False},
     )
 
 
@@ -240,10 +260,118 @@ def delete_avail_day(
     service.delete_avail_day(session, avail_day_id)
 
     is_locked = _build_is_locked(app)
-    detail = service.get_day_detail(session, actor_plan_period_id, person_id, day, is_locked)
+    is_simple = service.is_simple_mode_for_person(session, person_id)
+    if is_simple:
+        detail = service.get_day_detail_simple(session, actor_plan_period_id, person_id, day, is_locked)
+    else:
+        detail = service.get_day_detail(session, actor_plan_period_id, person_id, day, is_locked)
     return templates.TemplateResponse(
         "availability/partials/day_panel.html",
-        {"request": request, "detail": detail},
+        {"request": request, "detail": detail, "is_simple_mode": is_simple},
+    )
+
+
+# ── AvailDay Mutations: Simple-Mode-Variante ─────────────────────────────────
+
+
+@router.post("/avail-day/simple", response_class=HTMLResponse)
+def create_avail_day_simple(
+    request: Request,
+    user: LoggedInUser,
+    session: Session = Depends(get_db_session),
+    actor_plan_period_id: uuid.UUID = Form(...),
+    day: date = Form(...),
+    time_of_day_enum_id: uuid.UUID = Form(...),
+):
+    """Simple-Mode-Create: User klickt nur das Enum, Server bestimmt primary TOD."""
+    person_id = _require_person(user)
+    if not service.is_simple_mode_for_person(session, person_id):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            detail="Simple-Mode ist für dieses Projekt nicht aktiv",
+        )
+    app = service.authorize_actor_plan_period(session, person_id, actor_plan_period_id)
+    service.check_deadline_or_403(app.plan_period)
+
+    # Enum gehört zum Projekt der Person?
+    person = session.get(Person, person_id)
+    enum = session.get(TimeOfDayEnum, time_of_day_enum_id)
+    if enum is None or enum.project_id != person.project_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Tageszeit-Kategorie nicht gefunden")
+
+    # Uniqueness per Enum (nicht per TOD-Id): existiert bereits ein AvailDay?
+    if service.find_avail_day_by_enum(session, actor_plan_period_id, day, time_of_day_enum_id) is not None:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail="Verfügbarkeitstag existiert bereits")
+
+    primary = service.ensure_simple_primary_tod(session, person, enum)
+    if primary is None:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            detail="Keine Tageszeit für dieses Enum definiert — bitte Disponenten kontaktieren",
+        )
+
+    service.create_avail_day(session, actor_plan_period_id, day, primary.id)
+
+    is_locked = _build_is_locked(app)
+    detail = service.get_day_detail_simple(session, actor_plan_period_id, person_id, day, is_locked)
+    return templates.TemplateResponse(
+        "availability/partials/day_panel.html",
+        {"request": request, "detail": detail, "is_simple_mode": True},
+    )
+
+
+@router.delete("/avail-day/by-enum", response_class=HTMLResponse)
+def delete_avail_day_by_enum(
+    request: Request,
+    user: LoggedInUser,
+    session: Session = Depends(get_db_session),
+    actor_plan_period_id: uuid.UUID = Query(...),
+    day: date = Query(...),
+    time_of_day_enum_id: uuid.UUID = Query(...),
+):
+    """Simple-Mode-Delete: löscht ALLE AvailDays für (app, day, enum).
+
+    Inklusive etwaiger Altlasten aus dem Intervall-Modus, die auf andere TODs
+    desselben Enums zeigten. `has_appointment` wird pro AvailDay vorgeprüft —
+    wenn irgendeiner eingeplant ist, 409 ohne Löschung.
+    """
+    person_id = _require_person(user)
+    if not service.is_simple_mode_for_person(session, person_id):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            detail="Simple-Mode ist für dieses Projekt nicht aktiv",
+        )
+    app = service.authorize_actor_plan_period(session, person_id, actor_plan_period_id)
+    service.check_deadline_or_403(app.plan_period)
+
+    # Alle betroffenen AvailDays auf Appointments prüfen
+    existing = service.find_avail_day_by_enum(session, actor_plan_period_id, day, time_of_day_enum_id)
+    if existing is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Verfügbarkeitstag nicht gefunden")
+
+    # Iterativ: alle AvailDays dieses Enums für diesen Tag laden und jeden prüfen
+    ad_ids = session.execute(
+        sa_select(AvailDay.id)
+        .join(TimeOfDay, TimeOfDay.id == AvailDay.time_of_day_id)
+        .where(AvailDay.actor_plan_period_id == actor_plan_period_id)
+        .where(AvailDay.date == day)
+        .where(AvailDay.prep_delete.is_(None))
+        .where(TimeOfDay.time_of_day_enum_id == time_of_day_enum_id)
+    ).scalars().all()
+    for ad_id in ad_ids:
+        if service.has_appointment(session, ad_id):
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                detail="Verfügbarkeitstag ist bereits eingeplant",
+            )
+
+    service.delete_avail_days_by_enum(session, actor_plan_period_id, day, time_of_day_enum_id)
+
+    is_locked = _build_is_locked(app)
+    detail = service.get_day_detail_simple(session, actor_plan_period_id, person_id, day, is_locked)
+    return templates.TemplateResponse(
+        "availability/partials/day_panel.html",
+        {"request": request, "detail": detail, "is_simple_mode": True},
     )
 
 
@@ -285,6 +413,7 @@ def time_of_days_page(
     session: Session = Depends(get_db_session),
 ):
     person_id = _require_person(user)
+    _require_intervall_mode(session, person_id)
     all_tods = service.get_person_time_of_days(session, person_id)
 
     # Gruppieren nach Enum (Python-seitig)
@@ -318,6 +447,7 @@ def create_time_of_day(
     name: str = Form(default=""),
 ):
     person_id = _require_person(user)
+    _require_intervall_mode(session, person_id)
     tod = service.create_person_time_of_day(session, person_id, time_of_day_enum_id, start, end, name)
     tod_info = service.get_person_time_of_days(session, person_id)
     new_info = next((t for t in tod_info if t.id == tod.id), None)
@@ -337,6 +467,7 @@ def edit_time_of_day(
     end: time = Form(...),
 ):
     person_id = _require_person(user)
+    _require_intervall_mode(session, person_id)
     old = service.authorize_person_time_of_day(session, person_id, old_id)
     new_tod = service.replace_person_time_of_day(session, person_id, old, start, end)
     tod_info = service.get_person_time_of_days(session, person_id)
@@ -354,6 +485,7 @@ def delete_time_of_day(
     session: Session = Depends(get_db_session),
 ):
     person_id = _require_person(user)
+    _require_intervall_mode(session, person_id)
     tod = service.authorize_person_time_of_day(session, person_id, tod_id)
     if service.count_avail_days_for_tod(session, tod_id) > 0:
         raise HTTPException(

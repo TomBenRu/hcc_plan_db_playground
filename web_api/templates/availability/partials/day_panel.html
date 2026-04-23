@@ -37,8 +37,14 @@
             </svg>
         </div>
         <p class="text-sm text-slate-500 font-sans">Keine Tageszeiten konfiguriert.</p>
+        {% if is_simple_mode %}
+        <p class="mt-2 text-xs text-slate-400 font-sans max-w-xs">
+            Wende dich an deinen Disponenten, damit Tageszeit-Standards für das Projekt eingerichtet werden.
+        </p>
+        {% else %}
         <a href="/availability/time-of-days"
            class="mt-2 text-xs text-brand hover:underline font-sans">Tageszeiten einrichten →</a>
+        {% endif %}
     </div>
     {% else %}
 
@@ -51,8 +57,62 @@
                 <span class="text-slate-600 font-mono normal-case tracking-normal ml-1">({{ grp.enum_abbreviation }})</span>
             </label>
 
+            {# ── Simple-Mode: ein Button pro Enum, ohne Zeitanzeige ─────── #}
+            {% if is_simple_mode %}
+            {% set opt = grp.options[0] %}
+            {% if opt.has_appointment %}
+                <div class="flex items-center gap-2 w-full text-sm font-medium px-4 py-3
+                            rounded-xl border border-amber-200 bg-amber-50 text-amber-700 cursor-not-allowed font-sans">
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                    </svg>
+                    <span>{{ grp.enum_name }}</span>
+                    <span class="ml-auto text-xs font-sans text-amber-600">Eingeplant</span>
+                </div>
+            {% elif opt.avail_day_id %}
+                <form hx-delete="/availability/avail-day/by-enum?actor_plan_period_id={{ detail.actor_plan_period_id }}&day={{ detail.day.isoformat() }}&time_of_day_enum_id={{ grp.enum_id }}"
+                      hx-target="#day-panel" hx-swap="outerHTML"
+                      {% if detail.is_locked %}class="pointer-events-none"{% endif %}>
+                    <button type="submit"
+                            class="flex items-center gap-2 w-full text-sm font-medium px-4 py-3
+                                   rounded-xl border-2 border-brand bg-brand/10 text-brand
+                                   hover:bg-brand/20 transition-colors font-sans
+                                   {% if detail.is_locked %}opacity-50 cursor-not-allowed{% endif %}"
+                            {% if detail.is_locked %}disabled{% endif %}>
+                        <svg class="w-4 h-4 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                            <path fill-rule="evenodd"
+                                  d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
+                                  clip-rule="evenodd"/>
+                        </svg>
+                        <span>{{ grp.enum_name }}</span>
+                        <span class="ml-auto text-xs opacity-70 font-sans">Entfernen</span>
+                    </button>
+                </form>
+            {% else %}
+                <form hx-post="/availability/avail-day/simple"
+                      hx-target="#day-panel" hx-swap="outerHTML"
+                      {% if detail.is_locked %}class="pointer-events-none"{% endif %}>
+                    <input type="hidden" name="actor_plan_period_id" value="{{ detail.actor_plan_period_id }}">
+                    <input type="hidden" name="day" value="{{ detail.day.isoformat() }}">
+                    <input type="hidden" name="time_of_day_enum_id" value="{{ grp.enum_id }}">
+                    <button type="submit"
+                            class="flex items-center gap-2 w-full text-sm font-medium px-4 py-3
+                                   rounded-xl border border-slate-200 bg-white text-slate-600
+                                   hover:border-brand hover:text-brand hover:bg-brand/5 transition-colors font-sans
+                                   {% if detail.is_locked %}opacity-50 cursor-not-allowed{% endif %}"
+                            {% if detail.is_locked %}disabled{% endif %}>
+                        <svg class="w-4 h-4 flex-shrink-0 text-slate-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10" stroke-width="1.5"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v8m-4-4h8"/>
+                        </svg>
+                        <span>{{ grp.enum_name }}</span>
+                    </button>
+                </form>
+            {% endif %}
+
             {# ── Fall A: 1 TOD → einfacher Toggle-Button ──────────────────── #}
-            {% if grp.options | length == 1 %}
+            {% elif grp.options | length == 1 %}
             {% set opt = grp.options[0] %}
             {% if opt.has_appointment %}
                 {# Gesperrt: Appointment vorhanden #}

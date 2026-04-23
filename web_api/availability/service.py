@@ -24,6 +24,7 @@ from database.models import (
     PersonTimeOfDayLink,
     Plan,
     PlanPeriod,
+    Project,
     Team,
     TimeOfDay,
     TimeOfDayEnum,
@@ -156,6 +157,123 @@ class AvailabilityViewModel:
     sidebar_stats: SidebarStats
     teams: list[TeamInfo]                             # Teams des Users (für Dropdown)
     selected_team_id: uuid.UUID | None               # aktives Team
+    is_simple_mode: bool                              # Project.use_simple_time_slots
+
+
+# ── Simple-Mode-Helfer ────────────────────────────────────────────────────────
+
+
+def is_simple_mode_for_person(session: Session, person_id: uuid.UUID) -> bool:
+    """Liefert das Project.use_simple_time_slots-Flag für die Person."""
+    return session.execute(
+        sa_select(Project.use_simple_time_slots)
+        .join(Person, Person.project_id == Project.id)
+        .where(Person.id == person_id)
+    ).scalar_one()
+
+
+def get_project_enums(session: Session, project_id: uuid.UUID) -> list[TimeOfDayEnum]:
+    """Alle TimeOfDayEnums des Projekts nach time_index sortiert (für Simple-Mode-Day-Panel)."""
+    return list(session.execute(
+        sa_select(TimeOfDayEnum)
+        .where(TimeOfDayEnum.project_id == project_id)
+        .where(TimeOfDayEnum.prep_delete.is_(None))
+        .order_by(TimeOfDayEnum.time_index)
+    ).scalars().all())
+
+
+def ensure_simple_primary_tod(
+    session: Session,
+    person: Person,
+    enum: TimeOfDayEnum,
+) -> TimeOfDay | None:
+    """Ermittelt die „primary"-TOD für (Person, Enum) im Simple-Modus.
+
+    Regel (User-Vorgabe):
+      1. Project-Default für dieses Enum existiert + ist bereits zur Person gelinkt → diese.
+      2. Project-Default existiert, aber nicht gelinkt → Link anlegen, diese zurückgeben.
+      3. Kein Project-Default, aber Person hat eine TOD zu diesem Enum → erste nach start.
+      4. Keine TOD ermittelbar → None (Enum wird im UI ausgelassen).
+
+    Seiteneffekt nur im Fall 2: `PersonTimeOfDayLink`-Insert.
+    """
+    # Schritt 1/2: Project-Default zu diesem Enum suchen.
+    project_default = session.execute(
+        sa_select(TimeOfDay)
+        .where(TimeOfDay.project_defaults_id == person.project_id)
+        .where(TimeOfDay.time_of_day_enum_id == enum.id)
+        .where(TimeOfDay.prep_delete.is_(None))
+        .order_by(TimeOfDay.start)
+        .limit(1)
+    ).scalar_one_or_none()
+
+    if project_default is not None:
+        # Link-Existenz prüfen
+        link = session.get(PersonTimeOfDayLink, (person.id, project_default.id))
+        if link is None:
+            session.add(PersonTimeOfDayLink(
+                person_id=person.id,
+                time_of_day_id=project_default.id,
+            ))
+            session.flush()
+        return project_default
+
+    # Schritt 3: irgendeine Person-TOD zu diesem Enum.
+    person_tod = session.execute(
+        sa_select(TimeOfDay)
+        .join(PersonTimeOfDayLink, PersonTimeOfDayLink.time_of_day_id == TimeOfDay.id)
+        .where(PersonTimeOfDayLink.person_id == person.id)
+        .where(TimeOfDay.time_of_day_enum_id == enum.id)
+        .where(TimeOfDay.prep_delete.is_(None))
+        .order_by(TimeOfDay.start)
+        .limit(1)
+    ).scalar_one_or_none()
+    return person_tod
+
+
+def find_avail_day_by_enum(
+    session: Session,
+    actor_plan_period_id: uuid.UUID,
+    day: date,
+    enum_id: uuid.UUID,
+) -> AvailDay | None:
+    """Simple-Mode-Uniqueness: irgendein aktiver AvailDay für (app, day, enum)."""
+    return session.execute(
+        sa_select(AvailDay)
+        .join(TimeOfDay, TimeOfDay.id == AvailDay.time_of_day_id)
+        .where(AvailDay.actor_plan_period_id == actor_plan_period_id)
+        .where(AvailDay.date == day)
+        .where(AvailDay.prep_delete.is_(None))
+        .where(TimeOfDay.time_of_day_enum_id == enum_id)
+        .limit(1)
+    ).scalar_one_or_none()
+
+
+def delete_avail_days_by_enum(
+    session: Session,
+    actor_plan_period_id: uuid.UUID,
+    day: date,
+    enum_id: uuid.UUID,
+) -> int:
+    """Simple-Mode-Delete: löscht ALLE AvailDays für (app, day, enum), inkl. Child-Groups.
+
+    Gibt Anzahl gelöschter AvailDays zurück. Nutzer in der Router-Schicht muss vorher
+    `has_appointment` pro betroffenem AvailDay prüfen — hier kein Guard, damit das
+    mit dem Intervall-Modus-Delete-Pattern konsistent bleibt.
+    """
+    rows = session.execute(
+        sa_select(AvailDay)
+        .join(TimeOfDay, TimeOfDay.id == AvailDay.time_of_day_id)
+        .where(AvailDay.actor_plan_period_id == actor_plan_period_id)
+        .where(AvailDay.date == day)
+        .where(AvailDay.prep_delete.is_(None))
+        .where(TimeOfDay.time_of_day_enum_id == enum_id)
+    ).scalars().all()
+    count = 0
+    for ad in rows:
+        delete_avail_day(session, ad.id)
+        count += 1
+    return count
 
 
 # ── Queries ───────────────────────────────────────────────────────────────────
@@ -291,6 +409,29 @@ def get_markers_for_range(
     ]
 
 
+def get_markers_for_range_simple(
+    session: Session,
+    actor_plan_period_id: uuid.UUID,
+    start: date,
+    end: date,
+) -> list[AvailDayMarker]:
+    """Simple-Mode-Variante: dedupliziert Marker pro (date, enum_time_index).
+
+    Altlasten aus dem Intervall-Modus (mehrere AvailDays pro Tag+Enum mit unterschiedlichen
+    konkreten TODs) sollen im Kalender nicht als mehrere Dots erscheinen.
+    """
+    all_markers = get_markers_for_range(session, actor_plan_period_id, start, end)
+    seen: set[tuple[date, int]] = set()
+    deduped: list[AvailDayMarker] = []
+    for m in all_markers:
+        key = (m.day, m.time_of_day_enum_time_index)
+        if key in seen:
+            continue
+        seen.add(key)
+        deduped.append(m)
+    return deduped
+
+
 def get_person_time_of_days(
     session: Session,
     person_id: uuid.UUID,
@@ -339,6 +480,86 @@ def get_person_time_of_days(
         )
         for r in rows
     ]
+
+
+def get_day_detail_simple(
+    session: Session,
+    actor_plan_period_id: uuid.UUID,
+    person_id: uuid.UUID,
+    day: date,
+    is_locked: bool,
+) -> DayDetailViewModel:
+    """Simple-Mode-Day-Panel: pro Project-Enum genau eine Option (primary TOD).
+
+    has_appointment prüft ALLE AvailDays des Tages für dieses Enum (nicht nur die
+    primary). avail_day_id zeigt auf den ersten gefundenen AvailDay des Enums —
+    die konkrete ID ist im Simple-Modus nicht mehr User-sichtbar.
+    """
+    person = session.get(Person, person_id)
+    if person is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND)
+
+    enums = get_project_enums(session, person.project_id)
+
+    # Alle AvailDays dieses Tages (inkl. TOD + Enum) in einer Query
+    day_rows = session.execute(
+        sa_select(
+            AvailDay.id.label("ad_id"),
+            TimeOfDay.time_of_day_enum_id.label("enum_id"),
+        )
+        .join(TimeOfDay, TimeOfDay.id == AvailDay.time_of_day_id)
+        .where(AvailDay.actor_plan_period_id == actor_plan_period_id)
+        .where(AvailDay.date == day)
+        .where(AvailDay.prep_delete.is_(None))
+    ).all()
+
+    ad_by_enum: dict[uuid.UUID, list[uuid.UUID]] = {}
+    for r in day_rows:
+        ad_by_enum.setdefault(r.enum_id, []).append(r.ad_id)
+
+    # has_appointment für alle existierenden AvailDays ermitteln
+    all_ad_ids = [aid for ids in ad_by_enum.values() for aid in ids]
+    appointed_ids: set[uuid.UUID] = set()
+    if all_ad_ids:
+        appt_rows = session.execute(
+            sa_select(AvailDayAppointmentLink.avail_day_id)
+            .join(Appointment, Appointment.id == AvailDayAppointmentLink.appointment_id)
+            .join(Plan, Plan.id == Appointment.plan_id)
+            .where(AvailDayAppointmentLink.avail_day_id.in_(all_ad_ids))
+            .where(Plan.is_binding.is_(True))
+            .where(Plan.prep_delete.is_(None))
+        ).scalars().all()
+        appointed_ids = set(appt_rows)
+
+    enum_groups: list[DayEnumGroup] = []
+    for enum in enums:
+        primary = ensure_simple_primary_tod(session, person, enum)
+        if primary is None:
+            # User-Entscheidung: Enums ohne ermittelbare TOD ganz weglassen.
+            continue
+        ad_ids = ad_by_enum.get(enum.id, [])
+        has_appt = any(aid in appointed_ids for aid in ad_ids)
+        enum_groups.append(DayEnumGroup(
+            enum_id=enum.id,
+            enum_name=enum.name,
+            enum_abbreviation=enum.abbreviation,
+            enum_time_index=enum.time_index,
+            options=[DayTodOption(
+                time_of_day_id=primary.id,
+                tod_name=primary.name,
+                tod_start=primary.start,
+                tod_end=primary.end,
+                avail_day_id=ad_ids[0] if ad_ids else None,
+                has_appointment=has_appt,
+            )],
+        ))
+
+    return DayDetailViewModel(
+        day=day,
+        actor_plan_period_id=actor_plan_period_id,
+        is_locked=is_locked,
+        enum_groups=enum_groups,
+    )
 
 
 def get_day_detail(
@@ -442,12 +663,21 @@ def build_availability_view(
     selected_team_id: uuid.UUID | None,
 ) -> AvailabilityViewModel:
     """Zentrale Aggregation für die index.html-Seite."""
-    markers = get_markers_for_range(
-        session,
-        active_period.actor_plan_period_id,
-        active_period.start,
-        active_period.end,
-    )
+    is_simple = is_simple_mode_for_person(session, person_id)
+    if is_simple:
+        markers = get_markers_for_range_simple(
+            session,
+            active_period.actor_plan_period_id,
+            active_period.start,
+            active_period.end,
+        )
+    else:
+        markers = get_markers_for_range(
+            session,
+            active_period.actor_plan_period_id,
+            active_period.start,
+            active_period.end,
+        )
     person_tods = get_person_time_of_days(session, person_id)
     stats = get_sidebar_stats(
         session,
@@ -471,6 +701,7 @@ def build_availability_view(
         sidebar_stats=stats,
         teams=teams,
         selected_team_id=selected_team_id,
+        is_simple_mode=is_simple,
     )
 
 

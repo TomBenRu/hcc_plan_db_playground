@@ -4,11 +4,9 @@ Spiegelt `web_api/employees/service.py`, filtert jedoch auf Team-Ebene
 (PlanPeriod.team_id) statt auf Person-Ebene (ActorPlanPeriod.person_id).
 """
 
-import json
 import uuid
 from dataclasses import dataclass
 from datetime import date, time
-from typing import Any
 
 from fastapi import HTTPException, status
 from sqlalchemy import func
@@ -33,26 +31,10 @@ from database.models import (
     TimeOfDayEnum,
 )
 from web_api.availability.service import create_avail_day, find_avail_day
+from web_api.common import guest_count
 from web_api.email.service import EmailPayload
 from web_api.employees.service import CalendarEvent, location_color
 from web_api.plan_adjustment.service import update_appointment_avail_days
-
-
-def _guest_count(value: Any) -> int:
-    """Zählt Gäste robust — auch wenn SQLAlchemy den JSON-Wert als String
-    durchreicht statt ihn zu dekodieren. Fallback: 0 bei leerem/ungültigem
-    Wert statt Zeichen-Zählen.
-    """
-    if isinstance(value, (list, tuple)):
-        return len(value)
-    if isinstance(value, str) and value.strip():
-        try:
-            parsed = json.loads(value)
-            if isinstance(parsed, (list, tuple)):
-                return len(parsed)
-        except (ValueError, TypeError):
-            pass
-    return 0
 
 
 @dataclass
@@ -148,7 +130,7 @@ def get_appointments_for_teams(
 
     result: list[CalendarEvent] = []
     for r in rows:
-        guests_count = _guest_count(r["guests"])
+        guests_count = guest_count(r["guests"])
         cast_count = int(r["avail_count"]) + guests_count
         cast_required = int(r["cast_required"])
         result.append(CalendarEvent(
@@ -399,7 +381,7 @@ def get_cast_status_for_appointment(
     if ctx_row is None:
         return {"cast_count": 0, "cast_required": 0, "is_understaffed": False}
 
-    guests_count = _guest_count(ctx_row["guests"])
+    guests_count = guest_count(ctx_row["guests"])
     cast_count = int(avail_count) + guests_count
     cast_required = int(ctx_row["cast_required"])
     return {

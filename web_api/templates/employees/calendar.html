@@ -2,6 +2,87 @@
 
 {% block calendar_page_title %}Mein Kalender — hcc plan{% endblock %}
 
+{% block head %}
+    {{ super() }}
+    <style>
+        /* ── Fremdtermine abdimmen (E1-Show-All) ──────────────────────────── */
+        /* Termine, bei denen die Person nicht eingeteilt ist, werden mit reduzierter
+           Opacity und gestricheltem Rand dargestellt. */
+        .fc-event-foreign {
+            opacity: 0.55;
+        }
+        .fc-event-foreign.fc-daygrid-event,
+        .fc-event-foreign.fc-timegrid-event {
+            border-style: dashed !important;
+            border-width: 1.5px !important;
+        }
+        .fc-event-foreign:hover {
+            opacity: 0.85;
+        }
+        /* Listen-Ansicht: Fremdtermin-Titel in kursiv + sekundärer Farbe */
+        .fc-list-event.fc-event-foreign .fc-list-event-title a {
+            font-style: italic;
+            color: #64748b;  /* slate-500 */
+        }
+        [data-theme="dark"] .fc-list-event.fc-event-foreign .fc-list-event-title a {
+            color: #94a3b8;  /* slate-400 */
+        }
+
+        /* ── Unterbesetzungs-Marker ───────────────────────────────────────── */
+        .fc-event-understaffed.fc-daygrid-event,
+        .fc-event-understaffed.fc-timegrid-event {
+            position: relative;
+        }
+        .fc-event-understaffed.fc-daygrid-event::after,
+        .fc-event-understaffed.fc-timegrid-event::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #ef4444;
+            box-shadow: 0 0 0 1.5px #ffffff;
+            z-index: 1;
+        }
+        [data-theme="dark"] .fc-event-understaffed.fc-daygrid-event::after,
+        [data-theme="dark"] .fc-event-understaffed.fc-timegrid-event::after {
+            box-shadow: 0 0 0 1.5px #1E293B;
+        }
+        [data-theme="colorblind"] .fc-event-understaffed.fc-daygrid-event::after,
+        [data-theme="colorblind"] .fc-event-understaffed.fc-timegrid-event::after {
+            background-color: #D55E00;
+        }
+        .fc-list-event.fc-event-understaffed .fc-list-event-title a::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #ef4444;
+            margin-right: 8px;
+            vertical-align: middle;
+            box-shadow: 0 0 0 1.5px #ffffff;
+        }
+        [data-theme="dark"] .fc-list-event.fc-event-understaffed .fc-list-event-title a::before {
+            box-shadow: 0 0 0 1.5px #1E293B;
+        }
+        [data-theme="colorblind"] .fc-list-event.fc-event-understaffed .fc-list-event-title a::before {
+            background-color: #D55E00;
+        }
+
+        /* ── Mobile-Layout für die Toggle-Sektionen (<1024px) ─────────────── */
+        @media (max-width: 1023px) {
+            .cal-sidebar .show-all-filter-section,
+            .cal-sidebar .understaffed-filter-section {
+                flex: 1 1 100%;
+                margin-bottom: 0 !important;
+            }
+        }
+    </style>
+{% endblock %}
+
 {% block calendar_role_label %}Mitarbeiter{% endblock %}
 
 {% block calendar_title %}Mein Kalender{% endblock %}
@@ -38,6 +119,30 @@
         {% endif %}
     </div>
 
+    <!-- Show-All-Filter: auch fremde Termine der Team-Periode anzeigen -->
+    <div class="sidebar-section sidebar-section-mobile show-all-filter-section mb-6">
+        <label class="flex items-center gap-2.5 cursor-pointer group py-1 px-2 -mx-2 rounded-md hover:bg-white/5 transition-colors">
+            <input type="checkbox"
+                   id="show-all"
+                   class="w-3.5 h-3.5 rounded accent-brand">
+            <span class="text-sm text-slate-400 group-hover:text-slate-200 transition-colors font-sans">
+                Alle Termine der Periode
+            </span>
+        </label>
+    </div>
+
+    <!-- Unterbesetzungs-Filter -->
+    <div class="sidebar-section sidebar-section-mobile understaffed-filter-section mb-6">
+        <label class="flex items-center gap-2.5 cursor-pointer group py-1 px-2 -mx-2 rounded-md hover:bg-white/5 transition-colors">
+            <input type="checkbox"
+                   id="only-understaffed"
+                   class="w-3.5 h-3.5 rounded accent-red-500">
+            <span class="text-sm text-slate-400 group-hover:text-slate-200 transition-colors font-sans">
+                Nur unterbesetzte
+            </span>
+        </label>
+    </div>
+
     <!-- Location Legend -->
     {% if location_legend %}
     <div class="sidebar-section mb-6">
@@ -65,3 +170,58 @@
 {% block calendar_event_source_url %}/employees/calendar/events{% endblock %}
 
 {% block calendar_detail_url_prefix %}/employees/appointments/{% endblock %}
+
+{% block calendar_extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const showAllCheckbox = document.getElementById('show-all');
+    const understaffedCheckbox = document.getElementById('only-understaffed');
+
+    // Initialen Zustand aus URL-Params übernehmen
+    const initialParams = new URLSearchParams(window.location.search);
+    if (showAllCheckbox && initialParams.get('show_all') === '1') {
+        showAllCheckbox.checked = true;
+    }
+    if (understaffedCheckbox && initialParams.get('only_understaffed') === '1') {
+        understaffedCheckbox.checked = true;
+    }
+
+    function refreshCalendar() {
+        const showAll = showAllCheckbox && showAllCheckbox.checked;
+        const onlyUnderstaffed = understaffedCheckbox && understaffedCheckbox.checked;
+
+        // URL im Browser aktualisieren (shareable Deep-Link)
+        const url = new URL(window.location);
+        url.searchParams.delete('show_all');
+        url.searchParams.delete('only_understaffed');
+        if (showAll) url.searchParams.set('show_all', '1');
+        if (onlyUnderstaffed) url.searchParams.set('only_understaffed', '1');
+        history.replaceState({}, '', url);
+
+        // FullCalendar-Event-Source neu setzen
+        const sources = window.hccCalendar.getEventSources();
+        sources.forEach(s => s.remove());
+
+        const params = new URLSearchParams();
+        if (showAll) params.set('show_all', '1');
+        if (onlyUnderstaffed) params.set('only_understaffed', '1');
+        const eventsUrl = '/employees/calendar/events' + (params.toString() ? '?' + params.toString() : '');
+        window.hccCalendar.addEventSource({ url: eventsUrl, method: 'GET' });
+    }
+
+    if (showAllCheckbox) {
+        showAllCheckbox.addEventListener('change', refreshCalendar);
+    }
+    if (understaffedCheckbox) {
+        understaffedCheckbox.addEventListener('change', refreshCalendar);
+    }
+
+    // Beim initialen Laden: wenn Query-Params aktiv sind, direkt die richtige
+    // Event-Source verwenden (statt zweimal zu laden).
+    if ((showAllCheckbox && showAllCheckbox.checked) ||
+        (understaffedCheckbox && understaffedCheckbox.checked)) {
+        refreshCalendar();
+    }
+});
+</script>
+{% endblock %}

@@ -24,6 +24,11 @@
                         style="font-family: 'Fraunces', Georgia, serif; letter-spacing: -0.01em;">
                         {{ event.location_name }}
                     </h2>
+                    {% if not event.is_own %}
+                    <span class="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 mt-1.5 rounded-full ring-1 bg-slate-50 text-slate-500 ring-slate-200 font-sans">
+                        Nicht eingeteilt
+                    </span>
+                    {% endif %}
                 </div>
                 <!-- Schließen-Button (immer sichtbar oben rechts) -->
                 <button
@@ -103,11 +108,26 @@
 
     <!-- Eingesetzte Mitarbeiter -->
     {% if coworkers %}
-    <div class="bg-white rounded-xl border border-slate-100 shadow-sm p-4 mb-3">
-        <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-3">
-            Eingesetzte Mitarbeiter
-            <span class="ml-1 text-slate-300 font-normal normal-case tracking-normal">({{ coworkers | length }})</span>
-        </p>
+    <div class="bg-white rounded-xl {% if event.is_understaffed %}border border-rose-200{% else %}border border-slate-100{% endif %} shadow-sm p-4 mb-3">
+        <div class="flex items-start justify-between gap-2 mb-3">
+            <div class="min-w-0 flex-1">
+                <p class="text-xs font-semibold tracking-widest uppercase {% if event.is_understaffed %}text-rose-500{% else %}text-slate-400{% endif %}">
+                    Eingesetzte Mitarbeiter
+                </p>
+                {% if event.cast_required > 0 %}
+                <p class="text-xs font-sans mt-1 {% if event.is_understaffed %}text-rose-600 font-medium{% else %}text-slate-500{% endif %}">
+                    ({{ event.cast_count }} von {{ event.cast_required }}{% if event.cast_count > event.cast_required %}, überbesetzt{% endif %})
+                </p>
+                {% else %}
+                <p class="text-xs font-sans mt-1 text-slate-400">({{ coworkers | length }})</p>
+                {% endif %}
+            </div>
+            {% if event.is_understaffed %}
+            <span class="flex-shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 bg-rose-50 text-rose-600 ring-rose-200">
+                Unterbesetzt
+            </span>
+            {% endif %}
+        </div>
         <ul class="space-y-2">
             {% for cw in coworkers %}
             <li class="flex items-center gap-2.5">
@@ -123,8 +143,8 @@
     </div>
     {% endif %}
 
-    <!-- Aktions-Buttons (nur bei verbindlichen Terminen) -->
-    {% if event.is_binding %}
+    <!-- Aktions-Buttons (nur bei verbindlichen eigenen Terminen) -->
+    {% if event.is_binding and event.is_own %}
     <div class="mt-auto pt-2 pb-1 flex flex-col gap-2">
         <div id="cancellation-action-area">
             {% if event.has_pending_cancellation %}

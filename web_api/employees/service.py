@@ -11,7 +11,7 @@ import uuid
 from dataclasses import dataclass
 from datetime import date, datetime, time, timedelta, timezone
 
-from sqlalchemy import select as sa_select
+from sqlalchemy import func, select as sa_select
 from sqlmodel import Session
 
 from database.models import (
@@ -19,14 +19,17 @@ from database.models import (
     Appointment,
     AvailDay,
     AvailDayAppointmentLink,
+    CastGroup,
     Event,
     LocationOfWork,
     LocationPlanPeriod,
     Person,
     Plan,
     PlanPeriod,
+    Team,
     TimeOfDay,
 )
+from web_api.common import guest_count
 from web_api.models.web_models import (
     CancellationRequest,
     CancellationStatus,
@@ -79,6 +82,8 @@ class CalendarEvent:
     cast_count: int = 0
     cast_required: int = 0
     is_understaffed: bool = False
+    # True = Person ist bei diesem Termin eingeteilt; False = fremder Termin (E1-Show-All)
+    is_own: bool = True
 
 
 @dataclass
@@ -253,6 +258,140 @@ def get_appointment_detail(
     )
     for ev in results:
         if ev.appointment_id == appointment_id:
+            return ev
+    return None
+
+
+def get_team_ids_for_person(session: Session, person_id: uuid.UUID) -> list[uuid.UUID]:
+    """Alle Teams, in denen die Person ActorPlanPeriods hat (aktiv oder historisch)."""
+    return list(session.execute(
+        sa_select(PlanPeriod.team_id)
+        .join(ActorPlanPeriod, ActorPlanPeriod.plan_period_id == PlanPeriod.id)
+        .where(ActorPlanPeriod.person_id == person_id)
+        .where(PlanPeriod.prep_delete.is_(None))
+        .distinct()
+    ).scalars().all())
+
+
+def get_team_appointments_for_person(
+    session: Session,
+    person_id: uuid.UUID,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    only_understaffed: bool = False,
+) -> list[CalendarEvent]:
+    """Alle Termine in den Teams der Person (auch fremde Zuordnungen).
+
+    Analog zum Dispatcher-Pattern (`get_appointments_for_teams`): Besetzungs-Count
+    kommt aus einer Subquery über AvailDay-Einsätze plus `Appointment.guests`.
+    Enrichment-Felder (`has_pending_cancellation`, `has_active_swap_request`,
+    `is_past_deadline`) bleiben Default `False` — sie sind nur für eigene Termine
+    semantisch sinnvoll und werden vom Caller für die Person-Teilmenge ergänzt.
+    """
+    team_ids = get_team_ids_for_person(session, person_id)
+    if not team_ids:
+        return []
+
+    # Subquery: Anzahl zugeordneter AvailDays je Appointment
+    avail_count_subq = (
+        sa_select(
+            AvailDayAppointmentLink.appointment_id.label("appointment_id"),
+            func.count(AvailDayAppointmentLink.avail_day_id).label("avail_count"),
+        )
+        .group_by(AvailDayAppointmentLink.appointment_id)
+        .subquery()
+    )
+
+    stmt = (
+        sa_select(
+            Appointment.id.label("appointment_id"),
+            Appointment.notes.label("appointment_notes"),
+            Appointment.guests.label("guests"),
+            Event.date.label("event_date"),
+            LocationOfWork.name.label("location_name"),
+            LocationOfWork.id.label("location_id"),
+            TimeOfDay.name.label("time_of_day_name"),
+            TimeOfDay.start.label("time_start"),
+            TimeOfDay.end.label("time_end"),
+            PlanPeriod.id.label("plan_period_id"),
+            PlanPeriod.start.label("period_start"),
+            PlanPeriod.end.label("period_end"),
+            PlanPeriod.team_id.label("team_id"),
+            CastGroup.nr_actors.label("cast_required"),
+            func.coalesce(avail_count_subq.c.avail_count, 0).label("avail_count"),
+        )
+        .select_from(Appointment)
+        .join(Event, Event.id == Appointment.event_id)
+        .join(LocationPlanPeriod, LocationPlanPeriod.id == Event.location_plan_period_id)
+        .join(LocationOfWork, LocationOfWork.id == LocationPlanPeriod.location_of_work_id)
+        .join(TimeOfDay, TimeOfDay.id == Event.time_of_day_id)
+        .join(Plan, Plan.id == Appointment.plan_id)
+        .join(PlanPeriod, PlanPeriod.id == Plan.plan_period_id)
+        .join(CastGroup, CastGroup.id == Event.cast_group_id)
+        .join(avail_count_subq, avail_count_subq.c.appointment_id == Appointment.id, isouter=True)
+        .where(Plan.is_binding.is_(True))
+        .where(Plan.prep_delete.is_(None))
+        .where(PlanPeriod.team_id.in_(team_ids))
+        .where(Appointment.prep_delete.is_(None))
+        .where(Event.prep_delete.is_(None))
+        .order_by(Event.date, TimeOfDay.start)
+    )
+    if start_date:
+        stmt = stmt.where(Event.date >= start_date)
+    if end_date:
+        stmt = stmt.where(Event.date <= end_date)
+
+    rows = session.execute(stmt).mappings().all()
+
+    result: list[CalendarEvent] = []
+    for r in rows:
+        guests = guest_count(r["guests"])
+        cc = int(r["avail_count"]) + guests
+        cr = int(r["cast_required"])
+        result.append(CalendarEvent(
+            appointment_id=r["appointment_id"],
+            event_date=r["event_date"],
+            location_name=r["location_name"],
+            location_id=r["location_id"],
+            color=location_color(r["location_id"]),
+            time_of_day_name=r["time_of_day_name"],
+            time_start=r["time_start"],
+            time_end=r["time_end"],
+            appointment_notes=r["appointment_notes"],
+            plan_period_id=r["plan_period_id"],
+            period_start=r["period_start"],
+            period_end=r["period_end"],
+            team_id=r["team_id"],
+            cast_count=cc,
+            cast_required=cr,
+            is_understaffed=cc < cr,
+        ))
+
+    if only_understaffed:
+        result = [ev for ev in result if ev.is_understaffed]
+    return result
+
+
+def get_appointment_detail_for_team(
+    session: Session,
+    appointment_id: uuid.UUID,
+    person_id: uuid.UUID,
+) -> CalendarEvent | None:
+    """Team-autorisiertes Detail-Lookup für fremde Termine (E1-Show-All).
+
+    Erlaubt den Detail-Abruf, wenn der Appointment in einem Team liegt, in dem die
+    Person ActorPlanPeriods hat — auch wenn sie selbst nicht eingeteilt ist.
+    Rückgabe enthält `is_own=False` und neutrale Enrichment-Felder.
+    """
+    team_ids = get_team_ids_for_person(session, person_id)
+    if not team_ids:
+        return None
+    # Range bewusst weit — wir filtern auf appointment_id in-memory, um die Team-
+    # Query nicht zu duplizieren.
+    candidates = get_team_appointments_for_person(session, person_id)
+    for ev in candidates:
+        if ev.appointment_id == appointment_id:
+            ev.is_own = False
             return ev
     return None
 

@@ -473,6 +473,9 @@ document.addEventListener('DOMContentLoaded', function () {
             if (info.event.extendedProps.is_understaffed) {
                 classes.push('fc-event-understaffed');
             }
+            if (info.event.extendedProps.is_own === false) {
+                classes.push('fc-event-foreign');
+            }
             return classes;
         },
         eventClick: function (info) {

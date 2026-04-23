@@ -12,9 +12,11 @@ from web_api.auth.dependencies import LoggedInUser
 from web_api.dependencies import get_db_session
 from web_api.employees.service import (
     get_appointment_detail,
+    get_appointment_detail_for_team,
     get_appointments_for_person,
     get_coworkers_for_appointment,
     get_plan_periods_for_person,
+    get_team_appointments_for_person,
     location_color,
 )
 from web_api.templating import templates
@@ -52,10 +54,12 @@ def calendar_page(
             initial_date = pp.start.isoformat()
             break
 
-    # Alle einzigartigen Locations für die Legende
-    all_events = get_appointments_for_person(session, person_id)
+    # Legende aus own + team: deckt alle Orte ab, die mit dem Show-All-Toggle
+    # überhaupt erscheinen können, damit sich die Legende nicht an-/abschaltet.
+    own_events = get_appointments_for_person(session, person_id)
+    team_events = get_team_appointments_for_person(session, person_id)
     seen: dict[uuid.UUID, tuple[str, str]] = {}
-    for ev in all_events:
+    for ev in own_events + team_events:
         if ev.location_id not in seen:
             seen[ev.location_id] = (ev.location_name, ev.color)
     location_legend = [
@@ -71,7 +75,7 @@ def calendar_page(
             "plan_periods": plan_periods,
             "location_legend": location_legend,
             "initial_date": initial_date,
-            "total_appointments": len(all_events),
+            "total_appointments": len(own_events),
         },
     )
 
@@ -85,10 +89,57 @@ def calendar_events(
     session: Session = Depends(get_db_session),
     start: date | None = Query(default=None),
     end: date | None = Query(default=None),
+    show_all: int = Query(default=0),
+    only_understaffed: int = Query(default=0),
 ):
-    """FullCalendar ruft diesen Endpoint automatisch für den sichtbaren Datumsbereich auf."""
+    """FullCalendar-Events mit zwei optionalen Filtern:
+
+    - `show_all=1`: zusätzlich alle Termine in den Teams der Person (nicht nur
+      die, bei denen sie eingeteilt ist). Fremde Termine sind via `is_own=false`
+      in den extendedProps markiert, damit das Template sie visuell abheben kann.
+    - `only_understaffed=1`: filtert unterbesetzte Termine (Intersection mit show_all).
+    """
     person_id = _require_person(user)
-    events = get_appointments_for_person(session, person_id, start, end)
+
+    own_events = get_appointments_for_person(session, person_id, start, end)
+    own_ids = {ev.appointment_id for ev in own_events}
+
+    if show_all:
+        team_events = get_team_appointments_for_person(session, person_id, start, end)
+        # Eigene haben keinen cast_count (old query sammelt nicht) — per appointment_id
+        # aus team_events anreichern, damit auch für own-Events unterbesetzt markiert
+        # wird und die Definition konsistent ist.
+        cast_by_id = {ev.appointment_id: ev for ev in team_events}
+        merged: list = []
+        for ev in own_events:
+            enriched = cast_by_id.get(ev.appointment_id)
+            if enriched is not None:
+                ev.cast_count = enriched.cast_count
+                ev.cast_required = enriched.cast_required
+                ev.is_understaffed = enriched.is_understaffed
+            ev.is_own = True
+            merged.append(ev)
+        for ev in team_events:
+            if ev.appointment_id not in own_ids:
+                ev.is_own = False
+                merged.append(ev)
+        events = merged
+    else:
+        # Auch im Default-Modus cast_count anreichern, damit unterbesetzt-Filter
+        # konsistent wirkt.
+        team_events = get_team_appointments_for_person(session, person_id, start, end)
+        cast_by_id = {ev.appointment_id: ev for ev in team_events}
+        for ev in own_events:
+            enriched = cast_by_id.get(ev.appointment_id)
+            if enriched is not None:
+                ev.cast_count = enriched.cast_count
+                ev.cast_required = enriched.cast_required
+                ev.is_understaffed = enriched.is_understaffed
+            ev.is_own = True
+        events = own_events
+
+    if only_understaffed:
+        events = [ev for ev in events if ev.is_understaffed]
 
     def _dt(d, t):
         """Kombiniert Datum + Zeit zu ISO-Datetime-String für FullCalendar."""
@@ -110,6 +161,10 @@ def calendar_events(
                 "time_end": ev.time_end.strftime("%H:%M") if ev.time_end else "",
                 "notes": ev.appointment_notes or "",
                 "plan_period_id": str(ev.plan_period_id),
+                "is_own": ev.is_own,
+                "is_understaffed": ev.is_understaffed,
+                "cast_count": ev.cast_count,
+                "cast_required": ev.cast_required,
             },
         }
         for ev in events
@@ -128,6 +183,9 @@ def appointment_detail(
 ):
     person_id = _require_person(user)
     event = get_appointment_detail(session, appointment_id, person_id)
+    # Fallback: fremder Termin in einem Team der Person (E1-Show-All)
+    if event is None:
+        event = get_appointment_detail_for_team(session, appointment_id, person_id)
 
     if event is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)

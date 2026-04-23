@@ -18,6 +18,7 @@ from web_api.dispatcher.router import router as dispatcher_router
 from web_api.employees.router import router as employees_router
 from web_api.exceptions import LoginRequired
 from web_api.inbox.router import router as inbox_router
+from web_api.offers.router import router as offers_router
 from web_api.scheduler.setup import create_scheduler
 from web_api.settings.router import router as settings_router
 from web_api.swap_requests.router import router as swap_requests_router
@@ -52,6 +53,7 @@ app.include_router(cancellations_router)
 app.include_router(inbox_router)
 app.include_router(settings_router)
 app.include_router(swap_requests_router)
+app.include_router(offers_router)
 
 
 @app.exception_handler(LoginRequired)

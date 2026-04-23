@@ -143,6 +143,50 @@
     </div>
     {% endif %}
 
+    <!-- Angebots-Aktion (nur bei fremden unterbesetzten Terminen in der Zukunft) -->
+    {% if not event.is_own and event.is_understaffed and event.is_binding and event.event_date >= today %}
+    <div id="offer-action-area" class="bg-white rounded-xl border border-rose-100 shadow-sm p-4 mb-3">
+        {% if own_pending_offer %}
+            {# Zustand: Mitarbeiter hat bereits ein Pending-Offer. #}
+            <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-2">Dein Angebot</p>
+            <p class="text-sm text-slate-600 leading-relaxed mb-3 font-sans">
+                Wartet auf Rückmeldung des Disponenten.
+            </p>
+            <form hx-post="/offers/{{ own_pending_offer.id }}/withdraw"
+                  hx-target="#offer-action-area"
+                  hx-swap="innerHTML">
+                <button type="submit"
+                        class="w-full py-2 rounded-xl text-sm font-medium border border-slate-200 text-slate-600 hover:bg-slate-50 transition-colors font-sans">
+                    Angebot zurückziehen
+                </button>
+            </form>
+        {% else %}
+            {# Zustand: Neues Angebot stellen. #}
+            <p class="text-xs font-semibold tracking-widest uppercase text-rose-500 mb-2">Unterbesetzt</p>
+            <p class="text-sm text-slate-600 leading-relaxed mb-3 font-sans">
+                Dieser Termin braucht noch Mitarbeiter. Möchtest du einspringen?
+            </p>
+            <form hx-post="/offers"
+                  hx-target="#offer-action-area"
+                  hx-swap="innerHTML"
+                  class="space-y-2">
+                <input type="hidden" name="appointment_id" value="{{ event.appointment_id }}">
+                <textarea name="message"
+                          rows="2"
+                          maxlength="280"
+                          placeholder="Nachricht an den Disponenten (optional)"
+                          class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 font-sans
+                                 text-slate-700 placeholder-slate-400 resize-none
+                                 focus:outline-none focus:border-brand/60 focus:ring-1 focus:ring-brand/30"></textarea>
+                <button type="submit"
+                        class="w-full py-2 rounded-xl text-sm font-medium border border-brand/30 bg-brand/10 text-brand hover:bg-brand/20 transition-colors font-sans">
+                    Ich kann einspringen
+                </button>
+            </form>
+        {% endif %}
+    </div>
+    {% endif %}
+
     <!-- Aktions-Buttons (nur bei verbindlichen eigenen Terminen) -->
     {% if event.is_binding and event.is_own %}
     <div class="mt-auto pt-2 pb-1 flex flex-col gap-2">

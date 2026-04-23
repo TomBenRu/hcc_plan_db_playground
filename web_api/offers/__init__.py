@@ -1,0 +1,1 @@
+"""AvailabilityOffer-Workflow: Mitarbeiter bieten sich proaktiv für unterbesetzte Termine an."""

@@ -101,6 +101,10 @@ class InboxMessageType(str, enum.Enum):
     swap_withdrawn = "swap_withdrawn"
     dispatcher_removed_from_cast = "dispatcher_removed_from_cast"
     plan_unbound = "plan_unbound"
+    availability_offer_received = "availability_offer_received"
+    availability_offer_accepted = "availability_offer_accepted"
+    availability_offer_rejected = "availability_offer_rejected"
+    availability_offer_withdrawn = "availability_offer_withdrawn"
 
 
 # ── Absage-Workflow — Modelle ─────────────────────────────────────────────────
@@ -258,6 +262,42 @@ class SwapRequest(SQLModel, table=True):
     status: SwapRequestStatus = Field(
         sa_column=Column(
             SAEnum(SwapRequestStatus, name="swaprequeststatus"),
+            nullable=False,
+        )
+    )
+    created_at: datetime = Field(default_factory=_utcnow)
+
+
+class AvailabilityOfferStatus(str, enum.Enum):
+    pending = "pending"
+    accepted_by_dispatcher = "accepted_by_dispatcher"
+    rejected_by_dispatcher = "rejected_by_dispatcher"
+    withdrawn = "withdrawn"
+    superseded_by_cast_change = "superseded_by_cast_change"
+    superseded_by_plan_unbind = "superseded_by_plan_unbind"
+
+
+class AvailabilityOffer(SQLModel, table=True):
+    """Proaktives Angebot eines Mitarbeiters auf einen unterbesetzten Termin.
+
+    Im Gegensatz zu TakeoverOffer ist dieses Angebot nicht an eine bestehende
+    Absage gebunden, sondern reagiert auf strukturelle Unterbesetzung — die
+    Person ist nicht eingeteilt, möchte aber einspringen. Dispatcher entscheidet.
+    """
+
+    __tablename__ = "availability_offer"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    offerer_web_user_id: uuid.UUID = Field(
+        foreign_key="web_user.id", ondelete="CASCADE"
+    )
+    appointment_id: uuid.UUID = Field(
+        foreign_key="appointment.id", ondelete="CASCADE"
+    )
+    message: Optional[str] = Field(default=None)
+    status: AvailabilityOfferStatus = Field(
+        sa_column=Column(
+            SAEnum(AvailabilityOfferStatus, name="availabilityofferstatus"),
             nullable=False,
         )
     )

@@ -372,6 +372,25 @@ def get_team_appointments_for_person(
     return result
 
 
+def get_own_pending_offer_for_appointment(
+    session: Session,
+    web_user_id: uuid.UUID,
+    appointment_id: uuid.UUID,
+):
+    """Pending-AvailabilityOffer des Users für einen konkreten Appointment (oder None).
+
+    Bewusst lokaler Import, weil web_models erst nach den DB-Modellen geladen wird
+    und wir keinen Zirkel zwischen employees/service und offers/service wollen.
+    """
+    from web_api.models.web_models import AvailabilityOffer, AvailabilityOfferStatus
+    return session.execute(
+        sa_select(AvailabilityOffer)
+        .where(AvailabilityOffer.offerer_web_user_id == web_user_id)
+        .where(AvailabilityOffer.appointment_id == appointment_id)
+        .where(AvailabilityOffer.status == AvailabilityOfferStatus.pending)
+    ).scalar_one_or_none()
+
+
 def get_appointment_detail_for_team(
     session: Session,
     appointment_id: uuid.UUID,

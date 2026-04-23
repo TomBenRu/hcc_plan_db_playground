@@ -85,6 +85,12 @@ _ROLE_SECTIONS = {
                 "url": "/dispatcher/swap-requests",
                 "icon": "M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4",
             },
+            {
+                "title": "Angebote",
+                "desc": "Einsprung-Angebote für unterbesetzte Termine annehmen oder ablehnen",
+                "url": "/offers/dispatcher",
+                "icon": "M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11",
+            },
         ],
     },
     WebUserRole.admin: {

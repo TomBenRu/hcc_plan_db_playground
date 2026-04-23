@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+
+{% block title %}Angebote — hcc plan{% endblock %}
+
+{% block nav %}{% include "partials/nav.html" %}{% endblock %}
+
+{% block content %}
+<div class="min-h-[calc(100vh-56px)] bg-slate-50 dark:bg-slate-900 px-5 py-10">
+    <div class="max-w-3xl mx-auto animate-fade-up">
+
+        <div class="mb-6">
+            <p class="text-xs uppercase tracking-widest font-semibold text-slate-400 mb-2 font-sans">
+                Disposition
+            </p>
+            <h1 class="font-display text-2xl font-semibold text-slate-800 dark:text-slate-100 leading-tight">
+                Angebote auf unterbesetzte Termine
+            </h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-2 font-sans">
+                {% if total_count == 0 %}
+                    Keine offenen Angebote.
+                {% elif total_count == 1 %}
+                    Ein offenes Angebot wartet auf deine Entscheidung.
+                {% else %}
+                    {{ total_count }} offene Angebote warten auf deine Entscheidung.
+                {% endif %}
+            </p>
+        </div>
+
+        {% if offers %}
+        <div id="offer-list" class="space-y-3">
+            {% for offer in offers %}
+                {% set card_index = loop.index0 %}
+                {% include "offers/partials/offer_card.html" %}
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm p-8 text-center">
+            <div class="w-10 h-10 mx-auto rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-3">
+                <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"/>
+                </svg>
+            </div>
+            <p class="text-sm text-slate-500 dark:text-slate-400 font-sans">
+                Aktuell liegen keine Angebote vor.
+            </p>
+        </div>
+        {% endif %}
+
+        <a href="/dashboard"
+           class="inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 transition-colors font-sans mt-6">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Zurück zum Dashboard
+        </a>
+
+    </div>
+</div>
+{% endblock %}

@@ -15,6 +15,7 @@ from web_api.employees.service import (
     get_appointment_detail_for_team,
     get_appointments_for_person,
     get_coworkers_for_appointment,
+    get_own_pending_offer_for_appointment,
     get_plan_periods_for_person,
     get_team_appointments_for_person,
     location_color,
@@ -192,7 +193,21 @@ def appointment_detail(
 
     coworkers = get_coworkers_for_appointment(session, appointment_id)
 
+    # Nur bei fremden unterbesetzten Terminen braucht das Template den Offer-Status —
+    # sonst ist der Offer-Action-Block ohnehin nicht sichtbar.
+    own_pending_offer = None
+    if not event.is_own and event.is_understaffed:
+        own_pending_offer = get_own_pending_offer_for_appointment(
+            session, user.id, appointment_id
+        )
+
     return templates.TemplateResponse(
         "employees/partials/appointment_detail.html",
-        {"request": request, "event": event, "coworkers": coworkers},
+        {
+            "request": request,
+            "event": event,
+            "coworkers": coworkers,
+            "own_pending_offer": own_pending_offer,
+            "today": date.today(),
+        },
     )

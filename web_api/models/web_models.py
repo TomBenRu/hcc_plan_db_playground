@@ -295,6 +295,7 @@ class AvailabilityOffer(SQLModel, table=True):
         foreign_key="appointment.id", ondelete="CASCADE"
     )
     message: Optional[str] = Field(default=None)
+    rejection_reason: Optional[str] = Field(default=None)
     status: AvailabilityOfferStatus = Field(
         sa_column=Column(
             SAEnum(AvailabilityOfferStatus, name="availabilityofferstatus"),

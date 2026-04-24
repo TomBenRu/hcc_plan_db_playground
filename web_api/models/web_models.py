@@ -59,6 +59,7 @@ class WebUser(SQLModel, table=True):
     is_active: bool = Field(default=True)
     created_at: datetime = Field(default_factory=_utcnow)
     last_modified: datetime = Field(default_factory=_utcnow)
+    password_changed_at: datetime = Field(default_factory=_utcnow)
 
     role_links: list[WebUserRoleLink] = Relationship(back_populates="user")
 
@@ -69,6 +70,31 @@ class WebUser(SQLModel, table=True):
 
     def has_any_role(self, *roles: WebUserRole) -> bool:
         return bool(self.roles & set(roles))
+
+
+# ── Auth: Passwort-Reset ──────────────────────────────────────────────────────
+
+
+class PasswordResetToken(SQLModel, table=True):
+    """Single-Use-Token für Passwort-Zurücksetzen.
+
+    token_hash ist der SHA-256-Hex-Digest des Klartext-Tokens (bcrypt ist hier
+    ungeeignet, weil wir für den Lookup einen deterministischen Hash brauchen;
+    das Token selbst ist hochentropisch (256 Bit) und kurzlebig).
+    """
+
+    __tablename__ = "password_reset_token"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    web_user_id: uuid.UUID = Field(
+        foreign_key="web_user.id",
+        ondelete="CASCADE",
+        index=True,
+    )
+    token_hash: str = Field(unique=True, index=True, max_length=64)
+    expires_at: datetime
+    used_at: Optional[datetime] = Field(default=None, nullable=True)
+    created_at: datetime = Field(default_factory=_utcnow)
 
 
 # ── Absage-Workflow — Enums ───────────────────────────────────────────────────

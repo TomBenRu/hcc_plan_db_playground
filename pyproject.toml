@@ -12,6 +12,7 @@ dependencies = [
     "pydantic[email]>=2.12.5",
     "pyjwt>=2.9",
     "psycopg2-binary>=2.9",
+    "slowapi>=0.1.9",
     "pytz>=2025.2",
     "requests>=2.32",
     "sqlmodel>=0.0.37",

@@ -3,6 +3,9 @@ from urllib.parse import quote
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse, RedirectResponse
+from slowapi import Limiter
+from slowapi.errors import RateLimitExceeded
+from slowapi.util import get_remote_address
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, text
 
@@ -42,6 +45,24 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+# Rate-Limiter: wird pro Endpoint via @limiter.limit(...) aktiviert.
+# In-Memory-Backend ist OK, solange die App als Single-Instance läuft.
+limiter = Limiter(key_func=get_remote_address)
+app.state.limiter = limiter
+
+
+@app.exception_handler(RateLimitExceeded)
+async def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONResponse:
+    """429 mit HTMX-freundlichem Trigger-Header für Toast-Nachrichten."""
+    response = JSONResponse(
+        status_code=429,
+        content={"detail": "Zu viele Anfragen — bitte warte einen Moment."},
+    )
+    if request.headers.get("HX-Request") == "true":
+        response.headers["HX-Trigger"] = "rate-limited"
+    return response
+
 
 app.include_router(admin_router)
 app.include_router(auth_router)

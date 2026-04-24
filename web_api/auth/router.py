@@ -1,5 +1,7 @@
 """Auth-Router: /auth/login, /auth/refresh, /auth/logout, /auth/me."""
 
+from datetime import datetime, timezone
+
 import jwt
 from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, Request, Response, status
 from fastapi.responses import HTMLResponse, RedirectResponse
@@ -51,10 +53,14 @@ def _set_auth_cookies(
     )
 
 
+def _normalize_email(email: str) -> str:
+    return email.strip().lower()
+
+
 def _load_user_with_roles(session: Session, email: str) -> WebUser | None:
     return session.exec(
         select(WebUser)
-        .where(WebUser.email == email)
+        .where(WebUser.email == _normalize_email(email))
         .options(selectinload(WebUser.role_links))  # type: ignore[arg-type]
     ).first()
 
@@ -218,6 +224,20 @@ def refresh(
             status.HTTP_401_UNAUTHORIZED,
             detail="Benutzer nicht gefunden oder inaktiv",
         )
+
+    # Refresh-Tokens, die VOR der letzten Passwort-Änderung ausgestellt wurden,
+    # sind ungültig (Reset oder Self-Change hat alle Sessions revoziert).
+    token_iat = payload.get("iat")
+    if token_iat is not None:
+        pwd_changed = user.password_changed_at
+        if pwd_changed.tzinfo is None:
+            pwd_changed = pwd_changed.replace(tzinfo=timezone.utc)
+        # 5s Toleranz gegen Uhren-Drift beim Ausstellen direkt nach einer Änderung
+        if token_iat + 5 < int(pwd_changed.timestamp()):
+            raise HTTPException(
+                status.HTTP_401_UNAUTHORIZED,
+                detail="Sitzung durch Passwort-Änderung beendet — bitte neu anmelden",
+            )
 
     role_values = [r.value for r in user.roles]
     access = create_access_token(str(user.id), user.email, role_values, settings)

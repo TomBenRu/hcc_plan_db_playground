@@ -19,7 +19,7 @@ from database.models import (
     Plan,
     TimeOfDay,
 )
-from web_api.availability.service import create_avail_day, find_avail_day
+from web_api.availability.service import create_avail_day, find_avail_day, reset_location_prefs_to_normal
 from web_api.email.service import EmailPayload
 from web_api.inbox.service import create_inbox_message
 from web_api.models.web_models import (
@@ -437,6 +437,7 @@ def reassign_appointment(
     avail_day = find_avail_day(session, new_app.id, event_date, time_of_day_id)
     if avail_day is None:
         avail_day = create_avail_day(session, new_app.id, event_date, time_of_day_id)
+        reset_location_prefs_to_normal(session, avail_day)
 
     # 5. Neuen Link anlegen
     new_link = AvailDayAppointmentLink(

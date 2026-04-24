@@ -30,7 +30,7 @@ from database.models import (
     TimeOfDay,
     TimeOfDayEnum,
 )
-from web_api.availability.service import create_avail_day, find_avail_day
+from web_api.availability.service import create_avail_day, find_avail_day, reset_location_prefs_to_normal
 from web_api.common import guest_count
 from web_api.email.service import EmailPayload
 from web_api.employees.service import CalendarEvent, location_color
@@ -445,6 +445,7 @@ def replace_cast_for_appointment(
             avail_day = find_avail_day(session, app_id, event_date, time_of_day_id)
             if avail_day is None:
                 avail_day = create_avail_day(session, app_id, event_date, time_of_day_id)
+                reset_location_prefs_to_normal(session, avail_day)
             avail_day_ids.append(avail_day.id)
 
     return update_appointment_avail_days(session, appointment_id, avail_day_ids)

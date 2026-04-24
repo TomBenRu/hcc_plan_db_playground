@@ -819,6 +819,20 @@ def create_avail_day(
     return ad
 
 
+def reset_location_prefs_to_normal(session: Session, avail_day: AvailDay) -> None:
+    """Setzt Location-/Partner-Location-Prefs des AvailDays auf 'normal' (leere M:N-Links).
+
+    Der `_on_insert_avail_day` Event-Listener kopiert beim Insert automatisch die
+    ActorPlanPeriod-Defaults — bei Cast-Zuwendung per Dispatcher/Planer sollen
+    individuelle Mitarbeiter-Präferenzen das Matching aber nicht verzerren.
+    Konvention der Codebase: score=1.0 wird nicht als Link abgelegt
+    (vgl. db_services.avail_day.replace_location_prefs_for_avail_days).
+    """
+    avail_day.actor_location_prefs_defaults.clear()
+    avail_day.actor_partner_location_prefs_defaults.clear()
+    session.flush()
+
+
 def delete_avail_day(session: Session, avail_day_id: uuid.UUID) -> None:
     """AvailDay + seine Child-Group löschen. Spiegelt db_services/avail_day.py:279-288."""
     ad = session.get(AvailDay, avail_day_id)

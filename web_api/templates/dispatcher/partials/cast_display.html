@@ -22,9 +22,9 @@
             </span>
             {% endif %}
             <button
-                hx-get="/dispatcher/plan/appointments/{{ appointment.id }}/cast?edit=1"
-                hx-target="#cast-section"
-                hx-swap="outerHTML"
+                hx-get="/dispatcher/plan/appointments/{{ appointment.id }}/cast/edit-modal"
+                hx-target="#modal-root"
+                hx-swap="innerHTML"
                 title="Cast bearbeiten"
                 aria-label="Cast bearbeiten"
                 class="w-7 h-7 rounded-lg flex items-center justify-center

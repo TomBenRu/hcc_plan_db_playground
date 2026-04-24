@@ -176,6 +176,9 @@
         {% block content %}{% endblock %}
     </main>
 
+    {# Globaler Modal-Root: wird per HTMX befüllt. Leer = kein Modal offen. #}
+    <div id="modal-root" aria-live="polite"></div>
+
     {# ── Theme-System ────────────────────────────────────────────────────── #}
     <script>
     (function () {
@@ -210,6 +213,67 @@
                 });
             });
         });
+    }());
+    </script>
+
+    {# ── Modal-System ───────────────────────────────────────────────── #}
+    <script>
+    (function () {
+        var root = null;
+
+        function getRoot() {
+            if (!root) root = document.getElementById('modal-root');
+            return root;
+        }
+
+        function isOpen() {
+            var r = getRoot();
+            return r && r.children.length > 0;
+        }
+
+        function close() {
+            var r = getRoot();
+            if (!r) return;
+            r.innerHTML = '';
+            document.body.style.overflow = '';
+        }
+
+        function onOpened() {
+            document.body.style.overflow = 'hidden';
+            var r = getRoot();
+            if (!r) return;
+            var focusable = r.querySelector(
+                '[data-autofocus], input:not([type=hidden]), textarea, select, button'
+            );
+            if (focusable) focusable.focus();
+        }
+
+        window.hccModal = { close: close, isOpen: isOpen };
+
+        // ESC schließt
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape' && isOpen()) {
+                e.stopPropagation();
+                close();
+            }
+        });
+
+        // Backdrop-Click schließt (Event-Delegation am Root)
+        document.addEventListener('click', function (e) {
+            if (!isOpen()) return;
+            var backdrop = e.target.closest('[data-modal-backdrop]');
+            if (backdrop && e.target === backdrop) close();
+        });
+
+        // HTMX-Hook: nach Einfügen von Inhalt in #modal-root → Setup
+        document.addEventListener('htmx:afterSwap', function (e) {
+            if (e.target && e.target.id === 'modal-root' && isOpen()) {
+                onOpened();
+            }
+        });
+
+        // Server-Signal zum Schließen (z. B. nach erfolgreichem Save)
+        document.body.addEventListener('hcc:close-modal', close);
     }());
     </script>
 

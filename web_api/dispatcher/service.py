@@ -9,8 +9,9 @@ from dataclasses import dataclass
 from datetime import date, time
 
 from fastapi import HTTPException, status
-from sqlalchemy import func
+from sqlalchemy import and_, func, or_
 from sqlalchemy import select as sa_select
+from sqlalchemy.orm.attributes import flag_modified
 from sqlmodel import Session
 
 from database.models import (
@@ -28,6 +29,7 @@ from database.models import (
     PlanPeriod,
     Project,
     Team,
+    TeamActorAssign,
     TimeOfDay,
     TimeOfDayEnum,
 )
@@ -259,6 +261,7 @@ def get_team_availability_for_appointment(
             TimeOfDay.end.label("event_end"),
             TimeOfDayEnum.time_index.label("event_time_index"),
             Plan.plan_period_id.label("plan_period_id"),
+            PlanPeriod.team_id.label("team_id"),
             Project.use_simple_time_slots.label("use_simple"),
         )
         .select_from(Appointment)
@@ -276,6 +279,7 @@ def get_team_availability_for_appointment(
 
     event_date = ctx_row["event_date"]
     plan_period_id = ctx_row["plan_period_id"]
+    team_id = ctx_row["team_id"]
     use_simple = bool(ctx_row["use_simple"])
     event_time_index = int(ctx_row["event_time_index"])
     event_start_min, event_end_min = _interval_minutes(
@@ -290,7 +294,10 @@ def get_team_availability_for_appointment(
         .where(AvailDayAppointmentLink.appointment_id == appointment_id)
     ).scalars().all())
 
-    # Alle Personen der Plan-Periode
+    # Personen der Plan-Periode, eingeschränkt auf tatsächliche Team-
+    # Zugehörigkeit am Event-Datum. `TeamActorAssign.end` ist exklusiv
+    # (siehe Modell-Docstring): Intervall gilt, solange start ≤ date
+    # und (end IS NULL OR end > date).
     person_rows = session.execute(
         sa_select(
             Person.id.label("person_id"),
@@ -300,6 +307,18 @@ def get_team_availability_for_appointment(
         )
         .select_from(ActorPlanPeriod)
         .join(Person, Person.id == ActorPlanPeriod.person_id)
+        .join(
+            TeamActorAssign,
+            and_(
+                TeamActorAssign.person_id == Person.id,
+                TeamActorAssign.team_id == team_id,
+                TeamActorAssign.start <= event_date,
+                or_(
+                    TeamActorAssign.end.is_(None),
+                    TeamActorAssign.end > event_date,
+                ),
+            ),
+        )
         .where(ActorPlanPeriod.plan_period_id == plan_period_id)
         .order_by(Person.l_name, Person.f_name)
     ).mappings().all()
@@ -340,8 +359,16 @@ def get_team_availability_for_appointment(
         a_start_min, a_end_min = _interval_minutes(a["avail_start"], a["avail_end"])
         return a_start_min <= event_start_min and a_end_min >= event_end_min
 
+    # Pro Person nur einen CastCandidate, auch wenn im DB-Layer mehrere
+    # ActorPlanPeriods für dieselbe Person in derselben Plan-Periode
+    # existieren sollten. Im UI ist pro Person genau eine Checkbox
+    # semantisch korrekt.
     result: list[CastCandidate] = []
+    seen_person_ids: set[uuid.UUID] = set()
     for p in person_rows:
+        if p["person_id"] in seen_person_ids:
+            continue
+        seen_person_ids.add(p["person_id"])
         app_id = p["actor_plan_period_id"]
         matching_avail_id: uuid.UUID | None = None
         for a in avails_by_app.get(app_id, []):
@@ -398,12 +425,39 @@ def get_cast_status_for_appointment(
     }
 
 
+def _normalize_and_validate_guests(raw_guests: list[str]) -> list[str]:
+    """Trimmt, entfernt Leereinträge und wirft bei (case-insensitiven) Duplikaten.
+
+    Duplikate werden bewusst hart abgelehnt statt still dedupliziert — der
+    User soll merken, dass er einen Namen doppelt eingegeben hat (Tippfehler,
+    versehentliches Doppelklicken). Der Vergleich ist case-insensitive, die
+    Ausgabe behält aber die ursprüngliche Groß-/Kleinschreibung des ersten
+    Vorkommens.
+    """
+    cleaned: list[str] = []
+    seen_lower: set[str] = set()
+    for raw in raw_guests:
+        stripped = raw.strip()
+        if not stripped:
+            continue
+        key = stripped.lower()
+        if key in seen_lower:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=f"Gast »{stripped}« ist mehrfach aufgeführt.",
+            )
+        seen_lower.add(key)
+        cleaned.append(stripped)
+    return cleaned
+
+
 def replace_cast_for_appointment(
     session: Session,
     appointment_id: uuid.UUID,
     person_ids: list[uuid.UUID],
+    guests: list[str] | None = None,
 ) -> list[EmailPayload]:
-    """Ersetzt die Cast-Zuordnung eines Appointments anhand von Person-IDs.
+    """Ersetzt die Cast-Zuordnung eines Appointments (Personen + optional Gäste).
 
     Für jede person_id wird der passende `ActorPlanPeriod` in der Plan-
     Periode gesucht und ein `AvailDay` für den Event-Slot gefunden oder
@@ -412,16 +466,26 @@ def replace_cast_for_appointment(
     aus `plan_adjustment/service.py`, welches die M:N-Zuordnung ersetzt
     und offene Requests entfernter Personen auf `superseded_by_cast_change`
     flippt + Notification-Payloads erzeugt.
+
+    Parameter `guests`:
+        - `None`: Gäste bleiben unverändert (Rückwärtskompatibilität).
+        - `list[str]`: Gäste werden komplett ersetzt. Strings werden getrimmt,
+          leere entfernt, Duplikate (case-insensitive) werfen 422.
+
+    Gesamt-Cap: `len(person_ids) + len(guests) <= CastGroup.nr_actors` — bei
+    Überschreitung 422. Der Check wird **vor** allen Side-Effects ausgeführt.
     """
     ctx_row = session.execute(
         sa_select(
             Event.date.label("event_date"),
             Event.time_of_day_id.label("time_of_day_id"),
             Plan.plan_period_id.label("plan_period_id"),
+            CastGroup.nr_actors.label("nr_actors"),
         )
         .select_from(Appointment)
         .join(Event, Event.id == Appointment.event_id)
         .join(Plan, Plan.id == Appointment.plan_id)
+        .join(CastGroup, CastGroup.id == Event.cast_group_id)
         .where(Appointment.id == appointment_id)
     ).mappings().first()
     if ctx_row is None:
@@ -430,6 +494,33 @@ def replace_cast_for_appointment(
     event_date = ctx_row["event_date"]
     time_of_day_id = ctx_row["time_of_day_id"]
     plan_period_id = ctx_row["plan_period_id"]
+    nr_actors_cap = int(ctx_row["nr_actors"])
+
+    # Gäste normalisieren (falls übergeben) — vor Obergrenze, damit der Cap
+    # gegen die finale, deduplizierte Liste geprüft wird.
+    clean_guests: list[str] | None = None
+    if guests is not None:
+        clean_guests = _normalize_and_validate_guests(guests)
+
+    # Obergrenze: aktuelle Gäste-Anzahl einbeziehen, falls guests=None.
+    if clean_guests is not None:
+        guests_count_for_cap = len(clean_guests)
+    else:
+        current_row = session.execute(
+            sa_select(Appointment.guests).where(Appointment.id == appointment_id)
+        ).first()
+        guests_count_for_cap = guest_count(current_row[0]) if current_row else 0
+
+    total_cast = len(person_ids) + guests_count_for_cap
+    if total_cast > nr_actors_cap:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                f"Die Cast-Größe ({total_cast}) überschreitet die Soll-Besetzung "
+                f"({nr_actors_cap}). Erhöhe zuerst die Soll-Größe oder reduziere "
+                f"Personen/Gäste."
+            ),
+        )
 
     avail_day_ids: list[uuid.UUID] = []
     if person_ids:
@@ -455,4 +546,79 @@ def replace_cast_for_appointment(
                 reset_location_prefs_to_normal(session, avail_day)
             avail_day_ids.append(avail_day.id)
 
-    return update_appointment_avail_days(session, appointment_id, avail_day_ids)
+    payloads = update_appointment_avail_days(session, appointment_id, avail_day_ids)
+
+    # Gäste erst nach dem Avail-Day-Update persistieren, damit bei einem
+    # Fehler oben die Gäste-Mutation nicht als Ghost-Write zurückbleibt.
+    # flag_modified ist nötig, weil die JSON-Spalte ohne MutableList
+    # deklariert ist — Reassignment wird von SA sonst nicht zuverlässig
+    # als dirty erkannt (silent no-op bei gleicher Python-Ident).
+    if clean_guests is not None:
+        appointment = session.get(Appointment, appointment_id)
+        if appointment is not None:
+            appointment.guests = clean_guests
+            flag_modified(appointment, "guests")
+            session.add(appointment)
+
+    return payloads
+
+
+_NR_ACTORS_MIN = 0
+_NR_ACTORS_MAX = 65535
+
+
+def set_cast_group_nr_actors(
+    session: Session,
+    appointment_id: uuid.UUID,
+    nr_actors: int,
+) -> dict:
+    """Setzt `CastGroup.nr_actors` für die CastGroup des Events eines Appointments.
+
+    Wichtig: `nr_actors` lebt auf CastGroup-Ebene, nicht auf Appointment-
+    Ebene. Eine Änderung wirkt daher auf **alle** Appointments desselben
+    Events (bei mehrfach gespielten Serien).
+
+    Web-API-eigenes UPDATE — ruft bewusst keine Desktop-db_services auf,
+    um die Architektur-Grenze zwischen Web-API und Desktop-Client-Services
+    sauber zu halten.
+
+    Return-Wert enthält die CastGroup-ID und eine `warnings`-Liste, die
+    z. B. einen Hinweis trägt, wenn die neue Soll-Größe unter die aktuelle
+    Besetzung fällt — der Aufrufer kann diesen Hinweis dem User zeigen.
+    """
+    if nr_actors < _NR_ACTORS_MIN or nr_actors > _NR_ACTORS_MAX:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"nr_actors muss zwischen {_NR_ACTORS_MIN} und {_NR_ACTORS_MAX} liegen",
+        )
+
+    row = session.execute(
+        sa_select(Event.cast_group_id)
+        .select_from(Appointment)
+        .join(Event, Event.id == Appointment.event_id)
+        .where(Appointment.id == appointment_id)
+    ).first()
+    if row is None or row[0] is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="CastGroup nicht gefunden")
+
+    cast_group_id = row[0]
+    cast_group = session.get(CastGroup, cast_group_id)
+    if cast_group is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="CastGroup nicht gefunden")
+
+    cast_group.nr_actors = nr_actors
+    session.add(cast_group)
+
+    status_data = get_cast_status_for_appointment(session, appointment_id)
+    warnings: list[str] = []
+    if status_data["cast_count"] > nr_actors:
+        warnings.append(
+            f"Aktuelle Besetzung ({status_data['cast_count']}) übersteigt "
+            f"die neue Soll-Größe ({nr_actors})."
+        )
+
+    return {
+        "cast_group_id": cast_group_id,
+        "nr_actors": nr_actors,
+        "warnings": warnings,
+    }

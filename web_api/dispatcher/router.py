@@ -4,7 +4,7 @@ import uuid
 from datetime import date
 
 from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Query, Request, status
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, Response
 from sqlmodel import Session
 
 from database.models import Appointment
@@ -23,6 +23,7 @@ from web_api.dispatcher.service import (
     get_team_availability_for_appointment,
     get_teams_for_dispatcher,
     replace_cast_for_appointment,
+    set_cast_group_nr_actors,
 )
 from web_api.email.service import send_emails_background
 from web_api.employees.service import get_coworkers_for_appointment
@@ -265,30 +266,13 @@ def dispatcher_notes_fragment(
 @router.get("/plan/appointments/{appointment_id}/cast", response_class=HTMLResponse)
 def dispatcher_cast_fragment(
     request: Request,
-    edit: bool = Query(default=False),
-    show_all: bool = Query(default=False),
     appointment: Appointment = Depends(require_team_dispatcher_for_appointment),
     session: Session = Depends(get_db_session),
 ):
-    """HTMX-Fragment: Cast-Anzeige (Display) oder Cast-Edit-Formular.
+    """HTMX-Fragment: Cast-Display (Status + Mitarbeiter-Liste).
 
-    Im Edit-Modus zeigt `show_all=True` alle Team-Mitarbeiter (inkl. nicht-
-    verfügbarer als ausgegraute Einträge mit Tooltip), `show_all=False`
-    nur aktuell zugeordnete und verfügbare.
+    Der Edit-Flow läuft über das separate Modal-Fragment (`/cast/edit-modal`).
     """
-    if edit:
-        candidates = get_team_availability_for_appointment(session, appointment.id)
-        return templates.TemplateResponse(
-            "dispatcher/partials/cast_edit.html",
-            {
-                "request": request,
-                "appointment": appointment,
-                "candidates": candidates,
-                "show_all": show_all,
-            },
-        )
-
-    # Display-Modus: Status + Mitarbeiter-Liste
     status_data = get_cast_status_for_appointment(session, appointment.id)
     coworkers = get_coworkers_for_appointment(session, appointment.id)
     return templates.TemplateResponse(
@@ -305,22 +289,74 @@ def dispatcher_cast_fragment(
     )
 
 
+@router.get("/plan/appointments/{appointment_id}/cast/edit-modal", response_class=HTMLResponse)
+def dispatcher_cast_edit_modal(
+    request: Request,
+    show_all: bool = Query(default=False),
+    appointment: Appointment = Depends(require_team_dispatcher_for_appointment),
+    session: Session = Depends(get_db_session),
+):
+    """HTMX-Fragment: Cast-Edit-Modal.
+
+    Wird in `#modal-root` geswapt. Enthält Soll-Größe (nr_actors) als Input,
+    Mitarbeiter-Auswahl, Gäste-Verwaltung und Live-Zähler.
+
+    `show_all=True` blendet auch nicht-verfügbare Team-Mitarbeiter ein (als
+    ausgegraute Einträge mit Tooltip).
+    """
+    candidates = get_team_availability_for_appointment(session, appointment.id)
+    status_data = get_cast_status_for_appointment(session, appointment.id)
+    return templates.TemplateResponse(
+        "dispatcher/partials/cast_edit_modal.html",
+        {
+            "request": request,
+            "appointment": appointment,
+            "candidates": candidates,
+            "guests": guest_list(appointment.guests),
+            "nr_actors": status_data["cast_required"],
+            "show_all": show_all,
+        },
+    )
+
+
+@router.patch("/plan/appointments/{appointment_id}/cast/nr-actors")
+def dispatcher_update_nr_actors(
+    nr_actors: int = Form(...),
+    appointment: Appointment = Depends(require_team_dispatcher_for_appointment),
+    session: Session = Depends(get_db_session),
+):
+    """Setzt die Soll-Besetzung der CastGroup des Events.
+
+    Wirkt auf **alle** Appointments desselben Events (CastGroup ist
+    event-global). Liefert 204 No Content — die Warnung über
+    Über-/Unterbesetzung wird client-seitig aus dem Live-Zähler
+    abgeleitet, weil der Server-State nicht den noch ungespeicherten
+    Cast-Zustand des offenen Modals kennt.
+    """
+    set_cast_group_nr_actors(session, appointment.id, nr_actors)
+    session.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT, headers={"HX-Trigger": "hcc:cast-changed"})
+
+
 @router.patch("/plan/appointments/{appointment_id}/avail-days", response_class=HTMLResponse)
 def dispatcher_update_cast(
     request: Request,
     background_tasks: BackgroundTasks,
     person_ids: list[uuid.UUID] = Form(default_factory=list),
+    guests: list[str] = Form(default_factory=list),
     appointment: Appointment = Depends(require_team_dispatcher_for_appointment),
     session: Session = Depends(get_db_session),
     settings=Depends(get_settings),
 ):
-    """Speichert Cast-Änderung; dispatcht Notifications; liefert Display-Fragment.
+    """Speichert Cast-Änderung (Personen + Gäste); liefert Display-Fragment.
 
-    Der Response-Header `HX-Trigger: hcc:cast-changed` sorgt dafür, dass der
-    Dispatcher-Plan-Kalender nach dem Swap refetchEvents() aufruft — so
-    bleibt der Event-Chip (inkl. Unterbesetzungs-Dot) konsistent.
+    Response-Header `HX-Trigger`:
+      - `hcc:cast-changed` — triggert Kalender-Refresh (Unterbesetzungs-Dot).
+      - `hcc:close-modal` — signalisiert dem Client, das offene Modal zu schließen.
     """
-    payloads = replace_cast_for_appointment(session, appointment.id, person_ids)
+    payloads = replace_cast_for_appointment(
+        session, appointment.id, person_ids, guests=guests
+    )
     session.commit()
     if payloads:
         background_tasks.add_task(send_emails_background, payloads, settings)
@@ -339,7 +375,7 @@ def dispatcher_update_cast(
             "is_understaffed": status_data["is_understaffed"],
         },
     )
-    response.headers["HX-Trigger"] = "hcc:cast-changed"
+    response.headers["HX-Trigger"] = "hcc:cast-changed, hcc:close-modal"
     return response
 
 

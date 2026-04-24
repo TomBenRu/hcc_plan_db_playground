@@ -610,7 +610,8 @@
 document.addEventListener('DOMContentLoaded', function () {
 
     // ── Farbenblindheit-Unterstützung ────────────────────────────────────────
-    const CB_PALETTE = ['#0072B2', '#E69F00', '#009E73', '#CC79A7', '#56B4E9', '#D55E00'];
+    // Single Source of Truth: web_api/palette.py → OKABE_ITO_PALETTE
+    const CB_PALETTE = {{ cb_palette | tojson }};
     const cbColorMap = new Map();
     let cbIdx = 0;
     function getCBColor(original) {

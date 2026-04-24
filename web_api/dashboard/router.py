@@ -152,6 +152,23 @@ _ROLE_SECTIONS = {
     },
 }
 
+# ── Persönliche Sektion (rollen-unabhängig, für alle eingeloggten User) ─────
+
+_PERSONAL_SECTION = {
+    "label": "Persönlich",
+    "color": "#64748B",        # slate-500 — bewusst neutraler Ton gegenüber Rollen-Farben
+    "color_light": "#F1F5F9",  # slate-100
+    "tiles": [
+        {
+            "title": "Einstellungen",
+            "desc": "Eigene Farben für Einsatzorte und weitere Präferenzen",
+            "url": "/user/settings",
+            "icon": "M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z M15 12a3 3 0 11-6 0 3 3 0 016 0z",
+        },
+    ],
+}
+
+
 # ── Badge-Count-Adapter je Tile-URL ──────────────────────────────────────────
 # Mapping: URL → callable(session, user) → int. Tiles ohne Eintrag zeigen keinen Badge.
 
@@ -212,6 +229,19 @@ def dashboard(request: Request, user: LoggedInUser, session: Session = Depends(g
             for tile in section["tiles"]
         ]
         sections.append({**section, "tiles": tiles})
+
+    # Persönliche Sektion für jeden eingeloggten User ans Ende hängen —
+    # rollen-unabhängig, keine Badge-Counts.
+    personal_tiles = [
+        {
+            **tile,
+            "color": _PERSONAL_SECTION["color"],
+            "color_light": _PERSONAL_SECTION["color_light"],
+            "count": None,
+        }
+        for tile in _PERSONAL_SECTION["tiles"]
+    ]
+    sections.append({**_PERSONAL_SECTION, "tiles": personal_tiles})
 
     # Anzeigename: Vor- und Zuname aus Person-Eintrag, Fallback auf E-Mail-Prefix
     display_name = user.email.split("@")[0].replace(".", " ").replace("_", " ").title()

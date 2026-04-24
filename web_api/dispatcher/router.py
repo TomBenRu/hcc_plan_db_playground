@@ -12,6 +12,7 @@ from web_api.auth.dependencies import WebUserRole, require_role
 from web_api.cancellations.service import get_cancellations_for_dispatcher
 from web_api.common import guest_list
 from web_api.config import get_settings
+from web_api.user_settings.service import get_color_overrides
 from web_api.dependencies import get_db_session
 from web_api.dispatcher.dependencies import require_team_dispatcher_for_appointment
 from web_api.dispatcher.service import (
@@ -104,8 +105,10 @@ def dispatcher_plan(
     initial_date = date.today().isoformat()
 
     # Location-Legende aus den tatsächlich sichtbaren Events aufbauen
+    overrides = get_color_overrides(session, user.id)
     all_events = get_appointments_for_teams(
-        session, effective_ids, only_understaffed=only_understaffed
+        session, effective_ids, only_understaffed=only_understaffed,
+        user_overrides=overrides,
     )
     seen: dict[uuid.UUID, tuple[str, str]] = {}
     for ev in all_events:
@@ -161,9 +164,11 @@ def dispatcher_plan_events(
     allowed_ids = [t.id for t in my_teams]
     effective_ids = filter_allowed_team_ids(teams, allowed_ids)
 
+    overrides = get_color_overrides(session, user.id)
     events = get_appointments_for_teams(
         session, effective_ids, start, end,
         only_understaffed=only_understaffed,
+        user_overrides=overrides,
     )
 
     def _dt(d: date, t) -> str:
@@ -210,7 +215,8 @@ def dispatcher_appointment_detail(
     my_teams = get_teams_for_dispatcher(session, person_id)
     allowed_ids = [t.id for t in my_teams]
 
-    event = get_appointment_detail_for_dispatcher(session, appointment_id, allowed_ids)
+    overrides = get_color_overrides(session, user.id)
+    event = get_appointment_detail_for_dispatcher(session, appointment_id, allowed_ids, user_overrides=overrides)
     if event is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
 

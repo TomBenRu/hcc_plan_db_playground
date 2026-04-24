@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+
+{% block title %}Einstellungen — hcc plan{% endblock %}
+
+{% block nav %}
+    {% include "partials/nav.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="min-h-[calc(100vh-56px)] bg-slate-50 dark:bg-slate-900 px-5 py-10">
+    <div class="max-w-3xl mx-auto animate-fade-up">
+
+        <div class="mb-6">
+            <p class="text-xs uppercase tracking-widest font-semibold text-slate-400 mb-2 font-sans">
+                Persönlich
+            </p>
+            <h1 class="font-display text-2xl font-semibold text-slate-800 dark:text-slate-100 leading-tight">
+                Einstellungen
+            </h1>
+        </div>
+
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm p-6 mb-6">
+            <div class="mb-5">
+                <h2 class="font-display text-lg font-semibold text-slate-800 dark:text-slate-100">Einsatzort-Farben</h2>
+                <p class="text-sm text-slate-500 dark:text-slate-400 mt-1 font-sans leading-relaxed">
+                    Wähle für jeden Einsatzort eine Farbe, die im Kalender zur schnelleren Orientierung dient.
+                    Ohne Wahl gilt eine automatische Default-Farbe.
+                </p>
+            </div>
+
+            {% if locations %}
+            <div class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                {% for loc in locations %}
+                    {% include "user_settings/partials/location_row.html" %}
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-sm text-slate-400 dark:text-slate-500 italic font-sans">
+                Du hast aktuell keine planbaren Einsatzorte.
+            </p>
+            {% endif %}
+        </div>
+
+        <a href="/dashboard"
+           class="inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 transition-colors font-sans">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Zurück zum Dashboard
+        </a>
+
+    </div>
+</div>
+{% endblock %}

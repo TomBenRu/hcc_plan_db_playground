@@ -18,9 +18,9 @@ from web_api.employees.service import (
     get_own_pending_offer_for_appointment,
     get_plan_periods_for_person,
     get_team_appointments_for_person,
-    location_color,
 )
 from web_api.templating import templates
+from web_api.user_settings.service import get_color_overrides
 
 router = APIRouter(prefix="/employees", tags=["employees"])
 
@@ -57,8 +57,9 @@ def calendar_page(
 
     # Legende aus own + team: deckt alle Orte ab, die mit dem Show-All-Toggle
     # überhaupt erscheinen können, damit sich die Legende nicht an-/abschaltet.
-    own_events = get_appointments_for_person(session, person_id)
-    team_events = get_team_appointments_for_person(session, person_id)
+    overrides = get_color_overrides(session, user.id)
+    own_events = get_appointments_for_person(session, person_id, user_overrides=overrides)
+    team_events = get_team_appointments_for_person(session, person_id, user_overrides=overrides)
     seen: dict[uuid.UUID, tuple[str, str]] = {}
     for ev in own_events + team_events:
         if ev.location_id not in seen:
@@ -101,12 +102,13 @@ def calendar_events(
     - `only_understaffed=1`: filtert unterbesetzte Termine (Intersection mit show_all).
     """
     person_id = _require_person(user)
+    overrides = get_color_overrides(session, user.id)
 
-    own_events = get_appointments_for_person(session, person_id, start, end)
+    own_events = get_appointments_for_person(session, person_id, start, end, user_overrides=overrides)
     own_ids = {ev.appointment_id for ev in own_events}
 
     if show_all:
-        team_events = get_team_appointments_for_person(session, person_id, start, end)
+        team_events = get_team_appointments_for_person(session, person_id, start, end, user_overrides=overrides)
         # Eigene haben keinen cast_count (old query sammelt nicht) — per appointment_id
         # aus team_events anreichern, damit auch für own-Events unterbesetzt markiert
         # wird und die Definition konsistent ist.
@@ -128,7 +130,7 @@ def calendar_events(
     else:
         # Auch im Default-Modus cast_count anreichern, damit unterbesetzt-Filter
         # konsistent wirkt.
-        team_events = get_team_appointments_for_person(session, person_id, start, end)
+        team_events = get_team_appointments_for_person(session, person_id, start, end, user_overrides=overrides)
         cast_by_id = {ev.appointment_id: ev for ev in team_events}
         for ev in own_events:
             enriched = cast_by_id.get(ev.appointment_id)
@@ -184,10 +186,11 @@ def appointment_detail(
     session: Session = Depends(get_db_session),
 ):
     person_id = _require_person(user)
-    event = get_appointment_detail(session, appointment_id, person_id)
+    overrides = get_color_overrides(session, user.id)
+    event = get_appointment_detail(session, appointment_id, person_id, user_overrides=overrides)
     # Fallback: fremder Termin in einem Team der Person (E1-Show-All)
     if event is None:
-        event = get_appointment_detail_for_team(session, appointment_id, person_id)
+        event = get_appointment_detail_for_team(session, appointment_id, person_id, user_overrides=overrides)
 
     if event is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)

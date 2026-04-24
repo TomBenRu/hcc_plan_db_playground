@@ -153,6 +153,30 @@ class LocationNotificationCircle(SQLModel, table=True):
     created_at: datetime = Field(default_factory=_utcnow)
 
 
+class UserLocationColor(SQLModel, table=True):
+    """User-spezifische Farb-Überschreibung für einen Arbeitsort.
+
+    Fehlende Einträge bedeuten Lazy-Default: solange ein User keine Farbe
+    explizit wählt, gilt `palette.default_location_color()` als Fallback.
+    """
+
+    __tablename__ = "user_location_color"
+
+    web_user_id: uuid.UUID = Field(
+        foreign_key="web_user.id",
+        primary_key=True,
+        ondelete="CASCADE",
+    )
+    location_of_work_id: uuid.UUID = Field(
+        foreign_key="location_of_work.id",
+        primary_key=True,
+        ondelete="CASCADE",
+    )
+    color: str = Field(max_length=9)
+    created_at: datetime = Field(default_factory=_utcnow)
+    last_modified: datetime = Field(default_factory=_utcnow)
+
+
 class CancellationRequest(SQLModel, table=True):
     """Absage-Antrag eines Mitarbeiters für einen Appointment."""
 

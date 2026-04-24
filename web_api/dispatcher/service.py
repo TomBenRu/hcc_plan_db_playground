@@ -34,7 +34,8 @@ from database.models import (
 from web_api.availability.service import create_avail_day, find_avail_day, reset_location_prefs_to_normal
 from web_api.common import guest_count, location_display_name
 from web_api.email.service import EmailPayload
-from web_api.employees.service import CalendarEvent, location_color
+from web_api.employees.service import CalendarEvent
+from web_api.palette import location_color
 from web_api.plan_adjustment.service import update_appointment_avail_days
 
 
@@ -63,6 +64,7 @@ def get_appointments_for_teams(
     start_date: date | None = None,
     end_date: date | None = None,
     only_understaffed: bool = False,
+    user_overrides: dict[uuid.UUID, str] | None = None,
 ) -> list[CalendarEvent]:
     """Alle Appointments der angegebenen Teams als CalendarEvents.
 
@@ -142,7 +144,7 @@ def get_appointments_for_teams(
             location_name=location_display_name(r["location_name"], r["location_city"]),
             location_name_only=r["location_name"],
             location_id=r["location_id"],
-            color=location_color(r["location_id"]),
+            color=location_color(r["location_id"], user_overrides),
             time_of_day_name=r["time_of_day_name"],
             time_start=r["time_start"],
             time_end=r["time_end"],
@@ -165,9 +167,10 @@ def get_appointment_detail_for_dispatcher(
     session: Session,
     appointment_id: uuid.UUID,
     allowed_team_ids: list[uuid.UUID],
+    user_overrides: dict[uuid.UUID, str] | None = None,
 ) -> CalendarEvent | None:
     """Einzelner Appointment — nur wenn er zu einem erlaubten Team gehört."""
-    events = get_appointments_for_teams(session, allowed_team_ids)
+    events = get_appointments_for_teams(session, allowed_team_ids, user_overrides=user_overrides)
     for ev in events:
         if ev.appointment_id == appointment_id:
             return ev

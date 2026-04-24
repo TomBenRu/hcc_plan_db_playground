@@ -31,6 +31,7 @@ from database.models import (
     TimeOfDay,
 )
 from web_api.common import guest_list, location_display_name
+from web_api.palette import location_color
 from web_api.models.web_models import (
     CancellationRequest,
     CancellationStatus,
@@ -38,24 +39,6 @@ from web_api.models.web_models import (
     SwapRequestStatus,
 )
 from web_api.settings.service import get_effective_deadline
-
-# ── Farb-Palette für Einsatzorte ──────────────────────────────────────────────
-_LOCATION_COLORS = [
-    "#F97316",  # orange  (Brand)
-    "#38BDF8",  # sky
-    "#2DD4BF",  # teal
-    "#818CF8",  # indigo
-    "#F472B6",  # pink
-    "#4ADE80",  # grün
-    "#FB923C",  # orange-400
-    "#A78BFA",  # violet
-]
-
-
-def location_color(location_id: uuid.UUID) -> str:
-    """Deterministisch: gleicher Ort → gleiche Farbe."""
-    return _LOCATION_COLORS[hash(str(location_id)) % len(_LOCATION_COLORS)]
-
 
 # ── Datenklassen ──────────────────────────────────────────────────────────────
 
@@ -137,6 +120,7 @@ def get_appointments_for_person(
     person_id: uuid.UUID,
     start_date: date | None = None,
     end_date: date | None = None,
+    user_overrides: dict[uuid.UUID, str] | None = None,
 ) -> list[CalendarEvent]:
     """Join-Query über alle Ebenen. Liefert CalendarEvents für FullCalendar."""
     stmt = (
@@ -236,7 +220,7 @@ def get_appointments_for_person(
             location_name=location_display_name(row["location_name"], row["location_city"]),
             location_name_only=row["location_name"],
             location_id=row["location_id"],
-            color=location_color(row["location_id"]),
+            color=location_color(row["location_id"], user_overrides),
             time_of_day_name=row["time_of_day_name"],
             time_start=row["time_start"],
             time_end=row["time_end"],
@@ -260,10 +244,11 @@ def get_appointment_detail(
     session: Session,
     appointment_id: uuid.UUID,
     person_id: uuid.UUID,
+    user_overrides: dict[uuid.UUID, str] | None = None,
 ) -> CalendarEvent | None:
     """Einzelner Appointment — nur wenn er der Person gehört."""
     results = get_appointments_for_person(
-        session, person_id,
+        session, person_id, user_overrides=user_overrides,
     )
     for ev in results:
         if ev.appointment_id == appointment_id:
@@ -288,6 +273,7 @@ def get_team_appointments_for_person(
     start_date: date | None = None,
     end_date: date | None = None,
     only_understaffed: bool = False,
+    user_overrides: dict[uuid.UUID, str] | None = None,
 ) -> list[CalendarEvent]:
     """Alle Termine in den Teams der Person (auch fremde Zuordnungen).
 
@@ -365,7 +351,7 @@ def get_team_appointments_for_person(
             location_name=location_display_name(r["location_name"], r["location_city"]),
             location_name_only=r["location_name"],
             location_id=r["location_id"],
-            color=location_color(r["location_id"]),
+            color=location_color(r["location_id"], user_overrides),
             time_of_day_name=r["time_of_day_name"],
             time_start=r["time_start"],
             time_end=r["time_end"],
@@ -408,6 +394,7 @@ def get_appointment_detail_for_team(
     session: Session,
     appointment_id: uuid.UUID,
     person_id: uuid.UUID,
+    user_overrides: dict[uuid.UUID, str] | None = None,
 ) -> CalendarEvent | None:
     """Team-autorisiertes Detail-Lookup für fremde Termine (E1-Show-All).
 
@@ -420,7 +407,7 @@ def get_appointment_detail_for_team(
         return None
     # Range bewusst weit — wir filtern auf appointment_id in-memory, um die Team-
     # Query nicht zu duplizieren.
-    candidates = get_team_appointments_for_person(session, person_id)
+    candidates = get_team_appointments_for_person(session, person_id, user_overrides=user_overrides)
     for ev in candidates:
         if ev.appointment_id == appointment_id:
             ev.is_own = False

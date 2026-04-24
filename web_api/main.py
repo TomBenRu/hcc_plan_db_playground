@@ -22,6 +22,7 @@ from web_api.offers.router import router as offers_router
 from web_api.scheduler.setup import create_scheduler
 from web_api.settings.router import router as settings_router
 from web_api.swap_requests.router import router as swap_requests_router
+from web_api.user_settings.router import router as user_settings_router
 
 scheduler = None
 
@@ -54,6 +55,7 @@ app.include_router(inbox_router)
 app.include_router(settings_router)
 app.include_router(swap_requests_router)
 app.include_router(offers_router)
+app.include_router(user_settings_router)
 
 
 @app.exception_handler(LoginRequired)

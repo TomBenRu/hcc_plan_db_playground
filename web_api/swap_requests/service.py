@@ -29,6 +29,7 @@ from web_api.cancellations.service import (
     _load_appointment_context,
     _render_email,
 )
+from web_api.common import location_display_name
 from web_api.email.service import EmailPayload
 from web_api.inbox.service import create_inbox_message
 from web_api.models.web_models import (
@@ -691,6 +692,7 @@ def get_swap_candidate_appointments(
         sa_select(
             Appointment.id.label("appointment_id"),
             LocationOfWork.name.label("location_name"),
+            Address.city.label("location_city"),
             Event.date.label("event_date"),
             TimeOfDay.name.label("time_of_day_name"),
             WebUser.id.label("holder_web_user_id"),
@@ -701,6 +703,7 @@ def get_swap_candidate_appointments(
         .join(Event, Event.id == Appointment.event_id)
         .join(LocationPlanPeriod, LocationPlanPeriod.id == Event.location_plan_period_id)
         .join(LocationOfWork, LocationOfWork.id == LocationPlanPeriod.location_of_work_id)
+        .join(Address, Address.id == LocationOfWork.address_id, isouter=True)
         .join(TimeOfDay, TimeOfDay.id == Event.time_of_day_id)
         .join(Plan, Plan.id == Appointment.plan_id)
         .join(PlanPeriod, PlanPeriod.id == Plan.plan_period_id)
@@ -734,7 +737,7 @@ def get_swap_candidate_appointments(
     return [
         SwapCandidate(
             appointment_id=row["appointment_id"],
-            location_name=row["location_name"],
+            location_name=location_display_name(row["location_name"], row["location_city"]),
             event_date=row["event_date"],
             time_of_day_name=row["time_of_day_name"],
             holder_web_user_id=row["holder_web_user_id"],
@@ -806,6 +809,7 @@ def get_own_upcoming_appointments(
         sa_select(
             Appointment.id.label("appointment_id"),
             LocationOfWork.name.label("location_name"),
+            Address.city.label("location_city"),
             Event.date.label("event_date"),
             TimeOfDay.name.label("time_of_day_name"),
             WebUser.id.label("holder_web_user_id"),
@@ -816,6 +820,7 @@ def get_own_upcoming_appointments(
         .join(Event, Event.id == Appointment.event_id)
         .join(LocationPlanPeriod, LocationPlanPeriod.id == Event.location_plan_period_id)
         .join(LocationOfWork, LocationOfWork.id == LocationPlanPeriod.location_of_work_id)
+        .join(Address, Address.id == LocationOfWork.address_id, isouter=True)
         .join(TimeOfDay, TimeOfDay.id == Event.time_of_day_id)
         .join(Plan, Plan.id == Appointment.plan_id)
         .join(AvailDayAppointmentLink, AvailDayAppointmentLink.appointment_id == Appointment.id)
@@ -834,7 +839,7 @@ def get_own_upcoming_appointments(
     return [
         SwapCandidate(
             appointment_id=row["appointment_id"],
-            location_name=row["location_name"],
+            location_name=location_display_name(row["location_name"], row["location_city"]),
             event_date=row["event_date"],
             time_of_day_name=row["time_of_day_name"],
             holder_web_user_id=row["holder_web_user_id"],

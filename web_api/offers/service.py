@@ -26,6 +26,7 @@ from web_api.cancellations.service import (
     _load_appointment_context,
     _render_email,
 )
+from web_api.common import location_display_name
 from web_api.dispatcher.service import (
     get_cast_status_for_appointment,
     replace_cast_for_appointment,
@@ -422,13 +423,15 @@ def withdraw_offer(
 
 
 def _row_to_summary(row) -> AvailabilityOfferSummary:
+    name = row["location_name"] or ""
+    display = location_display_name(name, row["location_city"]) if name else ""
     return AvailabilityOfferSummary(
         id=row["id"],
         offerer_web_user_id=row["offerer_web_user_id"],
         offerer_name=row["offerer_name"] or "",
         appointment_id=row["appointment_id"],
         event_date=str(row["event_date"]) if row["event_date"] else "",
-        location_name=row["location_name"] or "",
+        location_name=display,
         time_of_day_name=row["time_of_day_name"],
         message=row["message"],
         status=row["status"],
@@ -440,7 +443,7 @@ def get_offers_for_user(
     session: Session, web_user_id: uuid.UUID
 ) -> list[AvailabilityOfferSummary]:
     """Alle Angebote des Mitarbeiters (als Offerer)."""
-    from database.models import Appointment, Event, LocationOfWork, LocationPlanPeriod, Plan, TimeOfDay
+    from database.models import Address, Appointment, Event, LocationOfWork, LocationPlanPeriod, Plan, TimeOfDay
     stmt = (
         sa_select(
             AvailabilityOffer.id.label("id"),
@@ -452,6 +455,7 @@ def get_offers_for_user(
             (Person.f_name + " " + Person.l_name).label("offerer_name"),
             Event.date.label("event_date"),
             LocationOfWork.name.label("location_name"),
+            Address.city.label("location_city"),
             TimeOfDay.name.label("time_of_day_name"),
         )
         .select_from(AvailabilityOffer)
@@ -461,6 +465,7 @@ def get_offers_for_user(
         .join(Event, Event.id == Appointment.event_id)
         .join(LocationPlanPeriod, LocationPlanPeriod.id == Event.location_plan_period_id)
         .join(LocationOfWork, LocationOfWork.id == LocationPlanPeriod.location_of_work_id)
+        .join(Address, Address.id == LocationOfWork.address_id, isouter=True)
         .join(TimeOfDay, TimeOfDay.id == Event.time_of_day_id)
         .where(AvailabilityOffer.offerer_web_user_id == web_user_id)
         .order_by(AvailabilityOffer.created_at.desc())
@@ -566,6 +571,7 @@ def get_offers_for_dispatcher(
     konsistent mit dem SwapRequest-Scope.
     """
     from database.models import (
+        Address,
         Appointment,
         Event,
         LocationOfWork,
@@ -593,6 +599,7 @@ def get_offers_for_dispatcher(
             (Person.f_name + " " + Person.l_name).label("offerer_name"),
             Event.date.label("event_date"),
             LocationOfWork.name.label("location_name"),
+            Address.city.label("location_city"),
             TimeOfDay.name.label("time_of_day_name"),
         )
         .select_from(AvailabilityOffer)
@@ -602,6 +609,7 @@ def get_offers_for_dispatcher(
         .join(Event, Event.id == Appointment.event_id)
         .join(LocationPlanPeriod, LocationPlanPeriod.id == Event.location_plan_period_id)
         .join(LocationOfWork, LocationOfWork.id == LocationPlanPeriod.location_of_work_id)
+        .join(Address, Address.id == LocationOfWork.address_id, isouter=True)
         .join(TimeOfDay, TimeOfDay.id == Event.time_of_day_id)
         .join(Plan, Plan.id == Appointment.plan_id)
         .join(PlanPeriod, PlanPeriod.id == Plan.plan_period_id)

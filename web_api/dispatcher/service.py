@@ -15,6 +15,7 @@ from sqlmodel import Session
 
 from database.models import (
     ActorPlanPeriod,
+    Address,
     Appointment,
     AvailDay,
     AvailDayAppointmentLink,
@@ -31,7 +32,7 @@ from database.models import (
     TimeOfDayEnum,
 )
 from web_api.availability.service import create_avail_day, find_avail_day, reset_location_prefs_to_normal
-from web_api.common import guest_count
+from web_api.common import guest_count, location_display_name
 from web_api.email.service import EmailPayload
 from web_api.employees.service import CalendarEvent, location_color
 from web_api.plan_adjustment.service import update_appointment_avail_days
@@ -91,6 +92,7 @@ def get_appointments_for_teams(
             Event.date.label("event_date"),
             LocationOfWork.name.label("location_name"),
             LocationOfWork.id.label("location_id"),
+            Address.city.label("location_city"),
             TimeOfDay.name.label("time_of_day_name"),
             TimeOfDay.start.label("time_start"),
             TimeOfDay.end.label("time_end"),
@@ -107,6 +109,7 @@ def get_appointments_for_teams(
               LocationPlanPeriod.id == Event.location_plan_period_id)
         .join(LocationOfWork,
               LocationOfWork.id == LocationPlanPeriod.location_of_work_id)
+        .join(Address, Address.id == LocationOfWork.address_id, isouter=True)
         .join(TimeOfDay, TimeOfDay.id == Event.time_of_day_id)
         .join(Plan, Plan.id == Appointment.plan_id)
         .join(PlanPeriod, PlanPeriod.id == Plan.plan_period_id)
@@ -136,7 +139,8 @@ def get_appointments_for_teams(
         result.append(CalendarEvent(
             appointment_id=r["appointment_id"],
             event_date=r["event_date"],
-            location_name=r["location_name"],
+            location_name=location_display_name(r["location_name"], r["location_city"]),
+            location_name_only=r["location_name"],
             location_id=r["location_id"],
             color=location_color(r["location_id"]),
             time_of_day_name=r["time_of_day_name"],

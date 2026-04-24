@@ -16,6 +16,7 @@ from sqlmodel import Session
 
 from database.models import (
     ActorPlanPeriod,
+    Address,
     Appointment,
     AvailDay,
     AvailDayAppointmentLink,
@@ -29,7 +30,7 @@ from database.models import (
     Team,
     TimeOfDay,
 )
-from web_api.common import guest_list
+from web_api.common import guest_list, location_display_name
 from web_api.models.web_models import (
     CancellationRequest,
     CancellationStatus,
@@ -63,7 +64,8 @@ def location_color(location_id: uuid.UUID) -> str:
 class CalendarEvent:
     appointment_id: uuid.UUID
     event_date: date
-    location_name: str
+    location_name: str  # "Name City" — für Detail-Panels und Nicht-Monats-Kalender
+    location_name_only: str  # nur Name — für Monats-Kalender via eventContent-Hook
     location_id: uuid.UUID
     color: str
     time_of_day_name: str | None
@@ -145,6 +147,7 @@ def get_appointments_for_person(
             Event.date.label("event_date"),
             LocationOfWork.name.label("location_name"),
             LocationOfWork.id.label("location_id"),
+            Address.city.label("location_city"),
             TimeOfDay.name.label("time_of_day_name"),
             TimeOfDay.start.label("time_start"),
             TimeOfDay.end.label("time_end"),
@@ -165,6 +168,7 @@ def get_appointments_for_person(
               LocationPlanPeriod.id == Event.location_plan_period_id)
         .join(LocationOfWork,
               LocationOfWork.id == LocationPlanPeriod.location_of_work_id)
+        .join(Address, Address.id == LocationOfWork.address_id, isouter=True)
         .join(TimeOfDay, TimeOfDay.id == Event.time_of_day_id)
         .join(Plan, Plan.id == Appointment.plan_id)
         .join(PlanPeriod, PlanPeriod.id == Plan.plan_period_id)
@@ -229,7 +233,8 @@ def get_appointments_for_person(
         CalendarEvent(
             appointment_id=row["appointment_id"],
             event_date=row["event_date"],
-            location_name=row["location_name"],
+            location_name=location_display_name(row["location_name"], row["location_city"]),
+            location_name_only=row["location_name"],
             location_id=row["location_id"],
             color=location_color(row["location_id"]),
             time_of_day_name=row["time_of_day_name"],
@@ -314,6 +319,7 @@ def get_team_appointments_for_person(
             Event.date.label("event_date"),
             LocationOfWork.name.label("location_name"),
             LocationOfWork.id.label("location_id"),
+            Address.city.label("location_city"),
             TimeOfDay.name.label("time_of_day_name"),
             TimeOfDay.start.label("time_start"),
             TimeOfDay.end.label("time_end"),
@@ -328,6 +334,7 @@ def get_team_appointments_for_person(
         .join(Event, Event.id == Appointment.event_id)
         .join(LocationPlanPeriod, LocationPlanPeriod.id == Event.location_plan_period_id)
         .join(LocationOfWork, LocationOfWork.id == LocationPlanPeriod.location_of_work_id)
+        .join(Address, Address.id == LocationOfWork.address_id, isouter=True)
         .join(TimeOfDay, TimeOfDay.id == Event.time_of_day_id)
         .join(Plan, Plan.id == Appointment.plan_id)
         .join(PlanPeriod, PlanPeriod.id == Plan.plan_period_id)
@@ -355,7 +362,8 @@ def get_team_appointments_for_person(
         result.append(CalendarEvent(
             appointment_id=r["appointment_id"],
             event_date=r["event_date"],
-            location_name=r["location_name"],
+            location_name=location_display_name(r["location_name"], r["location_city"]),
+            location_name_only=r["location_name"],
             location_id=r["location_id"],
             color=location_color(r["location_id"]),
             time_of_day_name=r["time_of_day_name"],

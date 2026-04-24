@@ -478,6 +478,19 @@ document.addEventListener('DOMContentLoaded', function () {
             }
             return classes;
         },
+        eventContent: function (info) {
+            // Monatsansicht: nur Location-Name (ohne City) — Platz knapp.
+            // Andere Views (Woche/Liste): Default-Rendering via `undefined`,
+            // dann zeigt FullCalendar den vollen Title "Name City".
+            if (info.view.type === 'dayGridMonth') {
+                const nameOnly = info.event.extendedProps.location_name_only || info.event.title;
+                const el = document.createElement('div');
+                el.className = 'fc-event-title fc-sticky';
+                el.textContent = nameOnly;
+                return { domNodes: [el] };
+            }
+            return undefined;
+        },
         eventClick: function (info) {
             // Visual active state
             document.querySelectorAll('.fc-event').forEach(el =>
@@ -502,6 +515,11 @@ document.addEventListener('DOMContentLoaded', function () {
                 const display = resolveColor(color);
                 info.el.style.backgroundColor = display;
                 info.el.style.boxShadow = '0 1px 4px ' + display + '55';
+            }
+            // Tooltip: in Monatsansicht den vollen "Name City"-Title als Browser-Tooltip —
+            // damit der User die City sieht, obwohl der Chip nur den Namen rendert.
+            if (info.view.type === 'dayGridMonth') {
+                info.el.setAttribute('title', info.event.title);
             }
         },
     });

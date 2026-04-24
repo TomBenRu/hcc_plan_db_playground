@@ -166,6 +166,7 @@ def calendar_events(
                 "is_understaffed": ev.is_understaffed,
                 "cast_count": ev.cast_count,
                 "cast_required": ev.cast_required,
+                "location_name_only": ev.location_name_only,
             },
         }
         for ev in events

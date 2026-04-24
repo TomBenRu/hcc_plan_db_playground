@@ -8,6 +8,7 @@ from sqlmodel import Session
 
 from database.models import (
     ActorPlanPeriod,
+    Address,
     Appointment,
     AvailDay,
     AvailDayAppointmentLink,
@@ -20,6 +21,7 @@ from database.models import (
     TimeOfDay,
 )
 from web_api.availability.service import create_avail_day, find_avail_day, reset_location_prefs_to_normal
+from web_api.common import location_display_name
 from web_api.email.service import EmailPayload
 from web_api.inbox.service import create_inbox_message
 from web_api.models.web_models import (
@@ -51,7 +53,8 @@ def _load_cast_removal_context(session: Session, appointment_id: uuid.UUID) -> d
     row = session.execute(
         sa_select(
             Event.date.label("event_date"),
-            LocationOfWork.name.label("location_name"),
+            LocationOfWork.name.label("location_name_only"),
+            Address.city.label("location_city"),
             TimeOfDay.name.label("time_of_day_name"),
             TimeOfDay.start.label("time_start"),
         )
@@ -59,10 +62,15 @@ def _load_cast_removal_context(session: Session, appointment_id: uuid.UUID) -> d
         .join(Event, Event.id == Appointment.event_id)
         .join(LocationPlanPeriod, LocationPlanPeriod.id == Event.location_plan_period_id)
         .join(LocationOfWork, LocationOfWork.id == LocationPlanPeriod.location_of_work_id)
+        .join(Address, Address.id == LocationOfWork.address_id, isouter=True)
         .join(TimeOfDay, TimeOfDay.id == Event.time_of_day_id)
         .where(Appointment.id == appointment_id)
     ).mappings().first()
-    return dict(row) if row else {}
+    if row is None:
+        return {}
+    ctx = dict(row)
+    ctx["location_name"] = location_display_name(ctx["location_name_only"], ctx["location_city"])
+    return ctx
 
 
 def _build_snapshot(

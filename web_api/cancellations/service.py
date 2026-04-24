@@ -11,6 +11,7 @@ from sqlmodel import Session
 from database.models import (
     ActorPlanPeriod,
     ActorPlanPeriodCombLocLink,
+    Address,
     Appointment,
     AvailDay,
     AvailDayAppointmentLink,
@@ -25,6 +26,7 @@ from database.models import (
     Team,
     TimeOfDay,
 )
+from web_api.common import location_display_name
 from web_api.email.service import EmailPayload
 from web_api.inbox.service import create_inbox_message
 from web_api.models.web_models import (
@@ -105,7 +107,8 @@ def _load_appointment_context(session: Session, appointment_id: uuid.UUID) -> di
             Event.id.label("event_id"),
             Event.date.label("event_date"),
             LocationOfWork.id.label("location_id"),
-            LocationOfWork.name.label("location_name"),
+            LocationOfWork.name.label("location_name_only"),
+            Address.city.label("location_city"),
             TimeOfDay.id.label("time_of_day_id"),
             TimeOfDay.name.label("time_of_day_name"),
             TimeOfDay.start.label("time_start"),
@@ -118,6 +121,7 @@ def _load_appointment_context(session: Session, appointment_id: uuid.UUID) -> di
         .join(Event, Event.id == Appointment.event_id)
         .join(LocationPlanPeriod, LocationPlanPeriod.id == Event.location_plan_period_id)
         .join(LocationOfWork, LocationOfWork.id == LocationPlanPeriod.location_of_work_id)
+        .join(Address, Address.id == LocationOfWork.address_id, isouter=True)
         .join(TimeOfDay, TimeOfDay.id == Event.time_of_day_id)
         .join(Plan, Plan.id == Appointment.plan_id)
         .join(PlanPeriod, PlanPeriod.id == Plan.plan_period_id)
@@ -127,7 +131,9 @@ def _load_appointment_context(session: Session, appointment_id: uuid.UUID) -> di
 
     if row is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Termin nicht gefunden")
-    return dict(row)
+    ctx = dict(row)
+    ctx["location_name"] = location_display_name(ctx["location_name_only"], ctx["location_city"])
+    return ctx
 
 
 def _verify_ownership(session: Session, appointment_id: uuid.UUID, person_id: uuid.UUID) -> None:
@@ -666,6 +672,7 @@ def get_my_cancellations(
             CancellationRequest.created_at,
             Event.date.label("event_date"),
             LocationOfWork.name.label("location_name"),
+            Address.city.label("location_city"),
             TimeOfDay.name.label("time_of_day_name"),
         )
         .select_from(CancellationRequest)
@@ -673,6 +680,7 @@ def get_my_cancellations(
         .join(Event, Event.id == Appointment.event_id)
         .join(LocationPlanPeriod, LocationPlanPeriod.id == Event.location_plan_period_id)
         .join(LocationOfWork, LocationOfWork.id == LocationPlanPeriod.location_of_work_id)
+        .join(Address, Address.id == LocationOfWork.address_id, isouter=True)
         .join(TimeOfDay, TimeOfDay.id == Event.time_of_day_id)
         .where(CancellationRequest.web_user_id == web_user_id)
         .order_by(Event.date.asc())
@@ -685,7 +693,7 @@ def get_my_cancellations(
         CancellationSummary(
             id=r["id"],
             employee_name="",
-            location_name=r["location_name"],
+            location_name=location_display_name(r["location_name"], r["location_city"]),
             event_date=r["event_date"],
             time_of_day_name=r["time_of_day_name"],
             reason=r["reason"],
@@ -711,6 +719,7 @@ def get_circle_cancellations(
             CancellationRequest.created_at,
             Event.date.label("event_date"),
             LocationOfWork.name.label("location_name"),
+            Address.city.label("location_city"),
             TimeOfDay.name.label("time_of_day_name"),
             Person.f_name,
             Person.l_name,
@@ -722,6 +731,7 @@ def get_circle_cancellations(
         .join(Event, Event.id == Appointment.event_id)
         .join(LocationPlanPeriod, LocationPlanPeriod.id == Event.location_plan_period_id)
         .join(LocationOfWork, LocationOfWork.id == LocationPlanPeriod.location_of_work_id)
+        .join(Address, Address.id == LocationOfWork.address_id, isouter=True)
         .join(TimeOfDay, TimeOfDay.id == Event.time_of_day_id)
         .join(WebUser, WebUser.id == CancellationRequest.web_user_id)
         .join(Person, Person.id == WebUser.person_id)
@@ -737,7 +747,7 @@ def get_circle_cancellations(
         CancellationSummary(
             id=r["id"],
             employee_name=f"{r['f_name']} {r['l_name']}",
-            location_name=r["location_name"],
+            location_name=location_display_name(r["location_name"], r["location_city"]),
             event_date=r["event_date"],
             time_of_day_name=r["time_of_day_name"],
             reason=r["reason"],
@@ -772,6 +782,7 @@ def get_cancellations_for_dispatcher(
             CancellationRequest.created_at,
             Event.date.label("event_date"),
             LocationOfWork.name.label("location_name"),
+            Address.city.label("location_city"),
             TimeOfDay.name.label("time_of_day_name"),
             Person.f_name,
             Person.l_name,
@@ -781,6 +792,7 @@ def get_cancellations_for_dispatcher(
         .join(Event, Event.id == Appointment.event_id)
         .join(LocationPlanPeriod, LocationPlanPeriod.id == Event.location_plan_period_id)
         .join(LocationOfWork, LocationOfWork.id == LocationPlanPeriod.location_of_work_id)
+        .join(Address, Address.id == LocationOfWork.address_id, isouter=True)
         .join(TimeOfDay, TimeOfDay.id == Event.time_of_day_id)
         .join(Plan, Plan.id == Appointment.plan_id)
         .join(PlanPeriod, PlanPeriod.id == Plan.plan_period_id)
@@ -814,7 +826,7 @@ def get_cancellations_for_dispatcher(
         CancellationSummary(
             id=r["id"],
             employee_name=f"{r['f_name']} {r['l_name']}",
-            location_name=r["location_name"],
+            location_name=location_display_name(r["location_name"], r["location_city"]),
             event_date=r["event_date"],
             time_of_day_name=r["time_of_day_name"],
             reason=r["reason"],

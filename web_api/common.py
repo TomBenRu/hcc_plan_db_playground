@@ -28,6 +28,17 @@ def guest_count(value: Any) -> int:
     return 0
 
 
+def location_display_name(name: str, city: str | None) -> str:
+    """Baut den UI-Anzeigenamen einer LocationOfWork als "Name City".
+
+    Fällt auf "Name" allein zurück, wenn die City None oder leer ist —
+    wir zeigen niemals "Name None" oder einen hängenden Leerschlag.
+    """
+    if city and city.strip():
+        return f"{name} {city.strip()}"
+    return name
+
+
 def guest_list(value: Any) -> list[str]:
     """Dekodiert Gäste-Namen robust aus dem `Appointment.guests`-JSON-Feld.
 

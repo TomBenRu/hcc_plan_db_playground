@@ -1,6 +1,7 @@
 """Dashboard-Router: rollenbasierte Kachelübersicht nach dem Login."""
 
 from datetime import datetime, timezone
+from typing import Callable
 
 from fastapi import APIRouter, Depends
 from fastapi.requests import Request
@@ -9,8 +10,20 @@ from sqlmodel import Session
 
 from database.models import Person
 from web_api.auth.dependencies import LoggedInUser
+from web_api.cancellations.service import (
+    count_open_cancellations_for_dispatcher,
+    count_open_cancellations_for_user,
+)
 from web_api.dependencies import get_db_session
-from web_api.models.web_models import WebUserRole
+from web_api.models.web_models import WebUser, WebUserRole
+from web_api.offers.service import (
+    count_pending_offers_for_dispatcher,
+    count_pending_offers_for_user,
+)
+from web_api.swap_requests.service import (
+    count_active_swap_requests_for_user,
+    count_swap_requests_pending_confirm_for_dispatcher,
+)
 from web_api.templating import templates
 
 router = APIRouter(tags=["dashboard"])
@@ -47,6 +60,12 @@ _ROLE_SECTIONS = {
                 "desc": "Termine tauschen oder Tausch-Anfragen verwalten",
                 "url": "/swap-requests",
                 "icon": "M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4",
+            },
+            {
+                "title": "Meine Angebote",
+                "desc": "Eigene Einsprung-Angebote für unterbesetzte Termine einsehen",
+                "url": "/offers/mine",
+                "icon": "M7 11l5-5m0 0l5 5m-5-5v12",
             },
         ],
     },
@@ -133,6 +152,21 @@ _ROLE_SECTIONS = {
     },
 }
 
+# ── Badge-Count-Adapter je Tile-URL ──────────────────────────────────────────
+# Mapping: URL → callable(session, user) → int. Tiles ohne Eintrag zeigen keinen Badge.
+
+_COUNT_FNS: dict[str, Callable[[Session, WebUser], int]] = {
+    # Mitarbeiter
+    "/cancellations/":             lambda s, u: count_open_cancellations_for_user(s, u.id),
+    "/swap-requests":              lambda s, u: count_active_swap_requests_for_user(s, u.id),
+    "/offers/mine":                lambda s, u: count_pending_offers_for_user(s, u.id),
+    # Dispatcher
+    "/dispatcher/cancellations":   lambda s, u: count_open_cancellations_for_dispatcher(s, u),
+    "/dispatcher/swap-requests":   lambda s, u: count_swap_requests_pending_confirm_for_dispatcher(s, u),
+    "/offers/dispatcher":          lambda s, u: count_pending_offers_for_dispatcher(s, u),
+}
+
+
 _MONTHS_DE = [
     "Januar", "Februar", "März", "April", "Mai", "Juni",
     "Juli", "August", "September", "Oktober", "November", "Dezember",
@@ -148,13 +182,36 @@ def _today_formatted() -> str:
 # ── Route ─────────────────────────────────────────────────────────────────────
 
 
+def _resolve_tile_count(tile_url: str, session: Session, user: WebUser) -> int | None:
+    """Ruft die Count-Funktion einer Kachel, wenn registriert. None heißt: kein Badge.
+
+    Exceptions werden **nicht** verschluckt — eine fehlende DB-Spalte (z. B.
+    ungelaufene Migration) soll einen lauten Dashboard-500 auslösen statt
+    still den Badge verschwinden zu lassen, was den User auf die falsche
+    Fährte führen würde.
+    """
+    fn = _COUNT_FNS.get(tile_url)
+    if fn is None:
+        return None
+    return fn(session, user)
+
+
 @router.get("/dashboard", response_class=HTMLResponse)
 def dashboard(request: Request, user: LoggedInUser, session: Session = Depends(get_db_session)):
-    sections = [
-        {**section, "tiles": [{**tile, "color": section["color"], "color_light": section["color_light"]} for tile in section["tiles"]]}
-        for role, section in _ROLE_SECTIONS.items()
-        if role in user.roles
-    ]
+    sections = []
+    for role, section in _ROLE_SECTIONS.items():
+        if role not in user.roles:
+            continue
+        tiles = [
+            {
+                **tile,
+                "color": section["color"],
+                "color_light": section["color_light"],
+                "count": _resolve_tile_count(tile["url"], session, user),
+            }
+            for tile in section["tiles"]
+        ]
+        sections.append({**section, "tiles": tiles})
 
     # Anzeigename: Vor- und Zuname aus Person-Eintrag, Fallback auf E-Mail-Prefix
     display_name = user.email.split("@")[0].replace(".", " ").replace("_", " ").title()

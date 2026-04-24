@@ -58,6 +58,25 @@ class AvailabilityOfferSummary:
     created_at: datetime
 
 
+@dataclass
+class AvailabilityOfferDetail:
+    id: uuid.UUID
+    offerer_web_user_id: uuid.UUID
+    offerer_name: str
+    appointment_id: uuid.UUID
+    event_date: date
+    location_name: str
+    time_of_day_name: str | None
+    time_start: str | None
+    time_end: str | None
+    message: str | None
+    rejection_reason: str | None
+    status: AvailabilityOfferStatus
+    created_at: datetime
+    is_offerer: bool
+    is_dispatcher_for_team: bool
+
+
 # ── Interne Helfer ───────────────────────────────────────────────────────────
 
 
@@ -294,8 +313,18 @@ def reject_offer(
     session: Session,
     offer_id: uuid.UUID,
     dispatcher_user: WebUser,
+    reason: str | None = None,
 ) -> list[EmailPayload]:
-    """Dispatcher lehnt Angebot ab."""
+    """Dispatcher lehnt Angebot ab. Optional mit schriftlicher Begründung.
+
+    Die Begründung wird persistent am Offer gespeichert, in den Inbox-Snapshot
+    des Offerers übernommen und in die Rejection-Email eingebettet. Leere/
+    whitespace-only Strings werden als None behandelt.
+    """
+    cleaned_reason = reason.strip() if reason else None
+    if cleaned_reason == "":
+        cleaned_reason = None
+
     offer = session.get(AvailabilityOffer, offer_id)
     if offer is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Angebot nicht gefunden.")
@@ -313,6 +342,7 @@ def reject_offer(
             detail="Nur der Dispatcher des Teams kann dieses Angebot ablehnen.",
         )
 
+    offer.rejection_reason = cleaned_reason
     offer.status = AvailabilityOfferStatus.rejected_by_dispatcher
     session.add(offer)
     session.flush()
@@ -322,6 +352,7 @@ def reject_offer(
     if offerer_user is not None:
         offerer_name = _format_offerer_name(offerer_user, session)
         snapshot = _build_offer_snapshot(ctx, offerer_name)
+        snapshot["rejection_reason"] = cleaned_reason
         create_inbox_message(
             session,
             recipient_id=offerer_user.id,
@@ -330,7 +361,11 @@ def reject_offer(
             reference_type="availability_offer",
             snapshot_data=snapshot,
         )
-        html = _render_email("availability_offer_rejected.html", snapshot=snapshot)
+        html = _render_email(
+            "availability_offer_rejected.html",
+            snapshot=snapshot,
+            rejection_reason=cleaned_reason,
+        )
         email_payloads.append(EmailPayload(
             to=[offerer_user.email],
             subject="Dein Angebot wurde abgelehnt",
@@ -432,6 +467,94 @@ def get_offers_for_user(
     )
     rows = session.execute(stmt).mappings().all()
     return [_row_to_summary(r) for r in rows]
+
+
+def get_offer_detail(
+    session: Session,
+    offer_id: uuid.UUID,
+    user: WebUser,
+) -> AvailabilityOfferDetail:
+    """Detail-Ansicht eines Angebots mit rollen-sensitiven Flags.
+
+    Zugriff: Offerer selbst ODER Dispatcher des zuständigen Teams. Admins ohne
+    Dispatcher-Zuweisung fürs Team haben keinen Zugriff — konsistent mit den
+    Mutations-Endpoints, die `_get_dispatcher_web_user(team_id).id == user.id`
+    als Gate nutzen.
+    """
+    offer = session.get(AvailabilityOffer, offer_id)
+    if offer is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Angebot nicht gefunden.")
+
+    ctx = _load_appointment_context(session, offer.appointment_id)
+    dispatcher_for_team = _get_dispatcher_web_user(session, ctx["team_id"])
+
+    is_offerer = offer.offerer_web_user_id == user.id
+    is_dispatcher_for_team = (
+        dispatcher_for_team is not None and dispatcher_for_team.id == user.id
+    )
+    if not (is_offerer or is_dispatcher_for_team):
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Kein Zugriff.")
+
+    offerer_user = session.get(WebUser, offer.offerer_web_user_id)
+    offerer_name = (
+        _format_offerer_name(offerer_user, session) if offerer_user else ""
+    )
+
+    return AvailabilityOfferDetail(
+        id=offer.id,
+        offerer_web_user_id=offer.offerer_web_user_id,
+        offerer_name=offerer_name,
+        appointment_id=offer.appointment_id,
+        event_date=ctx["event_date"],
+        location_name=ctx["location_name"],
+        time_of_day_name=ctx["time_of_day_name"],
+        time_start=str(ctx["time_start"]) if ctx["time_start"] else None,
+        time_end=str(ctx["time_end"]) if ctx["time_end"] else None,
+        message=offer.message,
+        rejection_reason=offer.rejection_reason,
+        status=offer.status,
+        created_at=offer.created_at,
+        is_offerer=is_offerer,
+        is_dispatcher_for_team=is_dispatcher_for_team,
+    )
+
+
+def count_pending_offers_for_user(
+    session: Session, web_user_id: uuid.UUID
+) -> int:
+    """Badge-Count: eigene Angebote im Status `pending`."""
+    from sqlalchemy import func
+    result = session.execute(
+        sa_select(func.count(AvailabilityOffer.id))
+        .where(AvailabilityOffer.offerer_web_user_id == web_user_id)
+        .where(AvailabilityOffer.status == AvailabilityOfferStatus.pending)
+    ).scalar()
+    return result or 0
+
+
+def count_pending_offers_for_dispatcher(
+    session: Session, dispatcher_user: WebUser
+) -> int:
+    """Badge-Count: pending-Angebote in Teams, in denen der User Dispatcher ist."""
+    from database.models import Appointment, Plan, Team
+    from sqlalchemy import func
+    if dispatcher_user.person_id is None:
+        return 0
+    my_team_ids = session.execute(
+        sa_select(Team.id).where(Team.dispatcher_id == dispatcher_user.person_id)
+    ).scalars().all()
+    if not my_team_ids:
+        return 0
+    result = session.execute(
+        sa_select(func.count(AvailabilityOffer.id))
+        .select_from(AvailabilityOffer)
+        .join(Appointment, Appointment.id == AvailabilityOffer.appointment_id)
+        .join(Plan, Plan.id == Appointment.plan_id)
+        .join(PlanPeriod, PlanPeriod.id == Plan.plan_period_id)
+        .where(PlanPeriod.team_id.in_(my_team_ids))
+        .where(AvailabilityOffer.status == AvailabilityOfferStatus.pending)
+    ).scalar()
+    return result or 0
 
 
 def get_offers_for_dispatcher(

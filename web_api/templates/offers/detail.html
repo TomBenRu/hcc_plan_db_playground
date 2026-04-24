@@ -1,0 +1,132 @@
+{% extends "base.html" %}
+{% block title %}Angebots-Detail – hcc plan{% endblock %}
+
+{% block nav %}{% include "partials/nav.html" %}{% endblock %}
+
+{% block content %}
+{% set months_de = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"] %}
+{% set sval = offer.status.value %}
+
+{% set status_labels = {
+    "pending":                    "Ausstehend",
+    "accepted_by_dispatcher":     "Angenommen",
+    "rejected_by_dispatcher":     "Abgelehnt",
+    "withdrawn":                  "Zurückgezogen",
+    "superseded_by_cast_change":  "Durch Besetzungswechsel obsolet",
+    "superseded_by_plan_unbind":  "Durch Plan-Rücksetzung obsolet",
+} %}
+{% set status_badge_styles = {
+    "pending":                    "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:ring-amber-700/50",
+    "accepted_by_dispatcher":     "bg-green-50 text-green-700 ring-green-200 dark:bg-green-900/30 dark:text-green-400 dark:ring-green-700/50",
+    "rejected_by_dispatcher":     "bg-red-50 text-red-700 ring-red-200 dark:bg-red-900/30 dark:text-red-400 dark:ring-red-700/50",
+    "withdrawn":                  "bg-slate-50 text-slate-500 ring-slate-200 dark:bg-slate-700/30 dark:text-slate-400 dark:ring-slate-600/50",
+    "superseded_by_cast_change":  "bg-purple-50 text-purple-600 ring-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:ring-purple-700/50",
+    "superseded_by_plan_unbind":  "bg-purple-50 text-purple-600 ring-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:ring-purple-700/50",
+} %}
+
+<div class="max-w-2xl mx-auto px-4 py-8 animate-fade-up">
+
+    {# Header #}
+    <div class="flex items-center gap-3 mb-6">
+        <a href="/inbox"
+           class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </a>
+        <h1 class="font-display text-xl font-semibold text-slate-800 dark:text-white">Angebots-Detail</h1>
+        <span class="ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 {{ status_badge_styles.get(sval, '') }}">
+            {{ status_labels.get(sval, sval) }}
+        </span>
+    </div>
+
+    <div class="space-y-3">
+
+        {# ── Offerer-Kopf ──────────────────────────────────────────────────── #}
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm p-4">
+            <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 dark:text-slate-500 mb-1">
+                {% if offer.is_offerer %}Dein Angebot{% else %}Angebot von{% endif %}
+            </p>
+            <p class="text-base font-semibold text-slate-800 dark:text-slate-100">
+                {{ offer.offerer_name }}
+            </p>
+            {% if not offer.is_offerer %}
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                möchte für einen unterbesetzten Termin einspringen.
+            </p>
+            {% endif %}
+        </div>
+
+        {# ── Termin-Kontext ────────────────────────────────────────────────── #}
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm p-4">
+            <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 dark:text-slate-500 mb-2">
+                Termin
+            </p>
+            <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                {{ offer.location_name }}
+            </p>
+            <p class="text-sm text-slate-500 dark:text-slate-400">
+                {{ offer.event_date.day }}. {{ months_de[offer.event_date.month - 1] }} {{ offer.event_date.year }}
+                {% if offer.time_of_day_name %} · {{ offer.time_of_day_name }}{% endif %}
+                {% if offer.time_start and offer.time_end %} · {{ offer.time_start }}–{{ offer.time_end }}{% endif %}
+            </p>
+        </div>
+
+        {# ── Nachricht ──────────────────────────────────────────────────────── #}
+        {% if offer.message %}
+        <div class="bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-100 dark:border-amber-700/30 p-4">
+            <p class="text-xs font-semibold tracking-widest uppercase text-amber-500 dark:text-amber-400 mb-1">
+                Nachricht
+            </p>
+            <p class="text-sm text-slate-600 dark:text-slate-300 italic">&bdquo;{{ offer.message }}&ldquo;</p>
+        </div>
+        {% endif %}
+
+        {# ── Ablehnungs-Begründung (nach Reject sichtbar) ───────────────────── #}
+        {% if sval == "rejected_by_dispatcher" and offer.rejection_reason %}
+        <div class="bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-700/30 p-4">
+            <p class="text-xs font-semibold tracking-widest uppercase text-red-600 dark:text-red-400 mb-1">
+                Begründung der Ablehnung
+            </p>
+            <p class="text-sm text-slate-600 dark:text-slate-300 italic">&bdquo;{{ offer.rejection_reason }}&ldquo;</p>
+        </div>
+        {% endif %}
+
+        {# ── Zeitstempel ────────────────────────────────────────────────────── #}
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm p-4">
+            <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 dark:text-slate-500 mb-1">
+                Erstellt
+            </p>
+            <p class="text-sm text-slate-600 dark:text-slate-300">
+                {{ offer.created_at.day }}. {{ months_de[offer.created_at.month - 1] }} {{ offer.created_at.year }}
+                um {{ offer.created_at.strftime("%H:%M") }} Uhr
+            </p>
+        </div>
+
+        {# ── Aktions-Bereich ─────────────────────────────────────────────────── #}
+        <div id="offer-action-area">
+
+            {# Dispatcher: pending → Annehmen / Ablehnen (mit optionaler Begründung) #}
+            {% if sval == "pending" and offer.is_dispatcher_for_team %}
+                {% include "offers/partials/dispatcher_actions.html" %}
+            {% endif %}
+
+            {# Offerer: pending → Zurückziehen #}
+            {% if sval == "pending" and offer.is_offerer %}
+            <form hx-post="/offers/{{ offer.id }}/withdraw"
+                  hx-swap="none"
+                  hx-on::after-request="if(event.detail.successful) window.location.reload()"
+                  class="pt-2">
+                <button type="submit"
+                        class="w-full py-2.5 rounded-xl text-sm font-medium border border-slate-200 dark:border-slate-700
+                               text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                    Angebot zurückziehen
+                </button>
+            </form>
+            {% endif %}
+
+        </div>
+
+    </div>
+</div>
+{% endblock %}

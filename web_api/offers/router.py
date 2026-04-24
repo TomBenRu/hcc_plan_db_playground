@@ -12,6 +12,7 @@ from fastapi import (
     Depends,
     Form,
     HTTPException,
+    Query,
     Request,
 )
 from fastapi.responses import HTMLResponse
@@ -26,7 +27,9 @@ from web_api.models.web_models import AvailabilityOfferStatus
 from web_api.offers.service import (
     accept_offer,
     create_offer,
+    get_offer_detail,
     get_offers_for_dispatcher,
+    get_offers_for_user,
     reject_offer,
     withdraw_offer,
 )
@@ -69,6 +72,53 @@ def list_dispatcher_offers(
             "offers": pending_offers,
             "total_count": len(pending_offers),
         },
+    )
+
+
+@router.get("/mine", response_class=HTMLResponse)
+def list_my_offers(
+    request: Request,
+    user: LoggedInUser,
+    session: Session = Depends(get_db_session),
+):
+    """Eigene Angebote des Offerers — aktiver Einstiegspunkt für Mitarbeiter.
+
+    Zeigt alle eigenen Angebote (pending + abgeschlossen), nach Erstellung absteigend.
+    Pending erscheinen oben, Terminals (accepted/rejected/withdrawn/superseded)
+    darunter als Archiv.
+    """
+    offers = get_offers_for_user(session, user.id)
+    pending_count = sum(
+        1 for o in offers if o.status == AvailabilityOfferStatus.pending
+    )
+    return templates.TemplateResponse(
+        "offers/mine_index.html",
+        {
+            "request": request,
+            "user": user,
+            "offers": offers,
+            "pending_count": pending_count,
+            "total_count": len(offers),
+        },
+    )
+
+
+@router.get("/{offer_id}", response_class=HTMLResponse)
+def get_offer_detail_page(
+    request: Request,
+    offer_id: uuid.UUID,
+    user: LoggedInUser,
+    session: Session = Depends(get_db_session),
+):
+    """Rollen-sensitive Detail-Ansicht eines Angebots.
+
+    Ziel für Inbox-Deep-Links (`reference_type == "availability_offer"`). Sichtbar
+    für Offerer und Dispatcher des zuständigen Teams; sonst 403.
+    """
+    detail = get_offer_detail(session, offer_id, user)
+    return templates.TemplateResponse(
+        "offers/detail.html",
+        {"request": request, "user": user, "offer": detail},
     )
 
 
@@ -130,18 +180,82 @@ def post_accept_offer(
     return _success_response(request, "Angebot angenommen — Mitarbeiter eingeteilt.")
 
 
+@router.get("/{offer_id}/actions", response_class=HTMLResponse)
+def get_dispatcher_actions(
+    request: Request,
+    offer_id: uuid.UUID,
+    user: LoggedInUser,
+    session: Session = Depends(get_db_session),
+    edit: int = Query(default=0),
+):
+    """Dispatcher-Aktionspanel für ein Offer — Default- vs. Reject-Modus.
+
+    Wird per HTMX vom Detail-Template aufgerufen, um zwischen
+    „Annehmen/Ablehnen"-Buttons (edit=0) und dem Reject-Form mit Textarea
+    (edit=1) umzuschalten. Beide Partials rendern denselben Wrapper
+    `#dispatcher-actions` und ersetzen sich gegenseitig via `hx-swap="outerHTML"`.
+    """
+    detail = get_offer_detail(session, offer_id, user)
+    if not detail.is_dispatcher_for_team:
+        raise HTTPException(403, detail="Kein Zugriff.")
+    if detail.status != AvailabilityOfferStatus.pending:
+        raise HTTPException(409, detail="Dieses Angebot ist nicht mehr pending.")
+    template = (
+        "offers/partials/dispatcher_actions_reject.html"
+        if edit
+        else "offers/partials/dispatcher_actions.html"
+    )
+    return templates.TemplateResponse(
+        template,
+        {"request": request, "user": user, "offer": detail},
+    )
+
+
+@router.get("/{offer_id}/card", response_class=HTMLResponse)
+def get_dispatcher_card(
+    request: Request,
+    offer_id: uuid.UUID,
+    session: Session = Depends(get_db_session),
+    user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
+    edit: int = Query(default=0),
+):
+    """Dispatcher-Listen-Card für ein Offer — Default- vs. Reject-Modus.
+
+    Wird per HTMX aus der Listen-Ansicht aufgerufen, um die ganze Card
+    zwischen „Accept + Ablehnen"-Buttons (edit=0) und dem Reject-Form mit
+    Textarea (edit=1) umzuschalten. `hx-swap="outerHTML"` auf dem
+    `.offer-card`-Container.
+    """
+    summaries = get_offers_for_dispatcher(session, user)
+    summary = next((s for s in summaries if s.id == offer_id), None)
+    if summary is None:
+        raise HTTPException(404, detail="Angebot nicht gefunden oder nicht in deinem Zuständigkeitsbereich.")
+    if summary.status != AvailabilityOfferStatus.pending:
+        raise HTTPException(409, detail="Dieses Angebot ist nicht mehr pending.")
+    template = (
+        "offers/partials/offer_card_reject.html"
+        if edit
+        else "offers/partials/offer_card.html"
+    )
+    return templates.TemplateResponse(
+        template,
+        {"request": request, "user": user, "offer": summary},
+    )
+
+
 @router.post("/{offer_id}/reject", response_class=HTMLResponse)
 def post_reject_offer(
     request: Request,
     offer_id: uuid.UUID,
     background_tasks: BackgroundTasks,
+    reason: str | None = Form(default=None),
     user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
     session: Session = Depends(get_db_session),
     settings=Depends(get_settings),
 ):
-    """Dispatcher lehnt Angebot ab."""
+    """Dispatcher lehnt Angebot ab — optional mit schriftlicher Begründung."""
     try:
-        payloads = reject_offer(session, offer_id, user)
+        payloads = reject_offer(session, offer_id, user, reason=reason)
     except HTTPException as exc:
         return _error_response(request, exc.detail)
     session.commit()

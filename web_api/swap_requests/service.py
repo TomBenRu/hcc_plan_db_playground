@@ -842,3 +842,60 @@ def get_own_upcoming_appointments(
         )
         for row in rows
     ]
+
+
+# ── Badge-Counts ─────────────────────────────────────────────────────────────
+
+
+def count_active_swap_requests_for_user(
+    session: Session, web_user_id: uuid.UUID
+) -> int:
+    """Badge-Count: aktionsrelevante Tauschanfragen für den User.
+
+    Zählt Requests, bei denen der User Anfragender oder Ziel ist und der
+    Status noch offen ist (`pending` oder `accepted_by_target`). Terminale
+    Status werden ignoriert.
+    """
+    from sqlalchemy import func
+    result = session.execute(
+        sa_select(func.count(SwapRequest.id))
+        .where(
+            (SwapRequest.requester_web_user_id == web_user_id)
+            | (SwapRequest.target_web_user_id == web_user_id)
+        )
+        .where(SwapRequest.status.in_(
+            [SwapRequestStatus.pending, SwapRequestStatus.accepted_by_target]
+        ))
+    ).scalar()
+    return result or 0
+
+
+def count_swap_requests_pending_confirm_for_dispatcher(
+    session: Session, web_user: WebUser
+) -> int:
+    """Badge-Count: Tauschanfragen im Status `accepted_by_target` in Teams
+    des Dispatchers — warten auf die Dispatcher-Bestätigung.
+    """
+    from sqlalchemy import func
+    if web_user.person_id is None:
+        return 0
+    team_ids = session.execute(
+        sa_select(Team.id).where(Team.dispatcher_id == web_user.person_id)
+    ).scalars().all()
+    if not team_ids:
+        return 0
+    appt_ids_subquery = (
+        sa_select(Appointment.id)
+        .join(Plan, Appointment.plan_id == Plan.id)
+        .join(PlanPeriod, Plan.plan_period_id == PlanPeriod.id)
+        .where(PlanPeriod.team_id.in_(team_ids))
+    )
+    result = session.execute(
+        sa_select(func.count(SwapRequest.id))
+        .where(
+            SwapRequest.requester_appointment_id.in_(appt_ids_subquery)
+            | SwapRequest.target_appointment_id.in_(appt_ids_subquery)
+        )
+        .where(SwapRequest.status == SwapRequestStatus.accepted_by_target)
+    ).scalar()
+    return result or 0

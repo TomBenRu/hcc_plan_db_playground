@@ -896,3 +896,43 @@ def get_cancellation_detail(
         takeover_offers=takeover_offers,
         requester_web_user_id=cr.web_user_id,
     )
+
+
+# ── Badge-Counts ─────────────────────────────────────────────────────────────
+
+
+def count_open_cancellations_for_user(
+    session: Session, web_user_id: uuid.UUID
+) -> int:
+    """Badge-Count: eigene Absagen im Status `pending`."""
+    from sqlalchemy import func
+    result = session.execute(
+        sa_select(func.count(CancellationRequest.id))
+        .where(CancellationRequest.web_user_id == web_user_id)
+        .where(CancellationRequest.status == CancellationStatus.pending)
+    ).scalar()
+    return result or 0
+
+
+def count_open_cancellations_for_dispatcher(
+    session: Session, web_user: WebUser
+) -> int:
+    """Badge-Count: Team-Absagen im Status `pending`."""
+    from sqlalchemy import func
+    if web_user.person_id is None:
+        return 0
+    team_ids = session.execute(
+        sa_select(Team.id).where(Team.dispatcher_id == web_user.person_id)
+    ).scalars().all()
+    if not team_ids:
+        return 0
+    result = session.execute(
+        sa_select(func.count(CancellationRequest.id))
+        .select_from(CancellationRequest)
+        .join(Appointment, Appointment.id == CancellationRequest.appointment_id)
+        .join(Plan, Plan.id == Appointment.plan_id)
+        .join(PlanPeriod, PlanPeriod.id == Plan.plan_period_id)
+        .where(PlanPeriod.team_id.in_(team_ids))
+        .where(CancellationRequest.status == CancellationStatus.pending)
+    ).scalar()
+    return result or 0

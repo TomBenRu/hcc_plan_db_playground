@@ -1,0 +1,64 @@
+{% extends "base.html" %}
+
+{% block title %}Meine Angebote — hcc plan{% endblock %}
+
+{% block nav %}{% include "partials/nav.html" %}{% endblock %}
+
+{% block content %}
+<div class="min-h-[calc(100vh-56px)] bg-slate-50 dark:bg-slate-900 px-5 py-10">
+    <div class="max-w-3xl mx-auto animate-fade-up">
+
+        <div class="mb-6">
+            <p class="text-xs uppercase tracking-widest font-semibold text-slate-400 mb-2 font-sans">
+                Mitarbeiter
+            </p>
+            <h1 class="font-display text-2xl font-semibold text-slate-800 dark:text-slate-100 leading-tight">
+                Meine Angebote
+            </h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-2 font-sans">
+                {% if total_count == 0 %}
+                    Du hast noch keine Angebote abgegeben.
+                {% elif pending_count == 0 %}
+                    {{ total_count }} abgeschlossene{{ "s" if total_count == 1 else "" }} Angebot{{ "e" if total_count != 1 else "" }} in deiner Historie.
+                {% elif pending_count == 1 %}
+                    1 laufendes Angebot wartet auf eine Entscheidung.
+                {% else %}
+                    {{ pending_count }} laufende Angebote warten auf eine Entscheidung.
+                {% endif %}
+            </p>
+        </div>
+
+        {% if offers %}
+        <div id="offer-list" class="space-y-3">
+            {% for offer in offers %}
+                {% set card_index = loop.index0 %}
+                {% include "offers/partials/offerer_card.html" %}
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm p-8 text-center">
+            <div class="w-10 h-10 mx-auto rounded-xl bg-slate-100 dark:bg-slate-700 flex items-center justify-center mb-3">
+                <svg class="w-5 h-5 text-slate-400" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+            </div>
+            <p class="text-sm text-slate-500 dark:text-slate-400 font-sans">
+                Noch keine Angebote.
+            </p>
+            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1 font-sans">
+                Unterbesetzte Termine findest du in deinem Kalender.
+            </p>
+        </div>
+        {% endif %}
+
+        <a href="/dashboard"
+           class="inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 transition-colors font-sans mt-6">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Zurück zum Dashboard
+        </a>
+
+    </div>
+</div>
+{% endblock %}

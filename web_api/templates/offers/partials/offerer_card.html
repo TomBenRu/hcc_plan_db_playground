@@ -1,0 +1,58 @@
+{# Einzelne Angebots-Card für die Offerer-Eigensicht (/offers/mine). #}
+{# Kontext: offer (AvailabilityOfferSummary), card_index (int, optional) #}
+
+{% set months_de = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"] %}
+{% set sval = offer.status.value %}
+
+{% set status_labels = {
+    "pending":                    "Ausstehend",
+    "accepted_by_dispatcher":     "Angenommen",
+    "rejected_by_dispatcher":     "Abgelehnt",
+    "withdrawn":                  "Zurückgezogen",
+    "superseded_by_cast_change":  "Obsolet",
+    "superseded_by_plan_unbind":  "Obsolet",
+} %}
+{% set status_badge_styles = {
+    "pending":                    "bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:ring-amber-700/50",
+    "accepted_by_dispatcher":     "bg-green-50 text-green-700 ring-green-200 dark:bg-green-900/30 dark:text-green-400 dark:ring-green-700/50",
+    "rejected_by_dispatcher":     "bg-red-50 text-red-700 ring-red-200 dark:bg-red-900/30 dark:text-red-400 dark:ring-red-700/50",
+    "withdrawn":                  "bg-slate-50 text-slate-500 ring-slate-200 dark:bg-slate-700/30 dark:text-slate-400 dark:ring-slate-600/50",
+    "superseded_by_cast_change":  "bg-purple-50 text-purple-600 ring-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:ring-purple-700/50",
+    "superseded_by_plan_unbind":  "bg-purple-50 text-purple-600 ring-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:ring-purple-700/50",
+} %}
+
+<a href="/offers/{{ offer.id }}"
+   class="block bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm
+          hover:shadow-md hover:border-slate-200 dark:hover:border-slate-600 transition-all duration-200 overflow-hidden anim"
+   style="animation-delay: {{ (card_index | default(0)) * 0.05 }}s;">
+
+    <div class="p-5">
+        <div class="flex items-start justify-between gap-3 mb-2">
+            <div class="min-w-0 flex-1">
+                <p class="text-xs uppercase tracking-widest font-semibold text-sky-600 dark:text-sky-400 mb-1 font-sans">
+                    Mein Angebot
+                </p>
+                <h2 class="text-base font-semibold text-slate-800 dark:text-slate-100 leading-snug font-display">
+                    {{ offer.location_name }}
+                </h2>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 font-sans">
+                    {% if offer.event_date %}
+                        {{ offer.event_date.split('-')[2]|int }}. {{ months_de[offer.event_date.split('-')[1]|int - 1] }} {{ offer.event_date.split('-')[0] }}
+                    {% endif %}
+                    {% if offer.time_of_day_name %} · {{ offer.time_of_day_name }}{% endif %}
+                </p>
+            </div>
+            <span class="flex-shrink-0 text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 {{ status_badge_styles.get(sval, '') }}">
+                {{ status_labels.get(sval, sval) }}
+            </span>
+        </div>
+
+        {% if offer.message %}
+        <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30 rounded-lg px-3 py-2 mt-3">
+            <p class="text-xs text-slate-600 dark:text-slate-300 font-sans italic leading-relaxed">
+                &bdquo;{{ offer.message }}&ldquo;
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</a>

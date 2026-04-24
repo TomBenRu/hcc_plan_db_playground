@@ -12,6 +12,10 @@
     "swap_confirmed":            {"label": "Tausch bestätigt",           "color": "#22C55E"},
     "swap_rejected":             {"label": "Tausch abgelehnt",           "color": "#94A3B8"},
     "swap_withdrawn":            {"label": "Tausch zurückgezogen",       "color": "#94A3B8"},
+    "availability_offer_received":  {"label": "Einsatz-Angebot",         "color": "#0EA5E9"},
+    "availability_offer_accepted":  {"label": "Angebot angenommen",      "color": "#22C55E"},
+    "availability_offer_rejected":  {"label": "Angebot abgelehnt",       "color": "#94A3B8"},
+    "availability_offer_withdrawn": {"label": "Angebot zurückgezogen",   "color": "#94A3B8"},
 } %}
 
 {# Differenzierte Labels für dispatcher_removed_from_cast — Key ist request_type|recipient_role aus snapshot_data. Farbe einheitlich purple-400. #}
@@ -109,6 +113,22 @@
                class="flex-shrink-0 text-[11px] font-medium text-slate-400 hover:text-navy transition-colors whitespace-nowrap">
                 Details
             </a>
+            {% elif group.reference_type == "availability_offer" and group.reference_id %}
+              {% if group.has_unread %}
+              <a href="/offers/{{ group.reference_id }}"
+                 onclick="event.stopPropagation();"
+                 class="flex-shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-lg
+                        bg-sky-50 text-sky-700 border border-sky-200
+                        hover:bg-sky-100 transition-colors whitespace-nowrap">
+                  Angebot öffnen
+              </a>
+              {% else %}
+              <a href="/offers/{{ group.reference_id }}"
+                 onclick="event.stopPropagation();"
+                 class="flex-shrink-0 text-[11px] font-medium text-slate-400 hover:text-navy transition-colors whitespace-nowrap">
+                  Details
+              </a>
+              {% endif %}
             {% elif group.reference_id %}
             <a href="/cancellations/{{ group.reference_id }}"
                onclick="event.stopPropagation();"

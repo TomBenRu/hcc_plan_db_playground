@@ -10,6 +10,7 @@ from sqlmodel import Session
 from database.models import Appointment
 from web_api.auth.dependencies import WebUserRole, require_role
 from web_api.cancellations.service import get_cancellations_for_dispatcher
+from web_api.common import guest_list
 from web_api.config import get_settings
 from web_api.dependencies import get_db_session
 from web_api.dispatcher.dependencies import require_team_dispatcher_for_appointment
@@ -222,6 +223,7 @@ def dispatcher_appointment_detail(
             "event": event,
             "coworkers": coworkers,
             "appointment": appointment,
+            "guests": guest_list(appointment.guests) if appointment else [],
             "cast_count": event.cast_count,
             "cast_required": event.cast_required,
             "is_understaffed": event.is_understaffed,
@@ -288,6 +290,7 @@ def dispatcher_cast_fragment(
             "request": request,
             "appointment": appointment,
             "coworkers": coworkers,
+            "guests": guest_list(appointment.guests),
             "cast_count": status_data["cast_count"],
             "cast_required": status_data["cast_required"],
             "is_understaffed": status_data["is_understaffed"],
@@ -323,6 +326,7 @@ def dispatcher_update_cast(
             "request": request,
             "appointment": appointment,
             "coworkers": coworkers,
+            "guests": guest_list(appointment.guests),
             "cast_count": status_data["cast_count"],
             "cast_required": status_data["cast_required"],
             "is_understaffed": status_data["is_understaffed"],

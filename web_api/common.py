@@ -26,3 +26,22 @@ def guest_count(value: Any) -> int:
         except (ValueError, TypeError):
             pass
     return 0
+
+
+def guest_list(value: Any) -> list[str]:
+    """Dekodiert Gäste-Namen robust aus dem `Appointment.guests`-JSON-Feld.
+
+    Analog zu `guest_count`: SQLAlchemy liefert je nach Dialekt entweder
+    bereits dekodierte Liste oder rohen JSON-String. Nicht-String-Elemente
+    werden per `str()` gecastet; Fallback bei ungültigem Wert: leere Liste.
+    """
+    if isinstance(value, (list, tuple)):
+        return [str(x) for x in value]
+    if isinstance(value, str) and value.strip():
+        try:
+            parsed = json.loads(value)
+            if isinstance(parsed, (list, tuple)):
+                return [str(x) for x in parsed]
+        except (ValueError, TypeError):
+            pass
+    return []

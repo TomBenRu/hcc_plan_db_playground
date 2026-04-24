@@ -8,7 +8,7 @@ Join-Kette:
 """
 
 import uuid
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta, timezone
 
 from sqlalchemy import func, select as sa_select
@@ -29,7 +29,7 @@ from database.models import (
     Team,
     TimeOfDay,
 )
-from web_api.common import guest_count
+from web_api.common import guest_list
 from web_api.models.web_models import (
     CancellationRequest,
     CancellationStatus,
@@ -84,6 +84,8 @@ class CalendarEvent:
     is_understaffed: bool = False
     # True = Person ist bei diesem Termin eingeteilt; False = fremder Termin (E1-Show-All)
     is_own: bool = True
+    # Gäste-Namen (Appointment.guests als Liste von Strings — kein DB-Backed-Model)
+    guests: list[str] = field(default_factory=list)
 
 
 @dataclass
@@ -139,6 +141,7 @@ def get_appointments_for_person(
         sa_select(
             Appointment.id.label("appointment_id"),
             Appointment.notes.label("appointment_notes"),
+            Appointment.guests.label("guests"),
             Event.date.label("event_date"),
             LocationOfWork.name.label("location_name"),
             LocationOfWork.id.label("location_id"),
@@ -237,6 +240,7 @@ def get_appointments_for_person(
             period_start=row["period_start"],
             period_end=row["period_end"],
             team_id=row["team_id"],
+            guests=guest_list(row["guests"]),
             has_pending_cancellation=row["appointment_id"] in pending_cancellation_ids,
             has_active_swap_request=row["appointment_id"] in active_swap_request_ids,
             is_past_deadline=_is_past_deadline(
@@ -345,8 +349,8 @@ def get_team_appointments_for_person(
 
     result: list[CalendarEvent] = []
     for r in rows:
-        guests = guest_count(r["guests"])
-        cc = int(r["avail_count"]) + guests
+        guest_names = guest_list(r["guests"])
+        cc = int(r["avail_count"]) + len(guest_names)
         cr = int(r["cast_required"])
         result.append(CalendarEvent(
             appointment_id=r["appointment_id"],
@@ -362,6 +366,7 @@ def get_team_appointments_for_person(
             period_start=r["period_start"],
             period_end=r["period_end"],
             team_id=r["team_id"],
+            guests=guest_names,
             cast_count=cc,
             cast_required=cr,
             is_understaffed=cc < cr,

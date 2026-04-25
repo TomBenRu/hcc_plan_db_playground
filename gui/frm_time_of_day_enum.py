@@ -149,7 +149,7 @@ class DlgTimeOfDayEnumsEditList(QDialog):
         super().reject()
 
     def new_enum(self):
-        dlg = DlgTimeOfDayEnumEdit(self, None, False, self.project)
+        dlg = DlgTimeOfDayEnumEdit(self, None, True, self.project)
 
         if not dlg.exec():
             return
@@ -166,7 +166,7 @@ class DlgTimeOfDayEnumsEditList(QDialog):
         curr_enum_id = UUID(self.table_enums.item(curr_row, 0).text())
         curr_enum = db_services.TimeOfDayEnum.get(curr_enum_id)
 
-        standard = curr_enum_id in [t.id for t in self.project.time_of_day_standards if not t.prep_delete]
+        standard = curr_enum_id in [t.id for t in self.project.time_of_day_enum_standards if not t.prep_delete]
         dlg = DlgTimeOfDayEnumEdit(self, curr_enum, standard, self.project)
 
         if not dlg.exec():

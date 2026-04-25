@@ -149,7 +149,7 @@ def week_grid(
     actor_plan_period_id: uuid.UUID = Query(...),
     start: date = Query(...),  # Montag der Woche
 ):
-    """Serverseitig gerendertes Wochen-Grid für HTMX-Einbindung."""
+    """Serverseitig gerendertes Wochen-Grid (TimeGrid-Layout) für HTMX-Einbindung."""
     person_id = _require_person(user)
     app = service.authorize_actor_plan_period(session, person_id, actor_plan_period_id)
     period_start = app.plan_period.start
@@ -157,15 +157,18 @@ def week_grid(
     week_end = start + timedelta(days=6)
     markers = service.get_markers_for_range(session, actor_plan_period_id, start, week_end)
 
-    # Tage-Map: date → Liste von Markern (Mon–Son sortiert)
-    days_list: list[tuple[date, list[service.AvailDayMarker]]] = []
+    # Sichtfenster + TimeGrid-Layout berechnen
+    view_start_min, view_end_min = service.compute_view_window(markers)
+    slots_by_day = service.layout_week_grid(markers, view_start_min, view_end_min)
+
+    # Tage-Liste (Mo–So) inkl. Slots pro Tag — Slots können leer sein
+    days_list: list[tuple[date, list[service.WeekGridSlot]]] = []
     for i in range(7):
         d = start + timedelta(days=i)
-        days_list.append((d, []))
-    marker_by_day: dict[date, list[service.AvailDayMarker]] = {d: lst for d, lst in days_list}
-    for m in markers:
-        if m.day in marker_by_day:
-            marker_by_day[m.day].append(m)
+        days_list.append((d, slots_by_day.get(d, [])))
+
+    # Stundenmarken für die Time-Axis (volle Stunden im Sichtfenster)
+    hour_marks = list(range(view_start_min // 60, view_end_min // 60 + 1))
 
     return templates.TemplateResponse(
         "availability/partials/week_grid.html",
@@ -177,6 +180,9 @@ def week_grid(
             "palette": ["#F97316", "#38BDF8", "#2DD4BF", "#818CF8", "#F472B6", "#4ADE80"],
             "period_start": period_start,
             "period_end": period_end,
+            "view_start_min": view_start_min,
+            "view_end_min": view_end_min,
+            "hour_marks": hour_marks,
         },
     )
 

@@ -1,50 +1,123 @@
 {#
-  Wochen-Grid-Fragment — wird via HTMX in #week-grid geladen.
+  Wochen-Grid-Fragment (TimeGrid-Layout) — wird via HTMX in #week-grid geladen.
   Erwartet:
-    days_list: list[tuple[date, list[AvailDayMarker]]]  — 7 Einträge (Mo–So)
+    days_list: list[tuple[date, list[WeekGridSlot]]]    — 7 Einträge (Mo–So)
     actor_plan_period_id: UUID
     today: date
     palette: list[str]                                   — Farben per Enum-time_index
+    period_start, period_end: date
+    view_start_min, view_end_min: int                    — Sichtfenster in Minuten ab 0:00
+    hour_marks: list[int]                                — volle Stunden im Sichtfenster (für Achse + Raster)
 #}
 {% set weekdays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] %}
 {% set months_de = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'] %}
+{% set total_hours = (view_end_min - view_start_min) / 60 %}
+{% set hour_h_px = 48 %}
+{% set body_h_px = (total_hours * hour_h_px) | round | int %}
+{% set first_hour = hour_marks[0] %}
 
-<div class="grid grid-cols-7 gap-px bg-slate-100 rounded-xl overflow-hidden border border-slate-100 h-full min-h-[320px] min-w-[560px]">
-{% for day, markers in days_list %}
-    {% set is_today = (day == today) %}
-    {% set is_weekend = (loop.index0 >= 5) %}
-    {% set out_of_period = (day < period_start or day > period_end) %}
-    <div class="flex flex-col {% if out_of_period %}bg-slate-100/60{% elif is_weekend %}bg-slate-50/40{% else %}bg-white{% endif %}"
-         {% if not out_of_period %}onclick="openDayPanelFromGrid('{{ day.isoformat() }}')" style="cursor: pointer;"{% else %}style="cursor: default;"{% endif %}>
+<div class="flex flex-col h-full min-w-[640px] rounded-xl overflow-y-auto border border-slate-100 dark:border-slate-700/50 bg-white dark:bg-slate-800">
 
-        {# ── Spalten-Header ──────────────────────────────────────────── #}
-        <div class="px-2 pt-2 pb-1.5 border-b border-slate-100 {% if is_today and not out_of_period %}bg-brand/5{% endif %}">
-            <p class="text-xs font-semibold tracking-widest uppercase font-sans text-slate-400{% if out_of_period %}/40{% endif %}">
-                {{ weekdays[loop.index0] }}
-            </p>
-            <p class="text-lg font-semibold font-display leading-none mt-0.5
-                       {% if out_of_period %}text-slate-400/40{% elif is_today %}text-brand{% else %}text-slate-700{% endif %}">
-                {{ day.day }}
-            </p>
-            <p class="text-xs font-sans {% if out_of_period %}text-slate-400/40{% else %}text-slate-400{% endif %}">{{ months_de[day.month - 1] }}</p>
-        </div>
-
-        {# ── Marker-Chips ────────────────────────────────────────────── #}
-        <div class="flex flex-col gap-1 p-1.5 flex-1">
-            {% for m in markers %}
-            {% set color = palette[m.time_of_day_enum_time_index % palette|length] %}
-            <div class="flex items-center gap-1 rounded-md px-1.5 py-1 text-white text-xs font-semibold font-sans leading-none"
-                 style="background-color: {{ color }}; box-shadow: 0 1px 3px {{ color }}55;">
-                <span>{{ m.time_of_day_enum_abbreviation }}</span>
-                {% if m.has_appointment %}
-                <svg class="w-2.5 h-2.5 ml-auto opacity-80 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                          d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
-                </svg>
-                {% endif %}
+    {# ── Header-Row: Wochentage ─────────────────────────────────────── #}
+    <div class="grid sticky top-0 z-10 bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700"
+         style="grid-template-columns: 56px repeat(7, 1fr);">
+        <div></div>
+        {% for day, _slots in days_list %}
+            {% set is_today = (day == today) %}
+            {% set is_weekend = (loop.index0 >= 5) %}
+            {% set out_of_period = (day < period_start or day > period_end) %}
+            <div class="px-2 pt-2 pb-1.5 border-l border-slate-200 dark:border-slate-700
+                        {% if is_weekend and not out_of_period %}bg-slate-50/40 dark:bg-slate-900/30{% endif %}
+                        {% if not out_of_period %}cursor-pointer{% endif %}"
+                 {% if not out_of_period %}onclick="openDayPanelFromGrid('{{ day.isoformat() }}')"{% endif %}>
+                <p class="text-xs font-semibold tracking-widest uppercase font-sans
+                          {% if out_of_period %}text-slate-400/40 dark:text-slate-600{% else %}text-slate-400 dark:text-slate-500{% endif %}">
+                    {{ weekdays[loop.index0] }}
+                </p>
+                <p class="text-lg font-semibold font-display leading-none mt-0.5
+                          {% if out_of_period %}text-slate-400/40 dark:text-slate-600{% elif is_today %}text-brand{% else %}text-slate-700 dark:text-slate-200{% endif %}">
+                    {{ day.day }}
+                </p>
+                <p class="text-xs font-sans
+                          {% if out_of_period %}text-slate-400/40 dark:text-slate-600{% else %}text-slate-400 dark:text-slate-500{% endif %}">
+                    {{ months_de[day.month - 1] }}
+                </p>
             </div>
+        {% endfor %}
+    </div>
+
+    {# ── Body: TimeGrid (Time-Axis + 7 Tagesspalten) ─────────────────── #}
+    {# Scrolling passiert auf dem Outer (Header sticky-top); dadurch sind
+       Header und Body automatisch breitenidentisch. min-height: bei viel
+       Vertikalplatz dehnt sich das Grid; bei wenig scrollt's.
+       padding-top/bottom: lässt Time-Axis-Labels nicht oben/unten clippen. #}
+    <div class="flex flex-1">
+        <div class="flex w-full" style="min-height: {{ body_h_px }}px; padding: 12px 0;">
+
+        {# Time-Axis links — kein right-border, der left-border der Mo-Spalte
+           liefert die Trennlinie (vermeidet Doppel-Linie). #}
+        <div class="relative flex-shrink-0 bg-slate-50/50 dark:bg-slate-900/40"
+             style="width: 56px;">
+            {% for h in hour_marks %}
+                <div class="absolute right-1.5 -translate-y-1/2 text-[10px] font-sans font-semibold tracking-wide text-slate-400 dark:text-slate-500"
+                     style="top: {{ ((h - first_hour) / total_hours * 100) | round(2) }}%;">
+                    {{ '%02d:00' % h }}
+                </div>
             {% endfor %}
         </div>
+
+        {# 7 Tagesspalten #}
+        {% for day, slots in days_list %}
+            {% set is_today = (day == today) %}
+            {% set is_weekend = (loop.index0 >= 5) %}
+            {% set out_of_period = (day < period_start or day > period_end) %}
+            <div class="flex-1 relative border-l border-slate-200 dark:border-slate-700
+                        {% if out_of_period %}bg-slate-100/60 dark:bg-slate-900/60{% elif is_weekend %}bg-slate-50/40 dark:bg-slate-900/30 cursor-pointer{% else %}bg-white dark:bg-slate-800 cursor-pointer{% endif %}"
+                 {% if not out_of_period %}onclick="openDayPanelFromGrid('{{ day.isoformat() }}')"{% endif %}>
+
+                {# Stundenraster: Light-Mode-Differenzierung via Farb-Stufen,
+                   Dark-Mode beide voll opaque (Alpha-Blending gegen slate-800
+                   ist für subtile Halbstunden zu unzuverlässig). #}
+                {% for h in hour_marks[1:] %}
+                    <div class="absolute inset-x-0 border-t border-slate-200 dark:border-slate-700 pointer-events-none"
+                         style="top: {{ ((h - first_hour) / total_hours * 100) | round(2) }}%;"></div>
+                {% endfor %}
+                {% for h in hour_marks[:-1] %}
+                    <div class="absolute inset-x-0 border-t border-slate-100 dark:border-slate-700 pointer-events-none"
+                         style="top: {{ ((h + 0.5 - first_hour) / total_hours * 100) | round(2) }}%;"></div>
+                {% endfor %}
+
+                {# Slots #}
+                {% for s in slots %}
+                    {% set color = palette[s.marker.time_of_day_enum_time_index % palette|length] %}
+                    {% set lane_w = 100.0 / s.lane_count %}
+                    {% set lane_left = s.lane * lane_w %}
+                    <div class="week-slot absolute rounded-md text-white font-sans flex flex-col px-1.5 py-1 leading-tight overflow-hidden"
+                         style="top: {{ s.top_pct | round(2) }}%; height: {{ s.height_pct | round(2) }}%;
+                                left: calc({{ lane_left | round(2) }}% + 2px); width: calc({{ lane_w | round(2) }}% - 4px);
+                                background-color: {{ color }}; box-shadow: 0 1px 3px {{ color }}55;"
+                         data-event-color="{{ color }}"
+                         title="{{ s.marker.time_of_day_enum_name }} ({{ '%02d:%02d' % (s.marker.time_of_day_start.hour, s.marker.time_of_day_start.minute) }}–{{ '%02d:%02d' % (s.marker.time_of_day_end.hour, s.marker.time_of_day_end.minute) }})">
+                        <span class="text-[11px] font-semibold truncate">{{ s.marker.time_of_day_enum_name }}</span>
+                        <span class="text-[10px] font-normal opacity-90 truncate">
+                            {{ '%02d:%02d' % (s.marker.time_of_day_start.hour, s.marker.time_of_day_start.minute) }} – {{ '%02d:%02d' % (s.marker.time_of_day_end.hour, s.marker.time_of_day_end.minute) }}
+                        </span>
+                        {% if s.marker.has_appointment %}
+                            <svg class="w-2.5 h-2.5 absolute top-1 right-1 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                      d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
+                            </svg>
+                        {% endif %}
+                        {% if s.is_overflow %}
+                            <svg class="w-2.5 h-2.5 absolute bottom-0.5 right-0.5 opacity-90" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        {% endif %}
+                    </div>
+                {% endfor %}
+            </div>
+        {% endfor %}
+
+        </div>
     </div>
-{% endfor %}
 </div>

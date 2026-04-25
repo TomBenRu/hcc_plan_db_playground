@@ -432,6 +432,132 @@ def get_markers_for_range_simple(
     return deduped
 
 
+# ── TimeGrid-Layout (Wochenansicht) ───────────────────────────────────────────
+
+
+@dataclass
+class WeekGridSlot:
+    """Ein einzelner Verfügbarkeits-Slot im TimeGrid-Layout der Wochenansicht."""
+    marker: AvailDayMarker
+    top_pct: float       # 0–100 — vertikale Position in % des Sichtfensters
+    height_pct: float    # 0–100 — vertikale Größe in % des Sichtfensters
+    lane: int            # 0..N-1 innerhalb des überlappenden Clusters
+    lane_count: int      # Anzahl Lanes im Cluster (für Breitenberechnung)
+    is_overflow: bool    # Mitternachts-Spanne, am view_end abgeschnitten
+
+
+def _time_to_minutes(t: time) -> int:
+    return t.hour * 60 + t.minute
+
+
+def compute_view_window(markers: list[AvailDayMarker]) -> tuple[int, int]:
+    """Liefert (view_start_min, view_end_min) für die Time-Axis.
+
+    Dynamisch aus min(start) / max(end) der Marker mit 1h-Padding, geclamped
+    auf 0–1440 und auf volle Stunden gerundet. Ohne Marker: 8:00–20:00.
+    Mitternachts-Spannen (end <= start) werden im max() als 1440 gewertet.
+    """
+    if not markers:
+        return 8 * 60, 20 * 60
+
+    starts = [_time_to_minutes(m.time_of_day_start) for m in markers]
+    ends = []
+    for m in markers:
+        s = _time_to_minutes(m.time_of_day_start)
+        e = _time_to_minutes(m.time_of_day_end)
+        ends.append(1440 if e <= s else e)
+
+    view_start = max(0, (min(starts) - 60) // 60 * 60)
+    view_end = min(1440, ((max(ends) + 60) + 59) // 60 * 60)
+    if view_end <= view_start:
+        view_end = min(1440, view_start + 60)
+    return view_start, view_end
+
+
+def layout_week_grid(
+    markers: list[AvailDayMarker],
+    view_start_min: int,
+    view_end_min: int,
+) -> dict[date, list[WeekGridSlot]]:
+    """Berechnet pro Tag die TimeGrid-Slot-Geometrie inkl. Lane-Zuweisung.
+
+    Greedy-Algorithmus pro Tag: Marker werden nach Start sortiert und in Cluster
+    transitiv überlappender Slots gruppiert. Innerhalb eines Clusters bekommt
+    jeder Slot die niedrigste Lane, die nicht mit einem vorherigen kollidiert.
+    `lane_count` ist Cluster-lokal — disjunkte Slots am selben Tag bleiben
+    100% breit.
+    """
+    view_span = max(1, view_end_min - view_start_min)
+    by_day: dict[date, list[AvailDayMarker]] = {}
+    for m in markers:
+        by_day.setdefault(m.day, []).append(m)
+
+    result: dict[date, list[WeekGridSlot]] = {}
+    for day, day_markers in by_day.items():
+        normalized: list[tuple[AvailDayMarker, int, int, bool]] = []
+        for m in day_markers:
+            s = _time_to_minutes(m.time_of_day_start)
+            e = _time_to_minutes(m.time_of_day_end)
+            is_overflow = e <= s
+            if is_overflow:
+                e = 1440
+            normalized.append((m, s, e, is_overflow))
+        normalized.sort(key=lambda x: (x[1], x[2]))
+
+        # Cluster bilden — transitive Überlappung
+        clusters: list[list[int]] = []
+        current: list[int] = []
+        current_max_end = -1
+        for idx, (_, s, e, _) in enumerate(normalized):
+            if s < current_max_end:
+                current.append(idx)
+                current_max_end = max(current_max_end, e)
+            else:
+                if current:
+                    clusters.append(current)
+                current = [idx]
+                current_max_end = e
+        if current:
+            clusters.append(current)
+
+        slot_lane = [0] * len(normalized)
+        slot_lane_count = [1] * len(normalized)
+        for cluster in clusters:
+            lane_ends: list[int] = []
+            for idx in cluster:
+                _, s, e, _ = normalized[idx]
+                assigned = -1
+                for i, lend in enumerate(lane_ends):
+                    if lend <= s:
+                        lane_ends[i] = e
+                        assigned = i
+                        break
+                if assigned == -1:
+                    lane_ends.append(e)
+                    assigned = len(lane_ends) - 1
+                slot_lane[idx] = assigned
+            for idx in cluster:
+                slot_lane_count[idx] = len(lane_ends)
+
+        slots: list[WeekGridSlot] = []
+        for idx, (m, s, e, is_overflow) in enumerate(normalized):
+            top = (s - view_start_min) / view_span * 100.0
+            height = (e - s) / view_span * 100.0
+            top = max(0.0, min(100.0, top))
+            height = max(0.0, min(100.0 - top, height))
+            slots.append(WeekGridSlot(
+                marker=m,
+                top_pct=top,
+                height_pct=height,
+                lane=slot_lane[idx],
+                lane_count=slot_lane_count[idx],
+                is_overflow=is_overflow,
+            ))
+        result[day] = slots
+
+    return result
+
+
 def get_person_time_of_days(
     session: Session,
     person_id: uuid.UUID,

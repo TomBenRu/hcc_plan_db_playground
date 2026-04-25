@@ -8,7 +8,6 @@ Die Import-Aliase unten stellen vollständige Rückwärtskompatibilität sicher:
 
 from ._common import log_function_info, LOGGING_ENABLED
 
-from . import entities_api_to_db as EntitiesApiToDB
 from . import project as Project
 from . import team as Team
 from . import person as Person

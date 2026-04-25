@@ -50,28 +50,6 @@ class Delete(Command):
         api_plan_period.delete(self.plan_period_id)
 
 
-class DeletePrepDeletes(Command):
-    """Hartes Löschen aller prep-deleted PlanPeriods eines Teams.
-
-    Irreversibel: Undo/Redo sind no-ops, weil hard-deletes nicht
-    wiederhergestellt werden können. Der Aufrufer zeigt vor der Ausführung
-    eine Bestätigungs-Dialog, d. h. der Benutzer hat den Verlust bereits akzeptiert.
-    """
-
-    def __init__(self, team_id: UUID):
-        super().__init__()
-        self.team_id = team_id
-
-    def execute(self):
-        api_plan_period.delete_prep_deletes(self.team_id)
-
-    def _undo(self):
-        pass
-
-    def _redo(self):
-        pass
-
-
 class Update(Command):
     def __init__(self, plan_period: schemas.PlanPeriod):
         super().__init__()

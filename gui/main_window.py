@@ -47,7 +47,6 @@ from .frm_plan import FrmTabPlan
 from .frm_plan_period import DlgPlanPeriodCreate, DlgPlanPeriodEdit
 from .frm_project_select import DlgProjectSelect
 from .frm_project_settings import DlgSettingsProject
-from .frm_remote_access_plan_api import DlgRemoteAccessPlanApi
 from .frm_undelete_plans import DlgUndeletePlans
 from .observer import signal_handling
 from .tab_manager import TabManager
@@ -136,10 +135,6 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                               self.tr('Generate Blocked Dates Lists...'),
                               self.tr('Creates lists where employees can enter their blocked dates.'),
                               self.sheets_for_availables),
-            MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'download-mac-os.png'),
-                              self.tr('Import Data from Online API...'),
-                              self.tr('Import data from API'),
-                              self.import_from_plan_api),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'table-export.png'),
                               self.tr('Export Plan to Excel...'),
                               self.tr('Exports the active plan to an Excel file'),
@@ -293,7 +288,6 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         self.menu_actions = {
             self.tr('&File'): [self.actions['open_plan_period_masks'], self.actions['new_plan_period'],
                                self.actions['edit_plan_period'], None, self.actions['sheets_for_availables'], None,
-                               self.actions['import_from_plan_api'], None,
                                {
                                    self.tr('Export'): [self.actions['plan_export_to_excel'],
                                                        self.actions['events_in_plan_for_fibu_to_excel'],
@@ -1597,11 +1591,6 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                 self.tr("An error occurred while opening the help.\n\n"
                        "Try again later or contact support.")
             )
-
-    def import_from_plan_api(self):
-        dlg = DlgRemoteAccessPlanApi(self, self.project_id)
-        if not dlg.exec():
-            return
 
     def check_for_updates(self):
         ...

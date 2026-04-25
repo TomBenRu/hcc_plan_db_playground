@@ -12,7 +12,6 @@ from database.special_schema_requests import get_locations_of_team_at_date
 from database.db_services.person import get_persons_of_team_at_date
 from commands.database_commands import plan_period_commands, location_plan_period_commands, event_group_commands, \
     actor_plan_period_commands, avail_day_group_commands
-from gui.frm_remote_access_plan_api import plan_api_handler
 from tools.helper_functions import date_to_string, setup_form_help
 
 
@@ -167,11 +166,6 @@ class DlgPlanPeriodCreate(QDialog):
         for actor_id in actor_ids:
             self._create_actor_plan_periods(plan_period_created.id, actor_id)
 
-        self._create_plan_period_on_api(self.cb_teams.currentData().id, self.de_start.date().toPython(),
-                                        self.de_end.date().toPython(), self.de_deadline.date().toPython(),
-                                        self.chk_remainder.isChecked(), self.text_notes_for_employees.toPlainText(),
-                                        plan_period_created.id)
-
         super().accept()
 
     def _create_location_plan_periods(self, plan_period_id: UUID, loc_id: UUID):
@@ -187,39 +181,6 @@ class DlgPlanPeriodCreate(QDialog):
         new_actor_plan_period = command.created_actor_plan_period
         adg_command = avail_day_group_commands.Create(loc_act_plan_period_id=new_actor_plan_period.id)
         self.controller.execute(adg_command)
-
-    def _create_plan_period_on_api(self, team_id: UUID, start: datetime.date, end: datetime.date,
-                                   deadline: datetime.date, remainder: bool, notes: str, plan_period_id: UUID):
-        # team_id = '83E4FEEFAF844EABA3FB15F25BDB7EC1'  # für locale API
-        try:
-            created_plan_period = plan_api_handler.create_plan_period(team_id, start, end, deadline, remainder,
-                                                                      notes, plan_period_id)
-            QMessageBox.information(self, self.tr('New Planning Period on Server'),
-                                    self.tr('<h3>A new planning period has been created on the server</h3>'
-                                          '<p>Team: {team_name}</p>'
-                                          '<p>Period: {start_date} - {end_date}</p>'
-                                          '<p>Deadline: {deadline_date}</p>'
-                                          '<p>Notes in Online Portal:<br>{notes}</p>').format(
-                                              team_name=created_plan_period.team.name,
-                                              start_date=date_to_string(created_plan_period.start),
-                                              end_date=date_to_string(created_plan_period.end),
-                                              deadline_date=date_to_string(created_plan_period.deadline),
-                                              notes=created_plan_period.notes))
-        except Exception as e:
-            QMessageBox.critical(self, self.tr('New Planning Period on Server'),
-                                 self.tr('The planning period could not be created on the server\n'
-                                       'due to the following error during transfer:\n'
-                                       '{error}').format(error=str(e)))
-            reply = QMessageBox.question(self, self.tr('New Planning Period'),
-                                         self.tr('Do you want to create the planning period locally?\n'
-                                               'You can transfer it to the server later.'))
-            if reply == QMessageBox.StandardButton.No:
-                self.controller.undo_all()
-                QMessageBox.information(self, self.tr('New Planning Period'),
-                                      self.tr('The planning period was not created.'))
-            else:
-                QMessageBox.information(self, self.tr('New Planning Period'),
-                                      self.tr('The planning period was created locally.'))
 
 
 class DlgPlanPeriodEdit(QDialog):

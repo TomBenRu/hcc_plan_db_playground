@@ -6,7 +6,6 @@ from toml.decoder import TomlDecodeError
 
 from pydantic import BaseModel
 
-from configuration.api_remote_config import ConfigHandlerToml
 from configuration.config_handler import ConfigHandler
 from configuration.project_paths import curr_user_path_handler
 

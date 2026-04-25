@@ -12,7 +12,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QMessageBox, QLabel
     QFormLayout, QHeaderView, QFileDialog, QMainWindow
 
 from gui.frm_skill_groups import DlgSkillGroups
-from database import db_services, schemas, schemas_plan_api
+from database import db_services, schemas
 from database.enums import Gender
 from database.special_schema_requests import get_curr_team_of_person_at_date, \
     get_curr_team_of_location_at_date, get_next_assignment_of_location
@@ -126,20 +126,6 @@ class WidgetPerson(QWidget):
         if dlg.exec():
             self.refresh_table()
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
-            person = schemas_plan_api.PersonCreate(
-                id=dlg.created_person.id,
-                f_name=dlg.created_person.f_name,
-                l_name=dlg.created_person.l_name,
-                email=dlg.created_person.email,
-                username=dlg.created_person.username,
-                password=dlg.password
-            )
-            self.create_person_on_api(person)
-
-    def create_person_on_api(self, person: schemas_plan_api.PersonCreate):
-        # TODO: Implement API call to create person on server
-        QMessageBox.information(self, self.tr('Employee on Server'),
-                              self.tr('The employee will be created on the server.\nNot yet implemented'))
 
     def create_persons_from_xlsx(self):
         """

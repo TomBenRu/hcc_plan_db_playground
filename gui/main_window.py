@@ -396,6 +396,12 @@ class MainWindow(QMainWindow, TabCacheIntegration):
 
         self._activate_signals()
 
+        # Re-Login-Handler: API-Client feuert auth_required, wenn ein Request
+        # dauerhaft auf 401 laeuft (Token tot, Refresh fehlgeschlagen). Auto-
+        # Connection ueber Threadgrenzen liefert das Signal queued in den
+        # Main-Thread — wichtig, weil API-Calls aus Worker-Threads kommen.
+        get_api_client().auth_required.connect(self._on_auth_required)
+
         # Cache-Monitoring Flag
         self.cache_monitoring = cache_monitoring
 
@@ -1630,6 +1636,27 @@ class MainWindow(QMainWindow, TabCacheIntegration):
 
     def open_account_in_browser(self):
         webbrowser.open(f"{get_api_client().base_url}/account/profile")
+
+    @Slot()
+    def _on_auth_required(self):
+        """Wird vom API-Client gefeuert, wenn ein Request dauerhaft auf 401
+        laeuft. Zeigt einen Hinweis und ruft den Login-Dialog erneut auf.
+        Bricht der User ab, schliesst die App — analog zum Startup-Flow.
+        """
+        QMessageBox.information(
+            self,
+            self.tr('Session expired'),
+            self.tr(
+                'Your sign-in is no longer valid (e. g. because you changed '
+                'your password in the browser). Please sign in again.'
+            ),
+        )
+        from gui.auth.bootstrap import ensure_authenticated
+        if not ensure_authenticated(self):
+            # User hat den Re-Login abgebrochen — App schliessen, analog zum
+            # Bootstrap-Pfad.
+            get_api_client().reset_relogin_pending()
+            self.close()
 
     def logout(self):
         reply = QMessageBox.warning(

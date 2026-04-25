@@ -28,10 +28,24 @@ import os
 from typing import Any
 
 import requests
+from PySide6.QtCore import QObject, Signal
 from requests import Response
 
 
 logger = logging.getLogger(__name__)
+
+
+class _AuthEventEmitter(QObject):
+    """Inneres QObject — traegt das ``auth_required``-Signal des API-Clients.
+
+    Komposition statt Vererbung von QObject am Client selbst, damit der Client
+    in Tests ohne QApplication instanziierbar bleibt (siehe tests/integration/).
+    Das Signal wird nur dann emittiert, wenn ein normaler API-Request nach
+    fehlgeschlagenem Token-Refresh in einen 401 laeuft — der Empfaenger
+    (typischerweise MainWindow) zeigt den Login-Dialog erneut.
+    """
+
+    auth_required = Signal()
 
 from gui.auth.token_store import (
     TokenStoreError,
@@ -86,6 +100,11 @@ class DesktopApiClient:
         # (oder via Silent-Login aus dem Keyring kam). Steuert, ob rotierte
         # Refresh-Tokens aus /auth/refresh in den Keyring geschrieben werden.
         self._persist_refresh: bool = False
+        self._auth_emitter = _AuthEventEmitter()
+        # Re-Login-De-Duplizierung: bei parallelen API-Calls darf das Signal
+        # nur einmal feuern, sonst wuerden mehrere Login-Dialoge stapeln.
+        # Wird auf False zurueckgesetzt durch login() und reset_relogin_pending().
+        self._relogin_pending: bool = False
 
     # ── Singleton ─────────────────────────────────────────────────────────────
 
@@ -116,6 +135,7 @@ class DesktopApiClient:
         )
         _raise_for_status(response)
         self._access_token = response.json()["access_token"]
+        self._relogin_pending = False
 
         refresh_value = self._session.cookies.get(_REFRESH_COOKIE)
         self._persist_refresh = bool(remember)
@@ -171,6 +191,7 @@ class DesktopApiClient:
             clear_refresh_token()
             self._session.cookies.clear()
             return False
+        self._relogin_pending = False
         # Silent-Login bedeutet: der User hatte "Angemeldet bleiben" gewaehlt.
         self._persist_refresh = True
         # Der Server hat via Set-Cookie ein rotiertes Refresh-Token geliefert;
@@ -241,6 +262,23 @@ class DesktopApiClient:
     def base_url(self) -> str:
         return self._base_url
 
+    @property
+    def auth_required(self) -> Signal:
+        """Qt-Signal, das gefeuert wird, wenn ein API-Call dauerhaft auf 401
+        laeuft (Token tot, Refresh fehlgeschlagen). Konnektoren zeigen den
+        Login-Dialog und rufen anschliessend ``reset_relogin_pending()``,
+        falls der User abbricht — sonst bleibt das De-Dup-Flag haengen.
+        """
+        return self._auth_emitter.auth_required
+
+    def reset_relogin_pending(self) -> None:
+        """Hebt das De-Dup-Flag auf, ohne dass ein neuer Login passiert sein
+        muss. Wird vom Empfaenger des ``auth_required``-Signals aufgerufen,
+        wenn der User den Re-Login-Dialog abbricht (App schliesst dann eh,
+        aber das Flag soll konsistent sein).
+        """
+        self._relogin_pending = False
+
     # ── HTTP-Basis ────────────────────────────────────────────────────────────
 
     def _headers(self, *, json_body: bool = False) -> dict[str, str]:
@@ -269,6 +307,7 @@ class DesktopApiClient:
     def _request(self, method: str, path: str, **kwargs: Any) -> Any:
         has_body = "json" in kwargs and kwargs["json"] is not None
         url = f"{self._base_url}{path}"
+        had_token_before = self._access_token is not None
         response = self._session.request(
             method, url, headers=self._headers(json_body=has_body), **kwargs,
         )
@@ -284,10 +323,29 @@ class DesktopApiClient:
             response = self._session.request(
                 method, url, headers=self._headers(json_body=has_body), **kwargs,
             )
+        # Wenn der Refresh-Versuch fehlschlug (oder gar keiner moeglich war)
+        # und wir _nicht_ im Auth-Pfad selbst sind: Re-Login-Signal feuern.
+        # had_token_before schliesst Bug-Faelle aus, in denen ein API-Call
+        # _vor_ dem Bootstrap-Login passiert — dort ist kein Re-Login noetig,
+        # der Bootstrap selbst zeigt schon den initialen Dialog.
+        if (
+            response.status_code == 401
+            and path not in (_LOGIN_PATH, _REFRESH_PATH)
+            and had_token_before
+        ):
+            self._signal_auth_required()
         _raise_for_status(response)
         if response.status_code == 204 or not response.content:
             return None
         return response.json()
+
+    def _signal_auth_required(self) -> None:
+        """Emittiert das ``auth_required``-Signal genau einmal pro Re-Login-Zyklus."""
+        if self._relogin_pending:
+            return
+        self._relogin_pending = True
+        logger.info("Re-Login erforderlich — Signal an GUI emittiert.")
+        self._auth_emitter.auth_required.emit()
 
 
 # ── Hilfsfunktion ─────────────────────────────────────────────────────────────

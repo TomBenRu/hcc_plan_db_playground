@@ -3,11 +3,11 @@ from urllib.parse import quote
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.responses import JSONResponse, RedirectResponse
-from slowapi import Limiter
 from slowapi.errors import RateLimitExceeded
-from slowapi.util import get_remote_address
 from sqlalchemy.exc import IntegrityError
 from sqlmodel import Session, text
+
+from web_api.rate_limit import limiter
 
 from web_api.admin.router import router as admin_router
 from web_api.auth.router import router as auth_router
@@ -46,9 +46,6 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
-# Rate-Limiter: wird pro Endpoint via @limiter.limit(...) aktiviert.
-# In-Memory-Backend ist OK, solange die App als Single-Instance läuft.
-limiter = Limiter(key_func=get_remote_address)
 app.state.limiter = limiter
 
 

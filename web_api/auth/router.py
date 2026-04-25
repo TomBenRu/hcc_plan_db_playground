@@ -3,13 +3,32 @@
 from datetime import datetime, timezone
 
 import jwt
-from fastapi import APIRouter, Cookie, Depends, HTTPException, Query, Request, Response, status
+from fastapi import (
+    APIRouter,
+    BackgroundTasks,
+    Cookie,
+    Depends,
+    Form,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    status,
+)
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
 from web_api.auth.dependencies import CurrentUser
+from web_api.auth.password_policy import validate_password
+from web_api.auth.password_reset import (
+    build_reset_email,
+    consume_token_and_set_password,
+    create_reset_token,
+    has_recent_token,
+    verify_token,
+)
 from web_api.auth.service import (
     create_access_token,
     create_refresh_token,
@@ -18,7 +37,9 @@ from web_api.auth.service import (
 )
 from web_api.config import Settings, get_settings
 from web_api.dependencies import get_db_session
+from web_api.email.service import send_emails_background
 from web_api.models.web_models import WebUser
+from web_api.rate_limit import limiter
 from web_api.templating import templates
 
 router = APIRouter(prefix="/auth", tags=["auth"])
@@ -265,3 +286,107 @@ def me(current_user: CurrentUser):
         "roles": [r.value for r in current_user.roles],
         "person_id": str(current_user.person_id) if current_user.person_id else None,
     }
+
+
+# ── Passwort vergessen / zurücksetzen ─────────────────────────────────────────
+
+
+@router.get("/forgot-password", response_class=HTMLResponse)
+def forgot_password_page(request: Request):
+    return templates.TemplateResponse(
+        "auth/forgot_password.html",
+        {"request": request, "error": None, "info": None, "prefill_email": None},
+    )
+
+
+@router.post("/forgot-password", response_class=HTMLResponse)
+@limiter.limit("3/hour")
+def forgot_password(
+    request: Request,
+    background_tasks: BackgroundTasks,
+    email: str = Form(...),
+    session: Session = Depends(get_db_session),
+    settings: Settings = Depends(get_settings),
+):
+    """Sendet einen Reset-Link, falls die Email einem aktiven User zugeordnet ist.
+
+    Antwort ist immer dieselbe (Erfolgs-Template), unabhängig davon, ob die Email
+    existiert oder nicht — verhindert User-Enumeration.
+    Pro User höchstens alle EMAIL_THROTTLE_MINUTES eine neue Mail.
+    """
+    user = _load_user_with_roles(session, email)
+
+    if user is not None and user.is_active and not has_recent_token(session, user.id):
+        token = create_reset_token(session, user)
+        session.commit()
+        payload = build_reset_email(user, token, settings)
+        background_tasks.add_task(send_emails_background, [payload], settings)
+
+    info = (
+        "Falls für diese Adresse ein Konto existiert, ist gerade eine E-Mail mit "
+        "einem Reset-Link unterwegs. Prüfe ggf. den Spam-Ordner."
+    )
+    return templates.TemplateResponse(
+        "auth/forgot_password.html",
+        {"request": request, "error": None, "info": info, "prefill_email": None},
+    )
+
+
+@router.get("/reset-password", response_class=HTMLResponse)
+def reset_password_page(
+    request: Request,
+    token: str = Query(...),
+    session: Session = Depends(get_db_session),
+):
+    user = verify_token(session, token)
+    return templates.TemplateResponse(
+        "auth/reset_password.html",
+        {
+            "request": request,
+            "token": token,
+            "invalid_token": user is None,
+            "errors": [],
+        },
+    )
+
+
+@router.post("/reset-password", response_class=HTMLResponse)
+@limiter.limit("5/hour")
+def reset_password(
+    request: Request,
+    token: str = Form(...),
+    password: str = Form(...),
+    password_confirm: str = Form(...),
+    session: Session = Depends(get_db_session),
+):
+    """Verbraucht den Reset-Token und setzt das neue Passwort."""
+    pre_user = verify_token(session, token)
+    if pre_user is None:
+        return templates.TemplateResponse(
+            "auth/reset_password.html",
+            {"request": request, "token": token, "invalid_token": True, "errors": []},
+        )
+
+    errors: list[str] = []
+    if password != password_confirm:
+        errors.append("Die beiden Passwort-Eingaben stimmen nicht überein.")
+    errors.extend(validate_password(password, pre_user.email))
+
+    if errors:
+        return templates.TemplateResponse(
+            "auth/reset_password.html",
+            {"request": request, "token": token, "invalid_token": False, "errors": errors},
+        )
+
+    user = consume_token_and_set_password(session, token, password)
+    if user is None:
+        return templates.TemplateResponse(
+            "auth/reset_password.html",
+            {"request": request, "token": token, "invalid_token": True, "errors": []},
+        )
+
+    session.commit()
+    return RedirectResponse(
+        url="/auth/login?prefill_email=" + user.email,
+        status_code=status.HTTP_303_SEE_OTHER,
+    )

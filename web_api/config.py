@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     # App
     DEBUG: bool = False
     APP_TITLE: str = "hcc_plan Web-API"
+    BASE_URL: str = "http://localhost:8000"  # Basis für absolute Links (Reset-Mails etc.)
 
     # E-Mail
     EMAIL_BACKEND: str = "console"  # "smtp" | "console"

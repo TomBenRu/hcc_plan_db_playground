@@ -60,6 +60,7 @@ class WebUser(SQLModel, table=True):
     created_at: datetime = Field(default_factory=_utcnow)
     last_modified: datetime = Field(default_factory=_utcnow)
     password_changed_at: datetime = Field(default_factory=_utcnow)
+    pending_email: Optional[str] = Field(default=None, max_length=254, nullable=True)
 
     role_links: list[WebUserRoleLink] = Relationship(back_populates="user")
 
@@ -91,6 +92,28 @@ class PasswordResetToken(SQLModel, table=True):
         ondelete="CASCADE",
         index=True,
     )
+    token_hash: str = Field(unique=True, index=True, max_length=64)
+    expires_at: datetime
+    used_at: Optional[datetime] = Field(default=None, nullable=True)
+    created_at: datetime = Field(default_factory=_utcnow)
+
+
+class EmailChangeToken(SQLModel, table=True):
+    """Single-Use-Token für Login-Email-Wechsel.
+
+    target_email ist die *gewünschte* neue Adresse — wird beim Verbrauch auf
+    WebUser.email umgeschaltet. Hash-Schema identisch zu PasswordResetToken.
+    """
+
+    __tablename__ = "email_change_token"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    web_user_id: uuid.UUID = Field(
+        foreign_key="web_user.id",
+        ondelete="CASCADE",
+        index=True,
+    )
+    target_email: str = Field(max_length=254)
     token_hash: str = Field(unique=True, index=True, max_length=64)
     expires_at: datetime
     used_at: Optional[datetime] = Field(default=None, nullable=True)

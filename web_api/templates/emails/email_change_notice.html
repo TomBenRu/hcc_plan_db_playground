@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="de">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Anfrage zur Änderung deiner Login-Adresse</title>
+<style>
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #f8fafc; margin: 0; padding: 24px; color: #334155; }
+  .card { background: white; border-radius: 12px; max-width: 540px; margin: 0 auto; padding: 32px; border: 1px solid #e2e8f0; }
+  .badge { display: inline-block; background: #fef3c7; color: #92400e; border-radius: 999px; padding: 2px 10px; font-size: 11px; font-weight: 600; }
+  h1 { font-size: 18px; font-weight: 700; color: #0f172a; margin: 0 0 4px; }
+  .lead { font-size: 13px; color: #64748b; margin: 4px 0 20px; }
+  .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; margin-top: 16px; margin-bottom: 4px; }
+  .value { font-size: 14px; color: #1e293b; }
+  .meta { font-size: 12px; color: #64748b; margin-top: 16px; }
+  .alert { background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 12px 16px; margin-top: 16px; font-size: 13px; color: #991b1b; }
+  .footer { margin-top: 24px; font-size: 11px; color: #94a3b8; text-align: center; }
+</style>
+</head>
+<body>
+<div class="card">
+  <p style="margin:0 0 16px"><span class="badge">Hinweis</span></p>
+  <h1>Anfrage zur Änderung deiner Login-Adresse</h1>
+  <p class="lead">
+    Für dein Konto wurde eine Änderung der Login-Adresse angefordert.
+    Diese Nachricht ist eine Information — die Änderung wird erst aktiv,
+    wenn die neue Adresse bestätigt wird.
+  </p>
+
+  <div class="label">Bisherige Login-Adresse</div>
+  <div class="value">{{ old_email }}</div>
+
+  <div class="label">Gewünschte neue Adresse</div>
+  <div class="value">{{ target_email }}</div>
+
+  <div class="alert">
+    Falls du diese Anfrage nicht gestellt hast, ändere bitte sofort dein Passwort
+    über „Passwort vergessen?" auf der Anmelde-Seite — das setzt alle aktiven
+    Sitzungen zurück.
+  </div>
+
+  <div class="meta">
+    Bis zur Bestätigung der neuen Adresse bleibt diese ({{ old_email }})
+    deine Login-Adresse.
+  </div>
+
+  <div class="footer">hcc plan · Diese Nachricht wurde automatisch generiert.</div>
+</div>
+</body>
+</html>

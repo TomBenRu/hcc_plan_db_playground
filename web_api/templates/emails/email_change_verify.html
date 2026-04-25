@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="de">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>E-Mail-Adresse bestätigen</title>
+<style>
+  body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #f8fafc; margin: 0; padding: 24px; color: #334155; }
+  .card { background: white; border-radius: 12px; max-width: 540px; margin: 0 auto; padding: 32px; border: 1px solid #e2e8f0; }
+  .badge { display: inline-block; background: #dbeafe; color: #1e40af; border-radius: 999px; padding: 2px 10px; font-size: 11px; font-weight: 600; }
+  h1 { font-size: 18px; font-weight: 700; color: #0f172a; margin: 0 0 4px; }
+  .lead { font-size: 13px; color: #64748b; margin: 4px 0 20px; }
+  .button {
+    display: inline-block;
+    background: #F97316;
+    color: white !important;
+    padding: 10px 20px;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 14px;
+    margin-top: 16px;
+  }
+  .meta { font-size: 12px; color: #64748b; margin-top: 8px; }
+  .fallback { font-size: 12px; color: #94a3b8; margin-top: 24px; word-break: break-all; }
+  .footer { margin-top: 24px; font-size: 11px; color: #94a3b8; text-align: center; }
+</style>
+</head>
+<body>
+<div class="card">
+  <p style="margin:0 0 16px"><span class="badge">Bestätigung erforderlich</span></p>
+  <h1>Bestätige deine neue E-Mail-Adresse</h1>
+  <p class="lead">
+    Du (oder jemand mit Zugriff auf dein Konto) hat eine Änderung der Login-Adresse
+    auf {{ target_email }} angefordert. Klicke auf den Button, um die neue Adresse
+    zu aktivieren.
+  </p>
+
+  <p>
+    <a class="button" href="{{ confirm_link }}">E-Mail-Adresse bestätigen</a>
+  </p>
+
+  <p class="meta">
+    Der Link ist {{ ttl_minutes }} Minuten gültig. Erst der Klick auf „Bestätigen"
+    nach dem Aufrufen der Seite schließt die Änderung ab.
+  </p>
+
+  <p class="meta">
+    Falls du diese Anfrage nicht gestellt hast, kannst du diese E-Mail ignorieren —
+    deine Login-Adresse bleibt unverändert.
+  </p>
+
+  <div class="fallback">
+    Falls der Button nicht funktioniert, kopiere diesen Link in deinen Browser:<br>
+    {{ confirm_link }}
+  </div>
+
+  <div class="footer">hcc plan · Diese Nachricht wurde automatisch generiert.</div>
+</div>
+</body>
+</html>

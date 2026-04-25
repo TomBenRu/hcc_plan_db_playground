@@ -1,15 +1,28 @@
-"""Account-Router: /account/profile (Person-Stammdaten) und /account/credentials (Passwort)."""
+"""Account-Router: /account/profile (Person-Stammdaten), /account/credentials (Passwort + Email)."""
 
-from fastapi import APIRouter, Depends, Form, Request, Response, status
+import jwt
+from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Form, Query, Request, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import Session
 
 from web_api.account.service import change_password, load_profile, update_profile
 from web_api.auth.cookies import set_auth_cookies
 from web_api.auth.dependencies import LoggedInUser
-from web_api.auth.service import create_access_token, create_refresh_token
+from web_api.auth.email_change import (
+    build_notice_email,
+    build_verify_email,
+    cancel_pending_change,
+    consume_token,
+    create_email_change_token,
+    has_recent_token,
+    is_email_taken_by_other,
+    normalize_email,
+    verify_token,
+)
+from web_api.auth.service import create_access_token, create_refresh_token, decode_token
 from web_api.config import Settings, get_settings
 from web_api.dependencies import get_db_session
+from web_api.email.service import send_emails_background
 from web_api.rate_limit import limiter
 from web_api.templating import templates
 
@@ -107,17 +120,27 @@ def profile_update(
     )
 
 
+def _credentials_context(request: Request, user, **extra) -> dict:
+    """Gemeinsamer Render-Context für die Credentials-Seite."""
+    base = {
+        "request": request,
+        "user": user,
+        "active_tab": "credentials",
+        "password_saved": False,
+        "password_errors": [],
+        "email_info": None,
+        "email_errors": [],
+        "pending_email": user.pending_email,
+    }
+    base.update(extra)
+    return base
+
+
 @router.get("/credentials", response_class=HTMLResponse)
 def credentials_page(request: Request, user: LoggedInUser):
     return templates.TemplateResponse(
         "account/credentials.html",
-        {
-            "request": request,
-            "user": user,
-            "active_tab": "credentials",
-            "saved": False,
-            "errors": [],
-        },
+        _credentials_context(request, user),
     )
 
 
@@ -149,13 +172,7 @@ def change_password_endpoint(
     if errors:
         return templates.TemplateResponse(
             "account/credentials.html",
-            {
-                "request": request,
-                "user": user,
-                "active_tab": "credentials",
-                "saved": False,
-                "errors": errors,
-            },
+            _credentials_context(request, user, password_errors=errors),
         )
 
     session.commit()
@@ -168,13 +185,192 @@ def change_password_endpoint(
 
     response = templates.TemplateResponse(
         "account/credentials.html",
-        {
-            "request": request,
-            "user": user,
-            "active_tab": "credentials",
-            "saved": True,
-            "errors": [],
-        },
+        _credentials_context(request, user, password_saved=True),
     )
     set_auth_cookies(response, access_tok, refresh_tok, settings)
+    return response
+
+
+# ── Email-Change-Flow ─────────────────────────────────────────────────────────
+
+
+@router.post("/credentials/email", response_class=HTMLResponse)
+@limiter.limit("3/hour")
+def request_email_change(
+    request: Request,
+    user: LoggedInUser,
+    background_tasks: BackgroundTasks,
+    new_email: str = Form(...),
+    session: Session = Depends(get_db_session),
+    settings: Settings = Depends(get_settings),
+):
+    """Startet eine Email-Wechsel-Anfrage. Zwei Mails: Verify (an neu) + Hinweis (an alt).
+
+    Antwort ist immer dieselbe info-Meldung — verhindert User-Enumeration und
+    Spam, wenn target == current oder target schon belegt ist.
+    """
+    target = normalize_email(new_email)
+    errors: list[str] = []
+
+    if not target or "@" not in target:
+        errors.append("Bitte gib eine gültige E-Mail-Adresse an.")
+    elif len(target) > 254:
+        errors.append("Die E-Mail-Adresse ist zu lang (max. 254 Zeichen).")
+
+    if errors:
+        return templates.TemplateResponse(
+            "account/credentials.html",
+            _credentials_context(request, user, email_errors=errors),
+        )
+
+    # Anfragen ueber 5min-Throttle hinaus stillschweigend ignorieren.
+    can_send = (
+        target != normalize_email(user.email)
+        and not is_email_taken_by_other(session, target, user.id)
+        and not has_recent_token(session, user.id)
+    )
+
+    if can_send:
+        old_email = user.email
+        token = create_email_change_token(session, user, target)
+        session.commit()
+        background_tasks.add_task(
+            send_emails_background,
+            [
+                build_verify_email(target, token, settings),
+                build_notice_email(old_email, target, settings),
+            ],
+            settings,
+        )
+
+    info = (
+        f"Wenn die Adresse {target} verfügbar ist, ist gerade eine "
+        "Bestätigungs-Mail unterwegs. Erst nach dem Klick auf den Link "
+        "wird die Login-Adresse umgestellt."
+    )
+    return templates.TemplateResponse(
+        "account/credentials.html",
+        _credentials_context(request, user, email_info=info, pending_email=target if can_send else user.pending_email),
+    )
+
+
+@router.post("/credentials/email/cancel", response_class=HTMLResponse)
+def cancel_email_change(
+    request: Request,
+    user: LoggedInUser,
+    session: Session = Depends(get_db_session),
+):
+    """Bricht eine offene Email-Wechsel-Anfrage ab."""
+    cancel_pending_change(session, user)
+    session.commit()
+    return templates.TemplateResponse(
+        "account/credentials.html",
+        _credentials_context(
+            request, user,
+            email_info="Anfrage zur Adressänderung wurde zurückgezogen.",
+            pending_email=None,
+        ),
+    )
+
+
+@router.get("/email-change/confirm", response_class=HTMLResponse)
+def confirm_email_change_page(
+    request: Request,
+    token: str = Query(...),
+    session: Session = Depends(get_db_session),
+):
+    """Zeigt die Bestätigungs-Seite. Verifiziert OHNE Verbrauch — die
+    eigentliche Mutation passiert erst beim POST.
+
+    Login ist hier NICHT vorausgesetzt: der User hat den Link evtl. auf einem
+    anderen Gerät als sein Browser-Login geöffnet.
+    """
+    result = verify_token(session, token)
+    if result is None:
+        return templates.TemplateResponse(
+            "account/email_change_confirm.html",
+            {"request": request, "invalid_token": True},
+        )
+    user, target_email = result
+    return templates.TemplateResponse(
+        "account/email_change_confirm.html",
+        {
+            "request": request,
+            "invalid_token": False,
+            "email_taken": False,
+            "success": False,
+            "token": token,
+            "target_email": target_email,
+        },
+    )
+
+
+@router.post("/email-change/confirm", response_class=HTMLResponse)
+@limiter.limit("5/hour")
+def confirm_email_change(
+    request: Request,
+    token: str = Form(...),
+    session: Session = Depends(get_db_session),
+    settings: Settings = Depends(get_settings),
+    access_token: str | None = Cookie(default=None),
+):
+    """Verbraucht den Token und schaltet die Login-Email um."""
+    pre = verify_token(session, token)
+    if pre is None:
+        return templates.TemplateResponse(
+            "account/email_change_confirm.html",
+            {"request": request, "invalid_token": True},
+        )
+
+    pre_user, target_email = pre
+    if is_email_taken_by_other(session, target_email, pre_user.id):
+        return templates.TemplateResponse(
+            "account/email_change_confirm.html",
+            {
+                "request": request,
+                "invalid_token": False,
+                "email_taken": True,
+                "target_email": target_email,
+            },
+        )
+
+    consumed = consume_token(session, token)
+    if consumed is None:
+        return templates.TemplateResponse(
+            "account/email_change_confirm.html",
+            {"request": request, "invalid_token": True},
+        )
+    user, _old_email, new_email = consumed
+    session.commit()
+
+    # Best-Effort: Wenn der Confirm-Request mit aktivem Auth-Cookie desselben
+    # Users kommt, refreshen wir die Tokens, damit der email-Claim aktuell ist.
+    # Andernfalls (anderes Gerät) zeigen wir einen Hinweis auf neue Anmeldung.
+    refresh_for_current_session = False
+    if access_token:
+        try:
+            payload = decode_token(access_token, settings)
+            if payload.get("type") == "access" and payload.get("sub") == str(user.id):
+                refresh_for_current_session = True
+        except jwt.PyJWTError:
+            pass
+
+    response = templates.TemplateResponse(
+        "account/email_change_confirm.html",
+        {
+            "request": request,
+            "invalid_token": False,
+            "email_taken": False,
+            "success": True,
+            "new_email": new_email,
+            "still_logged_in": refresh_for_current_session,
+        },
+    )
+
+    if refresh_for_current_session:
+        role_values = [r.value for r in user.roles]
+        access_tok = create_access_token(str(user.id), user.email, role_values, settings)
+        refresh_tok = create_refresh_token(str(user.id), settings)
+        set_auth_cookies(response, access_tok, refresh_tok, settings)
+
     return response

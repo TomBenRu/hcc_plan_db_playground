@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}E-Mail-Adresse bestätigen — hcc plan{% endblock %}
+
+{% block head %}
+<style>
+    .animate-fade-up { animation: fadeUp 0.5s ease-out both; }
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(16px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .field-input {
+        width: 100%;
+        padding: 0.625rem 1rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        color: #0f172a;
+        background: #f1f5f9;
+        outline: none;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen flex items-center justify-center bg-white px-8 py-12">
+    <div class="w-full max-w-sm animate-fade-up">
+
+        <div class="flex items-center gap-2 mb-10">
+            <div class="flex flex-col gap-[3px]">
+                <div class="w-1 h-4 bg-brand rounded-full"></div>
+                <div class="w-1 h-2.5 bg-brand/40 rounded-full"></div>
+            </div>
+            <span class="font-display text-navy text-xl font-light">hcc plan</span>
+        </div>
+
+        {% if invalid_token %}
+        <h1 class="font-display text-3xl font-semibold text-slate-900 leading-tight mb-1">
+            Link ungültig
+        </h1>
+        <p class="text-slate-500 text-sm mb-8">
+            Der Bestätigungs-Link ist abgelaufen oder wurde bereits verwendet. Du kannst
+            die Änderung über deinen Konto-Bereich erneut anfordern.
+        </p>
+        <a href="/account/credentials"
+           class="inline-block w-full py-2.5 px-4 bg-brand hover:bg-brand-600 active:bg-brand-700
+                  text-white font-medium text-sm rounded-lg text-center transition-colors duration-150">
+            Zurück zum Konto
+        </a>
+
+        {% elif email_taken %}
+        <h1 class="font-display text-3xl font-semibold text-slate-900 leading-tight mb-1">
+            Adresse nicht verfügbar
+        </h1>
+        <p class="text-slate-500 text-sm mb-8">
+            Die gewünschte Adresse {{ target_email }} ist inzwischen einem anderen Konto zugeordnet.
+            Wähle eine andere Adresse.
+        </p>
+        <a href="/account/credentials"
+           class="inline-block w-full py-2.5 px-4 bg-brand hover:bg-brand-600 active:bg-brand-700
+                  text-white font-medium text-sm rounded-lg text-center transition-colors duration-150">
+            Zurück zum Konto
+        </a>
+
+        {% elif success %}
+        <h1 class="font-display text-3xl font-semibold text-slate-900 leading-tight mb-1">
+            E-Mail-Adresse aktualisiert
+        </h1>
+        <p class="text-slate-500 text-sm mb-8">
+            Deine Login-Adresse ist jetzt <strong>{{ new_email }}</strong>.
+            {% if not still_logged_in %}
+            Bitte melde dich mit der neuen Adresse erneut an.
+            {% endif %}
+        </p>
+        <a href="{% if still_logged_in %}/account/credentials{% else %}/auth/login?prefill_email={{ new_email }}{% endif %}"
+           class="inline-block w-full py-2.5 px-4 bg-brand hover:bg-brand-600 active:bg-brand-700
+                  text-white font-medium text-sm rounded-lg text-center transition-colors duration-150">
+            {% if still_logged_in %}Weiter zum Konto{% else %}Zur Anmeldung{% endif %}
+        </a>
+
+        {% else %}
+        <h1 class="font-display text-3xl font-semibold text-slate-900 leading-tight mb-1">
+            Neue Adresse bestätigen
+        </h1>
+        <p class="text-slate-400 text-sm mb-8">
+            Klicke auf „Bestätigen", um deine Login-Adresse auf die folgende
+            zu setzen:
+        </p>
+
+        <form method="post" action="/account/email-change/confirm" class="space-y-4" id="confirm-form">
+            <input type="hidden" name="token" value="{{ token }}">
+
+            <div>
+                <label class="block text-sm font-medium text-slate-700 mb-1.5">
+                    Neue Login-Adresse
+                </label>
+                <input class="field-input" type="email" readonly value="{{ target_email }}">
+            </div>
+
+            <button type="submit" id="submit-btn"
+                    class="mt-2 w-full py-2.5 px-4 bg-brand hover:bg-brand-600 active:bg-brand-700
+                           text-white font-medium text-sm rounded-lg transition-colors duration-150
+                           focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2
+                           disabled:opacity-60 disabled:cursor-not-allowed">
+                Bestätigen
+            </button>
+        </form>
+        {% endif %}
+
+        <p class="mt-8 text-center text-xs text-slate-400">
+            <a href="/auth/login" class="text-slate-500 hover:text-slate-700 underline">
+                Zurück zur Anmeldung
+            </a>
+        </p>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const form = document.getElementById('confirm-form');
+    if (form) {
+        form.addEventListener('submit', function () {
+            const btn = document.getElementById('submit-btn');
+            btn.disabled = true;
+            btn.textContent = 'Wird bestätigt …';
+        });
+    }
+</script>
+{% endblock %}

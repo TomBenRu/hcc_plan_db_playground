@@ -24,25 +24,25 @@
 <div id="cast-edit-modal-body" class="space-y-5">
 
     {# ── Sektion: Soll-Besetzung ───────────────────────────────── #}
-    <section>
+    {# Persistierung erfolgt erst beim Klick auf »Speichern« (Save-Orchestrator
+       unten); Abbrechen/Schließen verwerfen die Änderung damit zuverlässig. #}
+    <section data-nr-actors-url="/dispatcher/plan/appointments/{{ appointment.id }}/cast/nr-actors">
         <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 dark:text-slate-500 mb-2">
             Soll-Besetzung
         </p>
-        <form hx-patch="/dispatcher/plan/appointments/{{ appointment.id }}/cast/nr-actors"
-              hx-swap="none"
-              hx-trigger="change from:#nr-actors-input delay:250ms"
-              class="flex items-center gap-3 flex-wrap">
+        <div class="flex items-center gap-3 flex-wrap">
             <input type="number"
                    name="nr_actors"
                    id="nr-actors-input"
                    min="0" max="65535"
                    value="{{ nr_actors }}"
+                   data-initial="{{ nr_actors }}"
                    data-autofocus
                    class="w-24 text-sm rounded-lg border border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-800 dark:text-slate-100 px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/40 focus:border-brand/60">
             <span class="text-xs text-slate-500 dark:text-slate-400 font-sans leading-snug">
                 Wirkt auf <strong class="text-slate-700 dark:text-slate-200">alle</strong> Termine dieses Events.
             </span>
-        </form>
+        </div>
         <div id="nr-actors-status" class="mt-2"></div>
     </section>
 
@@ -292,6 +292,36 @@
         if (e.target.matches('input.js-cast-person') || e.target.matches('#nr-actors-input')) {
             updateCounter();
         }
+    });
+
+    // Save-Orchestrator: nr_actors erst beim Klick persistieren — und nur
+    // dann das Haupt-Form submitten, wenn der nr_actors-PATCH erfolgreich
+    // war. Verhindert, dass Soll-Besetzung sich von Cast-Auswahl
+    // desynchronisiert.
+    saveBtn.addEventListener('click', function (e) {
+        if (saveBtn.disabled) return;
+        var castForm = document.getElementById('cast-save-form');
+        var initial = parseInt(nrActorsInput.dataset.initial, 10);
+        var current = parseInt(nrActorsInput.value, 10);
+        if (isNaN(current) || current < 0) return;
+        if (current === initial) return;  // unverändert → natives Form-Submit reicht
+
+        e.preventDefault();
+        saveBtn.disabled = true;
+        var url = nrActorsInput.closest('section').dataset.nrActorsUrl;
+        htmx.ajax('PATCH', url, {
+            source: nrActorsInput,
+            swap: 'none',
+            values: { nr_actors: String(current) },
+        }).then(function () {
+            nrActorsInput.dataset.initial = String(current);
+            saveBtn.disabled = false;
+            // requestSubmit() löst ein natives submit-Event aus — htmx fängt
+            // das zuverlässig (htmx.trigger 'submit' ist nicht dokumentiert).
+            castForm.requestSubmit();
+        }).catch(function () {
+            saveBtn.disabled = false;
+        });
     });
 
     updateCounter();

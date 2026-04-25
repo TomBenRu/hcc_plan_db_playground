@@ -10,7 +10,7 @@ from uuid import UUID
 from PySide6.QtCore import QRect, QPoint, Slot, QCoreApplication, QThreadPool, Qt
 from PySide6.QtGui import QAction, QActionGroup, QCloseEvent
 from PySide6.QtWidgets import (QMainWindow, QMenuBar, QMenu, QWidget, QMessageBox, QInputDialog, QFileDialog,
-                               QApplication)
+                               QApplication, QLabel)
 from httplib2 import ServerNotFoundError
 # xlsxwriter Imports werden lazy geladen für bessere Startup-Performance
 
@@ -351,6 +351,12 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         self.put_actions_to_menu(self.main_menu, self.menu_actions)
 
         self.statusBar()
+        # Permanenter User-Indicator rechts im Statusbar — nicht ueberschreibbar
+        # durch temporaere showMessage()-Aufrufe. Wird bei Startup + nach Re-Login
+        # ueber _refresh_user_indicator() befuellt.
+        self._user_indicator = QLabel()
+        self._user_indicator.setStyleSheet("padding: 0 8px; color: gray;")
+        self.statusBar().addPermanentWidget(self._user_indicator)
 
         self.central_widget = QWidget()
         self.setCentralWidget(self.central_widget)
@@ -401,6 +407,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         # Connection ueber Threadgrenzen liefert das Signal queued in den
         # Main-Thread — wichtig, weil API-Calls aus Worker-Threads kommen.
         get_api_client().auth_required.connect(self._on_auth_required)
+        self._refresh_user_indicator()
 
         # Cache-Monitoring Flag
         self.cache_monitoring = cache_monitoring
@@ -1657,6 +1664,22 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             # Bootstrap-Pfad.
             get_api_client().reset_relogin_pending()
             self.close()
+            return
+        # Re-Login erfolgreich — Indicator aktualisieren, weil sich die
+        # eingeloggte Identitaet (z. B. Email) geaendert haben koennte.
+        self._refresh_user_indicator()
+
+    def _refresh_user_indicator(self):
+        """Holt den aktuell eingeloggten User via /auth/me und zeigt ihn
+        rechts im Statusbar an. Bei Fehlern bleibt der Indicator leer —
+        der eigentliche Auth-Fehlerpfad laeuft ohnehin via auth_required.
+        """
+        try:
+            me = get_api_client().get('/auth/me')
+            email = me.get('email', '?') if isinstance(me, dict) else '?'
+            self._user_indicator.setText(self.tr('Signed in as: {email}').format(email=email))
+        except Exception:
+            self._user_indicator.clear()
 
     def logout(self):
         reply = QMessageBox.warning(

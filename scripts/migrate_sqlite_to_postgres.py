@@ -120,7 +120,11 @@ with src_engine.connect() as src_conn, dst_engine.connect() as dst_conn:
     # Daten tabellenweise übertragen
     total_rows = 0
     for table in sorted_tables:
-        rows = src_conn.execute(table.select()).fetchall()
+        # SQLite-reflektiertes Table für SELECT verwenden, nicht das Modell-Table:
+        # Falls das lokale Schema älter ist als SQLModel.metadata, würde das Modell-Table
+        # Spalten referenzieren, die in SQLite fehlen (z. B. plan.is_binding).
+        src_table = src_meta.tables[table.name]
+        rows = src_conn.execute(src_table.select()).fetchall()
         if not rows:
             print(f"  {table.name}: leer")
             continue

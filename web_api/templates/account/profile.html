@@ -1,0 +1,221 @@
+{% extends "base.html" %}
+
+{% block title %}Persönliche Daten — hcc plan{% endblock %}
+
+{% block head %}
+<style>
+    /* Sidebar (gleicher Look wie cancellations/index.html) */
+    .sidebar-scroll::-webkit-scrollbar { width: 3px; }
+    .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+    .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+    .content-scroll::-webkit-scrollbar { width: 4px; }
+    .content-scroll::-webkit-scrollbar-track { background: transparent; }
+    .content-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 2px; }
+
+    @media (max-width: 1023px) {
+        .page-wrapper { grid-template-columns: 1fr !important; grid-template-rows: auto 1fr; }
+        .page-sidebar {
+            flex-direction: row !important; flex-wrap: wrap;
+            gap: 0.5rem; padding: 0.75rem 1rem !important;
+            align-items: center; min-height: unset !important;
+            overflow: visible !important;
+        }
+        .page-sidebar .sidebar-header { margin-bottom: 0 !important; flex-shrink: 0; }
+        .page-sidebar .sidebar-header h1 { font-size: 1rem !important; }
+        .page-sidebar .sidebar-header p  { display: none !important; }
+        .page-sidebar .sidebar-divider   { display: none !important; }
+        .page-sidebar .sidebar-spacer    { display: none !important; }
+        .sidebar-back { display: none !important; }
+    }
+
+    .filter-btn         { transition: background 0.15s, color 0.15s, border-color 0.15s; }
+    .filter-btn.active  { background: rgba(255,255,255,0.12); color: #fff; border-color: rgba(255,255,255,0.2); }
+    .filter-btn:not(.active):hover { background: rgba(255,255,255,0.06); color: #cbd5e1; }
+
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .anim { animation: fadeUp 0.35s ease-out both; }
+
+    .field-input {
+        width: 100%;
+        padding: 0.625rem 0.875rem;
+        border: 1px solid #e2e8f0;
+        border-radius: 0.5rem;
+        font-size: 0.875rem;
+        color: #0f172a;
+        background: #fff;
+        transition: border-color 0.15s, box-shadow 0.15s;
+        outline: none;
+    }
+    .field-input:focus {
+        border-color: #F97316;
+        box-shadow: 0 0 0 3px rgba(249,115,22,0.15);
+    }
+    .field-input:disabled,
+    .field-input[readonly] {
+        background: #f1f5f9;
+        color: #64748b;
+        cursor: not-allowed;
+    }
+    [data-theme="dark"] .field-input {
+        background: #1e293b;
+        border-color: #334155;
+        color: #f1f5f9;
+    }
+    [data-theme="dark"] .field-input:disabled,
+    [data-theme="dark"] .field-input[readonly] {
+        background: #0f172a;
+        color: #64748b;
+    }
+</style>
+{% endblock %}
+
+{% block nav %}{% include "partials/nav.html" %}{% endblock %}
+
+{% block content %}
+<div class="h-[calc(100vh-56px)] flex flex-col overflow-hidden">
+<div class="page-wrapper flex-1 grid overflow-hidden" style="grid-template-columns: 240px 1fr;">
+
+    {% include "account/_sidebar.html" %}
+
+    <main class="flex-1 overflow-y-auto content-scroll bg-slate-50 dark:bg-slate-900 px-6 py-8">
+        <div class="max-w-2xl mx-auto anim">
+
+            <p class="text-xs uppercase tracking-widest font-semibold text-slate-400 mb-2 font-sans">
+                Konto
+            </p>
+            <h2 class="font-display text-2xl font-semibold text-slate-800 dark:text-slate-100 leading-tight mb-6">
+                Persönliche Daten
+            </h2>
+
+            {% if profile is none %}
+            <div class="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700/50
+                        rounded-xl p-5 text-sm text-amber-800 dark:text-amber-300">
+                <p class="font-medium mb-1">Kein verknüpftes Personenprofil</p>
+                <p class="text-amber-700/80 dark:text-amber-400/80">
+                    Mit deinem Konto ist aktuell keine Person aus dem Stammdaten-Bestand verknüpft.
+                    Bitte wende dich an den Administrator.
+                </p>
+            </div>
+            {% else %}
+
+            {% if saved %}
+            <div class="mb-5 flex items-start gap-2.5 px-4 py-3 bg-emerald-50 dark:bg-emerald-900/20
+                        border border-emerald-200 dark:border-emerald-700/50 rounded-lg">
+                <svg class="w-4 h-4 text-emerald-600 dark:text-emerald-400 mt-0.5 shrink-0"
+                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span class="text-emerald-700 dark:text-emerald-300 text-sm">
+                    Persönliche Daten gespeichert.
+                </span>
+            </div>
+            {% endif %}
+
+            {% if errors %}
+            <div class="mb-5 px-4 py-3 bg-red-50 dark:bg-red-900/20
+                        border border-red-200 dark:border-red-700/50 rounded-lg">
+                <ul class="text-red-700 dark:text-red-300 text-sm space-y-1 list-disc list-inside">
+                    {% for err in errors %}<li>{{ err }}</li>{% endfor %}
+                </ul>
+            </div>
+            {% endif %}
+
+            <form method="post" action="/account/profile"
+                  class="bg-white dark:bg-slate-800 rounded-xl border border-slate-100
+                         dark:border-slate-700/50 shadow-sm p-6 space-y-5">
+
+                {# Name (read-only — Stammdaten, vom Dispatcher gepflegt) #}
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-semibold tracking-widest uppercase text-slate-400 mb-1.5">
+                            Vorname
+                        </label>
+                        <input class="field-input" type="text" readonly
+                               value="{{ profile.f_name }}">
+                    </div>
+                    <div>
+                        <label class="block text-xs font-semibold tracking-widest uppercase text-slate-400 mb-1.5">
+                            Nachname
+                        </label>
+                        <input class="field-input" type="text" readonly
+                               value="{{ profile.l_name }}">
+                    </div>
+                </div>
+                <p class="text-xs text-slate-400 dark:text-slate-500 -mt-2 font-sans">
+                    Vor- und Nachname werden vom Dispatcher gepflegt.
+                </p>
+
+                <div>
+                    <label for="email" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                        E-Mail-Adresse
+                    </label>
+                    <input class="field-input" type="email" id="email" name="email"
+                           required maxlength="50"
+                           value="{{ form_email if form_email is defined else profile.email }}">
+                </div>
+
+                <div>
+                    <label for="phone_nr" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                        Telefon
+                    </label>
+                    <input class="field-input" type="tel" id="phone_nr" name="phone_nr"
+                           maxlength="50"
+                           value="{{ form_phone if form_phone is defined else (profile.phone_nr or '') }}">
+                </div>
+
+                <div class="border-t border-slate-100 dark:border-slate-700/50 pt-5">
+                    <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-3">
+                        Adresse
+                    </p>
+
+                    <div class="space-y-4">
+                        <div>
+                            <label for="street" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                                Straße &amp; Hausnummer
+                            </label>
+                            <input class="field-input" type="text" id="street" name="street"
+                                   maxlength="50"
+                                   value="{{ form_street if form_street is defined else (profile.street or '') }}">
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-4">
+                            <div class="col-span-1">
+                                <label for="postal_code" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                                    PLZ
+                                </label>
+                                <input class="field-input" type="text" id="postal_code" name="postal_code"
+                                       maxlength="20"
+                                       value="{{ form_postal_code if form_postal_code is defined else (profile.postal_code or '') }}">
+                            </div>
+                            <div class="col-span-2">
+                                <label for="city" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                                    Ort
+                                </label>
+                                <input class="field-input" type="text" id="city" name="city"
+                                       maxlength="40"
+                                       value="{{ form_city if form_city is defined else (profile.city or '') }}">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="flex justify-end pt-2">
+                    <button type="submit"
+                            class="px-5 py-2.5 bg-brand hover:bg-brand-600 active:bg-brand-700
+                                   text-white font-medium text-sm rounded-lg transition-colors duration-150
+                                   focus:outline-none focus:ring-2 focus:ring-brand focus:ring-offset-2">
+                        Speichern
+                    </button>
+                </div>
+            </form>
+
+            {% endif %}
+        </div>
+    </main>
+
+</div>
+</div>
+{% endblock %}

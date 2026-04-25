@@ -55,6 +55,14 @@ class LoginDialog(QDialog):
             )
         )
 
+        # ── Passwort-vergessen-Link (oeffnet Web-Reset-Flow im Browser) ──────
+        forgot_url = f"{client.base_url}/auth/forgot-password"
+        self._lbl_forgot = QLabel(
+            f'<a href="{forgot_url}">{self.tr("Passwort vergessen?")}</a>'
+        )
+        self._lbl_forgot.setOpenExternalLinks(True)
+        self._lbl_forgot.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+
         # ── Fehlermeldung (nur bei Bedarf sichtbar) ──────────────────────────
         self._error_label = QLabel("")
         self._error_label.setWordWrap(True)
@@ -75,6 +83,7 @@ class LoginDialog(QDialog):
         layout.addWidget(server_label)
         layout.addLayout(form)
         layout.addWidget(self._chk_remember)
+        layout.addWidget(self._lbl_forgot)
         layout.addWidget(self._error_label)
         layout.addWidget(self._buttons)
 

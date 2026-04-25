@@ -3,6 +3,7 @@ import logging
 import os.path
 import pprint
 import sys
+import webbrowser
 from typing import Literal
 from uuid import UUID
 
@@ -159,6 +160,10 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                               self.tr('Logout'),
                               self.tr('Log out and close the application.'),
                               self.logout),
+            MenuToolbarAction(self, None,
+                              self.tr('Open Account in Browser...'),
+                              self.tr('Open the account self-service page in the default web browser.'),
+                              self.open_account_in_browser),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'address-book-blue.png'),
                               self.tr('Master Data...'),
                               self.tr('Edit master data of employees and work locations.'),
@@ -295,7 +300,8 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                                                        self.actions['export_avail_days_to_excel']]
                                },
                                self.actions['lookup_for_excel_plan_folder'],
-                               None, self.actions['logout'], self.actions['exit']],
+                               None, self.actions['open_account_in_browser'],
+                               self.actions['logout'], self.actions['exit']],
             self.tr('&Teams'): [{self.tr('Edit Teams'): [self.put_teams_to__teams_edit_menu]}, None,
                                 self._put_clients_to_menu,
                                 None, self.actions['master_data']],
@@ -1621,6 +1627,9 @@ class MainWindow(QMainWindow, TabCacheIntegration):
 
     def exit(self):
         self.close()
+
+    def open_account_in_browser(self):
+        webbrowser.open(f"{get_api_client().base_url}/account/profile")
 
     def logout(self):
         reply = QMessageBox.warning(

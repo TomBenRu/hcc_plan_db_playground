@@ -20,6 +20,7 @@ from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
+from web_api.auth.cookies import ACCESS_COOKIE, REFRESH_COOKIE, clear_auth_cookies, set_auth_cookies
 from web_api.auth.dependencies import CurrentUser
 from web_api.auth.password_policy import validate_password
 from web_api.auth.password_reset import (
@@ -44,34 +45,8 @@ from web_api.templating import templates
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
-_ACCESS_COOKIE = "access_token"
-_REFRESH_COOKIE = "refresh_token"
-
 
 # ── Hilfsfunktionen ───────────────────────────────────────────────────────────
-
-
-def _set_auth_cookies(
-    response: Response,
-    access_token: str,
-    refresh_token: str,
-    settings: Settings,
-) -> None:
-    response.set_cookie(
-        _ACCESS_COOKIE,
-        access_token,
-        httponly=True,
-        samesite="lax",
-        max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
-    )
-    response.set_cookie(
-        _REFRESH_COOKIE,
-        refresh_token,
-        httponly=True,
-        samesite="lax",
-        max_age=settings.REFRESH_TOKEN_EXPIRE_DAYS * 86400,
-        path="/auth/refresh",
-    )
 
 
 def _normalize_email(email: str) -> str:
@@ -164,18 +139,18 @@ def login(
     is_htmx = request.headers.get("HX-Request") == "true"
 
     if accepts_json:
-        _set_auth_cookies(response, access_tok, refresh_tok, settings)
+        set_auth_cookies(response, access_tok, refresh_tok, settings)
         return {"access_token": access_tok, "token_type": "bearer"}
 
     if is_htmx:
         htmx_response = Response(status_code=200)
         htmx_response.headers["HX-Redirect"] = redirect_url
-        _set_auth_cookies(htmx_response, access_tok, refresh_tok, settings)
+        set_auth_cookies(htmx_response, access_tok, refresh_tok, settings)
         return htmx_response
 
     # Regulärer Browser-Submit: POST-Redirect-GET (303)
     redirect_response = RedirectResponse(url=redirect_url, status_code=303)
-    _set_auth_cookies(redirect_response, access_tok, refresh_tok, settings)
+    set_auth_cookies(redirect_response, access_tok, refresh_tok, settings)
     return redirect_response
 
 
@@ -263,7 +238,7 @@ def refresh(
     role_values = [r.value for r in user.roles]
     access = create_access_token(str(user.id), user.email, role_values, settings)
     new_refresh = create_refresh_token(str(user.id), settings)
-    _set_auth_cookies(response, access, new_refresh, settings)
+    set_auth_cookies(response, access, new_refresh, settings)
 
     return {"access_token": access, "token_type": "bearer"}
 
@@ -272,8 +247,7 @@ def refresh(
 def logout(_: CurrentUser):
     """Löscht Auth-Cookies und leitet zur Login-Seite weiter."""
     response = RedirectResponse(url="/auth/login", status_code=status.HTTP_303_SEE_OTHER)
-    response.delete_cookie(_ACCESS_COOKIE)
-    response.delete_cookie(_REFRESH_COOKIE, path="/auth/refresh")
+    clear_auth_cookies(response)
     return response
 
 

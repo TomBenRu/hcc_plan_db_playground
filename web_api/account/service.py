@@ -7,6 +7,8 @@ from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
 from database.models import Address, Person
+from web_api.auth.password_policy import validate_password
+from web_api.auth.service import hash_password, verify_password
 from web_api.models.web_models import WebUser
 
 
@@ -123,3 +125,41 @@ def update_profile(
         postal_code=addr_after.postal_code if addr_after else None,
         city=addr_after.city if addr_after else None,
     )
+
+
+def change_password(
+    session: Session,
+    web_user: WebUser,
+    *,
+    current_password: str,
+    new_password: str,
+    new_password_confirm: str,
+) -> list[str]:
+    """Validiert + setzt ein neues Passwort. Gibt Fehlerliste zurück (leer = OK).
+
+    Bei Erfolg wird password_changed_at aktualisiert — das macht alle vorher
+    ausgestellten Refresh-Tokens via iat-Check ungültig (Phase 1).
+    """
+    errors: list[str] = []
+
+    if not verify_password(current_password, web_user.hashed_password):
+        errors.append("Das aktuelle Passwort ist falsch.")
+
+    if new_password != new_password_confirm:
+        errors.append("Die beiden neuen Passwort-Eingaben stimmen nicht überein.")
+
+    errors.extend(validate_password(new_password, web_user.email))
+
+    if not errors and new_password == current_password:
+        errors.append("Das neue Passwort darf nicht mit dem alten übereinstimmen.")
+
+    if errors:
+        return errors
+
+    now = datetime.now(timezone.utc)
+    web_user.hashed_password = hash_password(new_password)
+    web_user.password_changed_at = now
+    web_user.last_modified = now
+    session.add(web_user)
+    session.flush()
+    return []

@@ -1,12 +1,16 @@
-"""Account-Router: /account/profile (Person-Stammdaten) und /account/credentials (Phase 4)."""
+"""Account-Router: /account/profile (Person-Stammdaten) und /account/credentials (Passwort)."""
 
-from fastapi import APIRouter, Depends, Form, Request, status
+from fastapi import APIRouter, Depends, Form, Request, Response, status
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import Session
 
-from web_api.account.service import load_profile, update_profile
+from web_api.account.service import change_password, load_profile, update_profile
+from web_api.auth.cookies import set_auth_cookies
 from web_api.auth.dependencies import LoggedInUser
+from web_api.auth.service import create_access_token, create_refresh_token
+from web_api.config import Settings, get_settings
 from web_api.dependencies import get_db_session
+from web_api.rate_limit import limiter
 from web_api.templating import templates
 
 router = APIRouter(prefix="/account", tags=["account"])
@@ -105,13 +109,72 @@ def profile_update(
 
 @router.get("/credentials", response_class=HTMLResponse)
 def credentials_page(request: Request, user: LoggedInUser):
-    """Stub für Phase 4 — Passwort-Ändern wird nachgereicht."""
     return templates.TemplateResponse(
         "account/credentials.html",
         {
             "request": request,
             "user": user,
             "active_tab": "credentials",
-            "coming_soon": True,
+            "saved": False,
+            "errors": [],
         },
     )
+
+
+@router.post("/credentials/password", response_class=HTMLResponse)
+@limiter.limit("10/hour")
+def change_password_endpoint(
+    request: Request,
+    user: LoggedInUser,
+    current_password: str = Form(...),
+    new_password: str = Form(...),
+    new_password_confirm: str = Form(...),
+    session: Session = Depends(get_db_session),
+    settings: Settings = Depends(get_settings),
+):
+    """Ändert das Passwort des eingeloggten Users.
+
+    Bei Erfolg wird password_changed_at aktualisiert (revoziert alte Refresh-Tokens),
+    und die aktuelle Session bekommt frische Tokens — sonst würde der nächste
+    Refresh den User ausloggen.
+    """
+    errors = change_password(
+        session,
+        user,
+        current_password=current_password,
+        new_password=new_password,
+        new_password_confirm=new_password_confirm,
+    )
+
+    if errors:
+        return templates.TemplateResponse(
+            "account/credentials.html",
+            {
+                "request": request,
+                "user": user,
+                "active_tab": "credentials",
+                "saved": False,
+                "errors": errors,
+            },
+        )
+
+    session.commit()
+
+    # Frische Tokens fuer die laufende Session ausstellen — der iat-Stempel
+    # uebersteigt das gerade gesetzte password_changed_at.
+    role_values = [r.value for r in user.roles]
+    access_tok = create_access_token(str(user.id), user.email, role_values, settings)
+    refresh_tok = create_refresh_token(str(user.id), settings)
+
+    response = templates.TemplateResponse(
+        "account/credentials.html",
+        {
+            "request": request,
+            "user": user,
+            "active_tab": "credentials",
+            "saved": True,
+            "errors": [],
+        },
+    )
+    set_auth_cookies(response, access_tok, refresh_tok, settings)
+    return response

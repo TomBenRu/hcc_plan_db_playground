@@ -100,9 +100,9 @@
 
     <!-- Notizen (falls vorhanden) -->
     {% if event.appointment_notes %}
-    <div class="bg-amber-50 rounded-xl border border-amber-100 p-4 mb-3">
-        <p class="text-xs font-semibold tracking-widest uppercase text-amber-500 mb-2">Anmerkung</p>
-        <p class="text-sm text-slate-600 leading-relaxed whitespace-pre-wrap">{{ event.appointment_notes }}</p>
+    <div class="bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-100 dark:border-amber-700/40 p-4 mb-3">
+        <p class="text-xs font-semibold tracking-widest uppercase text-amber-500 dark:text-amber-400 mb-2">Anmerkung</p>
+        <p class="text-sm text-slate-600 dark:text-slate-300 leading-relaxed whitespace-pre-wrap">{{ event.appointment_notes }}</p>
     </div>
     {% endif %}
 
@@ -187,8 +187,10 @@
                           rows="2"
                           maxlength="280"
                           placeholder="Nachricht an den Disponenten (optional)"
-                          class="w-full text-sm border border-slate-200 rounded-lg px-3 py-2 font-sans
-                                 text-slate-700 placeholder-slate-400 resize-none
+                          class="w-full text-sm border border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2 font-sans
+                                 bg-white dark:bg-slate-900
+                                 text-slate-700 dark:text-slate-100
+                                 placeholder-slate-400 dark:placeholder-slate-500 resize-none
                                  focus:outline-none focus:border-brand/60 focus:ring-1 focus:ring-brand/30"></textarea>
                 <button type="submit"
                         class="w-full py-2 rounded-xl text-sm font-medium border border-brand/30 bg-brand/10 text-brand hover:bg-brand/20 transition-colors font-sans">

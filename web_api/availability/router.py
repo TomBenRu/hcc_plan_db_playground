@@ -246,6 +246,65 @@ def create_avail_day(
     )
 
 
+@router.delete("/avail-day/by-enum", response_class=HTMLResponse)
+def delete_avail_day_by_enum(
+    request: Request,
+    user: LoggedInUser,
+    session: Session = Depends(get_db_session),
+    actor_plan_period_id: uuid.UUID = Query(...),
+    day: date = Query(...),
+    time_of_day_enum_id: uuid.UUID = Query(...),
+):
+    """Simple-Mode-Delete: löscht ALLE AvailDays für (app, day, enum).
+
+    Inklusive etwaiger Altlasten aus dem Intervall-Modus, die auf andere TODs
+    desselben Enums zeigten. `has_appointment` wird pro AvailDay vorgeprüft —
+    wenn irgendeiner eingeplant ist, 409 ohne Löschung.
+
+    MUSS vor `/avail-day/{avail_day_id}` registriert sein: FastAPI matcht
+    Routen in Registrierungsreihenfolge — sonst wird "by-enum" als UUID-Param
+    interpretiert und Pydantic wirft 422 beim UUID-Parse.
+    """
+    person_id = _require_person(user)
+    if not service.is_simple_mode_for_person(session, person_id):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            detail="Simple-Mode ist für dieses Projekt nicht aktiv",
+        )
+    app = service.authorize_actor_plan_period(session, person_id, actor_plan_period_id)
+    service.check_deadline_or_403(app.plan_period)
+
+    # Alle betroffenen AvailDays auf Appointments prüfen
+    existing = service.find_avail_day_by_enum(session, actor_plan_period_id, day, time_of_day_enum_id)
+    if existing is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Verfügbarkeitstag nicht gefunden")
+
+    # Iterativ: alle AvailDays dieses Enums für diesen Tag laden und jeden prüfen
+    ad_ids = session.execute(
+        sa_select(AvailDay.id)
+        .join(TimeOfDay, TimeOfDay.id == AvailDay.time_of_day_id)
+        .where(AvailDay.actor_plan_period_id == actor_plan_period_id)
+        .where(AvailDay.date == day)
+        .where(AvailDay.prep_delete.is_(None))
+        .where(TimeOfDay.time_of_day_enum_id == time_of_day_enum_id)
+    ).scalars().all()
+    for ad_id in ad_ids:
+        if service.has_appointment(session, ad_id):
+            raise HTTPException(
+                status.HTTP_409_CONFLICT,
+                detail="Verfügbarkeitstag ist bereits eingeplant",
+            )
+
+    service.delete_avail_days_by_enum(session, actor_plan_period_id, day, time_of_day_enum_id)
+
+    is_locked = _build_is_locked(app)
+    detail = service.get_day_detail_simple(session, actor_plan_period_id, person_id, day, is_locked)
+    return templates.TemplateResponse(
+        "availability/partials/day_panel.html",
+        {"request": request, "detail": detail, "is_simple_mode": True},
+    )
+
+
 @router.delete("/avail-day/{avail_day_id}", response_class=HTMLResponse)
 def delete_avail_day(
     request: Request,
@@ -317,61 +376,6 @@ def create_avail_day_simple(
         )
 
     service.create_avail_day(session, actor_plan_period_id, day, primary.id)
-
-    is_locked = _build_is_locked(app)
-    detail = service.get_day_detail_simple(session, actor_plan_period_id, person_id, day, is_locked)
-    return templates.TemplateResponse(
-        "availability/partials/day_panel.html",
-        {"request": request, "detail": detail, "is_simple_mode": True},
-    )
-
-
-@router.delete("/avail-day/by-enum", response_class=HTMLResponse)
-def delete_avail_day_by_enum(
-    request: Request,
-    user: LoggedInUser,
-    session: Session = Depends(get_db_session),
-    actor_plan_period_id: uuid.UUID = Query(...),
-    day: date = Query(...),
-    time_of_day_enum_id: uuid.UUID = Query(...),
-):
-    """Simple-Mode-Delete: löscht ALLE AvailDays für (app, day, enum).
-
-    Inklusive etwaiger Altlasten aus dem Intervall-Modus, die auf andere TODs
-    desselben Enums zeigten. `has_appointment` wird pro AvailDay vorgeprüft —
-    wenn irgendeiner eingeplant ist, 409 ohne Löschung.
-    """
-    person_id = _require_person(user)
-    if not service.is_simple_mode_for_person(session, person_id):
-        raise HTTPException(
-            status.HTTP_403_FORBIDDEN,
-            detail="Simple-Mode ist für dieses Projekt nicht aktiv",
-        )
-    app = service.authorize_actor_plan_period(session, person_id, actor_plan_period_id)
-    service.check_deadline_or_403(app.plan_period)
-
-    # Alle betroffenen AvailDays auf Appointments prüfen
-    existing = service.find_avail_day_by_enum(session, actor_plan_period_id, day, time_of_day_enum_id)
-    if existing is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Verfügbarkeitstag nicht gefunden")
-
-    # Iterativ: alle AvailDays dieses Enums für diesen Tag laden und jeden prüfen
-    ad_ids = session.execute(
-        sa_select(AvailDay.id)
-        .join(TimeOfDay, TimeOfDay.id == AvailDay.time_of_day_id)
-        .where(AvailDay.actor_plan_period_id == actor_plan_period_id)
-        .where(AvailDay.date == day)
-        .where(AvailDay.prep_delete.is_(None))
-        .where(TimeOfDay.time_of_day_enum_id == time_of_day_enum_id)
-    ).scalars().all()
-    for ad_id in ad_ids:
-        if service.has_appointment(session, ad_id):
-            raise HTTPException(
-                status.HTTP_409_CONFLICT,
-                detail="Verfügbarkeitstag ist bereits eingeplant",
-            )
-
-    service.delete_avail_days_by_enum(session, actor_plan_period_id, day, time_of_day_enum_id)
 
     is_locked = _build_is_locked(app)
     detail = service.get_day_detail_simple(session, actor_plan_period_id, person_id, day, is_locked)

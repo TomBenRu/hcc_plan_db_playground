@@ -71,9 +71,12 @@
                     <span class="ml-auto text-xs font-sans text-amber-600">Eingeplant</span>
                 </div>
             {% elif opt.avail_day_id %}
-                <form hx-delete="/availability/avail-day/by-enum?actor_plan_period_id={{ detail.actor_plan_period_id }}&day={{ detail.day.isoformat() }}&time_of_day_enum_id={{ grp.enum_id }}"
+                <form hx-delete="/availability/avail-day/by-enum"
                       hx-target="#day-panel" hx-swap="outerHTML"
                       {% if detail.is_locked %}class="pointer-events-none"{% endif %}>
+                    <input type="hidden" name="actor_plan_period_id" value="{{ detail.actor_plan_period_id }}">
+                    <input type="hidden" name="day" value="{{ detail.day.isoformat() }}">
+                    <input type="hidden" name="time_of_day_enum_id" value="{{ grp.enum_id }}">
                     <button type="submit"
                             class="flex items-center gap-2 w-full text-sm font-medium px-4 py-3
                                    rounded-xl border-2 border-brand bg-brand/10 text-brand

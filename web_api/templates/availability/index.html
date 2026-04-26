@@ -643,11 +643,14 @@ document.addEventListener('DOMContentLoaded', function () {
     const actorPlanPeriodId = '{{ view_model.active_period.actor_plan_period_id }}';
     const periodStart = '{{ view_model.active_period.start.isoformat() }}';
     const periodEnd   = '{{ view_model.active_period.end.isoformat() }}';
-    // validRange.end ist exklusiv — einen Tag addieren
+    // validRange.end ist exklusiv — einen Tag addieren.
+    // toISODate (s. unten, hoisted) formatiert in LOKALER Zeit; ein
+    // toISOString() würde bei CEST den +1-Tag zurück auf den End-Tag rotieren
+    // und der letzte Tag der Periode wäre im Kalender ausgeblendet.
     const periodEndExcl = (function() {
         const d = new Date(periodEnd + 'T00:00:00');
         d.setDate(d.getDate() + 1);
-        return d.toISOString().substring(0, 10);
+        return toISODate(d);
     })();
 
     const calendar = new FullCalendar.Calendar(calendarEl, {

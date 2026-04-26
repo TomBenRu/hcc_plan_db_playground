@@ -9,6 +9,7 @@ from fastapi.responses import HTMLResponse
 from sqlmodel import Session
 
 from web_api.auth.dependencies import LoggedInUser
+from web_api.common import fc_event_end_iso, fc_event_start_iso
 from web_api.dependencies import get_db_session
 from web_api.employees.service import (
     get_appointment_detail,
@@ -144,18 +145,12 @@ def calendar_events(
     if only_understaffed:
         events = [ev for ev in events if ev.is_understaffed]
 
-    def _dt(d, t):
-        """Kombiniert Datum + Zeit zu ISO-Datetime-String für FullCalendar."""
-        if t:
-            return f"{d.isoformat()}T{t.strftime('%H:%M:%S')}"
-        return d.isoformat()
-
     return [
         {
             "id": str(ev.appointment_id),
             "title": ev.location_name,
-            "start": _dt(ev.event_date, ev.time_start),
-            "end": _dt(ev.event_date, ev.time_end),
+            "start": fc_event_start_iso(ev.event_date, ev.time_start),
+            "end": fc_event_end_iso(ev.event_date, ev.time_start, ev.time_end),
             "allDay": ev.time_start is None,
             "color": ev.color,
             "extendedProps": {

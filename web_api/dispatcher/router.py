@@ -10,7 +10,7 @@ from sqlmodel import Session
 from database.models import Appointment
 from web_api.auth.dependencies import WebUserRole, require_role
 from web_api.cancellations.service import get_cancellations_for_dispatcher
-from web_api.common import guest_list
+from web_api.common import fc_event_end_iso, fc_event_start_iso, guest_list
 from web_api.config import get_settings
 from web_api.user_settings.service import get_color_overrides
 from web_api.dependencies import get_db_session
@@ -172,17 +172,12 @@ def dispatcher_plan_events(
         user_overrides=overrides,
     )
 
-    def _dt(d: date, t) -> str:
-        if t:
-            return f"{d.isoformat()}T{t.strftime('%H:%M:%S')}"
-        return d.isoformat()
-
     return [
         {
             "id": str(ev.appointment_id),
             "title": ev.location_name,
-            "start": _dt(ev.event_date, ev.time_start),
-            "end": _dt(ev.event_date, ev.time_end),
+            "start": fc_event_start_iso(ev.event_date, ev.time_start),
+            "end": fc_event_end_iso(ev.event_date, ev.time_start, ev.time_end),
             "allDay": ev.time_start is None,
             "color": ev.color,
             "extendedProps": {

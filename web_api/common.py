@@ -5,6 +5,7 @@ teilen und nicht in ein fachliches Modul passen.
 """
 
 import json
+from datetime import date, time, timedelta
 from typing import Any
 
 
@@ -37,6 +38,32 @@ def location_display_name(name: str, city: str | None) -> str:
     if city and city.strip():
         return f"{name} {city.strip()}"
     return name
+
+
+def fc_event_start_iso(event_date: date, time_start: time | None) -> str:
+    """ISO-Datetime-String für den Start eines FullCalendar-Events.
+
+    Bei `time_start is None` liefert nur das Datum (allDay-Event).
+    """
+    if time_start is None:
+        return event_date.isoformat()
+    return f"{event_date.isoformat()}T{time_start.strftime('%H:%M:%S')}"
+
+
+def fc_event_end_iso(event_date: date, time_start: time | None, time_end: time | None) -> str:
+    """ISO-Datetime-String für das Ende eines FullCalendar-Events.
+
+    Berücksichtigt TODs über Mitternacht: wenn `time_end < time_start`, wird
+    das End-Datum auf den Folgetag gesetzt. Sonst rendert FullCalendar den
+    Termin als negative Dauer (1px-Linie) — bekannter Fallstrick, siehe
+    Memory `feedback_time_slot_comparison.md`.
+    """
+    if time_start is None:
+        return event_date.isoformat()
+    if time_end is None:
+        return event_date.isoformat()
+    end_date = event_date + timedelta(days=1) if time_end < time_start else event_date
+    return f"{end_date.isoformat()}T{time_end.strftime('%H:%M:%S')}"
 
 
 def guest_list(value: Any) -> list[str]:

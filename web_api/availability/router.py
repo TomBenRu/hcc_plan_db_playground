@@ -238,11 +238,9 @@ def create_avail_day(
 
     service.create_avail_day(session, actor_plan_period_id, day, time_of_day_id)
 
-    is_locked = _build_is_locked(app)
-    detail = service.get_day_detail(session, actor_plan_period_id, person_id, day, is_locked)
-    return templates.TemplateResponse(
-        "availability/partials/day_panel.html",
-        {"request": request, "detail": detail, "is_simple_mode": False},
+    enum_id = service.enum_id_for_tod(session, time_of_day_id)
+    return _render_enum_group(
+        request, session, app, person_id, day, enum_id, is_simple=False,
     )
 
 
@@ -297,11 +295,8 @@ def delete_avail_day_by_enum(
 
     service.delete_avail_days_by_enum(session, actor_plan_period_id, day, time_of_day_enum_id)
 
-    is_locked = _build_is_locked(app)
-    detail = service.get_day_detail_simple(session, actor_plan_period_id, person_id, day, is_locked)
-    return templates.TemplateResponse(
-        "availability/partials/day_panel.html",
-        {"request": request, "detail": detail, "is_simple_mode": True},
+    return _render_enum_group(
+        request, session, app, person_id, day, time_of_day_enum_id, is_simple=True,
     )
 
 
@@ -322,17 +317,14 @@ def delete_avail_day(
 
     day = ad.date
     actor_plan_period_id = ad.actor_plan_period_id
+    # Enum-ID VOR dem Delete ermitteln — danach ist der AvailDay soft-deleted
+    # und der Join-Helper liefert nichts mehr.
+    enum_id = service.enum_id_for_avail_day(session, avail_day_id)
     service.delete_avail_day(session, avail_day_id)
 
-    is_locked = _build_is_locked(app)
     is_simple = service.is_simple_mode_for_person(session, person_id)
-    if is_simple:
-        detail = service.get_day_detail_simple(session, actor_plan_period_id, person_id, day, is_locked)
-    else:
-        detail = service.get_day_detail(session, actor_plan_period_id, person_id, day, is_locked)
-    return templates.TemplateResponse(
-        "availability/partials/day_panel.html",
-        {"request": request, "detail": detail, "is_simple_mode": is_simple},
+    return _render_enum_group(
+        request, session, app, person_id, day, enum_id, is_simple=is_simple,
     )
 
 
@@ -377,11 +369,8 @@ def create_avail_day_simple(
 
     service.create_avail_day(session, actor_plan_period_id, day, primary.id)
 
-    is_locked = _build_is_locked(app)
-    detail = service.get_day_detail_simple(session, actor_plan_period_id, person_id, day, is_locked)
-    return templates.TemplateResponse(
-        "availability/partials/day_panel.html",
-        {"request": request, "detail": detail, "is_simple_mode": True},
+    return _render_enum_group(
+        request, session, app, person_id, day, time_of_day_enum_id, is_simple=True,
     )
 
 
@@ -506,10 +495,73 @@ def delete_time_of_day(
     return HTMLResponse("")  # hx-swap=outerHTML → Zeile verschwindet
 
 
-# ── Hilfsfunktion ─────────────────────────────────────────────────────────────
+# ── Sidebar-Stats Refresh (HTMX-Trigger nach Mutation) ───────────────────────
+
+
+@router.get("/sidebar-stats", response_class=HTMLResponse)
+def sidebar_stats(
+    request: Request,
+    user: LoggedInUser,
+    session: Session = Depends(get_db_session),
+    actor_plan_period_id: uuid.UUID = Query(...),
+):
+    """Liefert nur das Sidebar-Stats-Fragment — wird via HX-Trigger
+    `availability-changed` aus den Mutation-Endpoints angestoßen."""
+    person_id = _require_person(user)
+    app = service.authorize_actor_plan_period(session, person_id, actor_plan_period_id)
+    stats = service.get_sidebar_stats(session, actor_plan_period_id, app.requested_assignments)
+    return templates.TemplateResponse(
+        "availability/partials/sidebar_period_stats.html",
+        {"request": request, "stats": stats},
+    )
+
+
+# ── Hilfsfunktionen ───────────────────────────────────────────────────────────
 
 
 def _build_is_locked(app: service.ActorPlanPeriod) -> bool:
     """Deadline/Closed-Check für einen ActorPlanPeriod (nach Laden von plan_period)."""
     pp = app.plan_period
     return pp.closed or date.today() > pp.deadline
+
+
+def _render_enum_group(
+    request: Request,
+    session: Session,
+    app: service.ActorPlanPeriod,
+    person_id: uuid.UUID,
+    day: date,
+    enum_id: uuid.UUID | None,
+    is_simple: bool,
+):
+    """Rendert eine einzelne Enum-Gruppe als HTMX-Partial nach einer Mutation.
+
+    Setzt `HX-Trigger: availability-changed` damit Sidebar-Stats und Kalender
+    sich auf Client-Seite refreshen können. Per-Group-Swap statt Full-Day-Panel
+    macht parallele Klicks unabhängig (kein Race auf #day-panel).
+
+    `enum_id` darf None sein (nur theoretisch, wenn die Helper-Funktion
+    ausnahmsweise nichts findet) — dann gibt's einen leeren Body, dem User
+    fehlt visuell nichts, weil der ursprüngliche Server-Stand bestehen bleibt.
+    """
+    detail = service.DayDetailViewModel(
+        day=day,
+        actor_plan_period_id=app.id,
+        is_locked=_build_is_locked(app),
+        enum_groups=[],
+    )
+    grp = None
+    if enum_id is not None:
+        if is_simple:
+            grp = service.get_enum_group_detail_simple(session, app.id, person_id, day, enum_id)
+        else:
+            grp = service.get_enum_group_detail(session, app.id, person_id, day, enum_id)
+
+    headers = {"HX-Trigger": "availability-changed"}
+    if grp is None:
+        return HTMLResponse("", headers=headers)
+    return templates.TemplateResponse(
+        "availability/partials/_enum_group.html",
+        {"request": request, "grp": grp, "detail": detail, "is_simple_mode": is_simple},
+        headers=headers,
+    )

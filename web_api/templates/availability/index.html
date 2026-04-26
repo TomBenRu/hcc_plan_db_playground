@@ -466,7 +466,10 @@
                         Statistik
                     </label>
                     <div class="bg-white/5 rounded-xl p-3">
-                        <div id="sidebar-stats">
+                        <div id="sidebar-stats"
+                             hx-get="/availability/sidebar-stats?actor_plan_period_id={{ ap.actor_plan_period_id }}"
+                             hx-trigger="availability-changed from:body"
+                             hx-swap="innerHTML">
                             {% include "availability/partials/sidebar_period_stats.html" %}
                         </div>
                         <!-- Wunscheinsätze: außerhalb von #sidebar-stats → kein HTMX-Überschreiben -->
@@ -741,7 +744,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
     calendar.render();
 
-    // ── HTMX: nach Mutation Kalender + Week-Grid aktualisieren ─────────────
+    // ── HTMX: Folge-Refreshes nach Mutation/Day-Wechsel ───────────────────
+    // Day-Wechsel (Klick im Kalender) lädt #day-panel komplett neu — alte Logik.
     document.body.addEventListener('htmx:afterSwap', function (evt) {
         if (evt.target.id === 'day-panel') {
             calendar.refetchEvents();
@@ -749,6 +753,14 @@ document.addEventListener('DOMContentLoaded', function () {
         } else if (evt.target.id === 'week-grid') {
             applyWeekSlotColors();
         }
+    });
+    // Mutationen rendern jetzt nur Per-Group-Partials und feuern stattdessen
+    // ein `availability-changed` Custom-Event (HX-Trigger-Header). Sidebar-Stats
+    // refreshen sich per `hx-trigger=availability-changed from:body`; Kalender +
+    // Wochengrid hängen wir hier dran.
+    document.body.addEventListener('availability-changed', function () {
+        calendar.refetchEvents();
+        if (currentViewMode === 'week') loadWeekGrid();
     });
 
     // ── Theme-Wechsel: Event-Farben neu rendern ──────────────────────────────

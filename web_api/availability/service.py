@@ -753,6 +753,139 @@ def get_day_detail(
     )
 
 
+def enum_id_for_tod(session: Session, tod_id: uuid.UUID) -> uuid.UUID | None:
+    """Helper: Enum-ID zu einem gegebenen TimeOfDay; None falls nicht vorhanden."""
+    return session.execute(
+        sa_select(TimeOfDay.time_of_day_enum_id).where(TimeOfDay.id == tod_id)
+    ).scalar()
+
+
+def enum_id_for_avail_day(session: Session, avail_day_id: uuid.UUID) -> uuid.UUID | None:
+    """Helper: Enum-ID zu einem gegebenen AvailDay (über sein TimeOfDay)."""
+    return session.execute(
+        sa_select(TimeOfDay.time_of_day_enum_id)
+        .join(AvailDay, AvailDay.time_of_day_id == TimeOfDay.id)
+        .where(AvailDay.id == avail_day_id)
+    ).scalar()
+
+
+def get_enum_group_detail(
+    session: Session,
+    actor_plan_period_id: uuid.UUID,
+    person_id: uuid.UUID,
+    day: date,
+    enum_id: uuid.UUID,
+) -> DayEnumGroup | None:
+    """Wie `get_day_detail`, aber gibt nur die Enum-Gruppe für `enum_id` zurück.
+
+    Wird von Per-Group-Mutation-Endpoints genutzt: nach einem TOD-Toggle muss nur
+    die betroffene Enum-Gruppe neu gerendert werden, nicht das ganze Day-Panel.
+    Spart Render-Zeit + macht parallele Klicks unabhängig (kein Race auf #day-panel).
+    """
+    all_tods = [t for t in get_person_time_of_days(session, person_id) if t.enum_id == enum_id]
+    if not all_tods:
+        return None
+    tod_ids = [t.id for t in all_tods]
+
+    ad_rows = session.execute(
+        sa_select(AvailDay.id, AvailDay.time_of_day_id)
+        .where(AvailDay.actor_plan_period_id == actor_plan_period_id)
+        .where(AvailDay.date == day)
+        .where(AvailDay.time_of_day_id.in_(tod_ids))
+        .where(AvailDay.prep_delete.is_(None))
+    ).all()
+    ad_by_tod: dict[uuid.UUID, uuid.UUID] = {r.time_of_day_id: r.id for r in ad_rows}
+    ad_ids = list(ad_by_tod.values())
+
+    appointed_ids: set[uuid.UUID] = set()
+    if ad_ids:
+        appt_rows = session.execute(
+            sa_select(AvailDayAppointmentLink.avail_day_id)
+            .join(Appointment, Appointment.id == AvailDayAppointmentLink.appointment_id)
+            .join(Plan, Plan.id == Appointment.plan_id)
+            .where(AvailDayAppointmentLink.avail_day_id.in_(ad_ids))
+            .where(Plan.is_binding.is_(True))
+            .where(Plan.prep_delete.is_(None))
+        ).scalars().all()
+        appointed_ids = set(appt_rows)
+
+    first = all_tods[0]
+    return DayEnumGroup(
+        enum_id=first.enum_id,
+        enum_name=first.enum_name,
+        enum_abbreviation=first.enum_abbreviation,
+        enum_time_index=first.enum_time_index,
+        options=[
+            DayTodOption(
+                time_of_day_id=tod.id,
+                tod_name=tod.name,
+                tod_start=tod.start,
+                tod_end=tod.end,
+                avail_day_id=ad_by_tod.get(tod.id),
+                has_appointment=(ad_by_tod.get(tod.id) in appointed_ids) if ad_by_tod.get(tod.id) else False,
+            )
+            for tod in all_tods
+        ],
+    )
+
+
+def get_enum_group_detail_simple(
+    session: Session,
+    actor_plan_period_id: uuid.UUID,
+    person_id: uuid.UUID,
+    day: date,
+    enum_id: uuid.UUID,
+) -> DayEnumGroup | None:
+    """Simple-Mode-Variante: 1 Option (primary TOD) pro Enum, has_appointment
+    aggregiert über alle AvailDays des Enums an diesem Tag."""
+    person = session.get(Person, person_id)
+    if person is None:
+        return None
+    enum = session.get(TimeOfDayEnum, enum_id)
+    if enum is None or enum.project_id != person.project_id:
+        return None
+    primary = ensure_simple_primary_tod(session, person, enum)
+    if primary is None:
+        return None
+
+    ad_ids = session.execute(
+        sa_select(AvailDay.id)
+        .join(TimeOfDay, TimeOfDay.id == AvailDay.time_of_day_id)
+        .where(AvailDay.actor_plan_period_id == actor_plan_period_id)
+        .where(AvailDay.date == day)
+        .where(AvailDay.prep_delete.is_(None))
+        .where(TimeOfDay.time_of_day_enum_id == enum_id)
+    ).scalars().all()
+
+    appointed_ids: set[uuid.UUID] = set()
+    if ad_ids:
+        appt_rows = session.execute(
+            sa_select(AvailDayAppointmentLink.avail_day_id)
+            .join(Appointment, Appointment.id == AvailDayAppointmentLink.appointment_id)
+            .join(Plan, Plan.id == Appointment.plan_id)
+            .where(AvailDayAppointmentLink.avail_day_id.in_(ad_ids))
+            .where(Plan.is_binding.is_(True))
+            .where(Plan.prep_delete.is_(None))
+        ).scalars().all()
+        appointed_ids = set(appt_rows)
+
+    has_appt = any(aid in appointed_ids for aid in ad_ids)
+    return DayEnumGroup(
+        enum_id=enum.id,
+        enum_name=enum.name,
+        enum_abbreviation=enum.abbreviation,
+        enum_time_index=enum.time_index,
+        options=[DayTodOption(
+            time_of_day_id=primary.id,
+            tod_name=primary.name,
+            tod_start=primary.start,
+            tod_end=primary.end,
+            avail_day_id=ad_ids[0] if ad_ids else None,
+            has_appointment=has_appt,
+        )],
+    )
+
+
 def get_sidebar_stats(
     session: Session,
     actor_plan_period_id: uuid.UUID,

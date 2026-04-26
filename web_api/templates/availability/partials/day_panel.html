@@ -73,7 +73,9 @@
             {% elif opt.avail_day_id %}
                 <form hx-delete="/availability/avail-day/by-enum"
                       hx-target="#day-panel" hx-swap="outerHTML"
-                      {% if detail.is_locked %}class="pointer-events-none"{% endif %}>
+                      hx-disabled-elt="find button"
+                      class="tod-toggle-form {% if detail.is_locked %}pointer-events-none{% endif %}"
+                      data-target-state="inactive">
                     <input type="hidden" name="actor_plan_period_id" value="{{ detail.actor_plan_period_id }}">
                     <input type="hidden" name="day" value="{{ detail.day.isoformat() }}">
                     <input type="hidden" name="time_of_day_enum_id" value="{{ grp.enum_id }}">
@@ -89,13 +91,15 @@
                                   clip-rule="evenodd"/>
                         </svg>
                         <span>{{ grp.enum_name }}</span>
-                        <span class="ml-auto text-xs opacity-70 font-sans">Entfernen</span>
+                        <span class="tod-action-label ml-auto text-xs opacity-70 font-sans">Entfernen</span>
                     </button>
                 </form>
             {% else %}
                 <form hx-post="/availability/avail-day/simple"
                       hx-target="#day-panel" hx-swap="outerHTML"
-                      {% if detail.is_locked %}class="pointer-events-none"{% endif %}>
+                      hx-disabled-elt="find button"
+                      class="tod-toggle-form {% if detail.is_locked %}pointer-events-none{% endif %}"
+                      data-target-state="active">
                     <input type="hidden" name="actor_plan_period_id" value="{{ detail.actor_plan_period_id }}">
                     <input type="hidden" name="day" value="{{ detail.day.isoformat() }}">
                     <input type="hidden" name="time_of_day_enum_id" value="{{ grp.enum_id }}">
@@ -136,7 +140,9 @@
                 <form method="POST" action="/availability/avail-day/{{ opt.avail_day_id }}"
                       hx-delete="/availability/avail-day/{{ opt.avail_day_id }}"
                       hx-target="#day-panel" hx-swap="outerHTML"
-                      {% if detail.is_locked %}class="pointer-events-none"{% endif %}>
+                      hx-disabled-elt="find button"
+                      class="tod-toggle-form {% if detail.is_locked %}pointer-events-none{% endif %}"
+                      data-target-state="inactive">
                     <button type="submit"
                             class="flex items-center gap-2 w-full text-sm font-medium px-4 py-3
                                    rounded-xl border-2 border-brand bg-brand/10 text-brand
@@ -152,7 +158,7 @@
                             {{ opt.tod_start.strftime('%H:%M') }}–{{ opt.tod_end.strftime('%H:%M') }}
                             {% if opt.tod_name %} · {{ opt.tod_name }}{% endif %}
                         </span>
-                        <span class="ml-auto text-xs opacity-70 font-sans">Entfernen</span>
+                        <span class="tod-action-label ml-auto text-xs opacity-70 font-sans">Entfernen</span>
                     </button>
                 </form>
             {% else %}
@@ -160,7 +166,9 @@
                 <form method="POST" action="/availability/avail-day"
                       hx-post="/availability/avail-day"
                       hx-target="#day-panel" hx-swap="outerHTML"
-                      {% if detail.is_locked %}class="pointer-events-none"{% endif %}>
+                      hx-disabled-elt="find button"
+                      class="tod-toggle-form {% if detail.is_locked %}pointer-events-none{% endif %}"
+                      data-target-state="active">
                     <input type="hidden" name="actor_plan_period_id" value="{{ detail.actor_plan_period_id }}">
                     <input type="hidden" name="day" value="{{ detail.day.isoformat() }}">
                     <input type="hidden" name="time_of_day_id" value="{{ opt.time_of_day_id }}">
@@ -198,7 +206,10 @@
                     </div>
                 {% elif opt.avail_day_id %}
                     <form hx-delete="/availability/avail-day/{{ opt.avail_day_id }}"
-                          hx-target="#day-panel" hx-swap="outerHTML">
+                          hx-target="#day-panel" hx-swap="outerHTML"
+                          hx-disabled-elt="find button"
+                          class="tod-toggle-form"
+                          data-target-state="inactive">
                         <button type="submit"
                                 class="flex items-center gap-2 w-full text-sm font-medium px-4 py-2.5
                                        rounded-xl border-2 border-brand bg-brand/10 text-brand
@@ -211,12 +222,15 @@
                                       clip-rule="evenodd"/>
                             </svg>
                             <span>{{ opt.tod_start.strftime('%H:%M') }}–{{ opt.tod_end.strftime('%H:%M') }}{% if opt.tod_name %} · {{ opt.tod_name }}{% endif %}</span>
-                            <span class="ml-auto text-xs opacity-70">Entfernen</span>
+                            <span class="tod-action-label ml-auto text-xs opacity-70">Entfernen</span>
                         </button>
                     </form>
                 {% else %}
                     <form hx-post="/availability/avail-day"
-                          hx-target="#day-panel" hx-swap="outerHTML">
+                          hx-target="#day-panel" hx-swap="outerHTML"
+                          hx-disabled-elt="find button"
+                          class="tod-toggle-form"
+                          data-target-state="active">
                         <input type="hidden" name="actor_plan_period_id" value="{{ detail.actor_plan_period_id }}">
                         <input type="hidden" name="day" value="{{ detail.day.isoformat() }}">
                         <input type="hidden" name="time_of_day_id" value="{{ opt.time_of_day_id }}">

@@ -90,6 +90,42 @@
         to   { opacity: 1; transform: translateX(0); }
     }
 
+    /* ── Day-Panel: Optimistic UI für TOD-Toggle ─────────────────────────────
+       HTMX setzt während des Requests die Klasse `htmx-request` aufs Form.
+       Wir nehmen das zum Anlass, den Button visuell sofort in den Ziel-Zustand
+       zu flippen (Border / Background / Text-Farbe). Server-Render ersetzt
+       danach das Day-Panel mit dem echten Zustand — der Übergang ist nahtlos.
+       Wahrgenommene Latenz geht damit von ~0.5s auf ~0ms. */
+    .tod-toggle-form[data-target-state="active"].htmx-request button {
+        border-width: 2px !important;
+        border-color: var(--brand) !important;
+        background-color: rgba(249, 115, 22, 0.10) !important;
+        color: var(--brand) !important;
+    }
+    .tod-toggle-form[data-target-state="active"].htmx-request button svg {
+        color: var(--brand);
+        opacity: 1;
+    }
+    .tod-toggle-form[data-target-state="inactive"].htmx-request button {
+        border-width: 1px !important;
+        border-color: rgb(226, 232, 240) !important;
+        background-color: rgb(255, 255, 255) !important;
+        color: rgb(71, 85, 105) !important;
+    }
+    .tod-toggle-form[data-target-state="inactive"].htmx-request button svg {
+        color: rgb(203, 213, 225);
+    }
+    [data-theme="dark"] .tod-toggle-form[data-target-state="inactive"].htmx-request button {
+        border-color: rgb(51, 65, 85) !important;
+        background-color: rgb(30, 41, 59) !important;
+        color: rgb(203, 213, 225) !important;
+    }
+    /* Action-Label während Request ausblenden, damit "Entfernen" nicht auf
+       einem inaktiv aussehenden Button steht (und umgekehrt). */
+    .tod-toggle-form.htmx-request .tod-action-label {
+        visibility: hidden;
+    }
+
     /* ── Deadline-Badge ────────────────────────────────────────────────────── */
     .deadline-normal  { color: #4ADE80; }
     .deadline-warning { color: #FBBF24; }

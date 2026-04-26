@@ -1,0 +1,79 @@
+{# Erwartet: pp (PlanPeriodShow), is_admin (bool), today (date) #}
+{% set is_softdel = pp.prep_delete is not none %}
+{% set status_color = '#94a3b8' if is_softdel else ('#f59e0b' if pp.closed else '#10b981') %}
+{% set status_label = 'Papierkorb' if is_softdel else ('Geschlossen' if pp.closed else 'Offen') %}
+
+<div class="flex bg-white dark:bg-slate-800 rounded-xl border
+            border-slate-100 dark:border-slate-700/50 shadow-sm
+            hover:shadow-md hover:border-slate-200 dark:hover:border-slate-600
+            transition-all duration-200 overflow-hidden anim">
+
+    <div class="w-1 flex-shrink-0" style="background-color: {{ status_color }};"></div>
+
+    <div class="flex-1 p-4">
+        <div class="flex items-start justify-between gap-4">
+            <div class="min-w-0">
+                <div class="flex items-center gap-2 mb-1">
+                    <p class="font-display text-lg font-semibold text-slate-800 dark:text-slate-100">
+                        {{ pp.start.strftime("%d.%m.%Y") }} – {{ pp.end.strftime("%d.%m.%Y") }}
+                    </p>
+                    <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1
+                                 bg-slate-50 dark:bg-slate-700/40 text-slate-700 dark:text-slate-300
+                                 ring-slate-200 dark:ring-slate-600/50">
+                        {{ status_label }}
+                    </span>
+                </div>
+                <p class="text-xs text-slate-500 dark:text-slate-400">
+                    Deadline: {{ pp.deadline.strftime("%d.%m.%Y") }}
+                    {% if pp.remainder %}· Reminder aktiv{% endif %}
+                </p>
+
+                <div class="mt-3" id="notes-display-{{ pp.id }}">
+                    {% include "dispatcher/periods/partials/notes_display.html" %}
+                </div>
+            </div>
+
+            {# Action-Buttons #}
+            <div class="flex flex-col gap-1.5 flex-shrink-0">
+                {% if not is_softdel and not pp.closed %}
+                <button hx-get="/dispatcher/periods/{{ pp.id }}/edit"
+                        hx-target="#modal-root" hx-swap="innerHTML"
+                        class="text-xs px-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-700
+                               text-slate-600 dark:text-slate-300
+                               hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                    Bearbeiten
+                </button>
+                <form hx-post="/dispatcher/periods/{{ pp.id }}/close"
+                      hx-confirm="Periode wirklich abschließen? Anschließend ist sie nur noch lesend."
+                      hx-target="body" hx-swap="none">
+                    <button type="submit"
+                            class="text-xs px-3 py-1.5 rounded-md border border-amber-200 dark:border-amber-700/50
+                                   text-amber-700 dark:text-amber-400
+                                   hover:bg-amber-50 dark:hover:bg-amber-900/20 w-full">
+                        Schließen
+                    </button>
+                </form>
+                <button hx-delete="/dispatcher/periods/{{ pp.id }}"
+                        hx-confirm="Periode in den Papierkorb verschieben?"
+                        hx-target="body" hx-swap="none"
+                        class="text-xs px-3 py-1.5 rounded-md border border-rose-200 dark:border-rose-800/50
+                               text-rose-700 dark:text-rose-400
+                               hover:bg-rose-50 dark:hover:bg-rose-900/20">
+                    Löschen
+                </button>
+                {% elif pp.closed and is_admin and not is_softdel %}
+                <form hx-post="/dispatcher/periods/{{ pp.id }}/reopen"
+                      hx-confirm="Periode wieder öffnen? Sie wird wieder bearbeitbar."
+                      hx-target="body" hx-swap="none">
+                    <button type="submit"
+                            class="text-xs px-3 py-1.5 rounded-md border border-sky-200 dark:border-sky-700/50
+                                   text-sky-700 dark:text-sky-400
+                                   hover:bg-sky-50 dark:hover:bg-sky-900/20 w-full">
+                        Wiedereröffnen
+                    </button>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>

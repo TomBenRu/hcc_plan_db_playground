@@ -91,7 +91,8 @@ def get_all_for_tree(actor_plan_period_id: UUID) -> dict[UUID, schemas.AvailDayG
         # Relationship NICHT automatisch – jeder Zugriff auf adg.avail_day würde eine Query auslösen)
         avail_days = session.exec(
             select(models.AvailDay)
-            .where(models.AvailDay.avail_day_group_id.in_(all_adgs.keys()))
+            .where(models.AvailDay.avail_day_group_id.in_(all_adgs.keys()),
+                   models.AvailDay.prep_delete.is_(None))
         ).all()
         avail_day_id_by_adg: dict[UUID, UUID] = {
             ad.avail_day_group_id: ad.id for ad in avail_days
@@ -156,7 +157,8 @@ def get_all_for_trees_batch(actor_plan_period_ids: list[UUID]) -> dict[UUID, dic
         # Schritt 3: Alle AvailDays in einem Batch
         avail_days = session.exec(
             select(models.AvailDay)
-            .where(models.AvailDay.avail_day_group_id.in_(all_adgs.keys()))
+            .where(models.AvailDay.avail_day_group_id.in_(all_adgs.keys()),
+                   models.AvailDay.prep_delete.is_(None))
         ).all()
         avail_day_id_by_adg: dict[UUID, UUID] = {
             ad.avail_day_group_id: ad.id for ad in avail_days

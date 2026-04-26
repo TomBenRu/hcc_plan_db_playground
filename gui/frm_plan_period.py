@@ -8,10 +8,7 @@ from PySide6.QtWidgets import QDialog, QWidget, QLabel, QComboBox, QDateEdit, QP
 
 from commands.command_base_classes import ContrExecUndoRedo
 from database import db_services, schemas
-from database.special_schema_requests import get_locations_of_team_at_date
-from database.db_services.person import get_persons_of_team_at_date
-from commands.database_commands import plan_period_commands, location_plan_period_commands, event_group_commands, \
-    actor_plan_period_commands, avail_day_group_commands
+from commands.database_commands import plan_period_commands
 from tools.helper_functions import date_to_string, setup_form_help
 
 
@@ -30,10 +27,7 @@ class DlgPlanPeriodCreate(QDialog):
         self._setup_ui()
 
         self.fill_dispatchers()
-        
-        # Help-Integration
-        setup_form_help(self, "plan_period_create", add_help_button=True)
-        
+
         # Help-Integration
         setup_form_help(self, "plan_period_create", add_help_button=True)
 
@@ -125,19 +119,6 @@ class DlgPlanPeriodCreate(QDialog):
         if self.de_end.date() < self.de_start.date():
             self.de_start.setDate(self.de_end.date())
 
-    def get_locations_actors_in_period(self, start: datetime.date, end: datetime.date) -> tuple[set[UUID], set[UUID]]:
-        """Gibt ein Tuple von Sets zurück: location_ids, actor_ids"""
-        location_ids = set()
-        actor_ids = set()
-        for delta in range((end - start).days + 1):
-            location_ids |= {
-                loc.id for loc in
-                get_locations_of_team_at_date(self.cb_teams.currentData().id, start + datetime.timedelta(days=delta))}
-            actor_ids |= {
-                pers.id for pers in
-                get_persons_of_team_at_date(self.cb_teams.currentData().id, start + datetime.timedelta(days=delta))}
-        return location_ids, actor_ids
-
     def accept(self) -> None:
         if not self.cb_teams.currentData():
             QMessageBox.critical(self, self.tr('Planning Period'),
@@ -155,32 +136,11 @@ class DlgPlanPeriodCreate(QDialog):
             notes_for_employees=self.text_notes_for_employees.toPlainText(),
             team=self.cb_teams.currentData(),
             remainder=self.chk_remainder.isChecked())
-        command = plan_period_commands.Create(new_plan_period)
+        # Atomarer Server-Side-Create: 1 API-Call statt 1 + 2N + 2M
+        command = plan_period_commands.CreateWithChildren(new_plan_period)
         self.controller.execute(command)
-        plan_period_created = command.created_plan_period
-
-        location_ids, actor_ids = self.get_locations_actors_in_period(start, end)
-
-        for loc_id in location_ids:
-            self._create_location_plan_periods(plan_period_created.id, loc_id)
-        for actor_id in actor_ids:
-            self._create_actor_plan_periods(plan_period_created.id, actor_id)
 
         super().accept()
-
-    def _create_location_plan_periods(self, plan_period_id: UUID, loc_id: UUID):
-        command = location_plan_period_commands.Create(plan_period_id, loc_id)
-        self.controller.execute(command)
-        new_location_plan_period = command.created_location_plan_period
-        eg_command = event_group_commands.Create(loc_act_plan_period_id=new_location_plan_period.id)
-        self.controller.execute(eg_command)
-
-    def _create_actor_plan_periods(self, plan_period_id: UUID, person_id: UUID):
-        command = actor_plan_period_commands.Create(plan_period_id, person_id)
-        self.controller.execute(command)
-        new_actor_plan_period = command.created_actor_plan_period
-        adg_command = avail_day_group_commands.Create(loc_act_plan_period_id=new_actor_plan_period.id)
-        self.controller.execute(adg_command)
 
 
 class DlgPlanPeriodEdit(QDialog):
@@ -329,6 +289,7 @@ class DlgPlanPeriodEdit(QDialog):
         self.de_end.setDisabled(disable)
         self.de_deadline.setDisabled(disable)
         self.te_notes.setDisabled(disable)
+        self.te_notes_for_employees.setDisabled(disable)
         self.chk_remainder.setDisabled(disable)
 
     def proof_with_end(self):

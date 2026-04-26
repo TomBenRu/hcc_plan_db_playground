@@ -1,0 +1,68 @@
+{% extends "partials/modal_shell.html" %}
+{% block modal_kicker %}Periode bearbeiten{% endblock %}
+{% block modal_title %}{{ pp.start.strftime("%d.%m.%Y") }} – {{ pp.end.strftime("%d.%m.%Y") }}{% endblock %}
+{% block modal_body %}
+<form id="edit-pp-form"
+      hx-patch="/dispatcher/periods/{{ pp.id }}"
+      hx-target="#modal-root"
+      hx-swap="innerHTML"
+      class="flex flex-col gap-4">
+
+    <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <label class="flex flex-col gap-1">
+            <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Start</span>
+            <input type="date" name="start" required value="{{ pp.start.isoformat() }}"
+                   class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
+                          bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">
+        </label>
+        <label class="flex flex-col gap-1">
+            <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Ende</span>
+            <input type="date" name="end" required value="{{ pp.end.isoformat() }}"
+                   class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
+                          bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">
+        </label>
+    </div>
+
+    <label class="flex flex-col gap-1">
+        <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Deadline</span>
+        <input type="date" name="deadline" required value="{{ pp.deadline.isoformat() }}"
+               class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
+                      bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">
+    </label>
+
+    <label class="flex flex-col gap-1">
+        <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Notizen (intern)</span>
+        <textarea name="notes" rows="2"
+                  class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
+                         bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">{{ pp.notes or '' }}</textarea>
+    </label>
+
+    <label class="flex flex-col gap-1">
+        <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Hinweise für Mitarbeiter</span>
+        <textarea name="notes_for_employees" rows="2"
+                  class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
+                         bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">{{ pp.notes_for_employees or '' }}</textarea>
+    </label>
+
+    <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
+        <input type="checkbox" name="remainder" value="true"
+               {% if pp.remainder %}checked{% endif %}
+               class="rounded border-slate-300 dark:border-slate-600">
+        Reminder aktiv
+    </label>
+</form>
+{% endblock %}
+{% block modal_footer %}
+<div class="flex justify-end gap-2 px-6 py-4 border-t border-slate-100 dark:border-slate-700/50">
+    <button type="button" onclick="window.hccModal.close()"
+            class="px-4 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700
+                   text-slate-600 dark:text-slate-300
+                   hover:bg-slate-50 dark:hover:bg-slate-700/50">
+        Abbrechen
+    </button>
+    <button type="submit" form="edit-pp-form"
+            class="px-4 py-2 text-sm rounded-lg bg-sky-600 hover:bg-sky-700 text-white">
+        Speichern
+    </button>
+</div>
+{% endblock %}

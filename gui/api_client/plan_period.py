@@ -22,6 +22,47 @@ def create(start: datetime.date, end: datetime.date, deadline: datetime.date,
     return schemas.PlanPeriodShow.model_validate(data)
 
 
+def create_with_children(start: datetime.date, end: datetime.date, deadline: datetime.date,
+                         remainder: bool, team_id: uuid.UUID,
+                         notes: str | None = None,
+                         notes_for_employees: str | None = None) -> schemas.PlanPeriodShow:
+    """Atomarer Create: PP + LPP+EventGroup-Master + APP+AvailDayGroup-Master in
+    einer Server-Session/Transaktion. Ersetzt die alte 1+2N+2M-Schleife des
+    Desktop-Dialogs durch genau einen API-Call."""
+    data = get_api_client().post("/api/v1/plan-periods/with-children", json={
+        "start": start.isoformat(),
+        "end": end.isoformat(),
+        "deadline": deadline.isoformat(),
+        "notes": notes,
+        "notes_for_employees": notes_for_employees,
+        "remainder": remainder,
+        "team_id": str(team_id),
+    })
+    return schemas.PlanPeriodShow.model_validate(data)
+
+
+def set_closed(plan_period_id: uuid.UUID, closed: bool) -> schemas.PlanPeriodMinimal:
+    """Schließt (closed=True) oder öffnet (closed=False) eine PlanPeriod.
+    Re-Open ist serverseitig nur für Admins erlaubt.
+
+    Antwort ist PlanPeriodMinimal — kein PlanPeriodShow, weil die Mutation sonst
+    bei großen Perioden 30 s+ dauert (hunderte Lazy-Queries durch model_validate).
+    """
+    endpoint = "close" if closed else "reopen"
+    data = get_api_client().post(f"/api/v1/plan-periods/{plan_period_id}/{endpoint}")
+    return schemas.PlanPeriodMinimal.model_validate(data)
+
+
+def find_takeover_candidates(plan_period_id: uuid.UUID) -> schemas.TakeoverPreview:
+    data = get_api_client().get(f"/api/v1/plan-periods/{plan_period_id}/takeover-candidates")
+    return schemas.TakeoverPreview.model_validate(data)
+
+
+def execute_takeover(plan_period_id: uuid.UUID) -> schemas.TakeoverReport:
+    data = get_api_client().post(f"/api/v1/plan-periods/{plan_period_id}/takeover")
+    return schemas.TakeoverReport.model_validate(data)
+
+
 def update(plan_period: schemas.PlanPeriod) -> schemas.PlanPeriodShow:
     data = get_api_client().put(f"/api/v1/plan-periods/{plan_period.id}",
                                 json=plan_period.model_dump(mode="json"))

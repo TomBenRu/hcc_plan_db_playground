@@ -1,0 +1,24 @@
+{# Erwartet: pp (PlanPeriod oder PlanPeriodShow) #}
+<div id="notes-display-{{ pp.id }}" class="text-xs text-slate-500 dark:text-slate-400">
+    {% if pp.notes %}
+    <p class="whitespace-pre-line">{{ pp.notes }}</p>
+    {% else %}
+    <p class="italic text-slate-400 dark:text-slate-600">Keine Notiz.</p>
+    {% endif %}
+    {% if not pp.closed and not pp.prep_delete %}
+    <button hx-get="/dispatcher/periods/{{ pp.id }}/notes-edit"
+            hx-target="#notes-display-{{ pp.id }}"
+            hx-swap="outerHTML"
+            class="text-xs text-sky-600 dark:text-sky-400 hover:underline mt-1">
+        ✎ Notiz bearbeiten
+    </button>
+    {% else %}
+    {# Auch geschlossene Perioden erlauben Notes-Edit (closed-Lifecycle erlaubt notes) #}
+    <button hx-get="/dispatcher/periods/{{ pp.id }}/notes-edit"
+            hx-target="#notes-display-{{ pp.id }}"
+            hx-swap="outerHTML"
+            class="text-xs text-sky-600 dark:text-sky-400 hover:underline mt-1">
+        ✎ Notiz bearbeiten
+    </button>
+    {% endif %}
+</div>

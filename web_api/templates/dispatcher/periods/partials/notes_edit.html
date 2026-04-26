@@ -1,0 +1,26 @@
+{# Erwartet: pp #}
+<form hx-patch="/dispatcher/periods/{{ pp.id }}/notes"
+      hx-target="#notes-display-{{ pp.id }}"
+      hx-swap="outerHTML"
+      class="flex flex-col gap-2"
+      id="notes-display-{{ pp.id }}">
+    <textarea name="notes" rows="3"
+              class="w-full text-xs p-2 rounded-md border border-slate-200 dark:border-slate-700
+                     bg-white dark:bg-slate-900 text-slate-700 dark:text-slate-200
+                     focus:outline-none focus:ring-2 focus:ring-sky-300/50">{{ pp.notes or '' }}</textarea>
+    <div class="flex gap-2">
+        <button type="submit"
+                class="text-xs px-3 py-1 rounded-md bg-sky-600 hover:bg-sky-700 text-white">
+            Speichern
+        </button>
+        <button type="button"
+                hx-get="/dispatcher/periods/{{ pp.id }}/notes-display"
+                hx-target="#notes-display-{{ pp.id }}"
+                hx-swap="outerHTML"
+                class="text-xs px-3 py-1 rounded-md border border-slate-200 dark:border-slate-700
+                       text-slate-600 dark:text-slate-300
+                       hover:bg-slate-50 dark:hover:bg-slate-700/50">
+            Abbrechen
+        </button>
+    </div>
+</form>

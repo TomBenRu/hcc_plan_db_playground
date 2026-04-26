@@ -1,0 +1,170 @@
+{% extends "base.html" %}
+
+{% block title %}Dienstplanung – hcc plan{% endblock %}
+
+{% block head %}
+<style>
+    .sidebar-scroll::-webkit-scrollbar { width: 3px; }
+    .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+    .content-scroll::-webkit-scrollbar { width: 4px; }
+    .content-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 2px; }
+
+    @media (max-width: 1023px) {
+        .page-wrapper { grid-template-columns: 1fr !important; grid-template-rows: auto 1fr; }
+        .page-sidebar {
+            flex-direction: row !important; flex-wrap: wrap;
+            gap: 0.5rem; padding: 0.75rem 1rem !important;
+            align-items: center; min-height: unset !important;
+            overflow: visible !important;
+        }
+        .page-sidebar .sidebar-header { margin-bottom: 0 !important; flex-shrink: 0; }
+        .page-sidebar .sidebar-divider, .page-sidebar .sidebar-spacer, .sidebar-back { display: none !important; }
+    }
+
+    .filter-btn         { transition: background 0.15s, color 0.15s, border-color 0.15s; }
+    .filter-btn.active  { background: rgba(255,255,255,0.12); color: #fff; border-color: rgba(255,255,255,0.2); }
+    .filter-btn:not(.active):hover { background: rgba(255,255,255,0.06); color: #cbd5e1; }
+
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .anim { animation: fadeUp 0.35s ease-out both; }
+</style>
+{% endblock %}
+
+{% block nav %}{% include "partials/nav.html" %}{% endblock %}
+
+{% block content %}
+<div class="h-[calc(100vh-56px)] flex flex-col overflow-hidden">
+<div class="page-wrapper flex-1 grid overflow-hidden" style="grid-template-columns: 240px 1fr;">
+
+    {# ── Sidebar ─────────────────────────────────────────────────────── #}
+    <aside class="page-sidebar bg-navy grid-bg flex flex-col overflow-y-auto sidebar-scroll
+                  p-6 animate-fade-up border-r border-white/5">
+
+        <div class="sidebar-header mb-6">
+            <div class="flex items-center gap-1.5 mb-2">
+                <span class="inline-block w-1.5 h-1.5 rounded-full" style="background-color:#38BDF8;"></span>
+                <span class="text-xs font-semibold tracking-widest uppercase font-sans text-sky-300/80">
+                    Disposition
+                </span>
+            </div>
+            <h1 class="font-display text-2xl font-semibold text-white">Dienstplanung</h1>
+            <p class="text-xs text-slate-400 mt-1">Planungsperioden anlegen und verwalten</p>
+        </div>
+
+        <div class="sidebar-divider border-t border-white/5 mb-4"></div>
+
+        {# Team-Auswahl #}
+        <div class="mb-3">
+            <p class="text-[10px] uppercase tracking-widest text-slate-500 mb-2 px-3">Team</p>
+            <div class="sidebar-filters flex flex-col gap-1">
+                {% for team in teams %}
+                <a href="?team_id={{ team.id }}{% if status_filter %}&status_filter={{ status_filter }}{% endif %}"
+                   class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                          border-transparent text-sm font-sans text-slate-400
+                          {% if team.id == selected_team_id %}active{% endif %}">
+                    <span class="w-2 h-2 rounded-full flex-shrink-0 bg-sky-400"></span>
+                    {{ team.name }}
+                </a>
+                {% endfor %}
+                {% if not teams %}
+                <p class="text-xs text-slate-500 px-3">Keine Teams als Disponent zugeordnet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="sidebar-divider border-t border-white/5 mt-4 mb-4"></div>
+
+        {# Status-Filter #}
+        <div class="mb-3">
+            <p class="text-[10px] uppercase tracking-widest text-slate-500 mb-2 px-3">Status</p>
+            <div class="sidebar-filters flex flex-col gap-1">
+                {% for value, label, color in [
+                    (None, 'Aktiv', 'bg-emerald-400'),
+                    ('aktiv', 'Nur offen', 'bg-emerald-400'),
+                    ('geschlossen', 'Geschlossen', 'bg-amber-400'),
+                    ('papierkorb', 'Papierkorb', 'bg-slate-400'),
+                ] %}
+                <a href="?team_id={{ selected_team_id }}{% if value %}&status_filter={{ value }}{% endif %}"
+                   class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                          border-transparent text-sm font-sans text-slate-400
+                          {% if (value or '') == (status_filter or '') %}active{% endif %}">
+                    <span class="w-2 h-2 rounded-full flex-shrink-0 {{ color }}"></span>
+                    {{ label }}
+                </a>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="sidebar-spacer flex-1"></div>
+
+        <a href="/dashboard"
+           class="sidebar-back text-xs text-slate-500 hover:text-slate-300 transition-colors px-3">
+            ← Zurück zum Dashboard
+        </a>
+    </aside>
+
+    {# ── Main ────────────────────────────────────────────────────────── #}
+    <main class="flex-1 overflow-y-auto content-scroll bg-slate-50 dark:bg-slate-900 px-6 py-8">
+        <div class="max-w-3xl mx-auto">
+
+            <div class="flex items-center justify-between mb-6 anim" style="animation-delay: 0.05s;">
+                <div>
+                    <h2 class="font-display text-2xl font-semibold text-slate-800 dark:text-slate-100">
+                        Planungsperioden
+                    </h2>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                        {% if selected_team_id %}
+                            Periode anlegen, bearbeiten oder schließen.
+                        {% else %}
+                            Wählen Sie links ein Team.
+                        {% endif %}
+                    </p>
+                </div>
+                {% if selected_team_id %}
+                <button hx-get="/dispatcher/periods/new?team_id={{ selected_team_id }}"
+                        hx-target="#modal-root" hx-swap="innerHTML"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg
+                               bg-sky-600 hover:bg-sky-700 text-white text-sm font-medium
+                               shadow-sm transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Neue Periode
+                </button>
+                {% endif %}
+            </div>
+
+            {# Listen-Container — HTMX-Reload via periods-changed Event #}
+            <div id="periods-list"
+                 hx-get="/dispatcher/periods/list?team_id={{ selected_team_id }}{% if status_filter %}&status_filter={{ status_filter }}{% endif %}"
+                 hx-trigger="periods-changed from:body"
+                 hx-swap="innerHTML">
+                {% include "dispatcher/periods/partials/list.html" %}
+            </div>
+        </div>
+    </main>
+
+</div>
+</div>
+
+{# Modal-Root für HTMX #}
+<div id="modal-root"></div>
+
+<script>
+    // Einfacher Modal-Close-Handler
+    window.hccModal = {
+        close: function() {
+            document.getElementById('modal-root').innerHTML = '';
+        }
+    };
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') window.hccModal.close();
+    });
+    // Click auf Backdrop schließt das Modal
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.dataset && 'modalBackdrop' in e.target.dataset) {
+            window.hccModal.close();
+        }
+    });
+</script>
+{% endblock %}

@@ -50,7 +50,8 @@ def _build_tree_nodes_from_ids(adg_ids: list[UUID], session) -> dict[UUID, schem
     # Query 2: Event-IDs (FK liegt auf Event-Seite)
     event_rows = session.exec(
         select(models.Event.id, models.Event.event_group_id)
-        .where(models.Event.event_group_id.in_(adg_ids))
+        .where(models.Event.event_group_id.in_(adg_ids),
+               models.Event.prep_delete.is_(None))
     ).all()
     for event_row in event_rows:
         node = nodes.get(event_row.event_group_id)

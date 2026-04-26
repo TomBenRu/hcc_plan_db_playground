@@ -19,6 +19,7 @@ from web_api.dashboard.router import router as dashboard_router
 from web_api.dependencies import get_db_session
 from web_api.availability.router import router as availability_router
 from web_api.dispatcher.router import router as dispatcher_router
+from web_api.dispatcher_periods.router import router as dispatcher_periods_router
 from web_api.employees.router import router as employees_router
 from web_api.exceptions import LoginRequired
 from web_api.inbox.router import router as inbox_router
@@ -68,6 +69,7 @@ app.include_router(auth_router)
 app.include_router(desktop_api_router)
 app.include_router(dashboard_router)
 app.include_router(dispatcher_router)
+app.include_router(dispatcher_periods_router)
 app.include_router(employees_router)
 app.include_router(availability_router)
 app.include_router(cancellations_router)

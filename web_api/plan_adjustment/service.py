@@ -18,6 +18,7 @@ from database.models import (
     LocationPlanPeriod,
     Person,
     Plan,
+    PlanPeriod,
     TimeOfDay,
 )
 from web_api.availability.service import create_avail_day, find_avail_day, reset_location_prefs_to_normal
@@ -631,6 +632,18 @@ def cancel_open_requests_for_unbound_plan(
     return payloads
 
 
+def _auto_close_plan_period(session: Session, plan_period_id: uuid.UUID) -> None:
+    """Setzt PlanPeriod.closed=True idempotent. Wird beim Plan-Binding aufgerufen
+    (Auto-Close-Trigger des closed-Lifecycles).
+
+    Idempotent: bereits closed=True bleibt unverändert. Kein flush hier — der
+    Aufrufer (set_plan_is_binding) flusht ohnehin gemeinsam.
+    """
+    pp = session.get(PlanPeriod, plan_period_id)
+    if pp is not None and not pp.closed:
+        pp.closed = True
+
+
 def set_plan_is_binding(
     session: Session,
     plan_id: uuid.UUID,
@@ -669,6 +682,7 @@ def set_plan_is_binding(
                 session.flush()  # FALSE vor TRUE committen (Unique pro Periode)
                 payloads.extend(cancel_open_requests_for_unbound_plan(session, prev.id))
             plan.is_binding = True
+            _auto_close_plan_period(session, plan.plan_period_id)
             session.flush()
     else:
         if plan.is_binding:

@@ -1,0 +1,12 @@
+{% if periods %}
+<div class="flex flex-col gap-3">
+    {% for pp in periods %}
+    {% include "dispatcher/periods/partials/period_card.html" %}
+    {% endfor %}
+</div>
+{% else %}
+<div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700/50
+            p-8 text-center text-slate-400 dark:text-slate-500">
+    <p class="text-sm">Keine Planungsperioden im aktuellen Filter.</p>
+</div>
+{% endif %}

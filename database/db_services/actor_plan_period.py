@@ -117,7 +117,8 @@ def get_all_for_solver(plan_period_id: UUID) -> dict[UUID, schemas.ActorPlanPeri
             return {}
         app_ids = [a.id for a in apps]
         avail_days = session.exec(select(models.AvailDay).where(
-            models.AvailDay.actor_plan_period_id.in_(app_ids))).all()
+            models.AvailDay.actor_plan_period_id.in_(app_ids),
+            models.AvailDay.prep_delete.is_(None))).all()
         adg_by_app: dict[UUID, list[UUID]] = {aid: [] for aid in app_ids}
         for ad in avail_days:
             adg_by_app[ad.actor_plan_period_id].append(ad.avail_day_group_id)

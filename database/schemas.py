@@ -274,14 +274,51 @@ class PlanPeriodMinimal(BaseModel):
     id: UUID
     start: datetime.date
     end: datetime.date
+    deadline: datetime.date
+    closed: bool = False
     prep_delete: Optional[datetime.datetime] = None
+    remainder: bool = True
+    notes: Optional[str] = None
+    notes_for_employees: Optional[str] = None
+    team_id: UUID
 
 
 class PlanPeriod(PlanPeriodCreate):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
+    closed: bool = False
     prep_delete: Optional[datetime.datetime] = None
+
+
+class TakeoverCandidate(BaseModel):
+    """Kandidaten-Bündel pro Quell-PlanPeriod, deren soft-deleted AvailDays/Events
+    in den Datumsbereich der neu angelegten PlanPeriod fallen."""
+    source_plan_period_id: UUID
+    avail_day_ids: List[UUID]
+    event_ids: List[UUID]
+    events_with_appointments_count: int
+
+
+class TakeoverPreview(BaseModel):
+    """Wird vom Confirm-Dialog im Web-UI gerendert."""
+    new_plan_period_id: UUID
+    candidates: List[TakeoverCandidate]
+    total_avail_days: int
+    total_events: int
+    events_with_appointments_count: int
+
+
+class TakeoverReport(BaseModel):
+    """Resultat eines bestätigten Takeovers — Statistik für Toast/Logging."""
+    new_plan_period_id: UUID
+    copied_avail_days: int
+    copied_events: int
+    hard_deleted_avail_days: int
+    hard_deleted_avail_day_groups: int
+    hard_deleted_events: int
+    hard_deleted_event_groups: int
+    events_with_dropped_appointments: int
 
 
 class PlanPeriodShow(PlanPeriod):

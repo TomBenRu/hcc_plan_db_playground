@@ -16,7 +16,7 @@ des PP-Inhalts (AvailDays, Events, Appointments, Casts) bleiben unbeeinflusst.
 import datetime
 from uuid import UUID
 
-from sqlalchemy import or_
+from sqlalchemy import func, or_
 from sqlalchemy.orm import joinedload
 from sqlmodel import select
 
@@ -173,6 +173,47 @@ def get_all_from__team_minimal(team_id: UUID) -> list[schemas.PlanPeriodMinimal]
     with get_session() as session:
         pps = session.exec(select(models.PlanPeriod).where(models.PlanPeriod.team_id == team_id)).all()
         return [schemas.PlanPeriodMinimal.model_validate(p) for p in pps]
+
+
+def get_latest_end_for_team(team_id: UUID, exclude_id: UUID | None = None) -> datetime.date | None:
+    """Liefert max(end) aller non-deleted PlanPeriods eines Teams.
+
+    Wird vom Web-UI für sinnvolle Default-Werte (`default_start = latest_end + 1`)
+    und für `min`-Attribute der Date-Inputs genutzt. `exclude_id` lässt die zu
+    editierende PP außen vor (PATCH-Form-Defaults)."""
+    with get_session() as session:
+        stmt = select(func.max(models.PlanPeriod.end)).where(
+            models.PlanPeriod.team_id == team_id,
+            models.PlanPeriod.prep_delete.is_(None),
+        )
+        if exclude_id is not None:
+            stmt = stmt.where(models.PlanPeriod.id != exclude_id)
+        return session.execute(stmt).scalar()
+
+
+def find_overlapping_period(
+    team_id: UUID,
+    start: datetime.date,
+    end: datetime.date,
+    exclude_id: UUID | None = None,
+) -> schemas.PlanPeriodMinimal | None:
+    """Findet die erste non-deleted PlanPeriod des Teams, deren Range mit
+    [start, end] überlappt. `exclude_id` schließt die zu editierende PP aus
+    (für PATCH-Validierung). None heißt: keine Überlappung gefunden.
+
+    Range-Overlap-Formel: existing.start <= new.end AND existing.end >= new.start.
+    """
+    with get_session() as session:
+        stmt = select(models.PlanPeriod).where(
+            models.PlanPeriod.team_id == team_id,
+            models.PlanPeriod.prep_delete.is_(None),
+            models.PlanPeriod.start <= end,
+            models.PlanPeriod.end >= start,
+        )
+        if exclude_id is not None:
+            stmt = stmt.where(models.PlanPeriod.id != exclude_id)
+        hit = session.exec(stmt).first()
+        return schemas.PlanPeriodMinimal.model_validate(hit) if hit else None
 
 
 def create(plan_period: schemas.PlanPeriodCreate) -> schemas.PlanPeriodShow:

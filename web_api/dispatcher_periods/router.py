@@ -58,6 +58,41 @@ def _today() -> datetime.date:
     return datetime.date.today()
 
 
+def _validate_period_dates(
+    team_id: uuid.UUID,
+    start: datetime.date,
+    end: datetime.date,
+    deadline: datetime.date,
+    exclude_id: uuid.UUID | None = None,
+) -> str | None:
+    """Prüft die vier Datumsregeln einer Plan-Periode. Gibt eine deutsche
+    Fehlermeldung zurück oder None, wenn alle Regeln erfüllt sind.
+
+    Regeln:
+        1. start < end
+        2. today < deadline
+        3. deadline < start
+        4. keine Überlappung mit anderen non-deleted PPs des Teams
+           (eigene Periode optional via `exclude_id` ausgenommen)
+    """
+    if start >= end:
+        return "Das Ende der Periode muss nach dem Start liegen."
+    today = _today()
+    if deadline <= today:
+        return "Die Deadline muss nach dem heutigen Tag liegen."
+    if deadline >= start:
+        return "Die Deadline muss vor dem Start der Periode liegen."
+    overlap = db_services.PlanPeriod.find_overlapping_period(
+        team_id, start, end, exclude_id=exclude_id
+    )
+    if overlap:
+        return (
+            f"Die Periode überschneidet eine bestehende Periode "
+            f"({overlap.start.strftime('%d.%m.%Y')} – {overlap.end.strftime('%d.%m.%Y')})."
+        )
+    return None
+
+
 @router.get("", response_class=HTMLResponse)
 def index(
     request: Request,
@@ -121,6 +156,41 @@ def list_partial(
     )
 
 
+def _create_form_context(
+    request: Request,
+    team_id: uuid.UUID,
+    *,
+    start: datetime.date,
+    end: datetime.date,
+    deadline: datetime.date,
+    notes: str,
+    notes_for_employees: str,
+    remainder: bool,
+    earliest_start: datetime.date,
+    latest_end: datetime.date | None,
+    error_message: str | None = None,
+) -> dict:
+    """Bündelt alle Werte für `create_form.html` — sowohl Initial-Render
+    (smart Defaults) als auch Re-Render bei Validierungsfehler (übermittelte
+    User-Werte werden zurück ins Formular gespiegelt)."""
+    today = _today()
+    return {
+        "request": request,
+        "team_id": team_id,
+        "today": today,
+        "min_deadline": today + datetime.timedelta(days=1),
+        "earliest_start": earliest_start,
+        "latest_end": latest_end,
+        "default_start": start,
+        "default_end": end,
+        "default_deadline": deadline,
+        "default_notes": notes,
+        "default_notes_for_employees": notes_for_employees,
+        "default_remainder": remainder,
+        "error_message": error_message,
+    }
+
+
 @router.get("/new", response_class=HTMLResponse)
 def new_form(
     request: Request,
@@ -128,18 +198,34 @@ def new_form(
     user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
     session: Session = Depends(get_db_session),
 ):
-    """Modal: Anlage-Formular für eine neue Periode."""
+    """Modal: Anlage-Formular für eine neue Periode mit smart Defaults
+    (Notizen aus Team, Start ab Tag nach jüngster bestehender PP)."""
     today = _today()
+    team = db_services.Team.get(team_id)
+    latest_end = db_services.PlanPeriod.get_latest_end_for_team(team_id)
+    earliest_start = max(
+        today + datetime.timedelta(days=1),
+        (latest_end + datetime.timedelta(days=1)) if latest_end else today + datetime.timedelta(days=1),
+    )
+    default_start = earliest_start
+    default_end = default_start + datetime.timedelta(days=29)
+    default_deadline = max(
+        today + datetime.timedelta(days=1),
+        default_start - datetime.timedelta(days=14),
+    )
+    if default_deadline >= default_start:
+        default_deadline = default_start - datetime.timedelta(days=1)
     return templates.TemplateResponse(
         "dispatcher/periods/partials/create_form.html",
-        {
-            "request": request,
-            "team_id": team_id,
-            "today": today,
-            "default_start": today + datetime.timedelta(days=1),
-            "default_end": today + datetime.timedelta(days=30),
-            "default_deadline": today + datetime.timedelta(days=14),
-        },
+        _create_form_context(
+            request, team_id,
+            start=default_start, end=default_end, deadline=default_deadline,
+            notes=team.notes or "",
+            notes_for_employees="",
+            remainder=False,
+            earliest_start=earliest_start,
+            latest_end=latest_end,
+        ),
     )
 
 
@@ -156,7 +242,28 @@ def create_with_children(
     notes_for_employees: str = Form(default=""),
     remainder: bool = Form(default=False),
 ):
-    """Atomarer Create-Submit. Bei Erfolg: Take-Over-Modal oder Liste-Refresh."""
+    """Atomarer Create-Submit. Bei Erfolg: Take-Over-Modal oder Liste-Refresh.
+    Bei Validierungsfehler: Form mit Banner re-rendern, Eingaben bleiben."""
+    error = _validate_period_dates(team_id, start, end, deadline)
+    if error:
+        latest_end = db_services.PlanPeriod.get_latest_end_for_team(team_id)
+        earliest_start = max(
+            _today() + datetime.timedelta(days=1),
+            (latest_end + datetime.timedelta(days=1)) if latest_end else _today() + datetime.timedelta(days=1),
+        )
+        return templates.TemplateResponse(
+            "dispatcher/periods/partials/create_form.html",
+            _create_form_context(
+                request, team_id,
+                start=start, end=end, deadline=deadline,
+                notes=notes, notes_for_employees=notes_for_employees,
+                remainder=remainder,
+                earliest_start=earliest_start,
+                latest_end=latest_end,
+                error_message=error,
+            ),
+        )
+
     team = db_services.Team.get(team_id)
     create_schema = schemas.PlanPeriodCreate(
         start=start, end=end, deadline=deadline,
@@ -182,6 +289,46 @@ def create_with_children(
     return _redirect_to_list(team_id)
 
 
+def _edit_form_context(
+    request: Request,
+    pp,
+    *,
+    start: datetime.date,
+    end: datetime.date,
+    deadline: datetime.date,
+    notes: str,
+    notes_for_employees: str,
+    remainder: bool,
+    is_admin: bool,
+    error_message: str | None = None,
+) -> dict:
+    """Bündelt alle Werte für `edit_form.html`.
+
+    `min_start` ist None, wenn es keine andere non-deleted PP im Team gibt —
+    das Template lässt das `min`-Attribut dann weg, damit ältere Perioden
+    (die vor allen anderen liegen) editierbar bleiben."""
+    today = _today()
+    latest_end_other = db_services.PlanPeriod.get_latest_end_for_team(
+        pp.team.id, exclude_id=pp.id
+    )
+    min_start = (latest_end_other + datetime.timedelta(days=1)) if latest_end_other else None
+    return {
+        "request": request,
+        "pp": pp,
+        "is_admin": is_admin,
+        "today": today,
+        "min_deadline": today + datetime.timedelta(days=1),
+        "min_start": min_start,
+        "default_start": start,
+        "default_end": end,
+        "default_deadline": deadline,
+        "default_notes": notes,
+        "default_notes_for_employees": notes_for_employees,
+        "default_remainder": remainder,
+        "error_message": error_message,
+    }
+
+
 @router.get("/{plan_period_id}/edit", response_class=HTMLResponse)
 def edit_form(
     request: Request,
@@ -191,11 +338,14 @@ def edit_form(
     pp = db_services.PlanPeriod.get(plan_period_id)
     return templates.TemplateResponse(
         "dispatcher/periods/partials/edit_form.html",
-        {
-            "request": request,
-            "pp": pp,
-            "is_admin": _is_admin(user),
-        },
+        _edit_form_context(
+            request, pp,
+            start=pp.start, end=pp.end, deadline=pp.deadline,
+            notes=pp.notes or "",
+            notes_for_employees=pp.notes_for_employees or "",
+            remainder=pp.remainder,
+            is_admin=_is_admin(user),
+        ),
     )
 
 
@@ -212,6 +362,23 @@ def patch_period(
     remainder: bool = Form(default=False),
 ):
     current = db_services.PlanPeriod.get(plan_period_id)
+
+    error = _validate_period_dates(
+        current.team.id, start, end, deadline, exclude_id=plan_period_id
+    )
+    if error:
+        return templates.TemplateResponse(
+            "dispatcher/periods/partials/edit_form.html",
+            _edit_form_context(
+                request, current,
+                start=start, end=end, deadline=deadline,
+                notes=notes, notes_for_employees=notes_for_employees,
+                remainder=remainder,
+                is_admin=_is_admin(user),
+                error_message=error,
+            ),
+        )
+
     update_schema = schemas.PlanPeriod(
         id=plan_period_id,
         start=start, end=end, deadline=deadline,

@@ -2,6 +2,14 @@
 {% block modal_kicker %}Neue Planungsperiode{% endblock %}
 {% block modal_title %}Periode anlegen{% endblock %}
 {% block modal_body %}
+{% if error_message %}
+<div class="mb-4 px-3 py-2 rounded-md text-sm
+            bg-rose-50 dark:bg-rose-900/30
+            text-rose-700 dark:text-rose-300
+            ring-1 ring-rose-200 dark:ring-rose-700/50">
+    {{ error_message }}
+</div>
+{% endif %}
 <form id="create-pp-form"
       hx-post="/dispatcher/periods"
       hx-target="#modal-root"
@@ -13,13 +21,17 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <label class="flex flex-col gap-1">
             <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Start</span>
-            <input type="date" name="start" required value="{{ default_start.isoformat() }}"
+            <input type="date" name="start" required
+                   value="{{ default_start.isoformat() }}"
+                   min="{{ earliest_start.isoformat() }}"
                    class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
                           bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">
         </label>
         <label class="flex flex-col gap-1">
             <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Ende</span>
-            <input type="date" name="end" required value="{{ default_end.isoformat() }}"
+            <input type="date" name="end" required
+                   value="{{ default_end.isoformat() }}"
+                   min="{{ default_start.isoformat() }}"
                    class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
                           bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">
         </label>
@@ -27,27 +39,33 @@
 
     <label class="flex flex-col gap-1">
         <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Deadline für Verfügbarkeiten</span>
-        <input type="date" name="deadline" required value="{{ default_deadline.isoformat() }}"
+        <input type="date" name="deadline" required
+               value="{{ default_deadline.isoformat() }}"
+               min="{{ min_deadline.isoformat() }}"
                class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
                       bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">
+        <span class="text-[11px] text-slate-400 dark:text-slate-500">
+            Muss nach heute und vor dem Start der Periode liegen.
+        </span>
     </label>
 
     <label class="flex flex-col gap-1">
         <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Notizen (intern)</span>
         <textarea name="notes" rows="2"
                   class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
-                         bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200"></textarea>
+                         bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">{{ default_notes }}</textarea>
     </label>
 
     <label class="flex flex-col gap-1">
         <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Hinweise für Mitarbeiter</span>
         <textarea name="notes_for_employees" rows="2"
                   class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
-                         bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200"></textarea>
+                         bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">{{ default_notes_for_employees }}</textarea>
     </label>
 
     <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
         <input type="checkbox" name="remainder" value="true"
+               {% if default_remainder %}checked{% endif %}
                class="rounded border-slate-300 dark:border-slate-600">
         Reminder aktivieren
     </label>

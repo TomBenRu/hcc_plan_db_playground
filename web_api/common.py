@@ -40,6 +40,24 @@ def location_display_name(name: str, city: str | None) -> str:
     return name
 
 
+def interval_minutes(start: time, end: time) -> tuple[int, int]:
+    """Normalisiert ein TimeOfDay-Intervall auf Minuten seit Tages-Start.
+
+    Slots können über Mitternacht reichen (z. B. 22:00–02:00). Wenn
+    `end < start`, wird `end += 24h` addiert — so ist der Vergleich
+    monoton und das übliche `a_start <= b_start AND a_end >= b_end`-
+    Containment funktioniert korrekt für alle Fälle.
+
+    Aus dem Rückgabewert lässt sich auch die Mitternachts-Erkennung
+    ableiten: `end_min > 1440` ⇔ TOD reicht in den Folgetag.
+    """
+    start_min = start.hour * 60 + start.minute
+    end_min = end.hour * 60 + end.minute
+    if end_min < start_min:
+        end_min += 24 * 60
+    return start_min, end_min
+
+
 def fc_event_start_iso(event_date: date, time_start: time | None) -> str:
     """ISO-Datetime-String für den Start eines FullCalendar-Events.
 
@@ -53,16 +71,16 @@ def fc_event_start_iso(event_date: date, time_start: time | None) -> str:
 def fc_event_end_iso(event_date: date, time_start: time | None, time_end: time | None) -> str:
     """ISO-Datetime-String für das Ende eines FullCalendar-Events.
 
-    Berücksichtigt TODs über Mitternacht: wenn `time_end < time_start`, wird
-    das End-Datum auf den Folgetag gesetzt. Sonst rendert FullCalendar den
-    Termin als negative Dauer (1px-Linie) — bekannter Fallstrick, siehe
-    Memory `feedback_time_slot_comparison.md`.
+    Berücksichtigt TODs über Mitternacht: wenn das Intervall den Tag
+    überschreitet (erkennbar an `interval_minutes`), wird das End-Datum
+    auf den Folgetag gesetzt. Sonst rendert FullCalendar den Termin als
+    negative Dauer (1px-Linie) — bekannter Fallstrick, siehe Memory
+    `feedback_time_slot_comparison.md`.
     """
-    if time_start is None:
+    if time_start is None or time_end is None:
         return event_date.isoformat()
-    if time_end is None:
-        return event_date.isoformat()
-    end_date = event_date + timedelta(days=1) if time_end < time_start else event_date
+    _, end_min = interval_minutes(time_start, time_end)
+    end_date = event_date + timedelta(days=1) if end_min > 24 * 60 else event_date
     return f"{end_date.isoformat()}T{time_end.strftime('%H:%M:%S')}"
 
 

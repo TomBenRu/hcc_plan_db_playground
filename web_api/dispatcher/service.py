@@ -6,7 +6,7 @@ Spiegelt `web_api/employees/service.py`, filtert jedoch auf Team-Ebene
 
 import uuid
 from dataclasses import dataclass
-from datetime import date, time
+from datetime import date
 
 from fastapi import HTTPException, status
 from sqlalchemy import and_, func, or_
@@ -34,7 +34,7 @@ from database.models import (
     TimeOfDayEnum,
 )
 from web_api.availability.service import create_avail_day, find_avail_day, reset_location_prefs_to_normal
-from web_api.common import guest_count, location_display_name
+from web_api.common import guest_count, interval_minutes, location_display_name
 from web_api.email.service import EmailPayload
 from web_api.employees.service import CalendarEvent
 from web_api.palette import location_color
@@ -218,21 +218,6 @@ def _compute_initials(f_name: str | None, l_name: str | None) -> str:
     return "?"
 
 
-def _interval_minutes(start: time, end: time) -> tuple[int, int]:
-    """Normalisiert ein TimeOfDay-Intervall auf Minuten seit Tages-Start.
-
-    Slots können über Mitternacht reichen (z. B. 22:00–02:00). Wenn
-    `end < start`, wird `end += 24h` addiert — so ist der Vergleich
-    monoton und das übliche `a_start <= b_start AND a_end >= b_end`-
-    Containment funktioniert korrekt für alle Fälle.
-    """
-    start_min = start.hour * 60 + start.minute
-    end_min = end.hour * 60 + end.minute
-    if end_min < start_min:
-        end_min += 24 * 60
-    return start_min, end_min
-
-
 def get_team_availability_for_appointment(
     session: Session,
     appointment_id: uuid.UUID,
@@ -248,7 +233,7 @@ def get_team_availability_for_appointment(
     (Project → Person → ActorPlanPeriod → AvailDay), mit potenziell
     abweichenden start/end-Werten. Der Intervall-Vergleich ist der
     semantisch korrekte Match. Mitternachts-Spannen werden via
-    `_interval_minutes` normalisiert (end += 24h bei end < start).
+    `interval_minutes` normalisiert (end += 24h bei end < start).
 
     `is_currently_assigned` bleibt unabhängig über die Link-Chain zur
     ActorPlanPeriod ermittelt — auch Solver-Zuordnungen mit vom Slot
@@ -282,7 +267,7 @@ def get_team_availability_for_appointment(
     team_id = ctx_row["team_id"]
     use_simple = bool(ctx_row["use_simple"])
     event_time_index = int(ctx_row["event_time_index"])
-    event_start_min, event_end_min = _interval_minutes(
+    event_start_min, event_end_min = interval_minutes(
         ctx_row["event_start"], ctx_row["event_end"]
     )
 
@@ -348,7 +333,7 @@ def get_team_availability_for_appointment(
     # finden, der das Match-Kriterium erfüllt. Kriterium ist modus-abhängig:
     # - Simple-Modus: gleicher `time_index`.
     # - Intervall-Modus (Default): `avail.start ≤ event.start AND avail.end ≥ event.end`
-    #   (mit Mitternachts-Normalisierung via _interval_minutes).
+    #   (mit Mitternachts-Normalisierung via interval_minutes).
     avails_by_app: dict[uuid.UUID, list[dict]] = {}
     for a in avail_rows:
         avails_by_app.setdefault(a["actor_plan_period_id"], []).append(dict(a))
@@ -356,7 +341,7 @@ def get_team_availability_for_appointment(
     def _is_match(a: dict) -> bool:
         if use_simple:
             return int(a["avail_time_index"]) == event_time_index
-        a_start_min, a_end_min = _interval_minutes(a["avail_start"], a["avail_end"])
+        a_start_min, a_end_min = interval_minutes(a["avail_start"], a["avail_end"])
         return a_start_min <= event_start_min and a_end_min >= event_end_min
 
     # Pro Person nur einen CastCandidate, auch wenn im DB-Layer mehrere

@@ -624,6 +624,20 @@ document.addEventListener('DOMContentLoaded', function () {
         return window.hccTheme.current() === 'colorblind' ? getCBColor(original) : original;
     }
 
+    // Wochengrid-Slots haben die Original-Hex-Farbe in data-event-color (server-seitig
+    // per Jinja2 gerendert, also Theme-agnostisch). Nach jedem HTMX-Swap des Grids
+    // remappen wir backgroundColor + boxShadow via resolveColor() — im Light/Dark-Modus
+    // ist das ein No-Op, im Colorblind-Modus greift Okabe-Ito-Mapping.
+    function applyWeekSlotColors() {
+        document.querySelectorAll('#week-grid [data-event-color]').forEach(function (el) {
+            const original = el.getAttribute('data-event-color');
+            if (!original) return;
+            const display = resolveColor(original);
+            el.style.backgroundColor = display;
+            el.style.boxShadow = '0 1px 3px ' + display + '55';
+        });
+    }
+
     // ── FullCalendar Init ────────────────────────────────────────────────────
     const calendarEl = document.getElementById('calendar');
     const actorPlanPeriodId = '{{ view_model.active_period.actor_plan_period_id }}';
@@ -693,6 +707,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (evt.target.id === 'day-panel') {
             calendar.refetchEvents();
             if (currentViewMode === 'week') loadWeekGrid();
+        } else if (evt.target.id === 'week-grid') {
+            applyWeekSlotColors();
         }
     });
 

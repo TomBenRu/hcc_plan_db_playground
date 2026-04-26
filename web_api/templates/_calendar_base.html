@@ -480,8 +480,6 @@ document.addEventListener('DOMContentLoaded', function () {
         },
         eventContent: function (info) {
             // Monatsansicht: nur Location-Name (ohne City) — Platz knapp.
-            // Andere Views (Woche/Liste): Default-Rendering via `undefined`,
-            // dann zeigt FullCalendar den vollen Title "Name City".
             if (info.view.type === 'dayGridMonth') {
                 const nameOnly = info.event.extendedProps.location_name_only || info.event.title;
                 const el = document.createElement('div');
@@ -489,6 +487,39 @@ document.addEventListener('DOMContentLoaded', function () {
                 el.textContent = nameOnly;
                 return { domNodes: [el] };
             }
+            // Wochenansicht: nur eigene Termine bekommen Klartext (Location + Zeit).
+            // Eigene Termine ueberschneiden sich nicht zeitlich (Planungs-Constraint),
+            // daher ist immer genug Spaltenbreite fuer lesbaren Text vorhanden.
+            // Fremde Termine (is_own=false) bleiben default-Render — bei Show-All-Modus
+            // koennen mehrere parallel liegen, da waere Klartext zu eng.
+            if (info.view.type === 'timeGridWeek' && info.event.extendedProps.is_own === true) {
+                const ext = info.event.extendedProps;
+                const wrapper = document.createElement('div');
+                wrapper.className = 'fc-event-title fc-sticky';
+                wrapper.style.lineHeight = '1.2';
+
+                const title = document.createElement('div');
+                title.style.fontWeight = '600';
+                title.style.overflow = 'hidden';
+                title.style.textOverflow = 'ellipsis';
+                title.style.whiteSpace = 'nowrap';
+                title.textContent = ext.location_name_only || info.event.title;
+                wrapper.appendChild(title);
+
+                if (ext.time_start && ext.time_end) {
+                    const time = document.createElement('div');
+                    time.style.fontSize = '0.72rem';
+                    time.style.opacity = '0.85';
+                    time.style.fontWeight = '400';
+                    time.style.overflow = 'hidden';
+                    time.style.textOverflow = 'ellipsis';
+                    time.style.whiteSpace = 'nowrap';
+                    time.textContent = ext.time_start + ' – ' + ext.time_end;
+                    wrapper.appendChild(time);
+                }
+                return { domNodes: [wrapper] };
+            }
+            // Andere Views (Liste, Dispatcher-Plan, Show-All-Fremde): Default-Rendering.
             return undefined;
         },
         eventClick: function (info) {

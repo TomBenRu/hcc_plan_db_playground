@@ -519,7 +519,19 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 return { domNodes: [wrapper] };
             }
-            // Andere Views (Liste, Dispatcher-Plan, Show-All-Fremde): Default-Rendering.
+            // Listenansicht: "Name City" explizit hell rendern. Der Hintergrund des
+            // Listen-Eintrags wird in eventDidMount per inline-Style farbig gesetzt;
+            // dunkler Default-Text geht darauf optisch unter. info.event.title ist
+            // server-seitig bereits "Name City" (siehe location_display_name —
+            // Fallback auf "Name", wenn keine City existiert).
+            if (info.view.type === 'listMonth') {
+                const wrapper = document.createElement('span');
+                wrapper.style.color = '#ffffff';
+                wrapper.style.fontWeight = '500';
+                wrapper.textContent = info.event.title;
+                return { domNodes: [wrapper] };
+            }
+            // Andere Views (Dispatcher-Plan, Show-All-Fremde): Default-Rendering.
             return undefined;
         },
         eventClick: function (info) {

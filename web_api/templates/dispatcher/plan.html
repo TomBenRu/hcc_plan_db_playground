@@ -6,9 +6,11 @@
     {{ super() }}
     <style>
         /* ── Unterbesetzungs-Marker ───────────────────────────────────────── */
-        /* Roter Dot oben rechts am Event-Chip (Monats- und Wochenansicht) */
-        .fc-event-understaffed.fc-daygrid-event,
-        .fc-event-understaffed.fc-timegrid-event {
+        /* Roter Dot oben rechts am Event-Chip (Monats- und Wochenansicht).
+           Achtung: fc-timegrid-event hat bereits position: absolute von FC —
+           explizit position: relative würde das absolute Layout zerstören
+           und den Slot auf seine Inhalts-Höhe kollabieren lassen. */
+        .fc-event-understaffed.fc-daygrid-event {
             position: relative;
         }
         .fc-event-understaffed.fc-daygrid-event::after,

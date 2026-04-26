@@ -29,8 +29,11 @@
         }
 
         /* ── Unterbesetzungs-Marker ───────────────────────────────────────── */
-        .fc-event-understaffed.fc-daygrid-event,
-        .fc-event-understaffed.fc-timegrid-event {
+        /* fc-timegrid-event hat bereits position: absolute (von FullCalendar);
+           ein zusätzliches position: relative würde das Layout zerstören und
+           den Slot auf seine Inhalts-Höhe (~3px) kollabieren. Daher nur
+           fc-daygrid-event explizit setzen — dort ist es für ::after nötig. */
+        .fc-event-understaffed.fc-daygrid-event {
             position: relative;
         }
         .fc-event-understaffed.fc-daygrid-event::after,

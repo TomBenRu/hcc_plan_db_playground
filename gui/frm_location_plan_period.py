@@ -1256,6 +1256,17 @@ class FrmLocationPlanPeriod(QWidget):
             if tla.location_of_work_id == location_id
         ]
 
+        if not self.t_o_d_standards:
+            QMessageBox.critical(
+                self,
+                self.tr('Availabilities'),
+                self.tr('Error:\nNo time of day standards are defined for this planning period of {name} {city}').format(
+                    name=self.location_plan_period.location_of_work.name,
+                    city=self.location_plan_period.location_of_work.address.city
+                )
+            )
+            return
+
         # Time of day row labels
         for row, time_of_day in enumerate(self.t_o_d_standards, start=2):
             self.layout.addWidget(QLabel(time_of_day.time_of_day_enum.name), row, 0)

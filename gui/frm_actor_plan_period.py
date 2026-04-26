@@ -1169,6 +1169,16 @@ class FrmActorPlanPeriod(QWidget):
     def _set_chk_field(self):
         person = self.actor_plan_period.person
         team = self.team
+        if not self.t_o_d_standards:
+            QMessageBox.critical(
+                self,
+                self.tr('Availabilities'),
+                self.tr(
+                    'No default time-of-day values are defined for this planning period of {first} {last}').format(
+                    first=person.f_name, last=person.l_name
+                )
+            )
+            return
         for row, time_of_day in enumerate(self.t_o_d_standards, start=2):
             self.layout.addWidget(QLabel(time_of_day.time_of_day_enum.name), row, 0)
 

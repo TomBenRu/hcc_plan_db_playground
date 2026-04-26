@@ -923,7 +923,15 @@ def create_avail_day(
     day: date,
     time_of_day_id: uuid.UUID,
 ) -> AvailDay:
-    """Child-AvailDayGroup + AvailDay anlegen. Spiegelt db_services/avail_day.py:241-256."""
+    """Child-AvailDayGroup + AvailDay anlegen. Spiegelt db_services/avail_day.py:241-256.
+
+    Wichtig: `actor_plan_period` und `avail_day_group` werden als Objekte
+    übergeben (nicht nur FK), damit der `before_flush`-Listener
+    `_on_insert_avail_day` (database/event_listeners.py:191) die Defaults
+    (CombLoc, TimeOfDays, Location-/Partner-Prefs, Skills) von der APP
+    übernehmen kann. Bei FK-only sind die Relationen zur Listener-Zeit
+    nicht zuverlässig verfügbar.
+    """
     app = session.get(ActorPlanPeriod, actor_plan_period_id)
     if app is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND)
@@ -931,14 +939,14 @@ def create_avail_day(
     if master is None:
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR,
                             detail="Root-AvailDayGroup fehlt (Datenbestand-Anomalie)")
-    child = AvailDayGroup(avail_day_group_id=master.id)
+    child = AvailDayGroup(avail_day_group=master)
     session.add(child)
     session.flush()
     ad = AvailDay(
         date=day,
         time_of_day_id=time_of_day_id,
-        avail_day_group_id=child.id,
-        actor_plan_period_id=actor_plan_period_id,
+        avail_day_group=child,
+        actor_plan_period=app,
     )
     session.add(ad)
     session.flush()

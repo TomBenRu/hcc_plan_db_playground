@@ -426,7 +426,10 @@ def get_markers_for_range(
         .where(AvailDay.prep_delete.is_(None))
         .where(AvailDay.date >= start)
         .where(AvailDay.date <= end)
-        .order_by(AvailDay.date, TimeOfDayEnum.time_index)
+        # Chronologisch nach Tagesbeginn der konkreten TOD; bei Gleichstand
+        # stabil ueber time_index, damit zwei TODs mit identischem Start eine
+        # deterministische Reihenfolge behalten.
+        .order_by(AvailDay.date, TimeOfDay.start, TimeOfDayEnum.time_index)
     )
     rows = session.execute(stmt).mappings().all()
     return [

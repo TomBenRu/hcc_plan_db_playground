@@ -705,6 +705,16 @@ document.addEventListener('DOMContentLoaded', function () {
         firstDay: 1,
         height: '100%',
         validRange: { start: periodStart, end: periodEndExcl },
+        // Chips chronologisch nach TOD-Startzeit. FCs eventOrder-String unterstuetzt
+        // `extendedProps.X` nicht zuverlaessig (laut Doku: "property name from the
+        // Event Object") — daher als Custom-Funktion mit Title-Tiebreaker.
+        // tod_start ist als HH:MM-String lexikographisch sortierbar.
+        eventOrder: function (a, b) {
+            const sa = (a.extendedProps && a.extendedProps.tod_start) || '';
+            const sb = (b.extendedProps && b.extendedProps.tod_start) || '';
+            if (sa !== sb) return sa < sb ? -1 : 1;
+            return (a.title || '').localeCompare(b.title || '');
+        },
         headerToolbar: {
             left:   'prev,next today',
             center: 'title',

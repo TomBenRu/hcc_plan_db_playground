@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from urllib.parse import quote
 
-from fastapi import Depends, FastAPI, Request
+from fastapi import Depends, FastAPI, Request, Response, status
 from fastapi.responses import JSONResponse, RedirectResponse
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy.exc import IntegrityError
@@ -81,9 +81,20 @@ app.include_router(user_settings_router)
 
 
 @app.exception_handler(LoginRequired)
-async def login_required_handler(request: Request, exc: LoginRequired) -> RedirectResponse:
-    """Leitet zu /auth/login?next=... weiter wenn eine geschützte Route ohne Token aufgerufen wird."""
-    return RedirectResponse(url=f"/auth/login?next={quote(exc.next_url)}")
+async def login_required_handler(request: Request, exc: LoginRequired) -> Response:
+    """Leitet zu /auth/login?next=... weiter wenn eine geschützte Route ohne Token aufgerufen wird.
+
+    HTMX-Requests bekommen einen `HX-Redirect`-Header (Top-Level-Navigation
+    statt Fragment-Swap). Klassische Browser-Forms bekommen einen 303 — damit
+    POST/PATCH/DELETE bei der Weiterleitung zum Login-GET zwingen (nicht 307,
+    das die Methode erhalten würde).
+    """
+    redirect_url = f"/auth/login?next={quote(exc.next_url)}"
+    if request.headers.get("HX-Request") == "true":
+        response = Response(status_code=status.HTTP_200_OK)
+        response.headers["HX-Redirect"] = redirect_url
+        return response
+    return RedirectResponse(url=redirect_url, status_code=status.HTTP_303_SEE_OTHER)
 
 
 @app.exception_handler(IntegrityError)

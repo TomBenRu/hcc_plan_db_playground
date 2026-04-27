@@ -1,6 +1,7 @@
 """FastAPI-Dependencies für Auth: get_current_user, require_login, require_role."""
 
 from typing import Annotated
+from urllib.parse import urlparse
 
 import jwt
 from fastapi import Cookie, Depends, HTTPException, Request, status
@@ -64,6 +65,34 @@ def get_current_user(
     return _load_user_from_token(token, session, settings)
 
 
+def _build_next_url(request: Request) -> str:
+    """Berechnet das `next`-Ziel für Login-Redirects.
+
+    GET-Routen sind selbst ein gültiges Redirect-Target → Path+Query nehmen.
+    Mutations-Routen (POST/PATCH/PUT/DELETE) sind kein gültiges GET-Target →
+    Referer-Header heranziehen, sonst Dashboard. Loop-Guard gegen `/auth/`-
+    Pfade verhindert Login→Login-Schleifen.
+    """
+    if request.method == "GET":
+        path = request.url.path
+        query = request.url.query
+        candidate = f"{path}?{query}" if query else path
+    else:
+        referer = request.headers.get("referer", "")
+        try:
+            parsed = urlparse(referer)
+        except ValueError:
+            parsed = None
+        if parsed and parsed.path and parsed.path.startswith("/"):
+            candidate = f"{parsed.path}?{parsed.query}" if parsed.query else parsed.path
+        else:
+            return "/dashboard"
+
+    if candidate.startswith("/auth/"):
+        return "/dashboard"
+    return candidate
+
+
 def require_login(
     request: Request,
     session: Session = Depends(get_db_session),
@@ -74,11 +103,11 @@ def require_login(
     """Für Browser-Routen: leitet bei fehlendem Token zu /auth/login?next=... weiter."""
     token = bearer_token or access_token
     if not token:
-        raise LoginRequired(next_url=str(request.url.path))
+        raise LoginRequired(next_url=_build_next_url(request))
     try:
         return _load_user_from_token(token, session, settings)
     except HTTPException:
-        raise LoginRequired(next_url=str(request.url.path))
+        raise LoginRequired(next_url=_build_next_url(request))
 
 
 CurrentUser = Annotated[WebUser, Depends(get_current_user)]
@@ -86,9 +115,15 @@ LoggedInUser = Annotated[WebUser, Depends(require_login)]
 
 
 def require_role(*roles: WebUserRole):
-    """Dependency-Factory: erlaubt nur Benutzer mit mindestens einer der angegebenen Rollen."""
+    """Dependency-Factory: erlaubt nur Benutzer mit mindestens einer der angegebenen Rollen.
 
-    def _check(current_user: CurrentUser) -> WebUser:
+    Baut auf `LoggedInUser` (= `require_login`), damit fehlende/abgelaufene Tokens
+    LoginRequired werfen (→ Redirect zur Login-Seite, in HTMX-Form via HX-Redirect).
+    Würde der Sub-Dep `CurrentUser` verwendet, wäre die Antwort ein nackter 401
+    ohne Login-Flow — der ist dem Desktop-API-Pfad (`/api/v1/...`) vorbehalten.
+    """
+
+    def _check(current_user: LoggedInUser) -> WebUser:
         if not current_user.has_any_role(*roles):
             raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Keine Berechtigung")
         return current_user

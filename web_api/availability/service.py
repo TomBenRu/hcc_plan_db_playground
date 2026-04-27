@@ -73,12 +73,22 @@ class OpenPlanPeriodInfo:
 
     @property
     def is_locked(self) -> bool:
-        return self.closed or date.today() > self.deadline
+        # Lock ist ausschliesslich an `closed` gebunden — die Deadline ist nur noch
+        # informativ. Der Dispatcher schliesst manuell oder automatisch beim ersten
+        # verbindlichen Plan; eine ueberschrittene Deadline erlaubt weiterhin Edits.
+        return self.closed
 
     @property
-    def deadline_severity(self) -> Literal["normal", "warning", "locked"]:
-        if self.is_locked:
-            return "locked"
+    def deadline_severity(self) -> Literal["normal", "warning", "overdue", "closed"]:
+        # Vier Zustaende fuers UI:
+        #   closed   → Periode geschlossen (read-only)
+        #   overdue  → Deadline ueberschritten, aber noch editierbar
+        #   warning  → ≤3 Tage bis Deadline
+        #   normal   → reine Datums-Anzeige
+        if self.closed:
+            return "closed"
+        if date.today() > self.deadline:
+            return "overdue"
         if self.days_until_deadline is not None and self.days_until_deadline <= 3:
             return "warning"
         return "normal"
@@ -284,7 +294,15 @@ def get_open_plan_periods_for_person(
     person_id: uuid.UUID,
     team_id: uuid.UUID | None = None,
 ) -> list[OpenPlanPeriodInfo]:
-    """Alle offenen PlanPeriods der Person, optional nach Team gefiltert."""
+    """Sichtbare PlanPeriods der Person nach der Lookback-Regel:
+
+    - Alle PPs mit `end >= today()` (laufend + zukuenftig)
+    - PLUS die eine PP unmittelbar davor (max `end` mit `end < today()`),
+      damit der Mitarbeiter die letzten abgegebenen Verfuegbarkeiten noch sieht.
+
+    `closed` ist KEIN Sichtbarkeits-Filter mehr — eine geschlossene PP wird
+    angezeigt, aber im UI als read-only markiert (siehe `is_locked`).
+    """
     stmt = (
         sa_select(
             ActorPlanPeriod.id.label("app_id"),
@@ -303,7 +321,6 @@ def get_open_plan_periods_for_person(
         .join(PlanPeriod, PlanPeriod.id == ActorPlanPeriod.plan_period_id)
         .join(Team, Team.id == PlanPeriod.team_id)
         .where(ActorPlanPeriod.person_id == person_id)
-        .where(PlanPeriod.closed.is_(False))
         .where(PlanPeriod.prep_delete.is_(None))
         .where(Team.prep_delete.is_(None))
     )
@@ -311,8 +328,12 @@ def get_open_plan_periods_for_person(
         stmt = stmt.where(PlanPeriod.team_id == team_id)
     stmt = stmt.order_by(PlanPeriod.start.desc())
     rows = session.execute(stmt).mappings().all()
-    return [
-        OpenPlanPeriodInfo(
+
+    today = date.today()
+    current_or_future: list[OpenPlanPeriodInfo] = []
+    past: list[OpenPlanPeriodInfo] = []
+    for r in rows:
+        info = OpenPlanPeriodInfo(
             actor_plan_period_id=r["app_id"],
             plan_period_id=r["pp_id"],
             start=r["pp_start"],
@@ -325,26 +346,43 @@ def get_open_plan_periods_for_person(
             team_id=r["team_id"],
             team_name=r["team_name"],
         )
-        for r in rows
-    ]
+        if info.end >= today:
+            current_or_future.append(info)
+        else:
+            past.append(info)
+
+    # Reihenfolge: laufend/zukuenftig zuerst (neueste oben), dann genau eine
+    # vergangene Periode zur Einsicht — explizit die mit dem groessten `end`.
+    visible = list(current_or_future)
+    if past:
+        visible.append(max(past, key=lambda p: p.end))
+    return visible
 
 
 def get_teams_for_person(session: Session, person_id: uuid.UUID) -> list[TeamInfo]:
-    """Alle Teams, für die der Mitarbeiter offene ActorPlanPeriods hat — alphabetisch."""
+    """Alle Teams, fuer die mindestens eine sichtbare PlanPeriod existiert.
+
+    Sichtbar = laufend, zukuenftig oder die juengste vergangene
+    (siehe `get_open_plan_periods_for_person`). Teams ohne sichtbare PP werden
+    aus dem Dropdown ausgeblendet, damit der User nicht in eine leere Maske faellt.
+    """
+    # Alle Teams mit beliebiger APP der Person — Sichtbarkeitsregel pro Team
+    # in Python anwenden. Bei realistischen Team-Zahlen pro User (<10) ist das
+    # einfacher zu lesen als ein UNION-/EXISTS-Konstrukt im SQL.
     stmt = (
         sa_select(Team.id.label("team_id"), Team.name.label("team_name"))
         .select_from(ActorPlanPeriod)
         .join(PlanPeriod, PlanPeriod.id == ActorPlanPeriod.plan_period_id)
         .join(Team, Team.id == PlanPeriod.team_id)
         .where(ActorPlanPeriod.person_id == person_id)
-        .where(PlanPeriod.closed.is_(False))
         .where(PlanPeriod.prep_delete.is_(None))
         .where(Team.prep_delete.is_(None))
         .distinct()
         .order_by(Team.name)
     )
     rows = session.execute(stmt).mappings().all()
-    return [TeamInfo(team_id=r["team_id"], team_name=r["team_name"]) for r in rows]
+    candidates = [TeamInfo(team_id=r["team_id"], team_name=r["team_name"]) for r in rows]
+    return [t for t in candidates if get_open_plan_periods_for_person(session, person_id, team_id=t.team_id)]
 
 
 def get_markers_for_range(
@@ -1009,12 +1047,15 @@ def authorize_person_time_of_day(
     return tod
 
 
-def check_deadline_or_403(plan_period: PlanPeriod) -> None:
-    """HTTP 403 wenn PlanPeriod geschlossen oder Deadline überschritten."""
+def check_closed_or_403(plan_period: PlanPeriod) -> None:
+    """HTTP 403 wenn PlanPeriod geschlossen ist.
+
+    Die Deadline ist rein informativ — Edits bleiben moeglich, bis der Dispatcher
+    die Periode explizit (oder automatisch beim ersten verbindlichen Plan)
+    schliesst.
+    """
     if plan_period.closed:
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Planperiode ist geschlossen")
-    if date.today() > plan_period.deadline:
-        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Abgabefrist ist abgelaufen")
 
 
 # ── Mutations (ORM auf injected Session) ─────────────────────────────────────

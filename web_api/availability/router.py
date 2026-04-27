@@ -201,7 +201,7 @@ def day_panel(
     person_id = _require_person(user)
     app = service.authorize_actor_plan_period(session, person_id, actor_plan_period_id)
     pp = app.plan_period
-    is_locked = pp.closed or date.today() > pp.deadline
+    is_locked = pp.closed
     is_simple = service.is_simple_mode_for_person(session, person_id)
     if is_simple:
         detail = service.get_day_detail_simple(
@@ -231,7 +231,7 @@ def create_avail_day(
 ):
     person_id = _require_person(user)
     app = service.authorize_actor_plan_period(session, person_id, actor_plan_period_id)
-    service.check_deadline_or_403(app.plan_period)
+    service.check_closed_or_403(app.plan_period)
 
     if service.find_avail_day(session, actor_plan_period_id, day, time_of_day_id) is not None:
         raise HTTPException(status.HTTP_409_CONFLICT, detail="Verfügbarkeitstag existiert bereits")
@@ -270,7 +270,7 @@ def delete_avail_day_by_enum(
             detail="Simple-Mode ist für dieses Projekt nicht aktiv",
         )
     app = service.authorize_actor_plan_period(session, person_id, actor_plan_period_id)
-    service.check_deadline_or_403(app.plan_period)
+    service.check_closed_or_403(app.plan_period)
 
     # Alle betroffenen AvailDays auf Appointments prüfen
     existing = service.find_avail_day_by_enum(session, actor_plan_period_id, day, time_of_day_enum_id)
@@ -310,7 +310,7 @@ def delete_avail_day(
     person_id = _require_person(user)
     ad = service.authorize_avail_day(session, person_id, avail_day_id)
     app = session.get(ActorPlanPeriod, ad.actor_plan_period_id)
-    service.check_deadline_or_403(app.plan_period)
+    service.check_closed_or_403(app.plan_period)
 
     if service.has_appointment(session, avail_day_id):
         raise HTTPException(status.HTTP_409_CONFLICT, detail="Verfügbarkeitstag ist bereits eingeplant")
@@ -348,7 +348,7 @@ def create_avail_day_simple(
             detail="Simple-Mode ist für dieses Projekt nicht aktiv",
         )
     app = service.authorize_actor_plan_period(session, person_id, actor_plan_period_id)
-    service.check_deadline_or_403(app.plan_period)
+    service.check_closed_or_403(app.plan_period)
 
     # Enum gehört zum Projekt der Person?
     person = session.get(Person, person_id)
@@ -388,7 +388,7 @@ def update_actor_plan_period(
 ):
     person_id = _require_person(user)
     app = service.authorize_actor_plan_period(session, person_id, actor_plan_period_id)
-    service.check_deadline_or_403(app.plan_period)
+    service.check_closed_or_403(app.plan_period)
 
     if notes is not None:
         service.update_notes(session, app, notes)
@@ -520,9 +520,11 @@ def sidebar_stats(
 
 
 def _build_is_locked(app: service.ActorPlanPeriod) -> bool:
-    """Deadline/Closed-Check für einen ActorPlanPeriod (nach Laden von plan_period)."""
-    pp = app.plan_period
-    return pp.closed or date.today() > pp.deadline
+    """Lock-Check fuer einen ActorPlanPeriod (nach Laden von plan_period).
+
+    Lock ist ausschliesslich an `closed` gebunden — die Deadline ist informativ.
+    """
+    return app.plan_period.closed
 
 
 def _render_enum_group(

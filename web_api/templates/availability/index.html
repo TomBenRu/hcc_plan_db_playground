@@ -126,11 +126,6 @@
         visibility: hidden;
     }
 
-    /* ── Deadline-Badge ────────────────────────────────────────────────────── */
-    .deadline-normal  { color: #4ADE80; }
-    .deadline-warning { color: #FBBF24; }
-    .deadline-locked  { color: #F87171; }
-
     /* ── Farbenblindheit ───────────────────────────────────────────────────── */
     [data-theme="colorblind"] {
         --fc-button-active-bg-color: #0072B2;
@@ -433,13 +428,24 @@
 
                 <!-- Deadline-Badge -->
                 <div class="mb-4">
-                    {% if ap.deadline_severity == "locked" %}
+                    {% if ap.deadline_severity == "closed" %}
                     <div class="flex items-center gap-2 text-xs font-medium text-red-400 bg-red-900/20 border border-red-800/30 rounded-xl px-3 py-2 font-sans">
                         <svg class="w-3.5 h-3.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
                                   d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/>
                         </svg>
-                        {% if ap.closed %}Periode geschlossen{% else %}Abgabefrist abgelaufen{% endif %}
+                        Periode geschlossen
+                    </div>
+                    {% elif ap.deadline_severity == "overdue" %}
+                    <div class="flex items-start gap-2 text-xs font-medium text-amber-400 bg-amber-900/20 border border-amber-800/30 rounded-xl px-3 py-2 font-sans">
+                        <svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/>
+                        </svg>
+                        <span class="leading-snug">
+                            Deadline überschritten<br>
+                            <span class="font-normal text-amber-400/80">Eingabe kann jederzeit vom Planer beendet werden.</span>
+                        </span>
                     </div>
                     {% elif ap.deadline_severity == "warning" %}
                     <div class="flex items-center gap-2 text-xs font-medium text-amber-400 bg-amber-900/20 border border-amber-800/30 rounded-xl px-3 py-2 font-sans">

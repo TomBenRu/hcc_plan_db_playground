@@ -350,12 +350,13 @@ def dispatcher_appointment_create(
     # Leeres 200-HTML statt 204: HTMX verarbeitet HX-Trigger bei 204 nicht
     # zuverlaessig. Empty-Body wird in #modal-root geswappt → Modal-Inhalt
     # leer, plus hcc:close-modal-Trigger schliesst das Modal.
-    response = HTMLResponse(content="", status_code=status.HTTP_200_OK)
-    # HX-Trigger feuert VOR dem Swap auf dem source-Element. Bei einem
-    # Empty-Swap in #modal-root wird das Form aus dem DOM entfernt — das
-    # Event-Bubbling zum body bricht ab und der Calendar-Listener feuert
-    # nicht. After-Settle dispatcht NACH dem Settle auf body, damit beide
-    # Listener sicher greifen.
+    # 204 No Content + HX-Trigger-After-Settle: kein Swap, Form bleibt im DOM
+    # bis hcc:close-modal das Modal schliesst. After-Settle ist wichtig, weil
+    # der HX-Trigger-Header (synchron, vor Swap) bei einem Form-Removal-Pfad
+    # das Event-Bubbling abreissen koennte. Mit 204 + After-Settle sind beide
+    # Listener sicher: hcc:close-modal schliesst das Modal, hcc:appointments-changed
+    # triggert den Calendar-Refetch.
+    response = Response(status_code=status.HTTP_204_NO_CONTENT)
     response.headers["HX-Trigger-After-Settle"] = "hcc:close-modal, hcc:appointments-changed"
     return response
 
@@ -422,12 +423,13 @@ def dispatcher_appointment_delete(
         background_tasks.add_task(send_emails_background, payloads, settings)
 
     # Leeres 200-HTML statt 204 (siehe Begründung oben am Create-Endpoint)
-    response = HTMLResponse(content="", status_code=status.HTTP_200_OK)
-    # HX-Trigger feuert VOR dem Swap auf dem source-Element. Bei einem
-    # Empty-Swap in #modal-root wird das Form aus dem DOM entfernt — das
-    # Event-Bubbling zum body bricht ab und der Calendar-Listener feuert
-    # nicht. After-Settle dispatcht NACH dem Settle auf body, damit beide
-    # Listener sicher greifen.
+    # 204 No Content + HX-Trigger-After-Settle: kein Swap, Form bleibt im DOM
+    # bis hcc:close-modal das Modal schliesst. After-Settle ist wichtig, weil
+    # der HX-Trigger-Header (synchron, vor Swap) bei einem Form-Removal-Pfad
+    # das Event-Bubbling abreissen koennte. Mit 204 + After-Settle sind beide
+    # Listener sicher: hcc:close-modal schliesst das Modal, hcc:appointments-changed
+    # triggert den Calendar-Refetch.
+    response = Response(status_code=status.HTTP_204_NO_CONTENT)
     response.headers["HX-Trigger-After-Settle"] = "hcc:close-modal, hcc:appointments-changed"
     return response
 

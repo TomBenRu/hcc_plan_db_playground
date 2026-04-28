@@ -9,7 +9,7 @@ from sqlmodel import Session
 
 from sqlalchemy import select as sa_select
 
-from database.models import Address, Appointment, LocationOfWork, LocationPlanPeriod, PlanPeriod, TimeOfDay
+from database.models import Address, Appointment, LocationOfWork, TeamLocationAssign, TimeOfDay
 from web_api.auth.dependencies import WebUserRole, require_role
 from web_api.cancellations.service import get_cancellations_for_dispatcher
 from web_api.common import fc_event_end_iso, fc_event_start_iso, guest_list, location_display_name
@@ -220,11 +220,11 @@ def _load_appointment_form_options(
 ) -> dict:
     """Lädt Team-spezifische Locations + Project-Default-TODs.
 
-    Locations: nur LocationOfWork, die in einer LocationPlanPeriod einer
-    nicht-soft-deleteten PlanPeriod dieses Teams auftauchen. Wenn `date_filter`
-    gesetzt ist, werden zusätzlich nur LPPs in PlanPeriods berücksichtigt,
-    deren Datum-Range den `date_filter` enthält — damit zeigt das Form nur
-    Standorte, die für den gewählten Tag tatsächlich planbar sind.
+    Locations: nur LocationOfWork, die dem Team **am gewählten Tag** zugeordnet
+    sind. Quelle ist `TeamLocationAssign` mit der tagesgenauen Range:
+    `start <= date < end` (end IS NULL → unbefristete Zuordnung). Falls
+    `date_filter` None ist, fällt der Filter auf „jemals dem Team zugeordnet"
+    zurück — das wird im Form nicht typisch genutzt, weil das Datum required ist.
 
     TODs: alle TimeOfDay mit `project_defaults_id == team.project_id`
     (= Project-Defaults, die im UI als Standard-Auswahl dienen).
@@ -233,17 +233,18 @@ def _load_appointment_form_options(
         sa_select(LocationOfWork.id, LocationOfWork.name, Address.city)
         .select_from(LocationOfWork)
         .join(Address, Address.id == LocationOfWork.address_id, isouter=True)
-        .join(LocationPlanPeriod, LocationPlanPeriod.location_of_work_id == LocationOfWork.id)
-        .join(PlanPeriod, PlanPeriod.id == LocationPlanPeriod.plan_period_id)
-        .where(PlanPeriod.team_id == team.id)
-        .where(PlanPeriod.prep_delete.is_(None))
+        .join(TeamLocationAssign, TeamLocationAssign.location_of_work_id == LocationOfWork.id)
+        .where(TeamLocationAssign.team_id == team.id)
         .where(LocationOfWork.prep_delete.is_(None))
     )
     if date_filter is not None:
         location_query = (
             location_query
-            .where(PlanPeriod.start <= date_filter)
-            .where(PlanPeriod.end >= date_filter)
+            .where(TeamLocationAssign.start <= date_filter)
+            .where(
+                (TeamLocationAssign.end.is_(None))
+                | (TeamLocationAssign.end > date_filter)
+            )
         )
     location_query = location_query.distinct().order_by(LocationOfWork.name)
 

@@ -1,0 +1,113 @@
+{% extends "partials/modal_shell.html" %}
+{% block modal_size %}max-w-xl{% endblock %}
+{% block modal_kicker %}Last-Minute-Buchung{% endblock %}
+{% block modal_title %}Termin anlegen{% endblock %}
+
+{% block modal_body %}
+{% if error_message %}
+<div class="mb-4 px-3 py-2 rounded-md text-sm
+            bg-rose-50 dark:bg-rose-900/30
+            text-rose-700 dark:text-rose-300
+            ring-1 ring-rose-200 dark:ring-rose-700/50">
+    {{ error_message }}
+</div>
+{% endif %}
+
+<form id="create-appointment-form"
+      hx-post="/dispatcher/plan/appointments"
+      hx-target="#modal-root"
+      hx-swap="innerHTML"
+      class="flex flex-col gap-4">
+
+    {# Team-Select — bei Wechsel Form neu laden mit aktualisierten Optionen #}
+    <label class="flex flex-col gap-1">
+        <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Team</span>
+        <select name="team_id" required
+                hx-get="/dispatcher/plan/appointments/new"
+                hx-target="#modal-root"
+                hx-swap="innerHTML"
+                hx-trigger="change"
+                hx-include="[name='date']"
+                class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
+                       bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">
+            {% for team in my_teams %}
+            <option value="{{ team.id }}" {% if team.id == selected_team_id %}selected{% endif %}>
+                {{ team.name }}
+            </option>
+            {% endfor %}
+        </select>
+    </label>
+
+    <label class="flex flex-col gap-1">
+        <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Datum</span>
+        <input type="date" name="date" required
+               value="{{ default_date or '' }}"
+               class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
+                      bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">
+        <span class="text-[11px] text-slate-400 dark:text-slate-500">
+            Muss in eine offene Plan-Periode dieses Teams fallen.
+        </span>
+    </label>
+
+    <label class="flex flex-col gap-1">
+        <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Einsatzort</span>
+        <select name="location_of_work_id" required
+                class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
+                       bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">
+            {% for loc in locations %}
+            <option value="{{ loc.id }}">{{ loc.display_name }}</option>
+            {% else %}
+            <option disabled>Keine Einsatzorte für dieses Team</option>
+            {% endfor %}
+        </select>
+    </label>
+
+    <label class="flex flex-col gap-1">
+        <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Tageszeit</span>
+        <select name="time_of_day_id" required
+                class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
+                       bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">
+            {% for tod in time_of_days %}
+            <option value="{{ tod.id }}">
+                {{ tod.name }}{% if tod.start %} ({{ '%02d:%02d' % (tod.start.hour, tod.start.minute) }}){% endif %}
+            </option>
+            {% else %}
+            <option disabled>Keine Standard-Tageszeiten konfiguriert</option>
+            {% endfor %}
+        </select>
+    </label>
+
+    <label class="flex flex-col gap-1">
+        <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Cast-Soll-Größe</span>
+        <input type="number" name="nr_actors" required
+               value="1" min="1" max="99"
+               class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
+                      bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">
+        <span class="text-[11px] text-slate-400 dark:text-slate-500">
+            Cast-Mitglieder werden im Anschluss über das Cast-Edit-Modal zugeordnet.
+        </span>
+    </label>
+
+    <label class="flex flex-col gap-1">
+        <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Notizen (optional)</span>
+        <textarea name="notes" rows="2"
+                  class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
+                         bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200"></textarea>
+    </label>
+</form>
+{% endblock %}
+
+{% block modal_footer %}
+<div class="flex justify-end gap-2 px-6 py-4 border-t border-slate-100 dark:border-slate-700/50">
+    <button type="button" onclick="window.hccModal.close()"
+            class="px-4 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700
+                   text-slate-600 dark:text-slate-300
+                   hover:bg-slate-50 dark:hover:bg-slate-700/50">
+        Abbrechen
+    </button>
+    <button type="submit" form="create-appointment-form"
+            class="px-4 py-2 text-sm rounded-lg bg-sky-600 hover:bg-sky-700 text-white">
+        Anlegen
+    </button>
+</div>
+{% endblock %}

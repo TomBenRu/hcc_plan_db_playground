@@ -7,10 +7,12 @@ from fastapi import APIRouter, BackgroundTasks, Depends, Form, HTTPException, Qu
 from fastapi.responses import HTMLResponse, Response
 from sqlmodel import Session
 
-from database.models import Appointment
+from sqlalchemy import select as sa_select
+
+from database.models import Address, Appointment, LocationOfWork, TimeOfDay
 from web_api.auth.dependencies import WebUserRole, require_role
 from web_api.cancellations.service import get_cancellations_for_dispatcher
-from web_api.common import fc_event_end_iso, fc_event_start_iso, guest_list
+from web_api.common import fc_event_end_iso, fc_event_start_iso, guest_list, location_display_name
 from web_api.config import get_settings
 from web_api.user_settings.service import get_color_overrides
 from web_api.dependencies import get_db_session
@@ -28,6 +30,7 @@ from web_api.dispatcher.service import (
 from web_api.email.service import send_emails_background
 from web_api.employees.service import get_coworkers_for_appointment
 from web_api.models.web_models import WebUser
+from web_api.plan_adjustment.service import create_appointment_with_event
 from web_api.templating import templates
 
 router = APIRouter(prefix="/dispatcher", tags=["dispatcher"])
@@ -197,6 +200,152 @@ def dispatcher_plan_events(
         }
         for ev in events
     ]
+
+
+# ── Appointment-CRUD (D3) ────────────────────────────────────────────────────
+# Diese Endpoints MÜSSEN vor `/plan/appointments/{appointment_id}` registriert
+# sein, sonst frisst die catch-all Path-Param-Route den `new`-Pfad und wirft 422
+# beim UUID-Parse (siehe Memory `feedback_htmx_form_query_params`).
+
+
+def _load_appointment_form_options(session: Session, team) -> dict:
+    """Lädt Locations + Project-Default-TODs für ein Team-Project.
+
+    Locations: alle aktiven LocationOfWork des Projects.
+    TODs: alle TimeOfDay mit `project_defaults_id == team.project_id`
+    (= Project-Defaults, die im UI als Standard-Auswahl dienen).
+    """
+    location_rows = list(session.execute(
+        sa_select(LocationOfWork.id, LocationOfWork.name, Address.city)
+        .select_from(LocationOfWork)
+        .join(Address, Address.id == LocationOfWork.address_id, isouter=True)
+        .where(LocationOfWork.project_id == team.project_id)
+        .where(LocationOfWork.prep_delete.is_(None))
+        .order_by(LocationOfWork.name)
+    ).mappings().all())
+    locations = [
+        {"id": row["id"], "display_name": location_display_name(row["name"], row["city"])}
+        for row in location_rows
+    ]
+
+    tod_rows = list(session.execute(
+        sa_select(TimeOfDay.id, TimeOfDay.name, TimeOfDay.start)
+        .where(TimeOfDay.project_defaults_id == team.project_id)
+        .where(TimeOfDay.prep_delete.is_(None))
+        .order_by(TimeOfDay.start)
+    ).mappings().all())
+    time_of_days = [dict(row) for row in tod_rows]
+
+    return {"locations": locations, "time_of_days": time_of_days}
+
+
+@router.get("/plan/appointments/new", response_class=HTMLResponse)
+def dispatcher_appointment_new_form(
+    request: Request,
+    user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    team_id: uuid.UUID | None = Query(default=None),
+    date: str | None = Query(default=None),
+):
+    """HTMX-Modal-Fragment: Form zum Anlegen eines Termins.
+
+    `team_id` und `date` sind optional — `date` wird per Day-Click prefilled,
+    `team_id` per Team-Select-Wechsel. Bei Team-Wechsel (hx-trigger=change)
+    lädt das Form sich selbst neu mit aktualisierten Location- und TOD-Listen.
+    """
+    person_id = _require_person_id(user)
+    my_teams = get_teams_for_dispatcher(session, person_id)
+    if not my_teams:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            detail="Sie haben kein Team zur Disposition.",
+        )
+
+    # Team auswählen: gewähltes Team falls erlaubt, sonst erstes my_team
+    selected_team = None
+    if team_id is not None:
+        selected_team = next((t for t in my_teams if t.id == team_id), None)
+    if selected_team is None:
+        selected_team = my_teams[0]
+
+    options = _load_appointment_form_options(session, selected_team)
+
+    return templates.TemplateResponse(
+        "dispatcher/partials/appointment_create_form.html",
+        {
+            "request": request,
+            "my_teams": my_teams,
+            "selected_team_id": selected_team.id,
+            "default_date": date or "",
+            "locations": options["locations"],
+            "time_of_days": options["time_of_days"],
+            "error_message": None,
+        },
+    )
+
+
+@router.post("/plan/appointments", response_class=HTMLResponse)
+def dispatcher_appointment_create(
+    request: Request,
+    user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    team_id: uuid.UUID = Form(...),
+    date: date = Form(...),
+    location_of_work_id: uuid.UUID = Form(...),
+    time_of_day_id: uuid.UUID = Form(...),
+    nr_actors: int = Form(...),
+    notes: str = Form(default=""),
+):
+    """Atomarer Create-Submit. Bei Erfolg: 204 + HX-Trigger.
+    Bei Validierungsfehler: Form re-rendern mit Banner."""
+    person_id = _require_person_id(user)
+    my_teams = get_teams_for_dispatcher(session, person_id)
+    selected_team = next((t for t in my_teams if t.id == team_id), None)
+    if selected_team is None:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            detail="Sie sind nicht Dispatcher dieses Teams.",
+        )
+
+    error_message: str | None = None
+    try:
+        create_appointment_with_event(
+            session,
+            team_id=team_id,
+            date=date,
+            location_of_work_id=location_of_work_id,
+            time_of_day_id=time_of_day_id,
+            nr_actors=nr_actors,
+            notes=notes.strip() or None,
+        )
+    except HTTPException as exc:
+        if exc.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR:
+            raise  # Server-Fehler durchreichen
+        error_message = exc.detail
+    except Exception as exc:
+        error_message = f"Termin konnte nicht angelegt werden: {exc}"
+
+    if error_message is not None:
+        session.rollback()
+        options = _load_appointment_form_options(session, selected_team)
+        return templates.TemplateResponse(
+            "dispatcher/partials/appointment_create_form.html",
+            {
+                "request": request,
+                "my_teams": my_teams,
+                "selected_team_id": selected_team.id,
+                "default_date": date.isoformat(),
+                "locations": options["locations"],
+                "time_of_days": options["time_of_days"],
+                "error_message": error_message,
+            },
+            status_code=status.HTTP_200_OK,
+        )
+
+    session.commit()
+    response = Response(status_code=status.HTTP_204_NO_CONTENT)
+    response.headers["HX-Trigger"] = "hcc:close-modal, hcc:appointments-changed"
+    return response
 
 
 @router.get("/plan/appointments/{appointment_id}", response_class=HTMLResponse)

@@ -126,6 +126,24 @@
 {% endblock %}
 
 {% block calendar_sidebar_sections %}
+    <!-- Termin anlegen — Last-Minute-Buchung -->
+    <div class="sidebar-section mb-5">
+        <button type="button"
+                hx-get="/dispatcher/plan/appointments/new"
+                hx-target="#modal-root"
+                hx-swap="innerHTML"
+                class="w-full flex items-center justify-center gap-2 px-3 py-2 rounded-lg
+                       bg-brand/15 hover:bg-brand/25 text-brand
+                       text-sm font-medium font-sans
+                       border border-brand/20 hover:border-brand/40
+                       transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/>
+            </svg>
+            Termin anlegen
+        </button>
+    </div>
+
     <!-- Team-Filter -->
     <div class="sidebar-section sidebar-section-mobile team-filter-section mb-6">
         <label class="block text-xs font-semibold tracking-widest text-slate-500 uppercase mb-2.5 font-sans">
@@ -279,6 +297,21 @@ document.addEventListener('DOMContentLoaded', function () {
     document.body.addEventListener('hcc:cast-changed', function () {
         if (window.hccCalendar) window.hccCalendar.refetchEvents();
     });
+
+    // Nach Create/Delete eines Appointments (D3): Kalender + Legende neu laden.
+    document.body.addEventListener('hcc:appointments-changed', function () {
+        if (window.hccCalendar) window.hccCalendar.refetchEvents();
+    });
+
+    // Day-Click im FullCalendar öffnet das Create-Form mit prefilltem Datum.
+    if (window.hccCalendar) {
+        window.hccCalendar.setOption('dateClick', function (info) {
+            htmx.ajax('GET', '/dispatcher/plan/appointments/new?date=' + info.dateStr, {
+                target: '#modal-root',
+                swap: 'innerHTML',
+            });
+        });
+    }
 
     // ── Location-Legende synchron zu sichtbaren Events halten ───────────────────
     // Spiegelt die Server-Logik: aggregiere nach location_id, behalte First-Occurrence-Order.

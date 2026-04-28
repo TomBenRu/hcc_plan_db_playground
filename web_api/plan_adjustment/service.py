@@ -1,5 +1,6 @@
 """Plan-Anpassungs-Service: AvailDay-Reassignment für Übernahme und Tausch."""
 
+import datetime as _dt
 import uuid
 
 from fastapi import HTTPException, status
@@ -14,6 +15,7 @@ from database.models import (
     AvailDayAppointmentLink,
     CastGroup,
     Event,
+    EventGroup,
     LocationOfWork,
     LocationPlanPeriod,
     Person,
@@ -582,6 +584,103 @@ def reassign_appointment(
     email_payloads.extend(direct_payloads)
 
     return email_payloads
+
+
+# ── Appointment-CRUD (D3) ────────────────────────────────────────────────
+
+
+def create_appointment_with_event(
+    session: Session,
+    *,
+    team_id: uuid.UUID,
+    date: _dt.date,
+    location_of_work_id: uuid.UUID,
+    time_of_day_id: uuid.UUID,
+    nr_actors: int,
+    notes: str | None = None,
+) -> Appointment:
+    """Atomar: neues Event + neue CastGroup + neuer Appointment in einer Session.
+
+    Sucht den passenden binding Plan (Team + Datum), die LocationPlanPeriod und
+    die Master-EventGroup automatisch. Wirft 422 wenn keiner der drei gefunden
+    werden kann.
+
+    Pattern adaptiert von `database/db_services/plan_period.py::create_with_children`:
+    parent flush → kinder mit FK → flush. Auto-Rollback bei Exception (Caller
+    hält die Session-Transaktion).
+    """
+    if nr_actors < 1:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Cast-Soll-Größe muss mindestens 1 sein.",
+        )
+
+    # 1. binding Plan für Team + Datum finden
+    plan = session.execute(
+        sa_select(Plan)
+        .join(PlanPeriod, PlanPeriod.id == Plan.plan_period_id)
+        .where(PlanPeriod.team_id == team_id)
+        .where(PlanPeriod.start <= date)
+        .where(PlanPeriod.end >= date)
+        .where(PlanPeriod.prep_delete.is_(None))
+        .where(Plan.is_binding.is_(True))
+        .where(Plan.prep_delete.is_(None))
+    ).scalars().first()
+    if plan is None:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Kein verbindlicher Plan für dieses Datum + Team gefunden.",
+        )
+
+    # 2. LocationPlanPeriod der gewünschten Location in derselben PlanPeriod
+    lpp = session.execute(
+        sa_select(LocationPlanPeriod)
+        .where(LocationPlanPeriod.plan_period_id == plan.plan_period_id)
+        .where(LocationPlanPeriod.location_of_work_id == location_of_work_id)
+        .where(LocationPlanPeriod.prep_delete.is_(None))
+    ).scalars().first()
+    if lpp is None:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Diese Location ist in der Plan-Period nicht verfügbar.",
+        )
+
+    # 3. Master-EventGroup (Root-Knoten direkt unter LPP, parent=NULL)
+    master_eg = session.execute(
+        sa_select(EventGroup)
+        .where(EventGroup.location_plan_period_id == lpp.id)
+        .where(EventGroup.event_group_id.is_(None))
+    ).scalars().first()
+    if master_eg is None:
+        raise HTTPException(
+            status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Master-EventGroup fehlt für diese Location-Plan-Period.",
+        )
+
+    # 4. Atomare Hierarchie aufbauen (parent → flush → children)
+    cast_group = CastGroup(nr_actors=nr_actors)
+    session.add(cast_group)
+    session.flush()
+
+    event = Event(
+        date=date,
+        time_of_day_id=time_of_day_id,
+        event_group_id=master_eg.id,
+        cast_group_id=cast_group.id,
+        location_plan_period_id=lpp.id,
+    )
+    session.add(event)
+    session.flush()
+
+    appointment = Appointment(
+        event_id=event.id,
+        plan_id=plan.id,
+        notes=notes if notes else None,
+    )
+    session.add(appointment)
+    session.flush()
+
+    return appointment
 
 
 def _build_plan_unbind_snapshot(ctx: dict, *, request_type: str) -> dict:

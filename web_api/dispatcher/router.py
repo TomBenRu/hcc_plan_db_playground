@@ -347,7 +347,10 @@ def dispatcher_appointment_create(
         )
 
     session.commit()
-    response = Response(status_code=status.HTTP_204_NO_CONTENT)
+    # Leeres 200-HTML statt 204: HTMX verarbeitet HX-Trigger bei 204 nicht
+    # zuverlaessig. Empty-Body wird in #modal-root geswappt → Modal-Inhalt
+    # leer, plus hcc:close-modal-Trigger schliesst das Modal.
+    response = HTMLResponse(content="", status_code=status.HTTP_200_OK)
     response.headers["HX-Trigger"] = "hcc:close-modal, hcc:appointments-changed"
     return response
 
@@ -413,7 +416,8 @@ def dispatcher_appointment_delete(
     if payloads:
         background_tasks.add_task(send_emails_background, payloads, settings)
 
-    response = Response(status_code=status.HTTP_204_NO_CONTENT)
+    # Leeres 200-HTML statt 204 (siehe Begründung oben am Create-Endpoint)
+    response = HTMLResponse(content="", status_code=status.HTTP_200_OK)
     response.headers["HX-Trigger"] = "hcc:close-modal, hcc:appointments-changed"
     return response
 

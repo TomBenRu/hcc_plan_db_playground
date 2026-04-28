@@ -351,7 +351,12 @@ def dispatcher_appointment_create(
     # zuverlaessig. Empty-Body wird in #modal-root geswappt → Modal-Inhalt
     # leer, plus hcc:close-modal-Trigger schliesst das Modal.
     response = HTMLResponse(content="", status_code=status.HTTP_200_OK)
-    response.headers["HX-Trigger"] = "hcc:close-modal, hcc:appointments-changed"
+    # HX-Trigger feuert VOR dem Swap auf dem source-Element. Bei einem
+    # Empty-Swap in #modal-root wird das Form aus dem DOM entfernt — das
+    # Event-Bubbling zum body bricht ab und der Calendar-Listener feuert
+    # nicht. After-Settle dispatcht NACH dem Settle auf body, damit beide
+    # Listener sicher greifen.
+    response.headers["HX-Trigger-After-Settle"] = "hcc:close-modal, hcc:appointments-changed"
     return response
 
 
@@ -418,7 +423,12 @@ def dispatcher_appointment_delete(
 
     # Leeres 200-HTML statt 204 (siehe Begründung oben am Create-Endpoint)
     response = HTMLResponse(content="", status_code=status.HTTP_200_OK)
-    response.headers["HX-Trigger"] = "hcc:close-modal, hcc:appointments-changed"
+    # HX-Trigger feuert VOR dem Swap auf dem source-Element. Bei einem
+    # Empty-Swap in #modal-root wird das Form aus dem DOM entfernt — das
+    # Event-Bubbling zum body bricht ab und der Calendar-Listener feuert
+    # nicht. After-Settle dispatcht NACH dem Settle auf body, damit beide
+    # Listener sicher greifen.
+    response.headers["HX-Trigger-After-Settle"] = "hcc:close-modal, hcc:appointments-changed"
     return response
 
 

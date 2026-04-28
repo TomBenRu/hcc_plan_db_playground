@@ -75,13 +75,28 @@
             <ul class="space-y-1 max-h-60 overflow-y-auto pr-1">
                 {% for c in candidates %}
                 {% if c.is_available or c.is_currently_assigned or show_all %}
+                {# Tooltip + Kurz-Label je Block-Grund. Drei Pfade:
+                   - no_avail_day: keine Verfügbarkeit – Auto-Anlage beim Speichern
+                   - time_overlap: Zeitkonflikt mit anderem Termin
+                   - location_combo: andere Einrichtung am Tag, Kombination unzulässig #}
+                {% set _blocked = not c.is_available and not c.is_currently_assigned %}
+                {% if _blocked %}
+                    {% if c.blocked_reason == "time_overlap" %}
+                        {% set _tooltip = "Zeitkonflikt mit: " ~ c.blocking_info %}
+                        {% set _label = "Zeitkonflikt" %}
+                    {% elif c.blocked_reason == "location_combo" %}
+                        {% set _tooltip = "Andere Einrichtung am Tag — Kombination nicht erlaubt: " ~ c.blocking_info %}
+                        {% set _label = "Location-Konflikt" %}
+                    {% else %}
+                        {% set _tooltip = "Keine Verfügbarkeit für diesen Slot — beim Speichern wird automatisch eine angelegt" %}
+                        {% set _label = "nicht verfügbar" %}
+                    {% endif %}
+                {% endif %}
                 <li>
                     <label class="flex items-center gap-2.5 cursor-pointer group py-1 px-2 -mx-2 rounded-md
                                   hover:bg-slate-50 dark:hover:bg-slate-700/30 transition-colors
-                                  {% if not c.is_available and not c.is_currently_assigned %}opacity-60{% endif %}"
-                           {% if not c.is_available and not c.is_currently_assigned %}
-                           title="Keine Verfügbarkeit für diesen Slot — beim Speichern wird automatisch eine angelegt"
-                           {% endif %}>
+                                  {% if _blocked %}opacity-60{% endif %}"
+                           {% if _blocked %}title="{{ _tooltip }}"{% endif %}>
                         <input type="checkbox"
                                name="person_ids"
                                value="{{ c.person_id }}"
@@ -92,14 +107,17 @@
                             {{ c.initials }}
                         </span>
                         <span class="text-sm text-slate-700 dark:text-slate-300 font-sans truncate flex-1">{{ c.full_name }}</span>
-                        {% if not c.is_available and not c.is_currently_assigned %}
-                        <span class="text-[10px] text-slate-400 dark:text-slate-500 italic flex-shrink-0">nicht verfügbar</span>
+                        {% if _blocked %}
+                        <span class="text-[10px] text-slate-400 dark:text-slate-500 italic flex-shrink-0">{{ _label }}</span>
                         {% endif %}
                     </label>
                 </li>
                 {% endif %}
                 {% endfor %}
             </ul>
+            <p class="mt-2 text-[11px] text-slate-400 dark:text-slate-500 font-sans leading-snug">
+                Hinweis: Termin-Zuweisungen in anderen Teams werden nicht berücksichtigt.
+            </p>
         </section>
 
         <div class="border-t border-slate-100 dark:border-slate-700/50"></div>

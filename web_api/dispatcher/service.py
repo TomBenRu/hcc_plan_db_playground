@@ -20,10 +20,13 @@ from database.models import (
     Appointment,
     AvailDay,
     AvailDayAppointmentLink,
+    AvailDayCombLocLink,
     CastGroup,
+    CombinationLocationsPossible,
     Event,
     LocationOfWork,
     LocationPlanPeriod,
+    LocOfWorkCombLocLink,
     Person,
     Plan,
     PlanPeriod,
@@ -201,6 +204,12 @@ def filter_allowed_team_ids(
 # ── Cast-Change (D2) ──────────────────────────────────────────────────────────
 
 
+# Gründe, warum ein Team-Mitarbeiter im Cast-Edit-Modal nicht als verfügbar
+# markiert wird. `is_available=True` setzt voraus, dass keiner dieser Gründe
+# greift. Reihenfolge der Prüfung: no_avail_day → time_overlap → location_combo.
+BlockedReason = str  # "no_avail_day" | "time_overlap" | "location_combo"
+
+
 @dataclass
 class CastCandidate:
     person_id: uuid.UUID
@@ -210,6 +219,8 @@ class CastCandidate:
     is_currently_assigned: bool
     is_available: bool
     avail_day_id: uuid.UUID | None
+    blocked_reason: BlockedReason | None = None
+    blocking_info: str | None = None
 
 
 def _compute_initials(f_name: str | None, l_name: str | None) -> str:
@@ -252,11 +263,13 @@ def get_team_availability_for_appointment(
             Plan.plan_period_id.label("plan_period_id"),
             PlanPeriod.team_id.label("team_id"),
             Project.use_simple_time_slots.label("use_simple"),
+            LocationPlanPeriod.location_of_work_id.label("event_location_id"),
         )
         .select_from(Appointment)
         .join(Event, Event.id == Appointment.event_id)
         .join(TimeOfDay, TimeOfDay.id == Event.time_of_day_id)
         .join(TimeOfDayEnum, TimeOfDayEnum.id == TimeOfDay.time_of_day_enum_id)
+        .join(LocationPlanPeriod, LocationPlanPeriod.id == Event.location_plan_period_id)
         .join(Plan, Plan.id == Appointment.plan_id)
         .join(PlanPeriod, PlanPeriod.id == Plan.plan_period_id)
         .join(Team, Team.id == PlanPeriod.team_id)
@@ -372,8 +385,231 @@ def get_team_availability_for_appointment(
             is_currently_assigned=app_id in current_app_ids,
             is_available=matching_avail_id is not None,
             avail_day_id=matching_avail_id,
+            blocked_reason=None if matching_avail_id is not None else "no_avail_day",
         ))
+
+    # Nachgelagerter Filter: Zeit-Konflikte und unzulässige
+    # Location-Kombinationen mit anderen Appointments derselben Person im
+    # bindenden Plan dieser Plan-Periode am Event-Datum. Markiert nur
+    # Kandidaten, die nicht bereits aktuell zugeordnet sind (eigene
+    # Zuordnung darf nicht als Konflikt gewertet werden).
+    _apply_conflict_filter(
+        session,
+        result,
+        appointment_id=appointment_id,
+        plan_period_id=plan_period_id,
+        event_date=event_date,
+        event_start_min=event_start_min,
+        event_end_min=event_end_min,
+        event_location_id=ctx_row["event_location_id"],
+    )
+
     return result
+
+
+def _apply_conflict_filter(
+    session: Session,
+    candidates: list[CastCandidate],
+    *,
+    appointment_id: uuid.UUID,
+    plan_period_id: uuid.UUID,
+    event_date: date,
+    event_start_min: int,
+    event_end_min: int,
+    event_location_id: uuid.UUID,
+) -> None:
+    """Markiert Kandidaten als blockiert, wenn sie im bindenden Plan derselben
+    Plan-Periode am Event-Datum bereits einem anderen Appointment zugeordnet
+    sind, dessen Slot sich überschneidet ODER dessen Location nicht via
+    `CombinationLocationsPossible` (beidseitig, mit `time_span_between`)
+    erlaubt ist.
+
+    In-place-Mutation: setzt `blocked_reason`, `blocking_info` und
+    `is_available=False` bei Verletzung. Aktuell zugeordnete Kandidaten
+    werden übersprungen (eigene Zuordnung darf nicht aus dem Cast geworfen
+    werden).
+    """
+    # Nur Kandidaten mit AvailDay-Match und nicht bereits zugeordnet sind
+    # filterrelevant. Personen ohne AvailDay haben bereits
+    # blocked_reason="no_avail_day" und brauchen keinen weiteren Check.
+    targets_by_ap = {
+        c.actor_plan_period_id: c
+        for c in candidates
+        if c.avail_day_id is not None and not c.is_currently_assigned
+    }
+    if not targets_by_ap:
+        return
+
+    # Andere Appointments der relevanten Personen im bindenden Plan dieser
+    # Plan-Periode am Event-Datum. `Plan.is_binding=True` sorgt dafür, dass
+    # nicht-bindende Pläne (Solver-Drafts) nicht als Konflikt gelten.
+    # `Address` als LEFT OUTER JOIN — `LocationOfWork.address_id` ist
+    # nullable (FK SET NULL). Stadt-Name wird via `location_display_name`
+    # für den Tooltip verwendet.
+    other_rows = session.execute(
+        sa_select(
+            Appointment.id.label("other_appointment_id"),
+            AvailDay.id.label("other_avail_day_id"),
+            AvailDay.actor_plan_period_id.label("actor_plan_period_id"),
+            TimeOfDay.start.label("other_start"),
+            TimeOfDay.end.label("other_end"),
+            LocationOfWork.id.label("other_location_id"),
+            LocationOfWork.name.label("other_location_name"),
+            Address.city.label("other_location_city"),
+        )
+        .select_from(Appointment)
+        .join(Plan, Plan.id == Appointment.plan_id)
+        .join(Event, Event.id == Appointment.event_id)
+        .join(TimeOfDay, TimeOfDay.id == Event.time_of_day_id)
+        .join(LocationPlanPeriod, LocationPlanPeriod.id == Event.location_plan_period_id)
+        .join(LocationOfWork, LocationOfWork.id == LocationPlanPeriod.location_of_work_id)
+        .outerjoin(Address, Address.id == LocationOfWork.address_id)
+        .join(AvailDayAppointmentLink, AvailDayAppointmentLink.appointment_id == Appointment.id)
+        .join(AvailDay, AvailDay.id == AvailDayAppointmentLink.avail_day_id)
+        .where(Plan.is_binding.is_(True))
+        .where(Plan.plan_period_id == plan_period_id)
+        .where(Plan.prep_delete.is_(None))
+        .where(Event.date == event_date)
+        .where(Event.prep_delete.is_(None))
+        .where(Appointment.id != appointment_id)
+        .where(Appointment.prep_delete.is_(None))
+        .where(AvailDay.prep_delete.is_(None))
+        .where(AvailDay.actor_plan_period_id.in_(targets_by_ap.keys()))
+    ).mappings().all()
+
+    if not other_rows:
+        return
+
+    # Pro ActorPlanPeriod alle "anderen" Slots gruppieren (eine Person kann
+    # an einem Tag mehrere weitere Termine haben).
+    others_by_ap: dict[uuid.UUID, list[dict]] = {}
+    for row in other_rows:
+        others_by_ap.setdefault(row["actor_plan_period_id"], []).append(dict(row))
+
+    # CLPs aller relevanten AvailDays in einer Query laden (Self-AvailDay
+    # jedes Kandidaten + alle "anderen" AvailDays). Ergebnis: pro AvailDay
+    # eine Liste von (clp_id, time_span_between, set[location_ids]).
+    relevant_avd_ids = {c.avail_day_id for c in targets_by_ap.values()} | {
+        row["other_avail_day_id"] for row in other_rows
+    }
+    clp_rows = session.execute(
+        sa_select(
+            AvailDayCombLocLink.avail_day_id.label("avail_day_id"),
+            CombinationLocationsPossible.id.label("clp_id"),
+            CombinationLocationsPossible.time_span_between.label("tsb"),
+            LocOfWorkCombLocLink.location_of_work_id.label("location_of_work_id"),
+        )
+        .select_from(AvailDayCombLocLink)
+        .join(
+            CombinationLocationsPossible,
+            CombinationLocationsPossible.id == AvailDayCombLocLink.combination_locations_possible_id,
+        )
+        .join(
+            LocOfWorkCombLocLink,
+            LocOfWorkCombLocLink.combination_locations_possible_id == CombinationLocationsPossible.id,
+        )
+        .where(AvailDayCombLocLink.avail_day_id.in_(relevant_avd_ids))
+        .where(CombinationLocationsPossible.prep_delete.is_(None))
+    ).mappings().all()
+
+    # Aggregation: avail_day_id → list[(clp_id, tsb, locations_set)].
+    clps_by_avd: dict[uuid.UUID, dict[uuid.UUID, dict]] = {}
+    for row in clp_rows:
+        avd_id = row["avail_day_id"]
+        clp_id = row["clp_id"]
+        bucket = clps_by_avd.setdefault(avd_id, {})
+        clp_entry = bucket.setdefault(
+            clp_id, {"tsb": row["tsb"], "locations": set()}
+        )
+        clp_entry["locations"].add(row["location_of_work_id"])
+
+    def _find_clp(avd_id: uuid.UUID, loc_a: uuid.UUID, loc_b: uuid.UUID) -> dict | None:
+        """Sucht ein CLP des AvailDay, das beide Locations einschließt."""
+        needed = {loc_a, loc_b}
+        for clp in clps_by_avd.get(avd_id, {}).values():
+            if needed <= clp["locations"]:
+                return clp
+        return None
+
+    for ap_id, candidate in targets_by_ap.items():
+        for other in others_by_ap.get(ap_id, []):
+            other_start_min, other_end_min = interval_minutes(
+                other["other_start"], other["other_end"]
+            )
+            # Zeit-Überlappung: zwei halboffene Intervalle überlappen,
+            # wenn start_a < end_b UND start_b < end_a (gleiche Datums-
+            # Bezugsbasis dank interval_minutes-Normalisierung).
+            if event_start_min < other_end_min and other_start_min < event_end_min:
+                candidate.is_available = False
+                candidate.blocked_reason = "time_overlap"
+                candidate.blocking_info = _format_blocking_info(
+                    other["other_location_name"],
+                    other["other_location_city"],
+                    other_start_min,
+                    other_end_min,
+                )
+                break
+
+            # Gleiche Location ist nie ein CLP-Konflikt — die Person macht
+            # zwei Slots in derselben Einrichtung, kein Reise-Problem.
+            other_loc_id = other["other_location_id"]
+            if other_loc_id == event_location_id:
+                continue
+
+            clp_self = _find_clp(candidate.avail_day_id, event_location_id, other_loc_id)
+            clp_other = _find_clp(other["other_avail_day_id"], event_location_id, other_loc_id)
+            if clp_self is None or clp_other is None:
+                candidate.is_available = False
+                candidate.blocked_reason = "location_combo"
+                candidate.blocking_info = _format_blocking_info(
+                    other["other_location_name"],
+                    other["other_location_city"],
+                    other_start_min,
+                    other_end_min,
+                )
+                break
+
+            # Mindest-Zeitabstand prüfen. Da die Slots nicht überlappen
+            # (vorher gefiltert), gilt entweder event-vor-other oder
+            # other-vor-event — der Abstand ist die Differenz aus dem
+            # späteren start und dem früheren end.
+            if other_start_min >= event_end_min:
+                gap_min = other_start_min - event_end_min
+            else:
+                gap_min = event_start_min - other_end_min
+            required_min = max(
+                clp_self["tsb"].total_seconds() / 60,
+                clp_other["tsb"].total_seconds() / 60,
+            )
+            if gap_min < required_min:
+                candidate.is_available = False
+                candidate.blocked_reason = "location_combo"
+                candidate.blocking_info = _format_blocking_info(
+                    other["other_location_name"],
+                    other["other_location_city"],
+                    other_start_min,
+                    other_end_min,
+                )
+                break
+
+
+def _format_blocking_info(
+    location_name: str,
+    location_city: str | None,
+    start_min: int,
+    end_min: int,
+) -> str:
+    """Klartext-Snippet für den Tooltip im Cast-Edit-Modal.
+
+    Zeit wird modulo 24h ausgegeben (Mitternachts-Spannen via
+    `interval_minutes` normalisiert). Format: "LocName Stadt (HH:MM–HH:MM)".
+    Stadt fällt weg, wenn die Address nicht gesetzt ist (Convention aus
+    `web_api.common.location_display_name`).
+    """
+    s = start_min % (24 * 60)
+    e = end_min % (24 * 60)
+    display = location_display_name(location_name, location_city)
+    return f"{display} ({s // 60:02d}:{s % 60:02d}–{e // 60:02d}:{e % 60:02d})"
 
 
 def get_cast_status_for_appointment(

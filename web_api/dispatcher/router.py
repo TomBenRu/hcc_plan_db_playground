@@ -1,5 +1,6 @@
 """Router: Dispatcher-Endpoints."""
 
+import logging
 import uuid
 from datetime import date
 
@@ -36,6 +37,8 @@ from web_api.plan_adjustment.service import (
     preview_appointment_delete,
 )
 from web_api.templating import templates
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/dispatcher", tags=["dispatcher"])
 
@@ -613,7 +616,38 @@ def dispatcher_update_cast(
     Response-Header `HX-Trigger`:
       - `hcc:cast-changed` — triggert Kalender-Refresh (Unterbesetzungs-Dot).
       - `hcc:close-modal` — signalisiert dem Client, das offene Modal zu schließen.
+
+    Audit: Wenn der Dispatcher (typischerweise via `show_all=1`) eine Person
+    speichert, die für diesen Slot als blockiert markiert ist (Zeit-Konflikt
+    oder unzulässige Location-Kombination), wird das mit `logger.warning`
+    festgehalten. `no_avail_day` zählt nicht als Override — dort wird der
+    AvailDay automatisch angelegt.
     """
+    candidates_by_id = {
+        c.person_id: c
+        for c in get_team_availability_for_appointment(session, appointment.id)
+    }
+    overrides = [
+        candidates_by_id[pid]
+        for pid in person_ids
+        if pid in candidates_by_id
+        and candidates_by_id[pid].blocked_reason in ("time_overlap", "location_combo")
+    ]
+    if overrides:
+        logger.warning(
+            "Cast-Override: dispatcher persisted %d blocked candidate(s) for appointment %s: %s",
+            len(overrides),
+            appointment.id,
+            [
+                {
+                    "person_id": str(c.person_id),
+                    "reason": c.blocked_reason,
+                    "info": c.blocking_info,
+                }
+                for c in overrides
+            ],
+        )
+
     payloads = replace_cast_for_appointment(
         session, appointment.id, person_ids, guests=guests
     )

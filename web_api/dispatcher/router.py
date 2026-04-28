@@ -382,13 +382,12 @@ def dispatcher_appointment_create(
     # Leeres 200-HTML statt 204: HTMX verarbeitet HX-Trigger bei 204 nicht
     # zuverlaessig. Empty-Body wird in #modal-root geswappt → Modal-Inhalt
     # leer, plus hcc:close-modal-Trigger schliesst das Modal.
-    # 204 No Content + HX-Trigger-After-Settle: kein Swap, Form bleibt im DOM
-    # bis hcc:close-modal das Modal schliesst. After-Settle ist wichtig, weil
-    # der HX-Trigger-Header (synchron, vor Swap) bei einem Form-Removal-Pfad
-    # das Event-Bubbling abreissen koennte. Mit 204 + After-Settle sind beide
-    # Listener sicher: hcc:close-modal schliesst das Modal, hcc:appointments-changed
-    # triggert den Calendar-Refetch.
-    response = Response(status_code=status.HTTP_204_NO_CONTENT)
+    # Empty-HTML 200 + HX-Trigger-After-Settle: 204 No Content erzeugt KEINEN
+    # Swap-Cycle, daher feuert HX-Trigger-After-Settle dort unzuverlaessig
+    # (settle-Phase findet ohne Swap nicht statt). Mit Empty-200 wird ein
+    # echter Swap durchgefuehrt (Modal-Inhalt geleert), Settle laeuft, und
+    # beide Listener (hcc:close-modal + hcc:appointments-changed) feuern sicher.
+    response = HTMLResponse(content="", status_code=status.HTTP_200_OK)
     response.headers["HX-Trigger-After-Settle"] = "hcc:close-modal, hcc:appointments-changed"
     return response
 
@@ -455,13 +454,12 @@ def dispatcher_appointment_delete(
         background_tasks.add_task(send_emails_background, payloads, settings)
 
     # Leeres 200-HTML statt 204 (siehe Begründung oben am Create-Endpoint)
-    # 204 No Content + HX-Trigger-After-Settle: kein Swap, Form bleibt im DOM
-    # bis hcc:close-modal das Modal schliesst. After-Settle ist wichtig, weil
-    # der HX-Trigger-Header (synchron, vor Swap) bei einem Form-Removal-Pfad
-    # das Event-Bubbling abreissen koennte. Mit 204 + After-Settle sind beide
-    # Listener sicher: hcc:close-modal schliesst das Modal, hcc:appointments-changed
-    # triggert den Calendar-Refetch.
-    response = Response(status_code=status.HTTP_204_NO_CONTENT)
+    # Empty-HTML 200 + HX-Trigger-After-Settle: 204 No Content erzeugt KEINEN
+    # Swap-Cycle, daher feuert HX-Trigger-After-Settle dort unzuverlaessig
+    # (settle-Phase findet ohne Swap nicht statt). Mit Empty-200 wird ein
+    # echter Swap durchgefuehrt (Modal-Inhalt geleert), Settle laeuft, und
+    # beide Listener (hcc:close-modal + hcc:appointments-changed) feuern sicher.
+    response = HTMLResponse(content="", status_code=status.HTTP_200_OK)
     response.headers["HX-Trigger-After-Settle"] = "hcc:close-modal, hcc:appointments-changed"
     return response
 

@@ -381,6 +381,7 @@ def dispatcher_appointment_delete(
     background_tasks: BackgroundTasks,
     user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
     force_event_delete: bool = Form(default=False),
+    send_notifications: bool = Form(default=True),
     appointment: Appointment = Depends(require_team_dispatcher_for_appointment),
     session: Session = Depends(get_db_session),
     settings=Depends(get_settings),
@@ -394,13 +395,19 @@ def dispatcher_appointment_delete(
     Notifications: Verplante des aktuellen Appointments + pending Request-
     Inhaber im aktuellen Plan. Verplante in nicht-binding Iterationen werden
     NICHT informiert (PRD F3.3).
+
+    Pro-Aktion-Toggle `send_notifications` (Default ON): bei OFF wird kein
+    Inbox/Email gesendet — stattdessen schreibt der Service einen
+    structured `logger.info("audit.notification_suppressed", ...)`-Eintrag
+    als Stop-Gap zur künftigen Audit-Tabelle. DB-Mutation findet trotzdem
+    statt.
     """
     payloads = delete_appointment(
         session,
         appointment.id,
         actor_user_id=user.id,
         force_event_delete=force_event_delete,
-        send_notifications=True,
+        send_notifications=send_notifications,
     )
     session.commit()
     if payloads:

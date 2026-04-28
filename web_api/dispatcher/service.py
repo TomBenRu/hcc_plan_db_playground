@@ -36,6 +36,7 @@ from database.models import (
     TimeOfDay,
     TimeOfDayEnum,
 )
+from database.slot_arithmetic import TimeSlot, slot_gap, slots_overlap
 from web_api.availability.service import create_avail_day, find_avail_day, reset_location_prefs_to_normal
 from web_api.common import guest_count, interval_minutes, location_display_name
 from web_api.email.service import EmailPayload
@@ -398,9 +399,11 @@ def get_team_availability_for_appointment(
         result,
         appointment_id=appointment_id,
         plan_period_id=plan_period_id,
-        event_date=event_date,
-        event_start_min=event_start_min,
-        event_end_min=event_end_min,
+        event_slot=TimeSlot(
+            date=event_date,
+            start=ctx_row["event_start"],
+            end=ctx_row["event_end"],
+        ),
         event_location_id=ctx_row["event_location_id"],
     )
 
@@ -413,9 +416,7 @@ def _apply_conflict_filter(
     *,
     appointment_id: uuid.UUID,
     plan_period_id: uuid.UUID,
-    event_date: date,
-    event_start_min: int,
-    event_end_min: int,
+    event_slot: TimeSlot,
     event_location_id: uuid.UUID,
 ) -> None:
     """Markiert Kandidaten als blockiert, wenn sie im bindenden Plan derselben
@@ -469,7 +470,7 @@ def _apply_conflict_filter(
         .where(Plan.is_binding.is_(True))
         .where(Plan.plan_period_id == plan_period_id)
         .where(Plan.prep_delete.is_(None))
-        .where(Event.date == event_date)
+        .where(Event.date == event_slot.date)
         .where(Event.prep_delete.is_(None))
         .where(Appointment.id != appointment_id)
         .where(Appointment.prep_delete.is_(None))
@@ -533,20 +534,18 @@ def _apply_conflict_filter(
 
     for ap_id, candidate in targets_by_ap.items():
         for other in others_by_ap.get(ap_id, []):
-            other_start_min, other_end_min = interval_minutes(
-                other["other_start"], other["other_end"]
+            other_slot = TimeSlot(
+                date=event_slot.date,
+                start=other["other_start"],
+                end=other["other_end"],
             )
-            # Zeit-Überlappung: zwei halboffene Intervalle überlappen,
-            # wenn start_a < end_b UND start_b < end_a (gleiche Datums-
-            # Bezugsbasis dank interval_minutes-Normalisierung).
-            if event_start_min < other_end_min and other_start_min < event_end_min:
+            if slots_overlap(event_slot, other_slot):
                 candidate.is_available = False
                 candidate.blocked_reason = "time_overlap"
                 candidate.blocking_info = _format_blocking_info(
                     other["other_location_name"],
                     other["other_location_city"],
-                    other_start_min,
-                    other_end_min,
+                    other_slot,
                 )
                 break
 
@@ -564,31 +563,21 @@ def _apply_conflict_filter(
                 candidate.blocking_info = _format_blocking_info(
                     other["other_location_name"],
                     other["other_location_city"],
-                    other_start_min,
-                    other_end_min,
+                    other_slot,
                 )
                 break
 
-            # Mindest-Zeitabstand prüfen. Da die Slots nicht überlappen
-            # (vorher gefiltert), gilt entweder event-vor-other oder
-            # other-vor-event — der Abstand ist die Differenz aus dem
-            # späteren start und dem früheren end.
-            if other_start_min >= event_end_min:
-                gap_min = other_start_min - event_end_min
-            else:
-                gap_min = event_start_min - other_end_min
-            required_min = max(
-                clp_self["tsb"].total_seconds() / 60,
-                clp_other["tsb"].total_seconds() / 60,
-            )
-            if gap_min < required_min:
+            # Mindest-Zeitabstand via slot_gap — korrekt auch fuer
+            # Mitternachts-Spannen am gleichen Datum.
+            gap = slot_gap(event_slot, other_slot)
+            required = max(clp_self["tsb"], clp_other["tsb"])
+            if gap < required:
                 candidate.is_available = False
                 candidate.blocked_reason = "location_combo"
                 candidate.blocking_info = _format_blocking_info(
                     other["other_location_name"],
                     other["other_location_city"],
-                    other_start_min,
-                    other_end_min,
+                    other_slot,
                 )
                 break
 
@@ -596,20 +585,18 @@ def _apply_conflict_filter(
 def _format_blocking_info(
     location_name: str,
     location_city: str | None,
-    start_min: int,
-    end_min: int,
+    slot: TimeSlot,
 ) -> str:
     """Klartext-Snippet für den Tooltip im Cast-Edit-Modal.
 
-    Zeit wird modulo 24h ausgegeben (Mitternachts-Spannen via
-    `interval_minutes` normalisiert). Format: "LocName Stadt (HH:MM–HH:MM)".
-    Stadt fällt weg, wenn die Address nicht gesetzt ist (Convention aus
-    `web_api.common.location_display_name`).
+    Format: "LocName Stadt (HH:MM–HH:MM)". Bei Mitternachts-Spannen
+    bleibt die natürliche Lesart erhalten ("22:00–02:00"), weil die
+    `time`-Werte direkt aus dem Slot stammen — kein Wrap-Aufschlag.
+    Stadt fällt weg, wenn die Address nicht gesetzt ist (Convention
+    aus `web_api.common.location_display_name`).
     """
-    s = start_min % (24 * 60)
-    e = end_min % (24 * 60)
     display = location_display_name(location_name, location_city)
-    return f"{display} ({s // 60:02d}:{s % 60:02d}–{e // 60:02d}:{e % 60:02d})"
+    return f"{display} ({slot.start.strftime('%H:%M')}–{slot.end.strftime('%H:%M')})"
 
 
 def get_cast_status_for_appointment(

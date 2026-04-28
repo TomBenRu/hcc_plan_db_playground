@@ -554,6 +554,20 @@ class TimeOfDay(SQLModel, table=True):
         back_populates="time_of_days", link_model=EventTimeOfDayLink
     )
 
+    @property
+    def duration(self) -> timedelta:
+        """Dauer des Slots mit Mitternachts-Korrektur.
+
+        Bei `end < start` wird der Wrap in den Folgetag berücksichtigt
+        (Konvention: Slot reicht über Mitternacht). Implementiert via
+        `slot_arithmetic.slot_to_range` mit `date.min` als neutralem
+        Datums-Anker — der konkrete Tag ist hier irrelevant.
+        """
+        from database.slot_arithmetic import TimeSlot, slot_to_range
+
+        s, e = slot_to_range(TimeSlot(date=date.min, start=self.start, end=self.end))
+        return e - s
+
 
 class LocationOfWork(SQLModel, table=True):
     """Einsatzort des Mitarbeiters. Soft-Delete über prep_delete."""

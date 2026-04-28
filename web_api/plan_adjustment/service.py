@@ -28,7 +28,8 @@ from database.models import (
     TimeOfDay,
 )
 from web_api.availability.service import create_avail_day, find_avail_day, reset_location_prefs_to_normal
-from web_api.common import interval_minutes, location_display_name
+from database.slot_arithmetic import TimeSlot, slots_overlap
+from web_api.common import location_display_name
 from web_api.email.service import EmailPayload
 from web_api.inbox.service import create_inbox_message
 from web_api.models.web_models import (
@@ -670,7 +671,7 @@ def create_appointment_with_event(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Tageszeit nicht gefunden.",
         )
-    new_start_min, new_end_min = interval_minutes(new_tod.start, new_tod.end)
+    new_slot = TimeSlot(date=date, start=new_tod.start, end=new_tod.end)
 
     existing_ranges = list(session.execute(
         sa_select(TimeOfDay.start, TimeOfDay.end)
@@ -683,8 +684,7 @@ def create_appointment_with_event(
     ).all())
 
     for ex_start, ex_end in existing_ranges:
-        ex_start_min, ex_end_min = interval_minutes(ex_start, ex_end)
-        if new_start_min < ex_end_min and ex_start_min < new_end_min:
+        if slots_overlap(new_slot, TimeSlot(date=date, start=ex_start, end=ex_end)):
             raise HTTPException(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail=(

@@ -124,22 +124,22 @@ class DifferentCastsSameDayConstraint(ConstraintBase):
         Returns:
             True wenn die Kombination erlaubt ist, False sonst
         """
+        from database.slot_arithmetic import TimeSlot, slot_gap
+
         avail_day_group_1 = self.entities.avail_day_groups_with_avail_day[adg_id_1]
         avail_day_group_2 = self.entities.avail_day_groups_with_avail_day[adg_id_2]
         event_1 = self.entities.event_groups_with_event[eg_id_1].event
         event_2 = self.entities.event_groups_with_event[eg_id_2].event
-        
-        # Zeitdifferenz berechnen
-        start_1 = datetime.datetime.combine(event_1.date, event_1.time_of_day.start)
-        end_1 = datetime.datetime.combine(event_1.date, event_1.time_of_day.end)
-        start_2 = datetime.datetime.combine(event_2.date, event_2.time_of_day.start)
-        end_2 = datetime.datetime.combine(event_2.date, event_2.time_of_day.end)
-        time_diff = start_1 - end_2 if start_1 > end_2 else start_2 - end_1
-        
+
+        # Zeitabstand via slot_gap — korrekt auch fuer Mitternachts-Spannen.
+        slot_1 = TimeSlot(date=event_1.date, start=event_1.time_of_day.start, end=event_1.time_of_day.end)
+        slot_2 = TimeSlot(date=event_2.date, start=event_2.time_of_day.start, end=event_2.time_of_day.end)
+        time_diff = slot_gap(slot_1, slot_2)
+
         # Location-IDs ermitteln
         location_1_id = event_1.location_plan_period.location_of_work.id
         location_2_id = event_2.location_plan_period.location_of_work.id
-        
+
         # CombinationLocationsPossible für beide AvailDays prüfen
         clp_1 = self._find_combination_location_possible(
             avail_day_group_1.avail_day.combination_locations_possibles,
@@ -151,11 +151,11 @@ class DifferentCastsSameDayConstraint(ConstraintBase):
             location_1_id,
             location_2_id
         )
-        
+
         # Kombination ist möglich wenn beide CLPs existieren und Zeitabstand ausreicht
         return (
-            clp_1 is not None 
-            and clp_2 is not None 
+            clp_1 is not None
+            and clp_2 is not None
             and time_diff >= max(clp_1.time_span_between, clp_2.time_span_between)
         )
     
@@ -289,19 +289,14 @@ class DifferentCastsSameDayConstraint(ConstraintBase):
         # Wenn keine CLP für einen der beiden -> nicht erlaubt
         if clp_1 is None or clp_2 is None:
             return False
-        
-        # Zeitabstand prüfen
-        start_1 = datetime.datetime.combine(event_1.date, event_1.time_of_day.start)
-        end_1 = datetime.datetime.combine(event_1.date, event_1.time_of_day.end)
-        start_2 = datetime.datetime.combine(event_2.date, event_2.time_of_day.start)
-        end_2 = datetime.datetime.combine(event_2.date, event_2.time_of_day.end)
-        
-        # Zeitdifferenz zwischen Ende des einen und Start des anderen
-        if start_1 > end_2:
-            time_diff = start_1 - end_2
-        else:
-            time_diff = start_2 - end_1
-        
+
+        # Zeitabstand via slot_gap — korrekt auch fuer Mitternachts-Spannen.
+        from database.slot_arithmetic import TimeSlot, slot_gap
+
+        slot_1 = TimeSlot(date=event_1.date, start=event_1.time_of_day.start, end=event_1.time_of_day.end)
+        slot_2 = TimeSlot(date=event_2.date, start=event_2.time_of_day.start, end=event_2.time_of_day.end)
+        time_diff = slot_gap(slot_1, slot_2)
+
         # Kombination ist möglich wenn Zeitabstand ausreicht
         required_time = max(clp_1.time_span_between, clp_2.time_span_between)
         return time_diff >= required_time

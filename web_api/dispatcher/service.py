@@ -45,6 +45,7 @@ from web_api.plan_adjustment.service import update_appointment_avail_days
 class TeamInfo:
     id: uuid.UUID
     name: str
+    project_id: uuid.UUID
 
 
 def get_teams_for_dispatcher(
@@ -53,11 +54,14 @@ def get_teams_for_dispatcher(
 ) -> list[TeamInfo]:
     """Alle Teams, für die die Person als Dispatcher eingetragen ist."""
     rows = session.execute(
-        sa_select(Team.id, Team.name)
+        sa_select(Team.id, Team.name, Team.project_id)
         .where(Team.dispatcher_id == person_id)
         .order_by(Team.name)
     ).mappings().all()
-    return [TeamInfo(id=r["id"], name=r["name"]) for r in rows]
+    return [
+        TeamInfo(id=r["id"], name=r["name"], project_id=r["project_id"])
+        for r in rows
+    ]
 
 
 def get_appointments_for_teams(

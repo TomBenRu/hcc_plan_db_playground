@@ -30,7 +30,11 @@ from web_api.dispatcher.service import (
 from web_api.email.service import send_emails_background
 from web_api.employees.service import get_coworkers_for_appointment
 from web_api.models.web_models import WebUser
-from web_api.plan_adjustment.service import create_appointment_with_event
+from web_api.plan_adjustment.service import (
+    create_appointment_with_event,
+    delete_appointment,
+    preview_appointment_delete,
+)
 from web_api.templating import templates
 
 router = APIRouter(prefix="/dispatcher", tags=["dispatcher"])
@@ -343,6 +347,65 @@ def dispatcher_appointment_create(
         )
 
     session.commit()
+    response = Response(status_code=status.HTTP_204_NO_CONTENT)
+    response.headers["HX-Trigger"] = "hcc:close-modal, hcc:appointments-changed"
+    return response
+
+
+@router.get("/plan/appointments/{appointment_id}/delete-modal", response_class=HTMLResponse)
+def dispatcher_appointment_delete_modal(
+    request: Request,
+    force_event_delete: bool = Query(default=False),
+    appointment: Appointment = Depends(require_team_dispatcher_for_appointment),
+    session: Session = Depends(get_db_session),
+):
+    """HTMX-Modal-Fragment: Lösch-Bestätigung mit N×M×force-Konstellations-Text.
+
+    Force-Checkbox triggert `hx-get` auf denselben Endpoint mit aktualisiertem
+    `force_event_delete`-Param → Modal-Body rendert die passende Variante.
+    """
+    preview = preview_appointment_delete(session, appointment.id)
+    return templates.TemplateResponse(
+        "dispatcher/partials/appointment_delete_modal.html",
+        {
+            "request": request,
+            "appointment_id": appointment.id,
+            "preview": preview,
+            "force": force_event_delete,
+        },
+    )
+
+
+@router.delete("/plan/appointments/{appointment_id}", response_class=HTMLResponse)
+def dispatcher_appointment_delete(
+    background_tasks: BackgroundTasks,
+    user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
+    force_event_delete: bool = Form(default=False),
+    appointment: Appointment = Depends(require_team_dispatcher_for_appointment),
+    session: Session = Depends(get_db_session),
+    settings=Depends(get_settings),
+):
+    """Hard-Delete des Appointments + bedingte Event-Löschung.
+
+    - N=0: Event mit löschen (Default-Verhalten ohne User-Choice)
+    - N>0, force=False: nur Appointment, Event bleibt
+    - N>0, force=True: Event mit löschen, kaskadiert N andere Appointments
+
+    Notifications: Verplante des aktuellen Appointments + pending Request-
+    Inhaber im aktuellen Plan. Verplante in nicht-binding Iterationen werden
+    NICHT informiert (PRD F3.3).
+    """
+    payloads = delete_appointment(
+        session,
+        appointment.id,
+        actor_user_id=user.id,
+        force_event_delete=force_event_delete,
+        send_notifications=True,
+    )
+    session.commit()
+    if payloads:
+        background_tasks.add_task(send_emails_background, payloads, settings)
+
     response = Response(status_code=status.HTTP_204_NO_CONTENT)
     response.headers["HX-Trigger"] = "hcc:close-modal, hcc:appointments-changed"
     return response

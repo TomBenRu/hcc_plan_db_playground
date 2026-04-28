@@ -1,0 +1,87 @@
+{% extends "partials/modal_shell.html" %}
+{% block modal_size %}max-w-xl{% endblock %}
+{% block modal_kicker %}Termin löschen{% endblock %}
+{% block modal_title %}Termin unwiderruflich entfernen{% endblock %}
+
+{% block modal_body %}
+{# Termin-Snapshot oben #}
+<div class="mb-4 p-3 rounded-md bg-slate-50 dark:bg-slate-900/40 ring-1 ring-slate-200 dark:ring-slate-700/50">
+    <p class="text-sm font-medium text-slate-800 dark:text-slate-100">
+        {{ preview.snapshot.location_name }}
+    </p>
+    <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+        {{ preview.snapshot.event_date }}{% if preview.snapshot.time_of_day_name %} · {{ preview.snapshot.time_of_day_name }}{% endif %}
+    </p>
+</div>
+
+{# Konstellations-Text — die 6 Fälle aus PRD F2.4 #}
+<div class="mb-4 px-3 py-3 rounded-md bg-rose-50 dark:bg-rose-900/30
+            ring-1 ring-rose-200 dark:ring-rose-700/50
+            text-sm text-rose-700 dark:text-rose-300">
+    {% if preview.sibling_count == 0 %}
+        <p class="font-medium">Termin und Event-Definition werden unwiderruflich gelöscht.</p>
+    {% elif force %}
+        <p class="font-medium">Termin und Event werden unwiderruflich gelöscht.</p>
+        <p class="mt-1 text-xs">
+            Das Event entfällt auch aus {{ preview.sibling_count }} weiteren, nicht-aktiven
+            Plan-Iterationen — die dortigen Verplanten werden nicht informiert
+            (Iterationen sind ihnen nicht bekannt).
+        </p>
+    {% else %}
+        <p class="font-medium">Termin wird unwiderruflich gelöscht.</p>
+        <p class="mt-1 text-xs">
+            Das Event bleibt in {{ preview.sibling_count }} weiteren Plan-Iterationen
+            erhalten.
+        </p>
+    {% endif %}
+
+    {% if preview.pending_requests_count > 0 %}
+    <p class="mt-2 text-xs">
+        {{ preview.pending_requests_count }} offene
+        {% if preview.pending_requests_count == 1 %}Anfrage wird{% else %}Anfragen werden{% endif %}
+        obsolet — Betroffene werden benachrichtigt.
+    </p>
+    {% endif %}
+</div>
+
+<form id="delete-appointment-form"
+      hx-delete="/dispatcher/plan/appointments/{{ appointment_id }}"
+      hx-target="#modal-root"
+      hx-swap="innerHTML"
+      class="flex flex-col gap-3">
+
+    {% if preview.sibling_count > 0 %}
+    <label class="flex items-start gap-2 text-sm text-slate-700 dark:text-slate-300 cursor-pointer">
+        <input type="checkbox" name="force_event_delete" value="true"
+               {% if force %}checked{% endif %}
+               hx-get="/dispatcher/plan/appointments/{{ appointment_id }}/delete-modal"
+               hx-trigger="change"
+               hx-include="this"
+               hx-target="#modal-root"
+               hx-swap="innerHTML"
+               class="mt-0.5 rounded border-slate-300 dark:border-slate-600 accent-rose-600">
+        <span>
+            Event in allen {{ preview.sibling_count }} Iterationen ebenfalls löschen
+            <span class="block text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+                Auch nicht-aktive Solver-Alternativen verlieren diesen Termin.
+            </span>
+        </span>
+    </label>
+    {% endif %}
+</form>
+{% endblock %}
+
+{% block modal_footer %}
+<div class="flex justify-end gap-2 px-6 py-4 border-t border-slate-100 dark:border-slate-700/50">
+    <button type="button" onclick="window.hccModal.close()"
+            class="px-4 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700
+                   text-slate-600 dark:text-slate-300
+                   hover:bg-slate-50 dark:hover:bg-slate-700/50">
+        Abbrechen
+    </button>
+    <button type="submit" form="delete-appointment-form"
+            class="px-4 py-2 text-sm rounded-lg bg-rose-600 hover:bg-rose-700 text-white">
+        Endgültig löschen
+    </button>
+</div>
+{% endblock %}

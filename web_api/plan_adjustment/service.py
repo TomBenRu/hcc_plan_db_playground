@@ -1,11 +1,15 @@
 """Plan-Anpassungs-Service: AvailDay-Reassignment für Übernahme und Tausch."""
 
 import datetime as _dt
+import logging
 import uuid
+from dataclasses import dataclass
 
 from fastapi import HTTPException, status
-from sqlalchemy import select as sa_select
+from sqlalchemy import func, select as sa_select
 from sqlmodel import Session
+
+logger = logging.getLogger(__name__)
 
 from database.models import (
     ActorPlanPeriod,
@@ -681,6 +685,172 @@ def create_appointment_with_event(
     session.flush()
 
     return appointment
+
+
+@dataclass
+class AppointmentDeletePreview:
+    """Vorschau-Daten für das Lösch-Modal."""
+    sibling_count: int  # N: relevante Geschwister (Plan.prep_delete IS NULL, andere Appointment-IDs)
+    pending_requests_count: int  # M: pending Cancel/Swap-Requests im aktuellen Plan
+    snapshot: dict  # event_date, location_name, time_of_day_name
+
+
+def preview_appointment_delete(
+    session: Session,
+    appointment_id: uuid.UUID,
+) -> AppointmentDeletePreview:
+    """Berechnet N (Geschwister) + M (pending Requests) für das Lösch-Modal.
+
+    N = Anzahl Appointments mit demselben Event, deren Plan nicht soft-deleted
+    ist und die nicht das aktuelle Appointment sind. Steuert die Modal-
+    Verzweigung (Force-Checkbox erscheint nur bei N>0).
+
+    M = pending Cancel/Swap-Requests im aktuellen Appointment (die durch das
+    Delete obsolet werden — Status-Übergang zu superseded_by_cast_change).
+    """
+    appointment = session.get(Appointment, appointment_id)
+    if appointment is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Termin nicht gefunden.")
+
+    sibling_count = session.execute(
+        sa_select(func.count(Appointment.id))
+        .join(Plan, Plan.id == Appointment.plan_id)
+        .where(Appointment.event_id == appointment.event_id)
+        .where(Appointment.id != appointment_id)
+        .where(Plan.prep_delete.is_(None))
+    ).scalar() or 0
+
+    pending_cancel = session.execute(
+        sa_select(func.count(CancellationRequest.id))
+        .where(CancellationRequest.appointment_id == appointment_id)
+        .where(CancellationRequest.status == CancellationStatus.pending)
+    ).scalar() or 0
+
+    pending_swap = session.execute(
+        sa_select(func.count(SwapRequest.id))
+        .where(
+            (SwapRequest.requester_appointment_id == appointment_id)
+            | (SwapRequest.target_appointment_id == appointment_id)
+        )
+        .where(SwapRequest.status.in_([
+            SwapRequestStatus.pending,
+            SwapRequestStatus.accepted_by_target,
+        ]))
+    ).scalar() or 0
+
+    snapshot = _load_cast_removal_context(session, appointment_id)
+
+    return AppointmentDeletePreview(
+        sibling_count=int(sibling_count),
+        pending_requests_count=int(pending_cancel + pending_swap),
+        snapshot=snapshot,
+    )
+
+
+def delete_appointment(
+    session: Session,
+    appointment_id: uuid.UUID,
+    *,
+    actor_user_id: uuid.UUID,
+    force_event_delete: bool = False,
+    send_notifications: bool = True,
+) -> list[EmailPayload]:
+    """Hard-Delete des Appointments mit bedingter Event-Lösch-Logik.
+
+    Verzweigung anhand der Geschwister-Count N:
+    - N=0:                Event mit löschen (Default; CASCADE entfernt nichts
+                          Weiteres, weil das Event nur dieses eine Appointment
+                          hatte).
+    - N>0, force=False:   Nur das Appointment löschen; Event bleibt für die N
+                          anderen Iterationen erhalten.
+    - N>0, force=True:    Event mit löschen → DB-CASCADE entfernt die N anderen
+                          Appointments und ihre AvailDayAppointmentLinks.
+
+    Notifications (PRD F3.1-3.4):
+    - Verplante des aktuellen Appointments → Inbox + Email (über
+      `_notify_direct_cast_changes`)
+    - Pending Cancel/Swap-Requests im aktuellen Plan → Status auf
+      superseded_by_cast_change + Inhaber benachrichtigt (über
+      `_cancel_open_requests_for_removed_persons`)
+    - Verplante in nicht-binding Iterationen (bei force=True) → KEINE
+      Notification (sie kennen die Iterationen nicht — Mitarbeiter sehen
+      nur binding Pläne).
+
+    `send_notifications=False` (Phase 5: Pro-Aktion-Toggle): unterdrückt
+    Inbox + Email; schreibt stattdessen `logger.info("audit.notification_suppressed", extra=...)`.
+    DB-Mutation findet trotzdem statt.
+    """
+    appointment = session.get(Appointment, appointment_id)
+    if appointment is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Termin nicht gefunden.")
+
+    event_id = appointment.event_id
+
+    # Verplante Personen am aktuellen Appointment (für Direct-Notifications)
+    current_person_ids = set(session.execute(
+        sa_select(ActorPlanPeriod.person_id)
+        .join(AvailDay, AvailDay.actor_plan_period_id == ActorPlanPeriod.id)
+        .join(AvailDayAppointmentLink, AvailDayAppointmentLink.avail_day_id == AvailDay.id)
+        .where(AvailDayAppointmentLink.appointment_id == appointment_id)
+    ).scalars().all())
+
+    # Geschwister-Count (relevant = Plan.prep_delete IS NULL)
+    sibling_count = session.execute(
+        sa_select(func.count(Appointment.id))
+        .join(Plan, Plan.id == Appointment.plan_id)
+        .where(Appointment.event_id == event_id)
+        .where(Appointment.id != appointment_id)
+        .where(Plan.prep_delete.is_(None))
+    ).scalar() or 0
+    sibling_count = int(sibling_count)
+
+    payloads: list[EmailPayload] = []
+    notified_user_ids: set[uuid.UUID] = set()
+
+    if send_notifications:
+        cascade_payloads, cascade_notified = _cancel_open_requests_for_removed_persons(
+            session, appointment_id, current_person_ids
+        )
+        payloads.extend(cascade_payloads)
+        notified_user_ids.update(cascade_notified)
+
+        direct_payloads = _notify_direct_cast_changes(
+            session,
+            appointment_id,
+            added_person_ids=set(),
+            removed_person_ids=current_person_ids,
+            exclude_user_ids=notified_user_ids,
+        )
+        payloads.extend(direct_payloads)
+    else:
+        # Phase 5 Stop-Gap: strukturiertes Logging als Pre-Audit-Tabelle
+        affected_user_ids = list(session.execute(
+            sa_select(WebUser.id).where(WebUser.person_id.in_(current_person_ids))
+        ).scalars().all()) if current_person_ids else []
+        logger.info(
+            "audit.notification_suppressed",
+            extra={
+                "action": "appointment.delete",
+                "actor_user_id": str(actor_user_id),
+                "appointment_id": str(appointment_id),
+                "affected_user_ids": [str(uid) for uid in affected_user_ids],
+                "reason": "dispatcher_toggle_off",
+            },
+        )
+
+    # Hard-Delete des Appointments (AvailDayAppointmentLinks via CASCADE)
+    session.delete(appointment)
+    session.flush()
+
+    # Event-Lösch-Entscheidung
+    if sibling_count == 0 or force_event_delete:
+        event = session.get(Event, event_id)
+        if event is not None:
+            # CASCADE: alle Geschwister-Appointments + ihre AvailDayAppointmentLinks
+            session.delete(event)
+            session.flush()
+
+    return payloads
 
 
 def _build_plan_unbind_snapshot(ctx: dict, *, request_type: str) -> dict:

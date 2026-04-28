@@ -663,7 +663,7 @@ def create_appointment_with_event(
         )
 
     # 4. Atomare Hierarchie aufbauen (parent → flush → children)
-    cast_group = CastGroup(nr_actors=nr_actors)
+    cast_group = CastGroup(nr_actors=nr_actors, plan_period_id=plan.plan_period_id)
     session.add(cast_group)
     session.flush()
 

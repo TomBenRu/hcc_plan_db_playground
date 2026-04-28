@@ -1,0 +1,31 @@
+{#
+  Macros fuer das Availability-Modul.
+
+  Aktuell: time_of_day_range_input — wiederverwendbarer Block fuer
+  TimeOfDay-Definitionsstellen (Add + Edit). Liefert die zwei time-
+  Inputs plus eine Display-Spanne, die clientseitig per Vanilla-JS
+  (initialize_tod_range_displays in time_of_days.html) mit der
+  Live-Dauer und ggf. einem Mitternacht-Indikator gefuellt wird.
+
+  Konvention im Datenmodell: end < start = Wrap in den Folgetag.
+  end == start = 0-Dauer (vermutlich nicht gemeint, wird visuell
+  als Warnung angezeigt, aber nicht hart abgelehnt).
+#}
+
+{% macro time_of_day_range_input(start_value="", end_value="") %}
+<div class="inline-flex items-center gap-1.5" data-tod-range>
+    <input type="time" name="start" value="{{ start_value }}" required
+           data-tod-start
+           class="text-xs border border-slate-200 rounded-lg px-2 py-1.5 font-sans
+                  text-slate-700 focus:outline-none focus:border-brand/60 focus:ring-1 focus:ring-brand/30
+                  bg-white w-24">
+    <span class="text-xs text-slate-400">–</span>
+    <input type="time" name="end" value="{{ end_value }}" required
+           data-tod-end
+           class="text-xs border border-slate-200 rounded-lg px-2 py-1.5 font-sans
+                  text-slate-700 focus:outline-none focus:border-brand/60 focus:ring-1 focus:ring-brand/30
+                  bg-white w-24">
+    <span class="text-[11px] text-slate-500 font-sans whitespace-nowrap leading-snug ml-1"
+          data-tod-display></span>
+</div>
+{% endmacro %}

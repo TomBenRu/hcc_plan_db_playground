@@ -5,15 +5,17 @@ from functools import partial
 from typing import Callable
 from uuid import UUID
 
-from PySide6.QtCore import QTimer, QCoreApplication
+from PySide6.QtCore import QTimer, QCoreApplication, QTime
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QDialog, QWidget, QLineEdit, QTimeEdit, QPushButton, QGridLayout, QMessageBox, \
-    QDialogButtonBox, QCheckBox, QFormLayout, QSpinBox, QTableWidget, QAbstractItemView, QTableWidgetItem, QApplication
+from PySide6.QtWidgets import QDialog, QWidget, QLineEdit, QPushButton, QGridLayout, QMessageBox, \
+    QDialogButtonBox, QCheckBox, QFormLayout, QSpinBox, QTableWidget, QAbstractItemView, QTableWidgetItem, \
+    QApplication, QLabel
 
 from database import schemas, db_services
 from commands import command_base_classes
 from commands.database_commands import actor_plan_period_commands, location_plan_period_commands, project_commands, \
     person_commands, location_of_work_commands, time_of_day_commands
+from gui.custom_widgets.custom_date_and_time_edit import TimeEditLocale
 from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 from tools.helper_functions import time_to_string, setup_form_help
 
@@ -210,8 +212,22 @@ class DlgTimeOfDayEdit(QDialog):
         self.layout = QFormLayout(self)
 
         self.le_name = QLineEdit()
-        self.te_start = QTimeEdit()
-        self.te_end = QTimeEdit()
+        # `QTime(0, 0)` als Default, um Verhalten des frueheren `QTimeEdit()`
+        # beizubehalten — `TimeEditLocale` setzt sonst die aktuelle Zeit.
+        self.te_start = TimeEditLocale(time=QTime(0, 0))
+        self.te_end = TimeEditLocale(time=QTime(0, 0))
+        # Hinweis-Tooltip + Live-Dauer-Label fuer Mitternachts-Konvention
+        # (siehe `database/slot_arithmetic.py`).
+        midnight_hint = self.tr(
+            "End time before start time = span across midnight. Maximum 24 hours."
+        )
+        self.te_start.setToolTip(midnight_hint)
+        self.te_end.setToolTip(midnight_hint)
+        self.lbl_duration = QLabel()
+        self.lbl_duration.setStyleSheet("color: #64748b; font-size: 11px;")
+        self.te_start.timeChanged.connect(self._update_duration_display)
+        self.te_end.timeChanged.connect(self._update_duration_display)
+
         self.cb_time_of_day_enum = QComboBoxToFindData()
         self.cb_time_of_day_enum.currentIndexChanged.connect(self.time_of_day_enum_changed)
         self.chk_default = QCheckBox()
@@ -227,6 +243,7 @@ class DlgTimeOfDayEdit(QDialog):
         self.layout.addRow(self.tr('Name'), self.le_name)
         self.layout.addRow(self.tr('Start time'), self.te_start)
         self.layout.addRow(self.tr('End time'), self.te_end)
+        self.layout.addRow('', self.lbl_duration)
         self.layout.addRow(self.tr('Time of day standard'), self.cb_time_of_day_enum)
         self.layout.addRow(self.chk_default)
         self.layout.addRow(self.chk_new_mode)
@@ -234,6 +251,7 @@ class DlgTimeOfDayEdit(QDialog):
         self.layout.addRow(self.bt_box)
 
         self.autofill()
+        self._update_duration_display()
 
         # Help-Integration
         setup_form_help(self, "time_of_day", add_help_button=True)
@@ -258,6 +276,39 @@ class DlgTimeOfDayEdit(QDialog):
             self.bt_delete.setDisabled(True)
         else:
             self.bt_delete.setEnabled(True)
+
+    def _update_duration_display(self):
+        """Aktualisiert das Dauer-Label.
+
+        Konvention `slot_arithmetic.slot_to_range`: end < start = Wrap
+        (Spanne ueber Mitternacht, +24h). end == start = 0-Dauer (visuell
+        als Warnung markiert, aber nicht hart abgelehnt).
+        """
+        start = self.te_start.time()
+        end = self.te_end.time()
+        start_min = start.hour() * 60 + start.minute()
+        end_min = end.hour() * 60 + end.minute()
+        wrapped = end_min < start_min
+        if wrapped:
+            end_min += 24 * 60
+        total = end_min - start_min
+        if total == 0:
+            text = self.tr("⚠ Duration: 0 min")
+            self.lbl_duration.setStyleSheet("color: #d97706; font-size: 11px;")
+        else:
+            h, m = divmod(total, 60)
+            parts: list[str] = []
+            if h:
+                parts.append(f"{h} {self.tr('hr')}")
+            if m:
+                parts.append(f"{m} {self.tr('min')}")
+            text = self.tr("Duration:") + " " + " ".join(parts)
+            if wrapped:
+                text += " 🌙"
+                self.lbl_duration.setStyleSheet("color: #d97706; font-size: 11px;")
+            else:
+                self.lbl_duration.setStyleSheet("color: #64748b; font-size: 11px;")
+        self.lbl_duration.setText(text)
 
     def time_of_day_enum_changed(self):
         if t_o_d_enum := self.cb_time_of_day_enum.currentText():

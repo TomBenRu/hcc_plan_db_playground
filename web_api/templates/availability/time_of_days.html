@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "availability/_macros.html" import time_of_day_range_input %}
 
 {% block title %}Meine Tageszeiten — hcc plan{% endblock %}
 
@@ -71,19 +72,7 @@
                       hx-swap="beforeend"
                       class="flex items-center gap-2 flex-wrap">
                     <input type="hidden" name="time_of_day_enum_id" value="{{ grp.enum_id }}">
-                    <div class="flex items-center gap-1.5">
-                        <input type="time" name="start" required
-                               placeholder="Beginn"
-                               class="text-xs border border-slate-200 rounded-lg px-2 py-1.5 font-sans
-                                      text-slate-700 focus:outline-none focus:border-brand/60 focus:ring-1 focus:ring-brand/30
-                                      bg-white w-24">
-                        <span class="text-xs text-slate-400">–</span>
-                        <input type="time" name="end" required
-                               placeholder="Ende"
-                               class="text-xs border border-slate-200 rounded-lg px-2 py-1.5 font-sans
-                                      text-slate-700 focus:outline-none focus:border-brand/60 focus:ring-1 focus:ring-brand/30
-                                      bg-white w-24">
-                    </div>
+                    {{ time_of_day_range_input() }}
                     <input type="text" name="name" placeholder="Bezeichnung (optional)"
                            maxlength="50"
                            class="flex-1 min-w-28 text-xs border border-slate-200 rounded-lg px-2 py-1.5 font-sans
@@ -98,10 +87,75 @@
                         Hinzufügen
                     </button>
                 </form>
+                <p class="text-[11px] text-slate-400 font-sans mt-2 leading-snug">
+                    Endzeit vor Startzeit = Spanne über Mitternacht (max. 24 Stunden).
+                </p>
             </div>
         </div>
         {% endfor %}
 
     </div>
 </div>
+
+{# ── Live-Dauer fuer alle TimeOfDay-Range-Inputs (Add + Edit) ─────────── #}
+<script>
+(function () {
+    function calcDuration(startStr, endStr) {
+        if (!startStr || !endStr) return null;
+        var sParts = startStr.split(':').map(Number);
+        var eParts = endStr.split(':').map(Number);
+        if (sParts.length < 2 || eParts.length < 2) return null;
+        var s = sParts[0] * 60 + sParts[1];
+        var e = eParts[0] * 60 + eParts[1];
+        var wrapped = false;
+        if (e < s) {
+            e += 24 * 60;
+            wrapped = true;
+        }
+        return { minutes: e - s, wrapped: wrapped };
+    }
+
+    function format(info) {
+        if (info === null) return '';
+        if (info.minutes === 0) {
+            return '⚠ Dauer 0 Min.';
+        }
+        var h = Math.floor(info.minutes / 60);
+        var m = info.minutes % 60;
+        var parts = [];
+        if (h > 0) parts.push(h + ' Std.');
+        if (m > 0) parts.push(m + ' Min.');
+        var text = parts.join(' ');
+        if (info.wrapped) text += ' 🌙';
+        return text;
+    }
+
+    function update(wrapper) {
+        var startInput = wrapper.querySelector('[data-tod-start]');
+        var endInput = wrapper.querySelector('[data-tod-end]');
+        var display = wrapper.querySelector('[data-tod-display]');
+        if (!startInput || !endInput || !display) return;
+        var info = calcDuration(startInput.value, endInput.value);
+        display.textContent = format(info);
+        var warn = info && (info.minutes === 0 || info.wrapped);
+        display.classList.toggle('text-amber-600', !!warn);
+        display.classList.toggle('text-slate-500', !warn);
+    }
+
+    function initAll() {
+        document.querySelectorAll('[data-tod-range]').forEach(update);
+    }
+
+    // Live-Update bei Input-Aenderung (Event-Delegation auf body — funktioniert
+    // auch fuer per HTMX nachgeladene Wrapper).
+    document.addEventListener('input', function (e) {
+        var wrapper = e.target.closest && e.target.closest('[data-tod-range]');
+        if (wrapper) update(wrapper);
+    });
+
+    // Initial + nach jedem HTMX-Swap (z.B. neue Edit-Row, neuer Add-Eintrag).
+    initAll();
+    document.body.addEventListener('htmx:afterSwap', initAll);
+})();
+</script>
 {% endblock %}

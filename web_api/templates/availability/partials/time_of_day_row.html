@@ -2,6 +2,7 @@
   TOD-Zeilen-Fragment — wird via HTMX in #tod-row-{id} eingesetzt.
   Erwartet: tod (PersonTimeOfDayInfo)
 #}
+{% from "availability/_macros.html" import time_of_day_range_input %}
 <tr id="tod-row-{{ tod.id }}" class="border-b border-slate-100 last:border-0">
     <td class="py-3 pr-4">
         <div class="text-sm font-medium text-slate-800 font-sans">
@@ -18,15 +19,10 @@
                   hx-target="#tod-row-{{ tod.id }}"
                   hx-swap="outerHTML"
                   class="flex items-center gap-1.5">
-                <input type="time" name="start" value="{{ tod.start.strftime('%H:%M') }}"
-                       class="text-xs border border-slate-200 rounded-lg px-2 py-1.5 font-sans
-                              text-slate-700 focus:outline-none focus:border-brand/60 focus:ring-1 focus:ring-brand/30
-                              w-24">
-                <span class="text-xs text-slate-400">–</span>
-                <input type="time" name="end" value="{{ tod.end.strftime('%H:%M') }}"
-                       class="text-xs border border-slate-200 rounded-lg px-2 py-1.5 font-sans
-                              text-slate-700 focus:outline-none focus:border-brand/60 focus:ring-1 focus:ring-brand/30
-                              w-24">
+                {{ time_of_day_range_input(
+                    start_value=tod.start.strftime('%H:%M'),
+                    end_value=tod.end.strftime('%H:%M'),
+                ) }}
                 <button type="submit"
                         class="inline-flex items-center gap-1 text-xs font-medium px-2.5 py-1.5 rounded-lg
                                bg-brand/10 text-brand hover:bg-brand/20 transition-colors font-sans">

@@ -100,7 +100,7 @@ def _cancel_open_requests_for_removed_persons(
     *,
     exclude_cancellation_ids: frozenset[uuid.UUID] = frozenset(),
     exclude_swap_ids: frozenset[uuid.UUID] = frozenset(),
-) -> list[EmailPayload]:
+) -> tuple[list[EmailPayload], set[uuid.UUID]]:
     """Setzt pending Cancel-/Swap-/Takeover-Requests der entfernten Personen
     auf superseded_by_cast_change und erzeugt Inbox-Messages + Email-Payloads
     für alle Betroffenen.
@@ -115,16 +115,21 @@ def _cancel_open_requests_for_removed_persons(
     (resolved / confirmed_by_dispatcher) anschließend — diese IDs können
     übergeben werden, damit der Helper sie weder auf superseded flippt noch
     Benachrichtigungen erzeugt.
+
+    Rückgabe: Tuple `(payloads, notified_user_ids)`. `notified_user_ids` enthält
+    die WebUser-IDs aller Personen, die durch den Cascade Inbox-Messages erhalten
+    haben — der Direct-Cast-Change-Helper nutzt das Set zur Dedup.
     """
     payloads: list[EmailPayload] = []
+    notified_user_ids: set[uuid.UUID] = set()
     if not removed_person_ids:
-        return payloads
+        return payloads, notified_user_ids
 
     removed_web_users = list(session.execute(
         sa_select(WebUser).where(WebUser.person_id.in_(removed_person_ids))
     ).scalars().all())
     if not removed_web_users:
-        return payloads
+        return payloads, notified_user_ids
 
     removed_wu_ids = {u.id for u in removed_web_users}
 
@@ -168,7 +173,7 @@ def _cancel_open_requests_for_removed_persons(
     swap_reqs = [sw for sw in swap_reqs_raw if sw.id not in exclude_swap_ids]
 
     if not cancel_reqs and not swap_reqs:
-        return payloads
+        return payloads, notified_user_ids
 
     # Batch-Load aller benötigten WebUser + Person (statt N+1 im Loop)
     relevant_wu_ids: set[uuid.UUID] = set(removed_wu_ids)
@@ -226,6 +231,7 @@ def _cancel_open_requests_for_removed_persons(
                 reference_type="cancellation_request",
                 snapshot_data=snapshot,
             )
+            notified_user_ids.add(user.id)
             if user.email:
                 payloads.append(EmailPayload(
                     to=[user.email],
@@ -252,6 +258,7 @@ def _cancel_open_requests_for_removed_persons(
                 reference_type="takeover_offer",
                 snapshot_data=offerer_snapshot,
             )
+            notified_user_ids.add(offerer.id)
             if offerer.email:
                 payloads.append(EmailPayload(
                     to=[offerer.email],
@@ -297,6 +304,7 @@ def _cancel_open_requests_for_removed_persons(
                 reference_type="swap_request",
                 snapshot_data=snapshot,
             )
+            notified_user_ids.add(user.id)
             if user.email:
                 subject = (
                     "Cast-Änderung: Deine Tausch-Anfrage ist obsolet"
@@ -306,6 +314,96 @@ def _cancel_open_requests_for_removed_persons(
                 payloads.append(EmailPayload(
                     to=[user.email],
                     subject=subject,
+                    html_body=_render_cast_removal_email(snapshot),
+                ))
+
+    session.flush()
+    return payloads, notified_user_ids
+
+
+def _render_cast_addition_email(snapshot: dict) -> str:
+    return templates.get_template("emails/cast_member_added.html").render(snapshot=snapshot)
+
+
+def _notify_direct_cast_changes(
+    session: Session,
+    appointment_id: uuid.UUID,
+    *,
+    added_person_ids: set[uuid.UUID],
+    removed_person_ids: set[uuid.UUID],
+    exclude_user_ids: set[uuid.UUID],
+) -> list[EmailPayload]:
+    """Direkt-Notification an hinzukommende und entfernte Personen.
+
+    Cast-Add: jede hinzukommende Person erhält Inbox `dispatcher_added_to_cast`
+    + Email aus `cast_member_added.html`.
+
+    Cast-Remove: jede entfernte Person erhält Inbox `dispatcher_removed_from_cast`
+    (snapshot.request_type="direct_remove") + Email-Variante aus
+    `cast_member_removed.html` — ABER nur wenn ihre WebUser-ID nicht bereits in
+    `exclude_user_ids` ist (= sie wurde nicht schon via Request-Cascade
+    informiert).
+
+    `exclude_user_ids` kommt aus dem Cascade-Helper-Return-Tuple und verhindert
+    Doppelversand. Cast-Add hat keine Cascade-Kollision (Add erzeugt keine
+    Request-Status-Übergänge), also wird der Filter dort ignoriert.
+    """
+    payloads: list[EmailPayload] = []
+    if not added_person_ids and not removed_person_ids:
+        return payloads
+
+    relevant_person_ids = added_person_ids | removed_person_ids
+    web_users = list(session.execute(
+        sa_select(WebUser).where(WebUser.person_id.in_(relevant_person_ids))
+    ).scalars().all())
+    if not web_users:
+        return payloads
+
+    ctx = _load_cast_removal_context(session, appointment_id)
+
+    for user in web_users:
+        if user.person_id in added_person_ids:
+            snapshot = {
+                "event_date": str(ctx.get("event_date", "")),
+                "location_name": ctx.get("location_name", ""),
+                "time_of_day_name": ctx.get("time_of_day_name", ""),
+                "request_type": "direct_add",
+                "recipient_role": "self",
+            }
+            create_inbox_message(
+                session,
+                recipient_id=user.id,
+                msg_type=InboxMessageType.dispatcher_added_to_cast,
+                reference_id=appointment_id,
+                reference_type="appointment",
+                snapshot_data=snapshot,
+            )
+            if user.email:
+                payloads.append(EmailPayload(
+                    to=[user.email],
+                    subject="In Besetzung aufgenommen",
+                    html_body=_render_cast_addition_email(snapshot),
+                ))
+        elif user.person_id in removed_person_ids and user.id not in exclude_user_ids:
+            snapshot = {
+                "event_date": str(ctx.get("event_date", "")),
+                "location_name": ctx.get("location_name", ""),
+                "time_of_day_name": ctx.get("time_of_day_name", ""),
+                "request_type": "direct_remove",
+                "recipient_role": "self",
+            }
+            create_inbox_message(
+                session,
+                recipient_id=user.id,
+                msg_type=InboxMessageType.dispatcher_removed_from_cast,
+                reference_id=appointment_id,
+                reference_type="appointment",
+                snapshot_data=snapshot,
+            )
+            if user.email:
+                payloads.append(EmailPayload(
+                    to=[user.email],
+                    subject="Aus Besetzung entfernt",
                     html_body=_render_cast_removal_email(snapshot),
                 ))
 
@@ -348,15 +446,24 @@ def update_appointment_avail_days(
         }
 
     removed_person_ids = old_person_ids - new_person_ids
+    added_person_ids = new_person_ids - old_person_ids
 
     appointment = session.get(Appointment, appointment_id)
     appointment.avail_days.clear()
     appointment.avail_days.extend(avds_by_id[aid] for aid in new_avail_day_ids)
     session.flush()
 
-    return _cancel_open_requests_for_removed_persons(
+    cascade_payloads, notified_user_ids = _cancel_open_requests_for_removed_persons(
         session, appointment_id, removed_person_ids
     )
+    direct_payloads = _notify_direct_cast_changes(
+        session,
+        appointment_id,
+        added_person_ids=added_person_ids,
+        removed_person_ids=removed_person_ids,
+        exclude_user_ids=notified_user_ids,
+    )
+    return cascade_payloads + direct_payloads
 
 
 def reassign_appointment(
@@ -384,13 +491,14 @@ def reassign_appointment(
 
     Gibt die Liste der zu versendenden Email-Payloads zurück.
     """
-    email_payloads = _cancel_open_requests_for_removed_persons(
+    cascade_payloads, notified_user_ids = _cancel_open_requests_for_removed_persons(
         session,
         appointment_id,
         {old_person_id},
         exclude_cancellation_ids=exclude_cancellation_ids,
         exclude_swap_ids=exclude_swap_ids,
     )
+    email_payloads = list(cascade_payloads)
 
     # 1. Alten Link + AvailDay der old_person finden
     old_link_row = session.execute(
@@ -461,6 +569,17 @@ def reassign_appointment(
     if cast_group is not None and cast_group.fixed_cast is not None:
         cast_group.fixed_cast = None
         session.flush()
+
+    # 7. Direct-Notifications für hinzukommende und (falls nicht via Cascade
+    #    informiert) entfernte Person.
+    direct_payloads = _notify_direct_cast_changes(
+        session,
+        appointment_id,
+        added_person_ids={new_person_id},
+        removed_person_ids={old_person_id},
+        exclude_user_ids=notified_user_ids,
+    )
+    email_payloads.extend(direct_payloads)
 
     return email_payloads
 

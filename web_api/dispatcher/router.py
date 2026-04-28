@@ -9,7 +9,7 @@ from sqlmodel import Session
 
 from sqlalchemy import select as sa_select
 
-from database.models import Address, Appointment, LocationOfWork, TimeOfDay
+from database.models import Address, Appointment, LocationOfWork, LocationPlanPeriod, PlanPeriod, TimeOfDay
 from web_api.auth.dependencies import WebUserRole, require_role
 from web_api.cancellations.service import get_cancellations_for_dispatcher
 from web_api.common import fc_event_end_iso, fc_event_start_iso, guest_list, location_display_name
@@ -212,21 +212,42 @@ def dispatcher_plan_events(
 # beim UUID-Parse (siehe Memory `feedback_htmx_form_query_params`).
 
 
-def _load_appointment_form_options(session: Session, team) -> dict:
-    """Lädt Locations + Project-Default-TODs für ein Team-Project.
+def _load_appointment_form_options(
+    session: Session,
+    team,
+    *,
+    date_filter: date | None = None,
+) -> dict:
+    """Lädt Team-spezifische Locations + Project-Default-TODs.
 
-    Locations: alle aktiven LocationOfWork des Projects.
+    Locations: nur LocationOfWork, die in einer LocationPlanPeriod einer
+    nicht-soft-deleteten PlanPeriod dieses Teams auftauchen. Wenn `date_filter`
+    gesetzt ist, werden zusätzlich nur LPPs in PlanPeriods berücksichtigt,
+    deren Datum-Range den `date_filter` enthält — damit zeigt das Form nur
+    Standorte, die für den gewählten Tag tatsächlich planbar sind.
+
     TODs: alle TimeOfDay mit `project_defaults_id == team.project_id`
     (= Project-Defaults, die im UI als Standard-Auswahl dienen).
     """
-    location_rows = list(session.execute(
+    location_query = (
         sa_select(LocationOfWork.id, LocationOfWork.name, Address.city)
         .select_from(LocationOfWork)
         .join(Address, Address.id == LocationOfWork.address_id, isouter=True)
-        .where(LocationOfWork.project_id == team.project_id)
+        .join(LocationPlanPeriod, LocationPlanPeriod.location_of_work_id == LocationOfWork.id)
+        .join(PlanPeriod, PlanPeriod.id == LocationPlanPeriod.plan_period_id)
+        .where(PlanPeriod.team_id == team.id)
+        .where(PlanPeriod.prep_delete.is_(None))
         .where(LocationOfWork.prep_delete.is_(None))
-        .order_by(LocationOfWork.name)
-    ).mappings().all())
+    )
+    if date_filter is not None:
+        location_query = (
+            location_query
+            .where(PlanPeriod.start <= date_filter)
+            .where(PlanPeriod.end >= date_filter)
+        )
+    location_query = location_query.distinct().order_by(LocationOfWork.name)
+
+    location_rows = list(session.execute(location_query).mappings().all())
     locations = [
         {"id": row["id"], "display_name": location_display_name(row["name"], row["city"])}
         for row in location_rows
@@ -249,13 +270,14 @@ def dispatcher_appointment_new_form(
     user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
     session: Session = Depends(get_db_session),
     team_id: uuid.UUID | None = Query(default=None),
-    date: str | None = Query(default=None),
+    date_str: str | None = Query(default=None, alias="date"),
 ):
     """HTMX-Modal-Fragment: Form zum Anlegen eines Termins.
 
     `team_id` und `date` sind optional — `date` wird per Day-Click prefilled,
-    `team_id` per Team-Select-Wechsel. Bei Team-Wechsel (hx-trigger=change)
-    lädt das Form sich selbst neu mit aktualisierten Location- und TOD-Listen.
+    `team_id` per Team-Select-Wechsel. Bei Team- oder Datums-Wechsel
+    (hx-trigger=change) lädt das Form sich selbst neu mit aktualisierten
+    Location- und TOD-Listen für die (Team, Datum)-Kombination.
     """
     person_id = _require_person_id(user)
     my_teams = get_teams_for_dispatcher(session, person_id)
@@ -272,7 +294,16 @@ def dispatcher_appointment_new_form(
     if selected_team is None:
         selected_team = my_teams[0]
 
-    options = _load_appointment_form_options(session, selected_team)
+    # Datum als date parsen (Form-Submit liefert ISO-String); leerer/invalider
+    # Wert → kein Filter, alle Locations des Teams werden gezeigt.
+    parsed_date: date | None = None
+    if date_str:
+        try:
+            parsed_date = date.fromisoformat(date_str)
+        except ValueError:
+            parsed_date = None
+
+    options = _load_appointment_form_options(session, selected_team, date_filter=parsed_date)
 
     return templates.TemplateResponse(
         "dispatcher/partials/appointment_create_form.html",
@@ -280,7 +311,7 @@ def dispatcher_appointment_new_form(
             "request": request,
             "my_teams": my_teams,
             "selected_team_id": selected_team.id,
-            "default_date": date or "",
+            "default_date": date_str or "",
             "locations": options["locations"],
             "time_of_days": options["time_of_days"],
             "error_message": None,
@@ -331,7 +362,7 @@ def dispatcher_appointment_create(
 
     if error_message is not None:
         session.rollback()
-        options = _load_appointment_form_options(session, selected_team)
+        options = _load_appointment_form_options(session, selected_team, date_filter=date)
         return templates.TemplateResponse(
             "dispatcher/partials/appointment_create_form.html",
             {

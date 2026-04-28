@@ -28,7 +28,7 @@ from database.models import (
     TimeOfDay,
 )
 from web_api.availability.service import create_avail_day, find_avail_day, reset_location_prefs_to_normal
-from web_api.common import location_display_name
+from web_api.common import interval_minutes, location_display_name
 from web_api.email.service import EmailPayload
 from web_api.inbox.service import create_inbox_message
 from web_api.models.web_models import (
@@ -661,6 +661,37 @@ def create_appointment_with_event(
             status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Master-EventGroup fehlt für diese Location-Plan-Period.",
         )
+
+    # 3b. Konflikt-Prüfung: existiert bereits ein Appointment derselben
+    #     LPP + Datum mit überlappender Zeit-Range im aktuellen Plan?
+    new_tod = session.get(TimeOfDay, time_of_day_id)
+    if new_tod is None:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Tageszeit nicht gefunden.",
+        )
+    new_start_min, new_end_min = interval_minutes(new_tod.start, new_tod.end)
+
+    existing_ranges = list(session.execute(
+        sa_select(TimeOfDay.start, TimeOfDay.end)
+        .select_from(Appointment)
+        .join(Event, Event.id == Appointment.event_id)
+        .join(TimeOfDay, TimeOfDay.id == Event.time_of_day_id)
+        .where(Appointment.plan_id == plan.id)
+        .where(Event.location_plan_period_id == lpp.id)
+        .where(Event.date == date)
+    ).all())
+
+    for ex_start, ex_end in existing_ranges:
+        ex_start_min, ex_end_min = interval_minutes(ex_start, ex_end)
+        if new_start_min < ex_end_min and ex_start_min < new_end_min:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=(
+                    "Es existiert bereits ein Termin für diesen Arbeitsort am "
+                    "gewählten Tag mit überschneidender Zeit-Range."
+                ),
+            )
 
     # 4. Atomare Hierarchie aufbauen (parent → flush → children)
     cast_group = CastGroup(nr_actors=nr_actors, plan_period_id=plan.plan_period_id)

@@ -149,6 +149,7 @@ class InboxMessageType(str, enum.Enum):
     swap_rejected = "swap_rejected"
     swap_withdrawn = "swap_withdrawn"
     dispatcher_removed_from_cast = "dispatcher_removed_from_cast"
+    dispatcher_added_to_cast = "dispatcher_added_to_cast"
     plan_unbound = "plan_unbound"
     availability_offer_received = "availability_offer_received"
     availability_offer_accepted = "availability_offer_accepted"

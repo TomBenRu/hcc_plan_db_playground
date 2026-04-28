@@ -716,6 +716,12 @@ def create_appointment_with_event(
     session.add(appointment)
     session.flush()
 
+    # Plan.location_columns enthaelt Layout-Cache fuer den Desktop-Client.
+    # Nach Strukturaenderungen (neues Appointment) muss er zurueckgesetzt
+    # werden, damit der Desktop-Client das Layout neu berechnet.
+    plan.location_columns = {}
+    session.flush()
+
     return appointment
 
 
@@ -870,17 +876,41 @@ def delete_appointment(
             },
         )
 
+    # Plan-IDs aller Pläne, deren Layout-Cache (location_columns) zurückgesetzt
+    # werden muss. Immer der aktuelle Plan; bei Force-Event-Delete zusätzlich
+    # alle Geschwister-Pläne, deren Appointments via CASCADE entfernt werden.
+    # WICHTIG: VOR dem Delete sammeln, weil die Geschwister-Rows danach weg sind.
+    affected_plan_ids: set[uuid.UUID] = {appointment.plan_id}
+    will_delete_event = sibling_count == 0 or force_event_delete
+    if will_delete_event and sibling_count > 0:
+        sibling_plan_ids = set(session.execute(
+            sa_select(Appointment.plan_id)
+            .where(Appointment.event_id == event_id)
+            .where(Appointment.id != appointment_id)
+        ).scalars().all())
+        affected_plan_ids.update(sibling_plan_ids)
+
     # Hard-Delete des Appointments (AvailDayAppointmentLinks via CASCADE)
     session.delete(appointment)
     session.flush()
 
     # Event-Lösch-Entscheidung
-    if sibling_count == 0 or force_event_delete:
+    if will_delete_event:
         event = session.get(Event, event_id)
         if event is not None:
             # CASCADE: alle Geschwister-Appointments + ihre AvailDayAppointmentLinks
             session.delete(event)
             session.flush()
+
+    # Plan.location_columns zurücksetzen — der Layout-Cache im Desktop-Client
+    # muss neu berechnet werden, sonst zeigt er Verweise auf entfernte
+    # Appointments/Events.
+    affected_plans = list(session.execute(
+        sa_select(Plan).where(Plan.id.in_(affected_plan_ids))
+    ).scalars().all())
+    for p in affected_plans:
+        p.location_columns = {}
+    session.flush()
 
     return payloads
 

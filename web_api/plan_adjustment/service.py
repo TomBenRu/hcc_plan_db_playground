@@ -637,11 +637,12 @@ def create_appointment_with_event(
         )
 
     # 2. LocationPlanPeriod der gewünschten Location in derselben PlanPeriod
+    #    (LocationPlanPeriod hat kein eigenes prep_delete — Soft-Delete läuft
+    #    über die zugehörige PlanPeriod und kaskadiert via FK ondelete=CASCADE)
     lpp = session.execute(
         sa_select(LocationPlanPeriod)
         .where(LocationPlanPeriod.plan_period_id == plan.plan_period_id)
         .where(LocationPlanPeriod.location_of_work_id == location_of_work_id)
-        .where(LocationPlanPeriod.prep_delete.is_(None))
     ).scalars().first()
     if lpp is None:
         raise HTTPException(

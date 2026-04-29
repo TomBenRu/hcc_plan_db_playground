@@ -57,3 +57,8 @@ def new_time_of_day_standard(project_id: uuid.UUID, time_of_day_id: uuid.UUID, _
                response_model=schemas.ProjectShow)
 def remove_time_of_day_standard(project_id: uuid.UUID, time_of_day_id: uuid.UUID, _: DesktopUser):
     return db_services.Project.remove_time_of_day_standard(project_id, time_of_day_id)
+
+
+@router.put("/{project_id}/excel-settings/{excel_settings_id}", response_model=schemas.ProjectShow)
+def put_in_excel_settings(project_id: uuid.UUID, excel_settings_id: uuid.UUID, _: DesktopUser):
+    return db_services.Project.put_in_excel_settings(project_id, excel_settings_id)

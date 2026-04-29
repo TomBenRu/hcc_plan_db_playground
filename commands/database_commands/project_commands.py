@@ -9,7 +9,7 @@ from uuid import UUID
 
 from database import db_services, schemas
 from commands.command_base_classes import Command
-from gui.api_client import project as api_project
+from gui.api_client import project as api_project, excel_export_settings as api_excel_export_settings
 
 
 class Create(Command):
@@ -167,3 +167,30 @@ class RemoveTimeOfDayEnumStandard(Command):
 
     def _redo(self):
         project = api_project.remove_time_of_day_enum_standard(self.time_of_day_enum_id)
+
+
+class NewExcelExportSettings(Command):
+    """Copy-on-Write fuer Project.excel_export_settings.
+
+    Legt einen neuen ExcelExportSettings-Record mit dem Dialog-Inhalt an und
+    biegt den Project-FK darauf um. Der alte Record bleibt zunaechst erhalten,
+    weil er ggf. noch von Teams/Plans referenziert wird; das Aufraeumen ueber-
+    nimmt der generische Orphan-Cleanup.
+    """
+
+    def __init__(self, project_id: UUID, excel_settings: schemas.ExcelExportSettingsCreate):
+        super().__init__()
+        self.project_id = project_id
+        self.excel_settings = excel_settings
+        self.old_excel_settings_id = db_services.Project.get(project_id).excel_export_settings.id
+        self.created_excel_settings: schemas.ExcelExportSettingsShow | None = None
+
+    def execute(self):
+        self.created_excel_settings = api_excel_export_settings.create(self.excel_settings)
+        api_project.put_in_excel_settings(self.project_id, self.created_excel_settings.id)
+
+    def _undo(self):
+        api_project.put_in_excel_settings(self.project_id, self.old_excel_settings_id)
+
+    def _redo(self):
+        api_project.put_in_excel_settings(self.project_id, self.created_excel_settings.id)

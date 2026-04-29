@@ -96,6 +96,15 @@ def remove_in_time_of_day(project_id: UUID, time_of_day_id: UUID) -> schemas.Pro
         return schemas.ProjectShow.model_validate(project_db)
 
 
+def put_in_excel_settings(project_id: UUID, excel_settings_id: UUID) -> schemas.ProjectShow:
+    log_function_info()
+    with get_session() as session:
+        project_db = session.get(models.Project, project_id)
+        project_db.excel_export_settings = session.get(models.ExcelExportSettings, excel_settings_id)
+        session.flush()
+        return schemas.ProjectShow.model_validate(project_db)
+
+
 def new_time_of_day_standard(project_id: UUID, time_of_day_id: UUID) -> tuple[schemas.ProjectShow, UUID | None]:
     log_function_info()
     with get_session() as session:

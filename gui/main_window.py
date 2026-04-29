@@ -15,8 +15,7 @@ from httplib2 import ServerNotFoundError
 # xlsxwriter Imports werden lazy geladen für bessere Startup-Performance
 
 from commands import command_base_classes
-from commands.database_commands import plan_commands, team_commands, plan_period_commands, project_commands, \
-    excel_export_settings_commands
+from commands.database_commands import plan_commands, team_commands, plan_period_commands, project_commands
 from configuration import team_start_config, project_paths
 from configuration.google_calenders import curr_calendars_handler
 from configuration.main_geometry import geometry_manager, MainGeometry
@@ -691,18 +690,19 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         dlg = frm_excel_settings.DlgExcelExportSettings(self, team.excel_export_settings,
                                                         team.project)
         if dlg.exec():
-            if dlg.curr_excel_settings_id == dlg.excel_settings.id:
+            # Copy-on-Write: jede Modifikation legt einen neuen Settings-Record an
+            # und biegt den Team-FK darauf um. Nur wenn der User explizit auf den
+            # Project-Default zurueckgesetzt hat, wird stattdessen der FK auf den
+            # Project-Settings-Record umgelenkt (kein neuer Record).
+            if dlg.curr_excel_settings_id == team.project.excel_export_settings.id:
                 self.controller.execute(
-                    excel_export_settings_commands.Update(dlg.excel_settings))
-            elif dlg.curr_excel_settings_id is None:
+                    team_commands.PutInExcelExportSettings(team.id, team.project.excel_export_settings.id)
+                )
+            else:
                 self.controller.execute(
                     team_commands.NewExcelExportSettings(
                         team.id, schemas.ExcelExportSettingsCreate(**dlg.excel_settings.model_dump())
                     )
-                )
-            else:
-                self.controller.execute(
-                    team_commands.PutInExcelExportSettings(team.id, dlg.curr_excel_settings_id)
                 )
 
         signal_handling.handler_plan_tabs.reload_plan_from_db()
@@ -719,25 +719,30 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             QMessageBox.critical(self, 'Excel-Einstellungen', 'Sie müssen zuerst einen Plan öffnen.')
             return
 
-        team = plan_widget.plan.plan_period.team
+        # Frisch aus der DB nachladen, damit Reset auf Team-Defaults die aktuellsten
+        # Team-Settings zeigt — der TabManager-Cache sieht Aenderungen aus dem
+        # Team-Excel-Dialog nicht synchron.
+        plan = db_services.Plan.get(plan_widget.plan.id)
+        team = plan.plan_period.team
         dlg = frm_excel_settings.DlgExcelExportSettings(
-            self, plan_widget.plan.excel_export_settings, team)
+            self, plan.excel_export_settings, team)
         if dlg.exec():
-            if dlg.curr_excel_settings_id == dlg.excel_settings.id:
+            # Copy-on-Write: jede Modifikation legt einen neuen Settings-Record an
+            # und biegt den Plan-FK darauf um. Nur wenn der User explizit auf den
+            # Team-Default zurueckgesetzt hat, wird stattdessen der FK auf den
+            # Team-Settings-Record umgelenkt (kein neuer Record).
+            if dlg.curr_excel_settings_id == team.excel_export_settings.id:
                 self.controller.execute(
-                    excel_export_settings_commands.Update(dlg.excel_settings))
-            elif dlg.curr_excel_settings_id is None:
-                self.controller.execute(
-                    plan_commands.NewExcelExportSettings(
-                        plan_widget.plan.id, schemas.ExcelExportSettingsCreate(**dlg.excel_settings.model_dump())
-                    )
+                    plan_commands.PutInExcelExportSettings(plan.id, team.excel_export_settings.id)
                 )
             else:
                 self.controller.execute(
-                    plan_commands.PutInExcelExportSettings(plan_widget.plan.id, dlg.curr_excel_settings_id)
+                    plan_commands.NewExcelExportSettings(
+                        plan.id, schemas.ExcelExportSettingsCreate(**dlg.excel_settings.model_dump())
+                    )
                 )
 
-        signal_handling.handler_plan_tabs.reload_plan_from_db(plan_widget.plan.id)
+        signal_handling.handler_plan_tabs.reload_plan_from_db(plan.id)
 
     def determine_excel_output_folder(self):
         path_handler = project_paths.curr_user_path_handler

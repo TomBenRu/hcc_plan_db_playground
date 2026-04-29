@@ -5,9 +5,9 @@ from PySide6.QtGui import QIcon
 from PySide6.QtWidgets import (QDialog, QWidget, QGridLayout, QLabel, QLineEdit, QComboBox, QHBoxLayout,
                                QGroupBox, QPushButton, QMessageBox)
 
-from database import db_services
+from database import db_services, schemas
 from commands import command_base_classes
-from commands.database_commands import project_commands, person_commands, excel_export_settings_commands
+from commands.database_commands import project_commands, person_commands
 from . import frm_time_of_day, frm_cast_rule
 from .frm_excel_settings import DlgExcelExportSettings
 from .frm_skills import DlgEditSkills
@@ -191,7 +191,9 @@ class DlgSettingsProject(QDialog):
         dlg = DlgExcelExportSettings(self, self.project.excel_export_settings)
         if dlg.exec():
             self.controller.execute(
-                excel_export_settings_commands.Update(dlg.excel_settings))
+                project_commands.NewExcelExportSettings(
+                    self.project.id,
+                    schemas.ExcelExportSettingsCreate(**dlg.excel_settings.model_dump())))
             QMessageBox.information(self, self.tr('Excel Export Settings'),
                                   self.tr('Update completed:\n{}').format(dlg.excel_settings))
             self.project = db_services.Project.get(self.project_id)

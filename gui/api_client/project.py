@@ -58,3 +58,9 @@ def remove_time_of_day_enum_standard(time_of_day_enum_id: uuid.UUID) -> schemas.
     data = get_api_client().delete(
         f"/api/v1/time-of-day-enums/{time_of_day_enum_id}/project-standard")
     return schemas.ProjectShow.model_validate(data)
+
+
+def put_in_excel_settings(project_id: uuid.UUID, excel_settings_id: uuid.UUID) -> schemas.ProjectShow:
+    data = get_api_client().put(
+        f"/api/v1/projects/{project_id}/excel-settings/{excel_settings_id}")
+    return schemas.ProjectShow.model_validate(data)

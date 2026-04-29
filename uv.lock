@@ -707,7 +707,6 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "alembic" },
     { name = "icecream" },
     { name = "mypy" },
     { name = "pytest" },
@@ -731,7 +730,6 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "alembic", specifier = ">=1.18.4" },
     { name = "icecream", specifier = ">=2.1" },
     { name = "mypy", specifier = ">=1.17.0" },
     { name = "pytest", specifier = ">=8.0" },
@@ -791,6 +789,7 @@ name = "hcc-plan-web-api"
 version = "0.1.0"
 source = { virtual = "web_api" }
 dependencies = [
+    { name = "alembic" },
     { name = "apscheduler" },
     { name = "bcrypt" },
     { name = "fastapi" },
@@ -804,6 +803,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "alembic", specifier = ">=1.18.4" },
     { name = "apscheduler", specifier = ">=3.10" },
     { name = "bcrypt", specifier = ">=4.0" },
     { name = "fastapi", specifier = ">=0.115" },

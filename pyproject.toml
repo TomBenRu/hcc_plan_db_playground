@@ -21,7 +21,6 @@ dependencies = [
 
 [dependency-groups]
 dev = [
-    "alembic>=1.18.4",
     "icecream>=2.1",
     "mypy>=1.17.0",
     "pytest>=8.0",

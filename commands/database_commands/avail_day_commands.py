@@ -12,6 +12,7 @@ from uuid import UUID
 
 from database import db_services, schemas
 from commands.command_base_classes import Command
+from gui.api_client import actor_plan_period as api_actor_plan_period
 from gui.api_client import avail_day as api_avail_day
 
 
@@ -335,7 +336,7 @@ class ResetAllAvailDaysActorPartnerLocationPrefsToDefaults(Command):
         )
 
     def execute(self):
-        api_avail_day.reset_all_avail_days_partner_location_prefs_of_actor_plan_period_to_defaults(
+        api_actor_plan_period.reset_avail_days_partner_location_prefs_to_defaults(
             self.actor_plan_period_id)
 
     def _undo(self):
@@ -344,7 +345,7 @@ class ResetAllAvailDaysActorPartnerLocationPrefsToDefaults(Command):
             api_avail_day.put_in_partner_location_prefs(avail_day_id, actor_partner_loc_pref_ids)
 
     def _redo(self):
-        api_avail_day.reset_all_avail_days_partner_location_prefs_of_actor_plan_period_to_defaults(
+        api_actor_plan_period.reset_avail_days_partner_location_prefs_to_defaults(
             self.actor_plan_period_id)
 
 
@@ -361,7 +362,7 @@ class ResetAllAvailDaysActorLocationPrefsToDefaults(Command):
         )
 
     def execute(self):
-        api_avail_day.reset_all_avail_days_location_prefs_of_actor_plan_period_to_defaults(
+        api_actor_plan_period.reset_avail_days_location_prefs_to_defaults(
             self.actor_plan_period_id)
 
     def _undo(self):
@@ -370,7 +371,7 @@ class ResetAllAvailDaysActorLocationPrefsToDefaults(Command):
             api_avail_day.put_in_location_prefs(avail_day_id, actor_loc_pref_ids)
 
     def _redo(self):
-        api_avail_day.reset_all_avail_days_location_prefs_of_actor_plan_period_to_defaults(
+        api_actor_plan_period.reset_avail_days_location_prefs_to_defaults(
             self.actor_plan_period_id)
 
 
@@ -451,7 +452,7 @@ class ResetAllAvailDaysCombLocPossiblesToDefaults(Command):
         )
 
     def execute(self):
-        api_avail_day.reset_all_avail_days_comb_loc_possibles_of_actor_plan_period_to_defaults(
+        api_actor_plan_period.reset_avail_days_comb_loc_possibles_to_defaults(
             self.actor_plan_period_id)
 
     def _undo(self):
@@ -460,7 +461,7 @@ class ResetAllAvailDaysCombLocPossiblesToDefaults(Command):
             api_avail_day.put_in_comb_loc_possibles(avail_day_id, comb_loc_poss_ids)
 
     def _redo(self):
-        api_avail_day.reset_all_avail_days_comb_loc_possibles_of_actor_plan_period_to_defaults(
+        api_actor_plan_period.reset_avail_days_comb_loc_possibles_to_defaults(
             self.actor_plan_period_id)
 
 
@@ -514,14 +515,14 @@ class RemoveAllSkillsFromAllAvailDays(Command):
         )
 
     def execute(self):
-        api_avail_day.clear_all_skills_of_actor_plan_period(self.actor_plan_period_id)
+        api_actor_plan_period.clear_all_skills(self.actor_plan_period_id)
 
     def _undo(self):
         for avail_day_id, skill_ids in self.existing_skill_ids_per_avail_day.items():
             api_avail_day.put_in_skills(avail_day_id, skill_ids)
 
     def _redo(self):
-        api_avail_day.clear_all_skills_of_actor_plan_period(self.actor_plan_period_id)
+        api_actor_plan_period.clear_all_skills(self.actor_plan_period_id)
 
 
 class ResetAllSkillsOfAllAvailDaysToPersonDefaults(Command):
@@ -537,7 +538,7 @@ class ResetAllSkillsOfAllAvailDaysToPersonDefaults(Command):
         )
 
     def execute(self):
-        api_avail_day.reset_all_skills_of_actor_plan_period_to_person_defaults(
+        api_actor_plan_period.reset_all_skills_to_person_defaults(
             self.actor_plan_period_id)
 
     def _undo(self):
@@ -546,5 +547,5 @@ class ResetAllSkillsOfAllAvailDaysToPersonDefaults(Command):
             api_avail_day.put_in_skills(avail_day_id, skill_ids)
 
     def _redo(self):
-        api_avail_day.reset_all_skills_of_actor_plan_period_to_person_defaults(
+        api_actor_plan_period.reset_all_skills_to_person_defaults(
             self.actor_plan_period_id)

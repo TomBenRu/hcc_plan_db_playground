@@ -78,18 +78,39 @@ class EmailConfig:
             toml.dump(settings.model_dump(mode='json'), f)
             
     def get_smtp_credentials(self):
-        """Holt die SMTP-Anmeldeinformationen aus der Systemkeychain."""
-        host = keyring.get_password(KEYRING_SERVICE, KEYRING_SMTP_HOST) or ""
-        port_str = keyring.get_password(KEYRING_SERVICE, KEYRING_SMTP_PORT) or "587"
-        username = keyring.get_password(KEYRING_SERVICE, KEYRING_SMTP_USERNAME) or ""
-        password = keyring.get_password(KEYRING_SERVICE, KEYRING_SMTP_PASSWORD) or ""
-        
-        # Konvertiere port_str in einen Integer
+        """Holt die SMTP-Anmeldeinformationen.
+
+        Reihenfolge:
+        1. Env-Vars (Server-Deploys: Render, Docker, CI) — höchste Priorität.
+        2. Systemkeychain (Desktop-Client) — Fallback.
+        Auf Headless-Servern ohne Keyring-Backend werden Env-Vars genutzt; fehlen sie,
+        liefert die Methode leere Strings statt zu crashen.
+        """
+        if env_host := os.environ.get("SMTP_HOST"):
+            try:
+                env_port = int(os.environ.get("SMTP_PORT", "587"))
+            except ValueError:
+                env_port = 587
+            return {
+                "smtp_host": env_host,
+                "smtp_port": env_port,
+                "smtp_username": os.environ.get("SMTP_USERNAME", ""),
+                "smtp_password": os.environ.get("SMTP_PASSWORD", ""),
+            }
+
+        try:
+            host = keyring.get_password(KEYRING_SERVICE, KEYRING_SMTP_HOST) or ""
+            port_str = keyring.get_password(KEYRING_SERVICE, KEYRING_SMTP_PORT) or "587"
+            username = keyring.get_password(KEYRING_SERVICE, KEYRING_SMTP_USERNAME) or ""
+            password = keyring.get_password(KEYRING_SERVICE, KEYRING_SMTP_PASSWORD) or ""
+        except keyring.errors.KeyringError:
+            return {"smtp_host": "", "smtp_port": 587, "smtp_username": "", "smtp_password": ""}
+
         try:
             port = int(port_str)
         except ValueError:
-            port = 587  # Standardwert, falls die Konvertierung fehlschlägt
-            
+            port = 587
+
         return {
             "smtp_host": host,
             "smtp_port": port,

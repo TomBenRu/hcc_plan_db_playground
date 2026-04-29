@@ -13,8 +13,6 @@ from sqlalchemy import or_
 from sqlalchemy.orm import joinedload, selectinload
 from sqlmodel import select
 
-import pandas as pd
-
 from .. import schemas, models
 from ..authentication import hash_psw
 from ..database import get_session
@@ -178,6 +176,7 @@ def create(person: schemas.PersonCreate, project_id: UUID, person_id: UUID = Non
 
 
 def create_persons_from_xlsx(file_name: str, project_id: UUID) -> list[schemas.Person]:
+    import pandas as pd  # lazy: pandas ist Desktop-only Dependency, im Web-API-Container nicht installiert
     log_function_info()
     with get_session() as session:
         team_db = session.exec(select(models.Team).where(models.Team.project_id == project_id)).first()

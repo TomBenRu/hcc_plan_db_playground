@@ -1,0 +1,34 @@
+{# OOB-Swap-Response für /plan/appointments/new/refresh.
+   Tauscht 4 oder 5 Slots im offenen Modal aus, ohne den Rest des Forms
+   (z.B. eingegebene Notizen, Datum, Team) zu verändern.
+
+   Locations werden nur bei trigger=team|date neu gerendert (include_locations=True).
+   Submit-Button wird via OOB-Button getauscht (disabled je nach submit_enabled). #}
+
+{% if include_locations %}
+<div id="appt-form-locations" hx-swap-oob="true">
+    {% include "dispatcher/partials/_appt_form_field_locations.html" %}
+</div>
+{% endif %}
+
+<div id="appt-form-time-of-days" hx-swap-oob="true">
+    {% include "dispatcher/partials/_appt_form_field_time_of_days.html" %}
+</div>
+
+<div id="appt-form-nr-actors" hx-swap-oob="true">
+    {% include "dispatcher/partials/_appt_form_field_nr_actors.html" %}
+</div>
+
+<div id="appt-form-period-warning" hx-swap-oob="true">
+    {% include "dispatcher/partials/_appt_form_period_warning.html" %}
+</div>
+
+<button id="appt-form-submit" hx-swap-oob="true"
+        type="submit" form="create-appointment-form"
+        {% if not submit_enabled %}disabled{% endif %}
+        class="px-4 py-2 text-sm rounded-lg bg-sky-600 hover:bg-sky-700 text-white
+               disabled:bg-slate-300 dark:disabled:bg-slate-700
+               disabled:text-slate-500 dark:disabled:text-slate-400
+               disabled:cursor-not-allowed disabled:hover:bg-slate-300 dark:disabled:hover:bg-slate-700">
+    Anlegen
+</button>

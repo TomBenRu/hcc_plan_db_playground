@@ -19,15 +19,15 @@
       hx-swap="innerHTML"
       class="flex flex-col gap-4">
 
-    {# Team-Select — bei Wechsel Form neu laden mit aktualisierten Optionen #}
+    {# Team-Select — Vollform-Reload nötig (my_teams + Context wechselt). #}
     <label class="flex flex-col gap-1">
         <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Team</span>
         <select name="team_id" required
-                hx-get="/dispatcher/plan/appointments/new"
-                hx-target="#modal-root"
-                hx-swap="innerHTML"
+                hx-get="/dispatcher/plan/appointments/new/refresh"
                 hx-trigger="change"
-                hx-include="[name='date']"
+                hx-swap="none"
+                hx-include="[name='date'], [name='location_of_work_id']"
+                hx-vals='{"trigger": "team"}'
                 class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
                        bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">
             {% for team in my_teams %}
@@ -42,11 +42,11 @@
         <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Datum</span>
         <input type="date" name="date" required
                value="{{ default_date or '' }}"
-               hx-get="/dispatcher/plan/appointments/new"
-               hx-target="#modal-root"
-               hx-swap="innerHTML"
+               hx-get="/dispatcher/plan/appointments/new/refresh"
                hx-trigger="change"
-               hx-include="[name='team_id']"
+               hx-swap="none"
+               hx-include="[name='team_id'], [name='location_of_work_id']"
+               hx-vals='{"trigger": "date"}'
                class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
                       bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">
         <span class="text-[11px] text-slate-400 dark:text-slate-500">
@@ -54,44 +54,24 @@
         </span>
     </label>
 
-    <label class="flex flex-col gap-1">
-        <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Einsatzort</span>
-        <select name="location_of_work_id" required
-                class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
-                       bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">
-            {% for loc in locations %}
-            <option value="{{ loc.id }}">{{ loc.display_name }}</option>
-            {% else %}
-            <option disabled>Keine Einsatzorte für dieses Team</option>
-            {% endfor %}
-        </select>
-    </label>
+    {# OOB-Slots — werden vom /refresh-Endpoint per hx-swap-oob ausgetauscht.
+       Inhalt wird aus den shared Field-Partials gerendert (Initial-Render hier,
+       OOB-Render im _appt_form_oob_snippets-Wrapper). #}
+    <div id="appt-form-locations">
+        {% include "dispatcher/partials/_appt_form_field_locations.html" %}
+    </div>
 
-    <label class="flex flex-col gap-1">
-        <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Tageszeit</span>
-        <select name="time_of_day_id" required
-                class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
-                       bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">
-            {% for tod in time_of_days %}
-            <option value="{{ tod.id }}">
-                {{ tod.name }}{% if tod.start %} ({{ '%02d:%02d' % (tod.start.hour, tod.start.minute) }}){% endif %}
-            </option>
-            {% else %}
-            <option disabled>Keine Standard-Tageszeiten konfiguriert</option>
-            {% endfor %}
-        </select>
-    </label>
+    <div id="appt-form-time-of-days">
+        {% include "dispatcher/partials/_appt_form_field_time_of_days.html" %}
+    </div>
 
-    <label class="flex flex-col gap-1">
-        <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Cast-Soll-Größe</span>
-        <input type="number" name="nr_actors" required
-               value="1" min="1" max="99"
-               class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
-                      bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">
-        <span class="text-[11px] text-slate-400 dark:text-slate-500">
-            Cast-Mitglieder werden im Anschluss über das Cast-Edit-Modal zugeordnet.
-        </span>
-    </label>
+    <div id="appt-form-nr-actors">
+        {% include "dispatcher/partials/_appt_form_field_nr_actors.html" %}
+    </div>
+
+    <div id="appt-form-period-warning">
+        {% include "dispatcher/partials/_appt_form_period_warning.html" %}
+    </div>
 
     <label class="flex flex-col gap-1">
         <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Notizen (optional)</span>
@@ -110,8 +90,13 @@
                    hover:bg-slate-50 dark:hover:bg-slate-700/50">
         Abbrechen
     </button>
-    <button type="submit" form="create-appointment-form"
-            class="px-4 py-2 text-sm rounded-lg bg-sky-600 hover:bg-sky-700 text-white">
+    <button id="appt-form-submit"
+            type="submit" form="create-appointment-form"
+            {% if not submit_enabled %}disabled{% endif %}
+            class="px-4 py-2 text-sm rounded-lg bg-sky-600 hover:bg-sky-700 text-white
+                   disabled:bg-slate-300 dark:disabled:bg-slate-700
+                   disabled:text-slate-500 dark:disabled:text-slate-400
+                   disabled:cursor-not-allowed disabled:hover:bg-slate-300 dark:disabled:hover:bg-slate-700">
         Anlegen
     </button>
 </div>

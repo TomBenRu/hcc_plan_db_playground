@@ -1,0 +1,13 @@
+{# Field-Inhalt für Cast-Soll-Größe.
+   Prefill aus LocationPlanPeriod.nr_actors (Fallback 1, falls LPP fehlt).
+   Wrapper-Div mit id="appt-form-nr-actors" wird vom einbettenden Template gesetzt. #}
+<label class="flex flex-col gap-1">
+    <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Cast-Soll-Größe</span>
+    <input type="number" name="nr_actors" required
+           value="{{ nr_actors }}" min="1" max="99"
+           class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
+                  bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">
+    <span class="text-[11px] text-slate-400 dark:text-slate-500">
+        Vorgabe aus der Location-Plan-Periode. Cast-Mitglieder werden im Anschluss über das Cast-Edit-Modal zugeordnet.
+    </span>
+</label>

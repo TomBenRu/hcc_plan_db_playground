@@ -1,0 +1,25 @@
+{# Hinweis-Banner für nicht-OK-Zustände im Last-Minute-Modal.
+   Verfügbare warning_state-Werte: ok | no_plan_period | no_binding_plan | no_lpp.
+   Wrapper-Div mit id="appt-form-period-warning" wird vom einbettenden Template gesetzt. #}
+{% if warning_state == "no_plan_period" %}
+<div class="px-3 py-2 rounded-md text-sm
+            bg-rose-50 dark:bg-rose-900/30
+            text-rose-700 dark:text-rose-300
+            ring-1 ring-rose-200 dark:ring-rose-700/50">
+    Für dieses Datum existiert keine Plan-Periode für das gewählte Team.
+</div>
+{% elif warning_state == "no_binding_plan" %}
+<div class="px-3 py-2 rounded-md text-sm
+            bg-rose-50 dark:bg-rose-900/30
+            text-rose-700 dark:text-rose-300
+            ring-1 ring-rose-200 dark:ring-rose-700/50">
+    Für diese Plan-Periode ist noch kein bindender Plan veröffentlicht. Last-Minute-Buchungen sind nicht möglich.
+</div>
+{% elif warning_state == "no_lpp" %}
+<div class="px-3 py-2 rounded-md text-sm
+            bg-rose-50 dark:bg-rose-900/30
+            text-rose-700 dark:text-rose-300
+            ring-1 ring-rose-200 dark:ring-rose-700/50">
+    Diese Location ist in der Plan-Periode nicht vorgesehen.
+</div>
+{% endif %}

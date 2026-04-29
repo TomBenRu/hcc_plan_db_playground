@@ -9,8 +9,18 @@ from fastapi.responses import HTMLResponse, Response
 from sqlmodel import Session
 
 from sqlalchemy import select as sa_select
+from sqlalchemy.orm import selectinload
 
-from database.models import Address, Appointment, LocationOfWork, TeamLocationAssign, TimeOfDay
+from database.models import (
+    Address,
+    Appointment,
+    LocationOfWork,
+    LocationPlanPeriod,
+    Plan,
+    PlanPeriod,
+    TeamLocationAssign,
+    TimeOfDay,
+)
 from web_api.auth.dependencies import WebUserRole, require_role
 from web_api.cancellations.service import get_cancellations_for_dispatcher
 from web_api.common import fc_event_end_iso, fc_event_start_iso, guest_list, location_display_name
@@ -215,29 +225,30 @@ def dispatcher_plan_events(
 # beim UUID-Parse (siehe Memory `feedback_htmx_form_query_params`).
 
 
-def _load_appointment_form_options(
+# Warning-Zustände für das Last-Minute-Modal — siehe _resolve_appointment_form_state.
+_WARNING_OK = "ok"
+_WARNING_NO_PLAN_PERIOD = "no_plan_period"
+_WARNING_NO_BINDING_PLAN = "no_binding_plan"
+_WARNING_NO_LPP = "no_lpp"
+
+
+def _load_locations_for_team(
     session: Session,
-    team,
+    team_id: uuid.UUID,
     *,
     date_filter: date | None = None,
-) -> dict:
-    """Lädt Team-spezifische Locations + Project-Default-TODs.
+) -> list[dict]:
+    """Locations, die dem Team am gewählten Tag zugeordnet sind.
 
-    Locations: nur LocationOfWork, die dem Team **am gewählten Tag** zugeordnet
-    sind. Quelle ist `TeamLocationAssign` mit der tagesgenauen Range:
-    `start <= date < end` (end IS NULL → unbefristete Zuordnung). Falls
-    `date_filter` None ist, fällt der Filter auf „jemals dem Team zugeordnet"
-    zurück — das wird im Form nicht typisch genutzt, weil das Datum required ist.
-
-    TODs: alle TimeOfDay mit `project_defaults_id == team.project_id`
-    (= Project-Defaults, die im UI als Standard-Auswahl dienen).
+    Quelle: `TeamLocationAssign` mit tagesgenauer Range
+    `start <= date < end` (end IS NULL → unbefristete Zuordnung).
     """
     location_query = (
         sa_select(LocationOfWork.id, LocationOfWork.name, Address.city)
         .select_from(LocationOfWork)
         .join(Address, Address.id == LocationOfWork.address_id, isouter=True)
         .join(TeamLocationAssign, TeamLocationAssign.location_of_work_id == LocationOfWork.id)
-        .where(TeamLocationAssign.team_id == team.id)
+        .where(TeamLocationAssign.team_id == team_id)
         .where(LocationOfWork.prep_delete.is_(None))
     )
     if date_filter is not None:
@@ -252,20 +263,208 @@ def _load_appointment_form_options(
     location_query = location_query.distinct().order_by(LocationOfWork.name)
 
     location_rows = list(session.execute(location_query).mappings().all())
-    locations = [
+    return [
         {"id": row["id"], "display_name": location_display_name(row["name"], row["city"])}
         for row in location_rows
     ]
 
-    tod_rows = list(session.execute(
-        sa_select(TimeOfDay.id, TimeOfDay.name, TimeOfDay.start)
-        .where(TimeOfDay.project_defaults_id == team.project_id)
-        .where(TimeOfDay.prep_delete.is_(None))
-        .order_by(TimeOfDay.start)
-    ).mappings().all())
-    time_of_days = [dict(row) for row in tod_rows]
 
-    return {"locations": locations, "time_of_days": time_of_days}
+def _resolve_appointment_form_state(
+    session: Session,
+    *,
+    team_id: uuid.UUID,
+    date_filter: date | None,
+    location_id: uuid.UUID | None,
+) -> dict:
+    """Auflösung (Team, Datum, Location) → Form-Zustand für das Last-Minute-Modal.
+
+    Liefert ein Dict mit:
+    - `time_of_days`: list[dict] mit id/name/start/is_standard, sortiert nach start
+    - `default_time_of_day_id`: UUID | None (zeitlich erste aus time_of_day_standards)
+    - `nr_actors`: int (Prefill-Wert für Cast-Soll-Größe)
+    - `warning_state`: str (siehe _WARNING_*-Konstanten)
+    - `submit_enabled`: bool (False, wenn kein bindender Plan ODER keine PlanPeriode)
+
+    Logik:
+    1. Datum oder Location nicht gesetzt → leer + warning=ok (initial-state, kein Banner)
+    2. Keine PlanPeriode für (team, date) → leer + warning=no_plan_period, submit=False
+    3. Kein bindender Plan in der Periode → TODs/nr_actors aus LPP laden falls vorhanden,
+       warning=no_binding_plan, submit=False (Last-Minute nur auf bindendem Plan erlaubt)
+    4. Bindender Plan + LPP fehlt (Location nicht in Periode) → leer + warning=no_lpp,
+       submit=False
+    5. Alles ok → TODs/nr_actors aus LPP, warning=ok, submit=True
+    """
+    empty_state = {
+        "time_of_days": [],
+        "default_time_of_day_id": None,
+        "nr_actors": 1,
+        "warning_state": _WARNING_OK,
+        "submit_enabled": False,
+    }
+
+    if date_filter is None:
+        return empty_state
+
+    plan_period = session.execute(
+        sa_select(PlanPeriod)
+        .where(PlanPeriod.team_id == team_id)
+        .where(PlanPeriod.start <= date_filter)
+        .where(PlanPeriod.end >= date_filter)
+        .where(PlanPeriod.prep_delete.is_(None))
+    ).scalars().first()
+
+    if plan_period is None:
+        return {**empty_state, "warning_state": _WARNING_NO_PLAN_PERIOD}
+
+    has_binding_plan = session.execute(
+        sa_select(Plan.id)
+        .where(Plan.plan_period_id == plan_period.id)
+        .where(Plan.is_binding.is_(True))
+        .where(Plan.prep_delete.is_(None))
+    ).scalars().first() is not None
+
+    if not has_binding_plan:
+        # Banner sofort zeigen — auch ohne Location-Auswahl, sonst sieht der User
+        # erst nach Location-Wechsel, dass die ganze Periode noch keinen bindenden
+        # Plan hat. Submit bleibt in jedem Fall blockiert.
+        if location_id is None:
+            return {**empty_state, "warning_state": _WARNING_NO_BINDING_PLAN}
+        lpp = session.execute(
+            sa_select(LocationPlanPeriod)
+            .options(
+                selectinload(LocationPlanPeriod.time_of_days),
+                selectinload(LocationPlanPeriod.time_of_day_standards),
+            )
+            .where(LocationPlanPeriod.plan_period_id == plan_period.id)
+            .where(LocationPlanPeriod.location_of_work_id == location_id)
+        ).scalars().first()
+        if lpp is None:
+            return {**empty_state, "warning_state": _WARNING_NO_BINDING_PLAN}
+        return {
+            **_build_lpp_form_data(lpp),
+            "warning_state": _WARNING_NO_BINDING_PLAN,
+            "submit_enabled": False,
+        }
+
+    if location_id is None:
+        # PlanPeriode + bindender Plan ok, aber Location noch nicht ausgewählt.
+        # Form ist neutral, Submit-Button bleibt aus, bis Location gesetzt ist.
+        return empty_state
+
+    lpp = session.execute(
+        sa_select(LocationPlanPeriod)
+        .options(
+            selectinload(LocationPlanPeriod.time_of_days),
+            selectinload(LocationPlanPeriod.time_of_day_standards),
+        )
+        .where(LocationPlanPeriod.plan_period_id == plan_period.id)
+        .where(LocationPlanPeriod.location_of_work_id == location_id)
+    ).scalars().first()
+
+    if lpp is None:
+        return {**empty_state, "warning_state": _WARNING_NO_LPP}
+
+    lpp_data = _build_lpp_form_data(lpp)
+    return {
+        **lpp_data,
+        "warning_state": _WARNING_OK,
+        # Edge-Case: LPP existiert, aber alle TODs sind soft-deleted.
+        # Dropdown zeigt seinen Empty-State, Submit-Button bleibt aus.
+        "submit_enabled": bool(lpp_data["time_of_days"]),
+    }
+
+
+def _build_lpp_form_data(lpp: LocationPlanPeriod) -> dict:
+    """TODs + nr_actors aus einer geladenen LPP extrahieren.
+
+    TODs werden nach `start` sortiert; jede TOD bekommt ein `is_standard`-Flag.
+    Default-TOD ist die zeitlich erste aus `time_of_day_standards`.
+    """
+    standard_ids = {tod.id for tod in lpp.time_of_day_standards if tod.prep_delete is None}
+    active_tods = sorted(
+        (t for t in lpp.time_of_days if t.prep_delete is None),
+        key=lambda t: t.start,
+    )
+    time_of_days = [
+        {
+            "id": t.id,
+            "name": t.name,
+            "start": t.start,
+            "is_standard": t.id in standard_ids,
+        }
+        for t in active_tods
+    ]
+    standard_active_sorted = [t for t in active_tods if t.id in standard_ids]
+    default_id = standard_active_sorted[0].id if standard_active_sorted else None
+
+    return {
+        "time_of_days": time_of_days,
+        "default_time_of_day_id": default_id,
+        "nr_actors": lpp.nr_actors if lpp.nr_actors is not None else 1,
+    }
+
+
+def _parse_optional_date(date_str: str | None) -> date | None:
+    if not date_str:
+        return None
+    try:
+        return date.fromisoformat(date_str)
+    except ValueError:
+        return None
+
+
+def _parse_optional_uuid(value: str | None) -> uuid.UUID | None:
+    """`hx-include` sendet leere Selects als leeren String — als None behandeln."""
+    if not value:
+        return None
+    try:
+        return uuid.UUID(value)
+    except ValueError:
+        return None
+
+
+def _build_form_context(
+    session: Session,
+    *,
+    request: Request,
+    my_teams: list,
+    selected_team,
+    parsed_date: date | None,
+    location_id: uuid.UUID | None,
+    error_message: str | None,
+) -> dict:
+    """Komplettes Template-Context für das Initial-Render des Last-Minute-Modals.
+
+    Lädt Locations + State (TODs/nr_actors/warning/submit-enabled) und gleicht
+    die übergebene location_id auf eine real verfügbare ab (Fallback: erste der
+    aktuellen Locations-Liste).
+    """
+    locations = _load_locations_for_team(
+        session, selected_team.id, date_filter=parsed_date
+    )
+    effective_location_id = location_id
+    if locations and not any(loc["id"] == effective_location_id for loc in locations):
+        effective_location_id = locations[0]["id"]
+    elif not locations:
+        effective_location_id = None
+
+    state = _resolve_appointment_form_state(
+        session,
+        team_id=selected_team.id,
+        date_filter=parsed_date,
+        location_id=effective_location_id,
+    )
+
+    return {
+        "request": request,
+        "my_teams": my_teams,
+        "selected_team_id": selected_team.id,
+        "default_date": parsed_date.isoformat() if parsed_date else "",
+        "locations": locations,
+        "selected_location_id": effective_location_id,
+        "error_message": error_message,
+        **state,
+    }
 
 
 @router.get("/plan/appointments/new", response_class=HTMLResponse)
@@ -275,13 +474,14 @@ def dispatcher_appointment_new_form(
     session: Session = Depends(get_db_session),
     team_id: uuid.UUID | None = Query(default=None),
     date_str: str | None = Query(default=None, alias="date"),
+    location_of_work_id_str: str | None = Query(default=None, alias="location_of_work_id"),
 ):
     """HTMX-Modal-Fragment: Form zum Anlegen eines Termins.
 
-    `team_id` und `date` sind optional — `date` wird per Day-Click prefilled,
-    `team_id` per Team-Select-Wechsel. Bei Team- oder Datums-Wechsel
-    (hx-trigger=change) lädt das Form sich selbst neu mit aktualisierten
-    Location- und TOD-Listen für die (Team, Datum)-Kombination.
+    `team_id`, `date` und `location_of_work_id` sind optional. Beim Team-Wechsel
+    lädt das Form sich neu (Full-Render); bei Datums- oder Location-Wechsel
+    nutzt der Client den Refresh-Endpoint mit OOB-Swaps, um nur betroffene Felder
+    auszutauschen ohne Verlust eingegebener Notizen.
     """
     person_id = _require_person_id(user)
     my_teams = get_teams_for_dispatcher(session, person_id)
@@ -291,34 +491,89 @@ def dispatcher_appointment_new_form(
             detail="Sie haben kein Team zur Disposition.",
         )
 
-    # Team auswählen: gewähltes Team falls erlaubt, sonst erstes my_team
     selected_team = None
     if team_id is not None:
         selected_team = next((t for t in my_teams if t.id == team_id), None)
     if selected_team is None:
         selected_team = my_teams[0]
 
-    # Datum als date parsen (Form-Submit liefert ISO-String); leerer/invalider
-    # Wert → kein Filter, alle Locations des Teams werden gezeigt.
-    parsed_date: date | None = None
-    if date_str:
-        try:
-            parsed_date = date.fromisoformat(date_str)
-        except ValueError:
-            parsed_date = None
+    parsed_date = _parse_optional_date(date_str)
+    parsed_location_id = _parse_optional_uuid(location_of_work_id_str)
 
-    options = _load_appointment_form_options(session, selected_team, date_filter=parsed_date)
-
+    context = _build_form_context(
+        session,
+        request=request,
+        my_teams=my_teams,
+        selected_team=selected_team,
+        parsed_date=parsed_date,
+        location_id=parsed_location_id,
+        error_message=None,
+    )
     return templates.TemplateResponse(
         "dispatcher/partials/appointment_create_form.html",
+        context,
+    )
+
+
+@router.get("/plan/appointments/new/refresh", response_class=HTMLResponse)
+def dispatcher_appointment_new_refresh(
+    request: Request,
+    user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    team_id: uuid.UUID = Query(...),
+    date_str: str | None = Query(default=None, alias="date"),
+    location_of_work_id_str: str | None = Query(default=None, alias="location_of_work_id"),
+    trigger: str = Query(default="location"),
+):
+    """OOB-Refresh-Endpoint für das Last-Minute-Modal.
+
+    Wird bei Datums- oder Location-Wechsel im offenen Form aufgerufen und liefert
+    eine Response mit ausschliesslich `hx-swap-oob`-Snippets — der Form-State
+    (z.B. eingegebene Notizen) bleibt dadurch erhalten.
+
+    `trigger` steuert, ob die Locations-Liste mitgerendert wird:
+        - "team" oder "date" → Locations + TODs + nr_actors + Warning + Submit
+        - "location"        → TODs + nr_actors + Warning + Submit (Locations bleiben)
+    """
+    person_id = _require_person_id(user)
+    my_teams = get_teams_for_dispatcher(session, person_id)
+    selected_team = next((t for t in my_teams if t.id == team_id), None)
+    if selected_team is None:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            detail="Sie sind nicht Dispatcher dieses Teams.",
+        )
+
+    parsed_date = _parse_optional_date(date_str)
+    parsed_location_id = _parse_optional_uuid(location_of_work_id_str)
+    include_locations = trigger in ("team", "date")
+
+    locations: list[dict] = []
+    effective_location_id = parsed_location_id
+    if include_locations:
+        locations = _load_locations_for_team(
+            session, selected_team.id, date_filter=parsed_date
+        )
+        if locations and not any(loc["id"] == effective_location_id for loc in locations):
+            effective_location_id = locations[0]["id"]
+        elif not locations:
+            effective_location_id = None
+
+    state = _resolve_appointment_form_state(
+        session,
+        team_id=selected_team.id,
+        date_filter=parsed_date,
+        location_id=effective_location_id,
+    )
+
+    return templates.TemplateResponse(
+        "dispatcher/partials/_appt_form_oob_snippets.html",
         {
             "request": request,
-            "my_teams": my_teams,
-            "selected_team_id": selected_team.id,
-            "default_date": date_str or "",
-            "locations": options["locations"],
-            "time_of_days": options["time_of_days"],
-            "error_message": None,
+            "include_locations": include_locations,
+            "locations": locations,
+            "selected_location_id": effective_location_id,
+            **state,
         },
     )
 
@@ -346,38 +601,60 @@ def dispatcher_appointment_create(
             detail="Sie sind nicht Dispatcher dieses Teams.",
         )
 
+    # Server-Validierung: muss matchen, was das Form clientseitig erlaubt.
+    # Schützt vor manipulierten Submissions (z.B. fremde TimeOfDay-IDs aus dem
+    # Project-Default-Pool, die in der LPP gar nicht zugelassen sind).
+    state = _resolve_appointment_form_state(
+        session,
+        team_id=team_id,
+        date_filter=date,
+        location_id=location_of_work_id,
+    )
     error_message: str | None = None
-    try:
-        create_appointment_with_event(
-            session,
-            team_id=team_id,
-            date=date,
-            location_of_work_id=location_of_work_id,
-            time_of_day_id=time_of_day_id,
-            nr_actors=nr_actors,
-            notes=notes.strip() or None,
+    if state["warning_state"] == _WARNING_NO_PLAN_PERIOD:
+        error_message = "Für dieses Datum existiert keine Plan-Periode für das Team."
+    elif state["warning_state"] == _WARNING_NO_BINDING_PLAN:
+        error_message = (
+            "Last-Minute-Buchungen sind nicht möglich, "
+            "solange kein bindender Plan veröffentlicht ist."
         )
-    except HTTPException as exc:
-        if exc.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR:
-            raise  # Server-Fehler durchreichen
-        error_message = exc.detail
-    except Exception as exc:
-        error_message = f"Termin konnte nicht angelegt werden: {exc}"
+    elif state["warning_state"] == _WARNING_NO_LPP:
+        error_message = "Diese Location ist in der Plan-Periode nicht vorgesehen."
+    elif not any(t["id"] == time_of_day_id for t in state["time_of_days"]):
+        error_message = "Diese Tageszeit ist für die gewählte Location-Plan-Periode nicht zulässig."
+
+    if error_message is None:
+        try:
+            create_appointment_with_event(
+                session,
+                team_id=team_id,
+                date=date,
+                location_of_work_id=location_of_work_id,
+                time_of_day_id=time_of_day_id,
+                nr_actors=nr_actors,
+                notes=notes.strip() or None,
+            )
+        except HTTPException as exc:
+            if exc.status_code == status.HTTP_500_INTERNAL_SERVER_ERROR:
+                raise  # Server-Fehler durchreichen
+            error_message = exc.detail
+        except Exception as exc:
+            error_message = f"Termin konnte nicht angelegt werden: {exc}"
 
     if error_message is not None:
         session.rollback()
-        options = _load_appointment_form_options(session, selected_team, date_filter=date)
+        context = _build_form_context(
+            session,
+            request=request,
+            my_teams=my_teams,
+            selected_team=selected_team,
+            parsed_date=date,
+            location_id=location_of_work_id,
+            error_message=error_message,
+        )
         return templates.TemplateResponse(
             "dispatcher/partials/appointment_create_form.html",
-            {
-                "request": request,
-                "my_teams": my_teams,
-                "selected_team_id": selected_team.id,
-                "default_date": date.isoformat(),
-                "locations": options["locations"],
-                "time_of_days": options["time_of_days"],
-                "error_message": error_message,
-            },
+            context,
             status_code=status.HTTP_200_OK,
         )
 

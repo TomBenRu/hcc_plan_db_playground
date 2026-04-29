@@ -1,0 +1,23 @@
+{# Field-Inhalt für Einsatzort-Dropdown.
+   Wrapper-Div mit id="appt-form-locations" wird vom einbettenden Template gesetzt
+   (Initial-Form: ohne hx-swap-oob; OOB-Refresh: mit hx-swap-oob="true"). #}
+<label class="flex flex-col gap-1">
+    <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Einsatzort</span>
+    <select name="location_of_work_id" required
+            hx-get="/dispatcher/plan/appointments/new/refresh"
+            hx-trigger="change"
+            hx-swap="none"
+            hx-include="[name='team_id'], [name='date']"
+            hx-vals='{"trigger": "location"}'
+            class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
+                   bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">
+        {% for loc in locations %}
+        <option value="{{ loc.id }}"
+                {% if loc.id == selected_location_id %}selected{% endif %}>
+            {{ loc.display_name }}
+        </option>
+        {% else %}
+        <option value="" disabled selected>Keine Einsatzorte für dieses Team</option>
+        {% endfor %}
+    </select>
+</label>

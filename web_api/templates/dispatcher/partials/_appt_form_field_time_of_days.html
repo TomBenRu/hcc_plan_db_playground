@@ -1,0 +1,26 @@
+{# Field-Inhalt für Tageszeit-Dropdown.
+   TODs aus LocationPlanPeriod.time_of_days, sortiert nach start.
+   Standards (LPP.time_of_day_standards) werden mit ★ + font-semibold hervorgehoben.
+   Default-Auswahl ist die zeitlich erste aus den Standards.
+   Wrapper-Div mit id="appt-form-time-of-days" wird vom einbettenden Template gesetzt. #}
+<label class="flex flex-col gap-1">
+    <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Tageszeit</span>
+    <select name="time_of_day_id" required
+            class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
+                   bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">
+        {% for tod in time_of_days %}
+        <option value="{{ tod.id }}"
+                {% if tod.id == default_time_of_day_id %}selected{% endif %}
+                {% if tod.is_standard %}style="font-weight:600;"{% endif %}>
+            {% if tod.is_standard %}★ {% endif %}{{ tod.name }}{% if tod.start %} ({{ '%02d:%02d' % (tod.start.hour, tod.start.minute) }}){% endif %}
+        </option>
+        {% else %}
+        <option value="" disabled selected>Keine Tageszeiten für diese Location-Periode</option>
+        {% endfor %}
+    </select>
+    {% if time_of_days %}
+    <span class="text-[11px] text-slate-400 dark:text-slate-500">
+        Mit ★ markierte Tageszeiten sind als Standard für diese Location-Periode gesetzt.
+    </span>
+    {% endif %}
+</label>

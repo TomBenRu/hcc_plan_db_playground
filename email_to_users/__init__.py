@@ -5,7 +5,11 @@ Dieses Paket enthält Module für die Konfiguration, den E-Mail-Versand, Templat
 und eine Service-Schicht für die Integration mit dem Datenmodell.
 """
 
-from .config import EmailConfig, email_config, load_config_from_file
+# `email_config` bewusst NICHT eager re-exportieren — würde den Lazy-Init in
+# email_to_users.config beim Package-Import triggern. Bei Bedarf direkt
+# `from email_to_users.config import email_config` importieren oder
+# `email_to_users.config.get_email_config()` aufrufen.
+from .config import EmailConfig, load_config_from_file
 from .sender import EmailSender
 from .service import EmailService, email_service
 from .templates import EmailTemplate, PlanNotificationTemplate, AvailabilityRequestTemplate
@@ -20,7 +24,6 @@ try:
     )
     __all__ = [
         'EmailConfig',
-        'email_config',
         'load_config_from_file',
         'EmailSender',
         'EmailService',
@@ -38,7 +41,6 @@ except ImportError:
     # Wenn PySide6 nicht verfügbar ist
     __all__ = [
         'EmailConfig',
-        'email_config',
         'load_config_from_file',
         'EmailSender',
         'EmailService',

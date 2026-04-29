@@ -9,8 +9,9 @@ import os
 from typing import Optional, Dict, Any
 
 try:
-    # Importiere die zentrale Konfiguration
-    from configuration.email_config import get_email_config, EmailSettings
+    # Importiere die zentrale Konfiguration. Alias, weil `get_email_config` in
+    # diesem Modul als eigener Lazy-Getter verwendet wird (sonst Rekursion).
+    from configuration.email_config import get_email_config as get_central_email_config, EmailSettings
     use_central_config = True
 except ImportError:
     # Fallback auf lokale Konfiguration, wenn die zentrale nicht verfügbar ist
@@ -83,7 +84,7 @@ else:
         """Adapter-Klasse für die zentrale E-Mail-Konfiguration."""
         
         def __init__(self):
-            self._config = get_email_config()
+            self._config = get_central_email_config()
             self._settings = self._config.get_settings()
             self._credentials = self._config.get_smtp_credentials()
             
@@ -180,28 +181,46 @@ else:
             self.refresh()
 
 
-# Globale Konfigurationsinstanz
-email_config = EmailConfig()
+# Globale Konfigurationsinstanz — lazy initialisiert (PEP 562).
+# Eager-Init beim Modul-Import würde Side-Effects (Filesystem, ggf. Keyring) auslösen
+# und z.B. Web-API-Deploys ohne Mail-Konfiguration crashen lassen.
+_email_config_instance: "EmailConfig | None" = None
+
+
+def get_email_config() -> "EmailConfig":
+    """Lazy-Getter für die globale email_config-Instanz."""
+    global _email_config_instance
+    if _email_config_instance is None:
+        _email_config_instance = EmailConfig()
+    return _email_config_instance
+
+
+def __getattr__(name: str):
+    # Externer Zugriff `from email_to_users.config import email_config` triggert hier.
+    # Modul-interner Code muss `get_email_config()` direkt nutzen.
+    if name == "email_config":
+        return get_email_config()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 
 def load_config_from_file(file_path: str) -> None:
     """
     Lädt die Konfiguration aus einer Datei.
-    
-    Diese Funktion wird aus Kompatibilitätsgründen beibehalten, ist aber bei 
+
+    Diese Funktion wird aus Kompatibilitätsgründen beibehalten, ist aber bei
     Verwendung der zentralen Konfiguration nicht mehr erforderlich.
-    
+
     Args:
         file_path: Pfad zur Konfigurationsdatei (TOML-Format)
     """
     import toml
-    
+
     with open(file_path, "r", encoding="utf-8") as f:
         config_data = toml.load(f)
-    
+
     if "email" in config_data and use_central_config:
         email_settings = config_data["email"]
-        email_config.save_settings(email_settings)
+        get_email_config().save_settings(email_settings)
     elif not use_central_config:
         # Im Fallback-Modus: Setze Umgebungsvariablen
         if "email" in config_data:

@@ -15,7 +15,7 @@ from email.mime.multipart import MIMEMultipart
 
 from database import schemas
 
-from .config import email_config
+from .config import get_email_config
 from .utils import create_multipart_message
 
 logger = logging.getLogger(__name__)
@@ -39,7 +39,7 @@ class EmailSender:
             config: Optional, eine EmailConfig-Instanz. Wenn nicht angegeben,
                    wird die globale email_config verwendet.
         """
-        self.config = config or email_config
+        self.config = config or get_email_config()
         self._sent_count = 0
         self._last_reset = datetime.now()
         self._rate_limit_reached = False

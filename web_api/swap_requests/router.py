@@ -9,9 +9,8 @@ from sqlalchemy import select as sa_select
 from sqlmodel import Session
 
 from web_api.auth.dependencies import LoggedInUser, WebUserRole, require_role
-from web_api.config import get_settings
 from web_api.dependencies import get_db_session
-from web_api.email.service import send_emails_background
+from web_api.email.service import schedule_emails
 from web_api.models.web_models import CancellationRequest, CancellationStatus, WebUser
 
 _SWAP_LIST_TEMPLATE = "swap_requests/partials/swap_list.html"
@@ -246,7 +245,6 @@ def post_swap_request(
     background_tasks: BackgroundTasks,
     user: LoggedInUser,
     session: Session = Depends(get_db_session),
-    settings=Depends(get_settings),
     requester_appointment_id: uuid.UUID = Form(...),
     target_appointment_ids: list[uuid.UUID] = Form(...),
     target_web_user_id: uuid.UUID | None = Form(default=None),
@@ -264,7 +262,7 @@ def post_swap_request(
             headers=_ERROR_HEADERS,
         )
     session.commit()
-    background_tasks.add_task(send_emails_background, email_payloads, settings)
+    schedule_emails(background_tasks, email_payloads, session)
 
     return templates.TemplateResponse(
         "swap_requests/partials/swap_submitted.html",
@@ -279,7 +277,6 @@ def post_accept_swap(
     background_tasks: BackgroundTasks,
     user: LoggedInUser,
     session: Session = Depends(get_db_session),
-    settings=Depends(get_settings),
 ):
     try:
         email_payloads = accept_swap_request(session, swap_id, user)
@@ -290,7 +287,7 @@ def post_accept_swap(
             headers=_ERROR_HEADERS,
         )
     session.commit()
-    background_tasks.add_task(send_emails_background, email_payloads, settings)
+    schedule_emails(background_tasks, email_payloads, session)
 
     swaps = get_swap_requests_for_user(session, user.id)
     return templates.TemplateResponse(
@@ -308,7 +305,6 @@ def post_reject_swap(
     background_tasks: BackgroundTasks,
     user: LoggedInUser,
     session: Session = Depends(get_db_session),
-    settings=Depends(get_settings),
 ):
     try:
         email_payloads = reject_swap_request(session, swap_id, user)
@@ -319,7 +315,7 @@ def post_reject_swap(
             headers=_ERROR_HEADERS,
         )
     session.commit()
-    background_tasks.add_task(send_emails_background, email_payloads, settings)
+    schedule_emails(background_tasks, email_payloads, session)
 
     swaps = get_swap_requests_for_user(session, user.id)
     return templates.TemplateResponse(
@@ -337,7 +333,6 @@ def post_confirm_swap(
     background_tasks: BackgroundTasks,
     user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
     session: Session = Depends(get_db_session),
-    settings=Depends(get_settings),
 ):
     try:
         email_payloads = confirm_swap_request(session, swap_id, user)
@@ -348,7 +343,7 @@ def post_confirm_swap(
             headers=_ERROR_HEADERS,
         )
     session.commit()
-    background_tasks.add_task(send_emails_background, email_payloads, settings)
+    schedule_emails(background_tasks, email_payloads, session)
 
     swaps = get_swap_requests_for_user(session, user.id)
     return templates.TemplateResponse(
@@ -364,7 +359,6 @@ def post_withdraw_swap(
     background_tasks: BackgroundTasks,
     user: LoggedInUser,
     session: Session = Depends(get_db_session),
-    settings=Depends(get_settings),
 ):
     try:
         email_payloads = withdraw_swap_request(session, swap_id, user)
@@ -375,7 +369,7 @@ def post_withdraw_swap(
             headers=_ERROR_HEADERS,
         )
     session.commit()
-    background_tasks.add_task(send_emails_background, email_payloads, settings)
+    schedule_emails(background_tasks, email_payloads, session)
 
     swaps = get_swap_requests_for_user(session, user.id)
     return templates.TemplateResponse(

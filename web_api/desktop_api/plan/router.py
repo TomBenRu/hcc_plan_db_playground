@@ -7,10 +7,9 @@ from pydantic import BaseModel
 from sqlmodel import Session
 
 from database import db_services, schemas
-from web_api.config import get_settings
 from web_api.dependencies import get_db_session
 from web_api.desktop_api.auth import DesktopUser
-from web_api.email.service import send_emails_background
+from web_api.email.service import schedule_emails
 from web_api.plan_adjustment.service import set_plan_is_binding
 
 router = APIRouter(prefix="/plans", tags=["desktop-plans"])
@@ -80,11 +79,9 @@ def set_is_binding(
     background_tasks: BackgroundTasks,
     _: DesktopUser,
     session: Session = Depends(get_db_session),
-    settings=Depends(get_settings),
 ):
     previous_plan_id, payloads = set_plan_is_binding(session, plan_id, body.is_binding)
-    if payloads:
-        background_tasks.add_task(send_emails_background, payloads, settings)
+    schedule_emails(background_tasks, payloads, session)
     return PlanIsBindingResponse(previous_plan_id=previous_plan_id)
 
 

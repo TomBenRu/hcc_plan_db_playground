@@ -38,7 +38,7 @@ from web_api.auth.service import (
 )
 from web_api.config import Settings, get_settings
 from web_api.dependencies import get_db_session
-from web_api.email.service import send_emails_background
+from web_api.email.service import schedule_emails
 from web_api.models.web_models import WebUser
 from web_api.rate_limit import limiter
 from web_api.templating import templates
@@ -306,7 +306,7 @@ def forgot_password(
         token = create_reset_token(session, user)
         session.commit()
         payload = build_reset_email(user, token, settings)
-        background_tasks.add_task(send_emails_background, [payload], settings)
+        schedule_emails(background_tasks, [payload], session)
 
     info = (
         "Falls für diese Adresse ein Konto existiert, ist gerade eine E-Mail mit "

@@ -22,7 +22,7 @@ from web_api.auth.email_change import (
 from web_api.auth.service import create_access_token, create_refresh_token, decode_token
 from web_api.config import Settings, get_settings
 from web_api.dependencies import get_db_session
-from web_api.email.service import send_emails_background
+from web_api.email.service import schedule_emails
 from web_api.rate_limit import limiter
 from web_api.templating import templates
 
@@ -234,13 +234,13 @@ def request_email_change(
         old_email = user.email
         token = create_email_change_token(session, user, target)
         session.commit()
-        background_tasks.add_task(
-            send_emails_background,
+        schedule_emails(
+            background_tasks,
             [
                 build_verify_email(target, token, settings),
                 build_notice_email(old_email, target, settings),
             ],
-            settings,
+            session,
         )
 
     info = (

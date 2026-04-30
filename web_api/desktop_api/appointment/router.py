@@ -7,10 +7,9 @@ from pydantic import BaseModel
 from sqlmodel import Session
 
 from database import db_services, schemas
-from web_api.config import get_settings
 from web_api.dependencies import get_db_session
 from web_api.desktop_api.auth import DesktopUser
-from web_api.email.service import send_emails_background
+from web_api.email.service import schedule_emails
 from web_api.plan_adjustment.service import reassign_appointment, update_appointment_avail_days
 
 router = APIRouter(prefix="/appointments", tags=["desktop-appointments"])
@@ -90,11 +89,9 @@ def update_avail_days(
     background_tasks: BackgroundTasks,
     _: DesktopUser,
     session: Session = Depends(get_db_session),
-    settings=Depends(get_settings),
 ):
     email_payloads = update_appointment_avail_days(session, appointment_id, body.avail_day_ids)
-    if email_payloads:
-        background_tasks.add_task(send_emails_background, email_payloads, settings)
+    schedule_emails(background_tasks, email_payloads, session)
 
 
 @router.patch("/{appointment_id}/notes", status_code=status.HTTP_204_NO_CONTENT)
@@ -129,10 +126,8 @@ def reassign(
     background_tasks: BackgroundTasks,
     _: DesktopUser,
     session: Session = Depends(get_db_session),
-    settings=Depends(get_settings),
 ):
     email_payloads = reassign_appointment(
         session, appointment_id, body.old_person_id, body.new_person_id
     )
-    if email_payloads:
-        background_tasks.add_task(send_emails_background, email_payloads, settings)
+    schedule_emails(background_tasks, email_payloads, session)

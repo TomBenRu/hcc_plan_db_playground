@@ -22,9 +22,8 @@ from web_api.cancellations.service import (
 )
 from web_api.models.web_models import CancellationRequest, CancellationStatus, SwapRequest, SwapRequestStatus
 from sqlalchemy import select as sa_select
-from web_api.config import get_settings
 from web_api.dependencies import get_db_session
-from web_api.email.service import send_emails_background
+from web_api.email.service import schedule_emails
 from web_api.templating import templates
 
 router = APIRouter(prefix="/cancellations", tags=["cancellations"])
@@ -98,7 +97,6 @@ def post_cancellation(
     background_tasks: BackgroundTasks,
     user: LoggedInUser,
     session: Session = Depends(get_db_session),
-    settings=Depends(get_settings),
     appointment_id: uuid.UUID = Form(...),
     reason: str | None = Form(default=None),
 ):
@@ -112,7 +110,7 @@ def post_cancellation(
             headers=_retarget,
         )
     session.commit()
-    background_tasks.add_task(send_emails_background, email_payloads, settings)
+    schedule_emails(background_tasks, email_payloads, session)
 
     return templates.TemplateResponse(
         "cancellations/partials/cancel_success.html",
@@ -171,7 +169,6 @@ def patch_withdraw(
     background_tasks: BackgroundTasks,
     user: LoggedInUser,
     session: Session = Depends(get_db_session),
-    settings=Depends(get_settings),
 ):
     try:
         detail, email_payloads = withdraw_cancellation(session, cancellation_id, user)
@@ -181,7 +178,7 @@ def patch_withdraw(
             {"request": request, "message": exc.detail},
         )
     session.commit()
-    background_tasks.add_task(send_emails_background, email_payloads, settings)
+    schedule_emails(background_tasks, email_payloads, session)
 
     return templates.TemplateResponse(
         "cancellations/partials/withdraw_success.html",
@@ -199,7 +196,6 @@ def post_takeover_offer(
     background_tasks: BackgroundTasks,
     user: LoggedInUser,
     session: Session = Depends(get_db_session),
-    settings=Depends(get_settings),
     message: str | None = Form(default=None),
 ):
     try:
@@ -210,7 +206,7 @@ def post_takeover_offer(
             {"request": request, "message": exc.detail},
         )
     session.commit()
-    background_tasks.add_task(send_emails_background, email_payloads, settings)
+    schedule_emails(background_tasks, email_payloads, session)
 
     detail = get_cancellation_detail(session, cancellation_id, user)
     return templates.TemplateResponse(
@@ -230,7 +226,6 @@ def post_accept_takeover_offer(
     background_tasks: BackgroundTasks,
     user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
     session: Session = Depends(get_db_session),
-    settings=Depends(get_settings),
 ):
     try:
         email_payloads = accept_takeover_offer(session, cancellation_id, offer_id, user)
@@ -240,7 +235,7 @@ def post_accept_takeover_offer(
             {"request": request, "message": exc.detail},
         )
     session.commit()
-    background_tasks.add_task(send_emails_background, email_payloads, settings)
+    schedule_emails(background_tasks, email_payloads, session)
 
     return Response(
         status_code=200,

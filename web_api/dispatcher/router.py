@@ -24,7 +24,6 @@ from database.models import (
 from web_api.auth.dependencies import WebUserRole, require_role
 from web_api.cancellations.service import get_cancellations_for_dispatcher
 from web_api.common import fc_event_end_iso, fc_event_start_iso, guest_list, location_display_name
-from web_api.config import get_settings
 from web_api.user_settings.service import get_color_overrides
 from web_api.dependencies import get_db_session
 from web_api.dispatcher.dependencies import require_team_dispatcher_for_appointment
@@ -38,7 +37,7 @@ from web_api.dispatcher.service import (
     replace_cast_for_appointment,
     set_cast_group_nr_actors,
 )
-from web_api.email.service import send_emails_background
+from web_api.email.service import schedule_emails
 from web_api.employees.service import get_coworkers_for_appointment
 from web_api.models.web_models import WebUser
 from web_api.plan_adjustment.service import (
@@ -704,7 +703,6 @@ def dispatcher_appointment_delete(
     send_notifications: bool = Form(default=True),
     appointment: Appointment = Depends(require_team_dispatcher_for_appointment),
     session: Session = Depends(get_db_session),
-    settings=Depends(get_settings),
 ):
     """Hard-Delete des Appointments + bedingte Event-Löschung.
 
@@ -730,8 +728,7 @@ def dispatcher_appointment_delete(
         send_notifications=send_notifications,
     )
     session.commit()
-    if payloads:
-        background_tasks.add_task(send_emails_background, payloads, settings)
+    schedule_emails(background_tasks, payloads, session)
 
     # Leeres 200-HTML statt 204 (siehe Begründung oben am Create-Endpoint)
     # Empty-HTML 200 + HX-Trigger-After-Settle: 204 No Content erzeugt KEINEN
@@ -886,7 +883,6 @@ def dispatcher_update_cast(
     guests: list[str] = Form(default_factory=list),
     appointment: Appointment = Depends(require_team_dispatcher_for_appointment),
     session: Session = Depends(get_db_session),
-    settings=Depends(get_settings),
 ):
     """Speichert Cast-Änderung (Personen + Gäste); liefert Display-Fragment.
 
@@ -929,8 +925,7 @@ def dispatcher_update_cast(
         session, appointment.id, person_ids, guests=guests
     )
     session.commit()
-    if payloads:
-        background_tasks.add_task(send_emails_background, payloads, settings)
+    schedule_emails(background_tasks, payloads, session)
 
     status_data = get_cast_status_for_appointment(session, appointment.id)
     coworkers = get_coworkers_for_appointment(session, appointment.id)

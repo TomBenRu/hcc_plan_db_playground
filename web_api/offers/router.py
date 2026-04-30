@@ -19,9 +19,8 @@ from fastapi.responses import HTMLResponse
 from sqlmodel import Session
 
 from web_api.auth.dependencies import LoggedInUser, WebUserRole, require_role
-from web_api.config import get_settings
 from web_api.dependencies import get_db_session
-from web_api.email.service import send_emails_background
+from web_api.email.service import schedule_emails
 from web_api.models.web_models import WebUser
 from web_api.models.web_models import AvailabilityOfferStatus
 from web_api.offers.service import (
@@ -130,7 +129,6 @@ def post_create_offer(
     appointment_id: uuid.UUID = Form(...),
     message: str | None = Form(default=None),
     session: Session = Depends(get_db_session),
-    settings=Depends(get_settings),
 ):
     """Mitarbeiter stellt Angebot für einen unterbesetzten fremden Termin."""
     try:
@@ -138,7 +136,7 @@ def post_create_offer(
     except HTTPException as exc:
         return _error_response(request, exc.detail)
     session.commit()
-    background_tasks.add_task(send_emails_background, payloads, settings)
+    schedule_emails(background_tasks, payloads, session)
     return _success_response(request, "Angebot gesendet.")
 
 
@@ -149,7 +147,6 @@ def post_withdraw_offer(
     background_tasks: BackgroundTasks,
     user: LoggedInUser,
     session: Session = Depends(get_db_session),
-    settings=Depends(get_settings),
 ):
     """Mitarbeiter zieht sein Angebot zurück (nur solange pending)."""
     try:
@@ -157,7 +154,7 @@ def post_withdraw_offer(
     except HTTPException as exc:
         return _error_response(request, exc.detail)
     session.commit()
-    background_tasks.add_task(send_emails_background, payloads, settings)
+    schedule_emails(background_tasks, payloads, session)
     return _success_response(request, "Angebot zurückgezogen.")
 
 
@@ -168,7 +165,6 @@ def post_accept_offer(
     background_tasks: BackgroundTasks,
     user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
     session: Session = Depends(get_db_session),
-    settings=Depends(get_settings),
 ):
     """Dispatcher nimmt Angebot an — Offerer wird additiv zum Cast hinzugefügt."""
     try:
@@ -176,7 +172,7 @@ def post_accept_offer(
     except HTTPException as exc:
         return _error_response(request, exc.detail)
     session.commit()
-    background_tasks.add_task(send_emails_background, payloads, settings)
+    schedule_emails(background_tasks, payloads, session)
     return _success_response(request, "Angebot angenommen — Mitarbeiter eingeteilt.")
 
 
@@ -251,7 +247,6 @@ def post_reject_offer(
     reason: str | None = Form(default=None),
     user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
     session: Session = Depends(get_db_session),
-    settings=Depends(get_settings),
 ):
     """Dispatcher lehnt Angebot ab — optional mit schriftlicher Begründung."""
     try:
@@ -259,5 +254,5 @@ def post_reject_offer(
     except HTTPException as exc:
         return _error_response(request, exc.detail)
     session.commit()
-    background_tasks.add_task(send_emails_background, payloads, settings)
+    schedule_emails(background_tasks, payloads, session)
     return _success_response(request, "Angebot abgelehnt.")

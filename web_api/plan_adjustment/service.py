@@ -65,6 +65,7 @@ def _load_cast_removal_context(session: Session, appointment_id: uuid.UUID) -> d
             Address.city.label("location_city"),
             TimeOfDay.name.label("time_of_day_name"),
             TimeOfDay.start.label("time_start"),
+            TimeOfDay.end.label("time_end"),
         )
         .select_from(Appointment)
         .join(Event, Event.id == Appointment.event_id)
@@ -93,6 +94,8 @@ def _build_snapshot(
         "event_date": str(ctx.get("event_date", "")),
         "location_name": ctx.get("location_name", ""),
         "time_of_day_name": ctx.get("time_of_day_name", ""),
+        "time_start": str(ctx["time_start"]) if ctx.get("time_start") else None,
+        "time_end": str(ctx["time_end"]) if ctx.get("time_end") else None,
         "request_type": request_type,
         "recipient_role": recipient_role,
         "removed_person_name": removed_person_name,
@@ -374,6 +377,8 @@ def _notify_direct_cast_changes(
                 "event_date": str(ctx.get("event_date", "")),
                 "location_name": ctx.get("location_name", ""),
                 "time_of_day_name": ctx.get("time_of_day_name", ""),
+                "time_start": str(ctx["time_start"]) if ctx.get("time_start") else None,
+                "time_end": str(ctx["time_end"]) if ctx.get("time_end") else None,
                 "request_type": "direct_add",
                 "recipient_role": "self",
             }
@@ -396,6 +401,8 @@ def _notify_direct_cast_changes(
                 "event_date": str(ctx.get("event_date", "")),
                 "location_name": ctx.get("location_name", ""),
                 "time_of_day_name": ctx.get("time_of_day_name", ""),
+                "time_start": str(ctx["time_start"]) if ctx.get("time_start") else None,
+                "time_end": str(ctx["time_end"]) if ctx.get("time_end") else None,
                 "request_type": "direct_remove",
                 "recipient_role": "self",
             }
@@ -920,6 +927,8 @@ def _build_plan_unbind_snapshot(ctx: dict, *, request_type: str) -> dict:
         "event_date": str(ctx.get("event_date", "")),
         "location_name": ctx.get("location_name", ""),
         "time_of_day_name": ctx.get("time_of_day_name", ""),
+        "time_start": str(ctx["time_start"]) if ctx.get("time_start") else None,
+        "time_end": str(ctx["time_end"]) if ctx.get("time_end") else None,
         "request_type": request_type,
     }
 

@@ -36,6 +36,7 @@ class EmailPayload:
     subject: str
     html_body: str
     cc: list[str] = field(default_factory=list)
+    bcc: list[str] = field(default_factory=list)
 
 
 def schedule_emails(
@@ -95,7 +96,7 @@ def _send_one_smtp(payload: EmailPayload, smtp_config: SmtpConfig) -> None:
         msg["Cc"] = ", ".join(payload.cc)
     msg.attach(MIMEText(payload.html_body, "html", "utf-8"))
 
-    all_recipients = payload.to + payload.cc
+    all_recipients = payload.to + payload.cc + payload.bcc
     server_cls = smtplib.SMTP_SSL if smtp_config.use_ssl else smtplib.SMTP
     with server_cls(smtp_config.host, smtp_config.port, timeout=10) as server:
         server.ehlo()

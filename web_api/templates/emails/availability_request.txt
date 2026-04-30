@@ -1,0 +1,17 @@
+Hallo {{ recipient_name }},
+
+bitte gib deine Verfügbarkeiten für den Zeitraum {{ period_start }} bis {{ period_end }} ({{ plan_period }}) an.
+
+Team: {{ team_name }}
+
+Bitte trage deine Verfügbarkeiten bis spätestens {{ deadline }} ein.
+{% if url %}
+Hier kannst du deine Verfügbarkeiten eingeben: {{ url }}
+{% endif %}
+{% if notes %}Hinweise:
+{{ notes }}
+{% endif %}
+Bei Fragen wende dich bitte an deinen Team-Dispatcher.
+
+Mit freundlichen Grüßen
+Das HCC-Plan-Team

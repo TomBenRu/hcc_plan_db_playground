@@ -1,0 +1,16 @@
+Hallo {{ recipient_name }},
+
+ein neuer Einsatzplan "{{ plan_name }}" für den Zeitraum {{ plan_period }} ist verfügbar.
+
+Team: {{ team_name }}
+
+Deine geplanten Einsätze:
+{% for assignment in assignments %}- {{ assignment.date }}, {{ assignment.time }}: {{ assignment.location }}
+{% endfor %}
+{% if notes %}Hinweise:
+{{ notes }}
+{% endif %}
+Bei Fragen wende dich bitte an deinen Team-Dispatcher.
+
+Mit freundlichen Grüßen
+Das HCC-Plan-Team

@@ -294,6 +294,8 @@
         /* Settings im Landscape direkt sichtbar — Sub-Toggle abschalten */
         .sidebar-settings-toggle { display: none !important; }
         .sidebar-settings { max-height: none !important; overflow: visible !important; padding-top: 0 !important; border-top: none !important; }
+        /* Statistik im Landscape ausblenden — nimmt zu viel vertikalen Platz */
+        .sidebar-stats-section { display: none !important; }
         .mobile-app-bar { display: none !important; }
         .fc .fc-toolbar { flex-direction: row !important; gap: 0 !important; align-items: center !important; }
         .fc .fc-toolbar-title { font-size: 0.95rem !important; }
@@ -536,8 +538,12 @@
                     {% endif %}
                 </div>
 
-                <!-- Statistik + Wunscheinsätze (kombinierte Karte) -->
-                <div class="mb-4">
+                <!-- Statistik + Wunscheinsätze (kombinierte Karte)
+                     `sidebar-stats-section`: wird im Landscape-Modus ausgeblendet,
+                     da dort die vertikale Höhe knapp ist und die Statistik nicht
+                     auf einen Blick reinpasst — der User kann ins Portrait drehen,
+                     um sie wieder zu sehen. -->
+                <div class="mb-4 sidebar-stats-section">
                     <label class="block text-xs font-semibold tracking-widest text-slate-500 uppercase mb-2.5 font-sans">
                         Statistik
                     </label>

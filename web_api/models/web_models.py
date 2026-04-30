@@ -402,3 +402,46 @@ class InboxMessage(SQLModel, table=True):
         default_factory=dict,
         sa_column=Column(JSON, nullable=False, server_default="{}"),
     )
+
+
+# ── E-Mail-Versand: SMTP-Konfiguration ────────────────────────────────────────
+
+
+class EmailSettings(SQLModel, table=True):
+    """SMTP-Konfiguration für den Server-seitigen E-Mail-Versand.
+
+    Heute Singleton (eine Zeile pro Web-API-Instanz), morgen Multi-Tenant via
+    project_id-FK. Der Loader liest mit LIMIT 1, das Save-API macht UPSERT auf
+    der gefundenen Zeile bzw. erzeugt sie beim ersten Speichern. Migration
+    seedet bewusst KEINE Zeile — der Admin füllt sie über die UI.
+
+    smtp_password_encrypted enthält den Fernet-Ciphertext; entschlüsselt wird
+    er ausschließlich im Versand-Pfad mit dem EMAIL_ENCRYPTION_KEY (Env-Var).
+    """
+
+    __tablename__ = "email_settings"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    project_id: Optional[uuid.UUID] = Field(
+        default=None,
+        foreign_key="project.id",
+        unique=True,
+        nullable=True,
+        ondelete="CASCADE",
+    )
+    smtp_host: str = Field(max_length=255)
+    smtp_port: int = Field(default=587)
+    smtp_username: str = Field(default="", max_length=255)
+    smtp_password_encrypted: str = Field(default="")
+    use_tls: bool = Field(default=True)
+    use_ssl: bool = Field(default=False)
+    email_from: str = Field(max_length=254)
+    email_from_name: Optional[str] = Field(default=None, max_length=100, nullable=True)
+    last_send_succeeded_at: Optional[datetime] = Field(default=None, nullable=True)
+    last_send_failed_at: Optional[datetime] = Field(default=None, nullable=True)
+    last_send_error: Optional[str] = Field(default=None, nullable=True)
+    created_at: datetime = Field(default_factory=_utcnow)
+    last_modified: datetime = Field(default_factory=_utcnow)
+    updated_by_id: Optional[uuid.UUID] = Field(
+        default=None, foreign_key="web_user.id", nullable=True, ondelete="SET NULL"
+    )

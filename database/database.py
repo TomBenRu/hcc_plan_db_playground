@@ -5,7 +5,8 @@ Wird beim Import ausgeführt — erzeugt Engine und registriert Event Listeners.
 
 Datenbankauswahl (Priorität):
     1. Env-Var DATABASE_URL → PostgreSQL (render.com oder lokale PG-Instanz)
-    2. Fallback → SQLite unter dem plattformspezifischen AppData-Pfad
+    2. Systemkeychain (Desktop-Client / kompilierte EXE) → PostgreSQL
+    3. Fallback → SQLite unter dem plattformspezifischen AppData-Pfad
 
 Verwendung in Services:
     from database.database import get_session
@@ -23,6 +24,7 @@ from dotenv import load_dotenv
 from sqlalchemy import event as _sa_event
 from sqlmodel import Session, SQLModel, create_engine
 
+from configuration.db_config import get_database_url
 from database.event_listeners import register_listeners
 
 # Alle Modelle importieren, damit SQLModel.metadata vollständig ist
@@ -32,9 +34,8 @@ from database.models import *  # noqa: F401, F403
 
 # .env laden (nur falls Vars noch nicht gesetzt — explizite Env-Vars haben Vorrang)
 load_dotenv()
-_database_url = os.environ.get("DATABASE_URL")
-_remote = True
-if _database_url and _remote:
+_database_url = get_database_url()
+if _database_url:
     # PostgreSQL: render.com setzt DATABASE_URL automatisch
     # pool_pre_ping: Erkennt serverseitig geschlossene Verbindungen (render.com Idle-Timeout)
     # pool_recycle: Verbindungen nach 30 min zwingend erneuern

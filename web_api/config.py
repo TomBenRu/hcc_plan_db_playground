@@ -21,13 +21,11 @@ class Settings(BaseSettings):
     APP_TITLE: str = "hcc_plan Web-API"
     BASE_URL: str = "http://localhost:8000"  # Basis für absolute Links (Reset-Mails etc.)
 
-    # E-Mail
-    EMAIL_BACKEND: str = "console"  # "smtp" | "console"
-    SMTP_HOST: str = "localhost"
-    SMTP_PORT: int = 587
-    SMTP_USER: str = ""
-    SMTP_PASSWORD: str = ""
-    EMAIL_FROM: str = "noreply@hccplan.local"
+    # E-Mail-Verschlüsselung: Master-Key für SMTP-Passwörter in der DB.
+    # Pflicht für jede Umgebung, in der E-Mails versendet werden — fehlende Werte
+    # werden erst beim ersten Versand erkannt (EmailEncryptionKeyMissingError).
+    # Generierung: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+    EMAIL_ENCRYPTION_KEY: str = ""
 
 
 def get_settings() -> Settings:

@@ -185,18 +185,30 @@
         to   { opacity: 1; transform: translateX(0); }
     }
     @media (max-width: 1023px) {
-        .cal-wrapper { grid-template-columns: 1fr !important; grid-template-rows: auto 1fr; }
-        .cal-sidebar {
-            flex-direction: row !important;
-            flex-wrap: wrap; gap: 0.5rem;
-            padding: 0.5rem 1rem !important;
-            align-items: flex-start; min-height: unset !important;
+        .cal-wrapper {
+            grid-template-columns: 1fr !important;
+            grid-template-rows: auto 1fr;
         }
-        /* Einstellungen-Toggle: nur auf Mobile/Tablet sichtbar */
-        .sidebar-settings-toggle { display: flex !important; flex-basis: 100%; }
+        /* Sidebar wird Slide-Down-Drawer; Trigger ist die Mobile-App-Bar oben */
+        .cal-sidebar {
+            max-height: 0;
+            padding: 0 !important;
+            overflow: hidden;
+            border-right: none !important;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            transition: max-height 0.3s ease, padding 0.3s ease;
+            min-height: 0 !important;
+        }
+        .cal-sidebar.drawer-open {
+            max-height: 70vh;
+            padding: 1.25rem !important;
+            overflow-y: auto;
+        }
+        /* Einstellungen-Toggle (innerer Sub-Toggle): nur auf Mobile/Tablet sichtbar */
+        .sidebar-settings-toggle { display: flex !important; }
         /* .sidebar-settings: standardmäßig eingeklappt, auf Desktop immer sichtbar */
         .sidebar-settings {
-            flex-basis: 100%; max-height: 0; overflow: hidden;
+            max-height: 0; overflow: hidden;
             transition: max-height 0.35s ease-in-out, padding-top 0.2s;
             width: 100%;
         }
@@ -205,12 +217,11 @@
             padding-top: 0.75rem;
             border-top: 1px solid rgba(255,255,255,0.05);
         }
-        /* Spacer auf Mobile ausblenden (kein flex-col-Layout) */
+        /* Spacer im Drawer ausblenden — keine vertikale Reserve nötig */
         .cal-sidebar .sidebar-spacer { display: none !important; }
-        /* Kompaktere Brand-Zeile in horizontal Sidebar */
-        .cal-sidebar > div:first-child { margin-bottom: 0 !important; }
-        .cal-sidebar h1 { font-size: 1.15rem !important; }
-        .cal-sidebar .border-t.mb-5 { display: none !important; }
+        /* Brand-Block kompakt im Drawer */
+        .cal-sidebar > div:first-child { margin-bottom: 1rem !important; }
+        .cal-sidebar h1 { font-size: 1.25rem !important; }
         .fc .fc-toolbar-title { font-size: 1rem; }
         .detail-panel.has-content {
             right: 0 !important; left: 0 !important;
@@ -238,9 +249,6 @@
         #week-label { min-width: 7rem !important; font-size: 0.7rem; }
         /* Bottom-Sheet auf sehr kleinen Screens */
         .detail-panel.has-content { height: 70vh !important; }
-        /* Brand-Header in eigener Zeile → Team + Planperiode nebeneinander */
-        .cal-sidebar > div:first-child { flex-basis: 100%; }
-        .cal-sidebar .sidebar-period-select { flex: 1; min-width: 0; }
         /* Scroll-Hinweis rechts am Wochen-Grid */
         #week-view { position: relative; }
         #week-view::after {
@@ -259,6 +267,37 @@
             pointer-events: none;
             z-index: 2;
         }
+    }
+
+    /* Landscape mit kurzer Höhe (Phones im Querformat): zurück zu 2 Spalten,
+       schmale Sidebar links — die Höhe ist hier das knappe Gut */
+    @media (max-height: 600px) and (orientation: landscape) {
+        .cal-wrapper {
+            grid-template-columns: 200px 1fr !important;
+            grid-template-rows: 1fr !important;
+        }
+        .cal-sidebar {
+            max-height: none !important;
+            padding: 0.75rem !important;
+            overflow-y: auto !important;
+            border-right: 1px solid rgba(255,255,255,0.05) !important;
+            border-bottom: none !important;
+            transition: none;
+        }
+        .cal-sidebar > div:first-child { margin-bottom: 0.5rem !important; }
+        .cal-sidebar h1 { font-size: 0.95rem !important; }
+        .cal-sidebar > div:first-child > p { display: none !important; }
+        .cal-sidebar .border-t.mb-5 { margin-bottom: 0.5rem !important; }
+        .cal-sidebar .sidebar-section { margin-bottom: 0.75rem !important; }
+        .cal-sidebar label.uppercase { font-size: 0.55rem !important; margin-bottom: 0.35rem !important; }
+        .cal-sidebar .sidebar-spacer { display: none !important; }
+        /* Settings im Landscape direkt sichtbar — Sub-Toggle abschalten */
+        .sidebar-settings-toggle { display: none !important; }
+        .sidebar-settings { max-height: none !important; overflow: visible !important; padding-top: 0 !important; border-top: none !important; }
+        .mobile-app-bar { display: none !important; }
+        .fc .fc-toolbar { flex-direction: row !important; gap: 0 !important; align-items: center !important; }
+        .fc .fc-toolbar-title { font-size: 0.95rem !important; }
+        .fc .fc-daygrid-day-frame { min-height: 50px !important; }
     }
 
     /* Wochen-Grid scrollt horizontal wenn zu schmal */
@@ -297,7 +336,38 @@
 {% set ap = view_model.active_period %}
 {% set stats = view_model.sidebar_stats %}
 
-<div class="h-[calc(100vh-56px)] flex flex-col overflow-hidden">
+<div class="h-[calc(100dvh-56px)] flex flex-col overflow-hidden">
+
+    <!-- ── Mobile App-Bar — Drawer-Trigger und kompakter Header (<1024px) ── -->
+    <div class="mobile-app-bar lg:hidden flex items-center justify-between gap-3 px-4 py-2.5 bg-navy border-b border-white/5 flex-shrink-0">
+        <a href="/dashboard"
+           class="flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 transition-colors font-sans flex-shrink-0"
+           title="Zurück zum Dashboard">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/>
+            </svg>
+        </a>
+        <div class="flex items-center gap-1.5 min-w-0 flex-1">
+            <span class="inline-block w-1.5 h-1.5 rounded-full bg-brand flex-shrink-0"></span>
+            <span class="text-[10px] font-semibold tracking-widest text-brand/80 uppercase font-sans flex-shrink-0">
+                Mitarbeiter
+            </span>
+            <span class="text-slate-600 text-xs flex-shrink-0">·</span>
+            <span class="text-sm font-semibold text-white font-sans truncate">
+                Verfügbarkeit
+            </span>
+        </div>
+        <button type="button"
+                id="mobile-drawer-toggle"
+                class="flex items-center justify-center w-9 h-9 rounded-lg border border-white/10 text-slate-300 hover:bg-white/5 transition-colors flex-shrink-0"
+                aria-label="Optionen anzeigen"
+                aria-expanded="false"
+                onclick="toggleAvailabilityDrawer(this)">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+            </svg>
+        </button>
+    </div>
 
     <!-- ── Three-Column Layout ─────────────────────────────────────────────── -->
     <div class="cal-wrapper flex-1 grid overflow-hidden" style="grid-template-columns: 252px 1fr 308px;">
@@ -917,6 +987,20 @@ document.addEventListener('DOMContentLoaded', function () {
         const icon = document.getElementById('sidebar-settings-icon');
         const open = settings.classList.toggle('open');
         icon.classList.toggle('rotated', open);
+    };
+
+    // ── Mobile-Drawer (gesamte Sidebar) öffnen/schließen ────────────────────
+    // Auf <1024px ist die Sidebar standardmäßig collapsed (max-height: 0).
+    // Der Hamburger in der Mobile-App-Bar toggelt `.drawer-open`.
+    // FullCalendar muss nach Höhenänderung neu vermessen werden, damit das
+    // Grid die neu verfügbare Höhe nutzt — sonst bleibt der Kalender klein.
+    // `calendar` ist die lokale Closure-Variable von DOMContentLoaded.
+    window.toggleAvailabilityDrawer = function (btn) {
+        const sidebar = document.querySelector('.cal-sidebar');
+        if (!sidebar) return;
+        const isOpen = sidebar.classList.toggle('drawer-open');
+        if (btn) btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
+        setTimeout(() => { if (calendar && calendar.updateSize) calendar.updateSize(); }, 320);
     };
 });
 </script>

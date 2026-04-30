@@ -79,18 +79,27 @@ def login_page(
     next_url: str | None = Query(default=None, alias="next"),
     access_token: str | None = Cookie(default=None),
     settings: Settings = Depends(get_settings),
+    session: Session = Depends(get_db_session),
 ):
     """Zeigt die Login-Seite an. Leitet direkt zum Dashboard weiter, wenn bereits eingeloggt."""
+    stale_cookie = False
     if access_token:
         try:
             payload = decode_token(access_token, settings)
             if payload.get("type") == "access":
-                redirect_url = _validate_next_url(next_url) or "/dashboard"
-                return RedirectResponse(url=redirect_url, status_code=303)
+                # Signatur valide ist nicht genug: der User aus dem sub-Claim muss
+                # noch in der DB existieren und aktiv sein. Sonst Redirect-Loop
+                # mit /dashboard's require_login (z. B. nach DB-Wipe / User-Delete).
+                user_id = payload.get("sub")
+                user = session.get(WebUser, user_id) if user_id else None
+                if user and user.is_active:
+                    redirect_url = _validate_next_url(next_url) or "/dashboard"
+                    return RedirectResponse(url=redirect_url, status_code=303)
+                stale_cookie = True
         except jwt.PyJWTError:
-            pass
+            stale_cookie = True
 
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         "auth/login.html",
         {
             "request": request,
@@ -99,6 +108,9 @@ def login_page(
             "next_url": _validate_next_url(next_url),
         },
     )
+    if stale_cookie:
+        clear_auth_cookies(response)
+    return response
 
 
 @router.post("/login")

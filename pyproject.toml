@@ -34,5 +34,8 @@ pythonpath = [
 [tool.setuptools.packages.find]
 exclude = ["gui", "gui.*", "web_api", "web_api.*", "alembic", "try_outs", "help", "output", "skills", "scripts", "tests", "docs"]
 
+[tool.uv]
+link-mode = "copy"
+
 [tool.uv.workspace]
 members = ["gui", "web_api"]

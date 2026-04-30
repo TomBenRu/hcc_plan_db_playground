@@ -1,13 +1,26 @@
 import os
 
 import toml
-from PySide6.QtCore import QLocale
 from toml.decoder import TomlDecodeError
 
 from pydantic import BaseModel
 
 from configuration.config_handler import ConfigHandler
 from configuration.project_paths import curr_user_path_handler
+
+
+# QLocale-basierte Defaults nur auf Desktop verfuegbar. Auf Headless-Server
+# (Web-API ohne PySide6) Fallback-Konstanten — der Server liest die echten
+# Werte aus user-toml, GUI ueberschreibt Defaults beim ersten Speichern.
+try:
+    from PySide6.QtCore import QLocale
+    _DEFAULT_COUNTRY = QLocale.Country.UnitedStates.value
+    _DEFAULT_LANGUAGE = QLocale.Language.English.value
+    _DEFAULT_FORMAT = QLocale.FormatType.ShortFormat.value
+except ImportError:
+    _DEFAULT_COUNTRY = 0
+    _DEFAULT_LANGUAGE = 0
+    _DEFAULT_FORMAT = 0
 
 
 class PlanSettings(BaseModel):
@@ -22,9 +35,9 @@ class DateFormatSettings(BaseModel):
     """
     Date format settings for the application.
     """
-    country: int = QLocale.Country.UnitedStates.value
-    language: int = QLocale.Language.English.value
-    format: int = QLocale.FormatType.ShortFormat.value
+    country: int = _DEFAULT_COUNTRY
+    language: int = _DEFAULT_LANGUAGE
+    format: int = _DEFAULT_FORMAT
 
 
 class DefenderSettings(BaseModel):

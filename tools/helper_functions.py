@@ -1,13 +1,26 @@
+from __future__ import annotations  # PEP 563: Type-Annotationen werden Strings.
+
 import datetime
 import functools
 import logging
 from collections import defaultdict
 from itertools import zip_longest
-from typing import Callable, Literal
+from typing import Callable, Literal, TYPE_CHECKING
 from uuid import UUID
 
-from PySide6.QtCore import QDate, QLocale, QTime, QCoreApplication
-from PySide6.QtWidgets import QWidget
+if TYPE_CHECKING:
+    # Nur fuer Type-Checker — zur Laufzeit nicht importiert.
+    from PySide6.QtCore import QDate, QLocale, QTime, QCoreApplication
+    from PySide6.QtWidgets import QWidget
+
+# PySide6 ist Desktop-only. Auf Headless-Servern (Web-API) nicht installiert;
+# Funktionen, die Qt benoetigen, werden vom Server zur Laufzeit nicht aufgerufen
+# (sie liefern nur GUI-Logik bzw. Properties, die Pydantic nicht serialisiert).
+try:
+    from PySide6.QtCore import QDate, QLocale, QTime, QCoreApplication
+    from PySide6.QtWidgets import QWidget
+except ImportError:
+    pass
 
 from configuration.general_settings import general_settings_handler
 from database import db_services, schemas

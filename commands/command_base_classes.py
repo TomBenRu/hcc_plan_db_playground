@@ -17,9 +17,20 @@ Enthält:
   automatisch in umgekehrter Reihenfolge zurückgerollt (Mini-Transaktion). `__str__`
   liefert eine lesbare Zusammenfassung für den Verlaufs-Tooltip.
 """
+from __future__ import annotations  # PEP 563: Type-Annotationen werden Strings.
+
 from abc import ABC, abstractmethod
-from typing import Iterable, Callable
-from PySide6.QtWidgets import QWidget, QMessageBox
+from typing import Iterable, Callable, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from PySide6.QtWidgets import QWidget, QMessageBox
+
+# PySide6 ist Desktop-only. Auf Headless-Servern (Web-API) nicht installiert;
+# `BatchCommand` mit QMessageBox-Fehlerdialog wird vom Server nicht ausgefuehrt.
+try:
+    from PySide6.QtWidgets import QWidget, QMessageBox  # type: ignore[no-redef]
+except ImportError:
+    pass
 
 from database import schemas
 

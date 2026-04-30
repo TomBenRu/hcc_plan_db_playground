@@ -45,8 +45,10 @@ from .schemas import (
     StatisticsSchema
 )
 
-# Commands für Undo/Redo-Funktionalität (Optional)
-from .db_commands import event_commands, category_commands
+# Commands fuer Undo/Redo-Funktionalitaet sind GUI-spezifisch (event_commands /
+# category_commands haengen ueber gui.api_client an PySide6) — bewusst NICHT
+# eager re-exportieren, sonst crasht der Web-API-Import. Caller importieren
+# direkt: `from employee_event.db_commands import event_commands`.
 
 __version__ = "2.0.0"
 __author__ = "Thomas"
@@ -80,8 +82,4 @@ __all__ = [
     "SuccessResponseSchema",
     "ErrorResponseSchema",
     "StatisticsSchema",
-
-    # Commands (Optional)
-    "event_commands",
-    "category_commands"
 ]

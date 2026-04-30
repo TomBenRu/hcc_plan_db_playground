@@ -196,15 +196,16 @@
             overflow: hidden;
             border-right: none !important;
             border-bottom: 1px solid rgba(255,255,255,0.05);
-            transition: max-height 0.3s ease, padding 0.3s ease;
+            transition: max-height 0.3s ease, min-height 0.3s ease, padding 0.3s ease;
             min-height: 0 !important;
         }
         .cal-sidebar.drawer-open {
-            /* 100dvh statt 70vh — der untere Kalender-Bruchstuecks-Peek
-               war ohnehin nicht nutzbar; vom parent `cal-wrapper`
-               (overflow: hidden) wird der Drawer auf den verfuegbaren
-               Content-Bereich beschnitten, scrollt intern via auto. */
-            max-height: 100dvh;
+            /* min+max aufeinander setzen, damit der Drawer den verfuegbaren
+               Content-Bereich komplett fuellt (auto-Grid-Row sized sonst auf
+               Content-Hoehe, Kalender-Peek wuerde unten bleiben).
+               113px = top-nav (56) + mobile-app-bar (~57). */
+            min-height: calc(100dvh - 113px) !important;
+            max-height: calc(100dvh - 113px);
             padding: 1.25rem !important;
             overflow-y: auto;
         }

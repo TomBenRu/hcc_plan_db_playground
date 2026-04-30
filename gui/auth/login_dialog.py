@@ -8,6 +8,9 @@ abgewaehlt, d. h. keine Persistenz).
 
 from __future__ import annotations
 
+import os
+from html import escape
+
 from PySide6.QtCore import Qt
 from PySide6.QtWidgets import (
     QCheckBox,
@@ -29,12 +32,27 @@ class LoginDialog(QDialog):
         self._client = client
         self.setWindowTitle(self.tr("Anmelden"))
         self.setModal(True)
-        self.setMinimumWidth(360)
+        self.setMinimumWidth(420)
 
-        # ── Kopfzeile: Server-URL zur Orientierung ───────────────────────────
-        server_label = QLabel(self.tr("Server: %s") % client.base_url)
-        server_label.setStyleSheet("color: gray;")
-        server_label.setTextInteractionFlags(Qt.TextInteractionFlag.TextSelectableByMouse)
+        # ── Server-URL (editierbar; bei DESKTOP_API_URL-Env-Var read-only) ───
+        env_override_active = bool(os.environ.get("DESKTOP_API_URL"))
+        self._le_server_url = QLineEdit(client.base_url)
+        self._le_server_url.setPlaceholderText("https://example.onrender.com")
+        if env_override_active:
+            self._le_server_url.setReadOnly(True)
+            self._le_server_url.setToolTip(
+                self.tr(
+                    "Per Umgebungsvariable DESKTOP_API_URL festgelegt — "
+                    "in dieser Sitzung nicht aenderbar."
+                )
+            )
+        else:
+            self._le_server_url.setToolTip(
+                self.tr(
+                    "Adresse der Web-API (z. B. https://hcc-plan.onrender.com). "
+                    "Wird gespeichert und beim naechsten Start vorausgewaehlt."
+                )
+            )
 
         # ── Eingabefelder ────────────────────────────────────────────────────
         self._le_email = QLineEdit()
@@ -43,6 +61,7 @@ class LoginDialog(QDialog):
         self._le_password.setEchoMode(QLineEdit.EchoMode.Password)
 
         form = QFormLayout()
+        form.addRow(self.tr("Server:"), self._le_server_url)
         form.addRow(self.tr("E-Mail:"), self._le_email)
         form.addRow(self.tr("Passwort:"), self._le_password)
 
@@ -56,12 +75,13 @@ class LoginDialog(QDialog):
         )
 
         # ── Passwort-vergessen-Link (oeffnet Web-Reset-Flow im Browser) ──────
-        forgot_url = f"{client.base_url}/auth/forgot-password"
-        self._lbl_forgot = QLabel(
-            f'<a href="{forgot_url}">{self.tr("Passwort vergessen?")}</a>'
-        )
+        # Wird live aus dem Server-URL-Feld aktualisiert, damit ein User-Wechsel
+        # auf einen anderen Server den Reset-Flow gegen den richtigen Host fuehrt.
+        self._lbl_forgot = QLabel()
         self._lbl_forgot.setOpenExternalLinks(True)
         self._lbl_forgot.setTextInteractionFlags(Qt.TextInteractionFlag.TextBrowserInteraction)
+        self._le_server_url.textChanged.connect(self._update_forgot_link)
+        self._update_forgot_link(self._le_server_url.text())
 
         # ── Fehlermeldung (nur bei Bedarf sichtbar) ──────────────────────────
         self._error_label = QLabel("")
@@ -80,7 +100,6 @@ class LoginDialog(QDialog):
 
         # ── Layout ───────────────────────────────────────────────────────────
         layout = QVBoxLayout(self)
-        layout.addWidget(server_label)
         layout.addLayout(form)
         layout.addWidget(self._chk_remember)
         layout.addWidget(self._lbl_forgot)
@@ -89,17 +108,38 @@ class LoginDialog(QDialog):
 
         self._le_email.setFocus()
 
+    # ── Helpers ──────────────────────────────────────────────────────────────
+
+    def _update_forgot_link(self, server_url: str) -> None:
+        url = server_url.rstrip("/")
+        if not url:
+            self._lbl_forgot.setText("")
+            return
+        forgot_url = escape(f"{url}/auth/forgot-password", quote=True)
+        self._lbl_forgot.setText(
+            f'<a href="{forgot_url}">{self.tr("Passwort vergessen?")}</a>'
+        )
+
     # ── Slots ────────────────────────────────────────────────────────────────
 
     def _on_accept(self) -> None:
+        server_url = self._le_server_url.text().strip()
         email = self._le_email.text().strip()
         password = self._le_password.text()
+        if not server_url:
+            self._show_error(self.tr("Bitte Server-URL angeben."))
+            return
         if not email or not password:
             self._show_error(self.tr("Bitte E-Mail-Adresse und Passwort angeben."))
             return
 
         self._set_busy(True)
         try:
+            # Falls der User die URL geaendert hat: Client umstellen + persistieren.
+            # set_base_url() fuehrt zwingend logout() durch, damit alte Tokens vom
+            # vorherigen Server nicht in die neuen Requests gemischt werden.
+            if server_url.rstrip("/") != self._client.base_url:
+                self._client.set_base_url(server_url)
             self._client.login(email, password, remember=self._chk_remember.isChecked())
         except ApiAuthError:
             self._show_error(self.tr("Ungueltige E-Mail-Adresse oder Passwort."))
@@ -125,6 +165,10 @@ class LoginDialog(QDialog):
 
     def _set_busy(self, busy: bool) -> None:
         self._buttons.setEnabled(not busy)
+        # Server-URL bleibt bei aktivem env-Override durchgehend read-only;
+        # ansonsten waehrend des Login-Requests sperren.
+        if not self._le_server_url.isReadOnly():
+            self._le_server_url.setEnabled(not busy)
         self._le_email.setEnabled(not busy)
         self._le_password.setEnabled(not busy)
         self._chk_remember.setEnabled(not busy)

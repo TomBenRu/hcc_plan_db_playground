@@ -111,12 +111,45 @@ class DesktopApiClient:
     @classmethod
     def get_instance(cls) -> DesktopApiClient:
         if cls._instance is None:
-            # Default 127.0.0.1 statt "localhost": vermeidet den IPv6-Fallback-
-            # Timeout auf Windows (::1 scheitert ~2s bis zum Retry auf IPv4).
-            # Auf anderen OS meistens unschaedlich, aber auch nicht schlechter.
-            url = os.environ.get("DESKTOP_API_URL", "http://127.0.0.1:8000")
+            # Aufloesungsreihenfolge:
+            #   1. DESKTOP_API_URL env-var  — Dev-/CI-Override
+            #   2. TOML-Konfiguration       — User-Wahl aus Login-Dialog
+            #   3. Default 127.0.0.1:8000   — vermeidet IPv6-Fallback-Timeout auf Windows
+            url = os.environ.get("DESKTOP_API_URL")
+            if not url:
+                # Lazy import: configuration/desktop_api_config.py instanziiert beim
+                # Import einen TOML-Handler (Filesystem-Side-Effect). Soll erst beim
+                # ersten Client-Zugriff laufen, nicht beim client.py-Modul-Import.
+                from configuration.desktop_api_config import curr_desktop_api_config_handler
+                url = curr_desktop_api_config_handler.get_settings().base_url
             cls._instance = cls(url)
         return cls._instance
+
+    def set_base_url(self, url: str, *, persist: bool = True) -> None:
+        """Setzt die Server-URL zur Laufzeit (Login-Dialog: User-Eingabe).
+
+        Wechselt auf einen anderen Server, faellt zwingend ein logout() an —
+        Access-Token im Memory und Refresh-Token im Keyring gehoeren zur
+        Server-A-Identitaet und sind fuer Server B ungueltig.
+
+        persist=True schreibt die URL in die TOML-Konfiguration, sodass beim
+        naechsten App-Start derselbe Server vorausgewaehlt ist. Bei aktiver
+        DESKTOP_API_URL-Env-Var hat persist keine Wirkung auf den naechsten
+        Start (env-var hat Vorrang in get_instance).
+        """
+        normalized = url.rstrip("/")
+        if normalized == self._base_url:
+            return
+        self.logout()
+        self._base_url = normalized
+        if persist:
+            from configuration.desktop_api_config import (
+                DesktopApiSettings,
+                curr_desktop_api_config_handler,
+            )
+            curr_desktop_api_config_handler.save_settings(
+                DesktopApiSettings(base_url=normalized)
+            )
 
     # ── Auth ──────────────────────────────────────────────────────────────────
 

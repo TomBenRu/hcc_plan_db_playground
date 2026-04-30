@@ -43,6 +43,8 @@ Thumbs.db
 # Secrets / Config
 *.env
 *.env.local
+.env.*
+!.env.example
 
 # Logs
 *.log

@@ -82,6 +82,17 @@ def _load_cast_removal_context(session: Session, appointment_id: uuid.UUID) -> d
     return ctx
 
 
+def _base_snapshot(ctx: dict) -> dict:
+    """Gemeinsame Termin-Basisfelder fuer alle Cast-Change-/Plan-Unbind-Snapshots."""
+    return {
+        "event_date": str(ctx.get("event_date", "")),
+        "location_name": ctx.get("location_name", ""),
+        "time_of_day_name": ctx.get("time_of_day_name", ""),
+        "time_start": str(ctx["time_start"]) if ctx.get("time_start") else None,
+        "time_end": str(ctx["time_end"]) if ctx.get("time_end") else None,
+    }
+
+
 def _build_snapshot(
     ctx: dict,
     *,
@@ -91,11 +102,7 @@ def _build_snapshot(
     partner_name: str = "",
 ) -> dict:
     return {
-        "event_date": str(ctx.get("event_date", "")),
-        "location_name": ctx.get("location_name", ""),
-        "time_of_day_name": ctx.get("time_of_day_name", ""),
-        "time_start": str(ctx["time_start"]) if ctx.get("time_start") else None,
-        "time_end": str(ctx["time_end"]) if ctx.get("time_end") else None,
+        **_base_snapshot(ctx),
         "request_type": request_type,
         "recipient_role": recipient_role,
         "removed_person_name": removed_person_name,
@@ -374,11 +381,7 @@ def _notify_direct_cast_changes(
     for user in web_users:
         if user.person_id in added_person_ids:
             snapshot = {
-                "event_date": str(ctx.get("event_date", "")),
-                "location_name": ctx.get("location_name", ""),
-                "time_of_day_name": ctx.get("time_of_day_name", ""),
-                "time_start": str(ctx["time_start"]) if ctx.get("time_start") else None,
-                "time_end": str(ctx["time_end"]) if ctx.get("time_end") else None,
+                **_base_snapshot(ctx),
                 "request_type": "direct_add",
                 "recipient_role": "self",
             }
@@ -398,11 +401,7 @@ def _notify_direct_cast_changes(
                 ))
         elif user.person_id in removed_person_ids and user.id not in exclude_user_ids:
             snapshot = {
-                "event_date": str(ctx.get("event_date", "")),
-                "location_name": ctx.get("location_name", ""),
-                "time_of_day_name": ctx.get("time_of_day_name", ""),
-                "time_start": str(ctx["time_start"]) if ctx.get("time_start") else None,
-                "time_end": str(ctx["time_end"]) if ctx.get("time_end") else None,
+                **_base_snapshot(ctx),
                 "request_type": "direct_remove",
                 "recipient_role": "self",
             }
@@ -924,11 +923,7 @@ def delete_appointment(
 
 def _build_plan_unbind_snapshot(ctx: dict, *, request_type: str) -> dict:
     return {
-        "event_date": str(ctx.get("event_date", "")),
-        "location_name": ctx.get("location_name", ""),
-        "time_of_day_name": ctx.get("time_of_day_name", ""),
-        "time_start": str(ctx["time_start"]) if ctx.get("time_start") else None,
-        "time_end": str(ctx["time_end"]) if ctx.get("time_end") else None,
+        **_base_snapshot(ctx),
         "request_type": request_type,
     }
 

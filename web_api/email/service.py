@@ -57,10 +57,36 @@ def schedule_emails(
 
 def _send_emails_with_config(payloads: list[EmailPayload], smtp_config: SmtpConfig) -> None:
     for payload in payloads:
-        _send_email(payload, smtp_config)
+        try:
+            _send_one_smtp(payload, smtp_config)
+        except Exception:
+            logger.exception(
+                "E-Mail-Versand fehlgeschlagen (to=%s, subject=%s)",
+                payload.to,
+                payload.subject,
+            )
 
 
-def _send_email(payload: EmailPayload, smtp_config: SmtpConfig) -> None:
+def send_test_email(smtp_config: SmtpConfig, recipient_email: str) -> None:
+    """Synchroner Test-Versand für die Admin-UI.
+
+    Wirft die SMTP-Exception ungefiltert weiter, damit der Admin den
+    Fehler-Text als Banner sehen kann.
+    """
+    payload = EmailPayload(
+        to=[recipient_email],
+        subject="hcc_plan: SMTP-Konfigurationstest",
+        html_body=(
+            "<p>Diese Test-Mail bestätigt, dass die SMTP-Konfiguration funktioniert.</p>"
+            f"<p>Versendet von <code>{smtp_config.host}:{smtp_config.port}</code> "
+            f"als <code>{smtp_config.email_from}</code>.</p>"
+        ),
+    )
+    _send_one_smtp(payload, smtp_config)
+
+
+def _send_one_smtp(payload: EmailPayload, smtp_config: SmtpConfig) -> None:
+    """Sendet eine einzelne E-Mail. Wirft bei Fehler — Logging im Caller."""
     msg = MIMEMultipart("alternative")
     msg["Subject"] = payload.subject
     msg["From"] = smtp_config.from_header
@@ -70,22 +96,12 @@ def _send_email(payload: EmailPayload, smtp_config: SmtpConfig) -> None:
     msg.attach(MIMEText(payload.html_body, "html", "utf-8"))
 
     all_recipients = payload.to + payload.cc
-    try:
-        if smtp_config.use_ssl:
-            server_cls = smtplib.SMTP_SSL
-        else:
-            server_cls = smtplib.SMTP
-        with server_cls(smtp_config.host, smtp_config.port, timeout=10) as server:
+    server_cls = smtplib.SMTP_SSL if smtp_config.use_ssl else smtplib.SMTP
+    with server_cls(smtp_config.host, smtp_config.port, timeout=10) as server:
+        server.ehlo()
+        if smtp_config.use_tls and not smtp_config.use_ssl:
+            server.starttls()
             server.ehlo()
-            if smtp_config.use_tls and not smtp_config.use_ssl:
-                server.starttls()
-                server.ehlo()
-            if smtp_config.username:
-                server.login(smtp_config.username, smtp_config.password)
-            server.sendmail(smtp_config.email_from, all_recipients, msg.as_string())
-    except Exception:
-        logger.exception(
-            "E-Mail-Versand fehlgeschlagen (to=%s, subject=%s)",
-            payload.to,
-            payload.subject,
-        )
+        if smtp_config.username:
+            server.login(smtp_config.username, smtp_config.password)
+        server.sendmail(smtp_config.email_from, all_recipients, msg.as_string())

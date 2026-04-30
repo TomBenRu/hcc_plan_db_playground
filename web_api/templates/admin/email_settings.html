@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}E-Mail-Einstellungen — hcc plan{% endblock %}
+
+{% block nav %}
+    {% include "partials/nav.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="min-h-[calc(100vh-56px)] bg-slate-50 dark:bg-slate-900 px-5 py-10">
+    <div class="max-w-2xl mx-auto animate-fade-up">
+
+        <div class="mb-6">
+            <p class="text-xs uppercase tracking-widest font-semibold text-slate-400 mb-2 font-sans">
+                Administration
+            </p>
+            <h1 class="font-display text-2xl font-semibold text-slate-800 dark:text-slate-100 leading-tight">
+                E-Mail-Einstellungen
+            </h1>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-2 font-sans">
+                SMTP-Server für den serverseitigen E-Mail-Versand. Passwörter werden verschlüsselt gespeichert.
+            </p>
+        </div>
+
+        {% include "admin/partials/email_settings_form.html" %}
+
+        <div id="email-settings-test-result" class="mt-4"></div>
+
+        <a href="/dashboard"
+           class="inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300 hover:text-slate-800 dark:hover:text-slate-100 transition-colors font-sans mt-4">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Zurück zum Dashboard
+        </a>
+
+    </div>
+</div>
+{% endblock %}

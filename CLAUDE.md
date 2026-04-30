@@ -143,3 +143,99 @@ def endpoint(user: LoggedInUser = LoggedInUser, ...):
 
 HTMX-Requests folgen 3xx-Redirects nicht browserbreit.  
 Logout: `RedirectResponse(url="/auth/login", status_code=303)` mit `response.delete_cookie(...)`.
+
+---
+
+## Web-API: Deploy-Constraints (Render / Headless)
+
+Der Web-API-Container auf Render wird mit `uv sync --frozen --package hcc-plan-web-api` gebaut. Damit sind **nur** die Dependencies aus `web_api/pyproject.toml` (+ Root `hcc-plan`) installiert. Desktop-Dependencies fehlen vollständig.
+
+### Verbotene Top-Level-Imports im Web-API-Importgraph
+
+Auf **Modul-Ebene** (Spaltenposition 0) dürfen folgende Pakete in keinem Modul vorkommen, das vom Web-API transitiv importiert wird:
+
+| Paket / Namespace      | Wo es lebt           | Wann erlaubt                          |
+|------------------------|----------------------|---------------------------------------|
+| `PySide6`              | nur Desktop-GUI      | innerhalb `gui/`                      |
+| `pandas`               | nur Excel-Import     | innerhalb `gui/`                      |
+| `ortools`              | nur Solver           | innerhalb `sat_solver/`               |
+| `xlsxwriter`/`openpyxl`| nur Excel-Export     | innerhalb `gui/`, `export_to_file/`   |
+| `googleapiclient`, `google.auth*`, `google_auth_oauthlib`, `httplib2` | Google Calendar | innerhalb `google_calendar_api/` |
+| `sympy`                | Solver-Hilfslogik    | innerhalb `sat_solver/`               |
+| `keyring` (Aufruf)     | Desktop-Credentials  | Server: Env-Vars statt Aufruf — Aufruf darf nur in try/except mit Fallback stehen |
+| `from gui.*`           | Desktop              | innerhalb `gui/` selbst                |
+
+### Mixed-Use-Module: try/except + PEP 563
+
+Module, die sowohl im Desktop- als auch im Server-Pfad liegen (z. B. `tools/helper_functions.py`, `commands/command_base_classes.py`, `configuration/general_settings.py`), nutzen folgenden Pattern:
+
+```python
+from __future__ import annotations  # Type-Annotations werden Strings (PEP 563)
+
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from PySide6.QtCore import QDate, QLocale  # nur für Type-Checker
+
+try:
+    from PySide6.QtCore import QDate, QLocale  # type: ignore[no-redef]
+except ImportError:
+    pass  # Server-Run ohne PySide6: Symbole fehlen, aber Funktionen die sie nutzen werden hier nicht aufgerufen
+```
+
+Damit ist der Modul-Import auf Server crash-frei. Funktionen, die die fehlenden Symbole brauchen, werfen zur Aufrufzeit einen `NameError` — explizit und debugbar.
+
+### Modul-Init-Side-Effects vermeiden
+
+`globals = SomeClass()` auf Modulebene mit IO im `__init__` (Filesystem, Keyring, DB) ist auf Render gefährlich, weil der Import durchläuft, bevor irgendein Endpoint feuert. Lazy-Pattern via PEP 562 Module-`__getattr__`:
+
+```python
+_instance: "SomeClass | None" = None
+
+def get_instance() -> "SomeClass":
+    global _instance
+    if _instance is None:
+        _instance = SomeClass()
+    return _instance
+
+def __getattr__(name: str):
+    if name == "instance":
+        return get_instance()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+```
+
+Bestehende Caller `from mod import instance` funktionieren unverändert, instanziieren aber erst beim ersten Zugriff. **Wichtig**: Wenn das Symbol auch im `__init__.py` re-exportiert wird, muss dort entweder der eager-Import entfernt oder ein zweiter Module-`__getattr__` ergänzt werden — sonst triggert der `from-import` im Package-Init den Lazy-Mechanismus eager.
+
+### Secrets: Env-Vars statt Keyring
+
+Desktop nutzt `keyring` (OS-Credential-Manager). Server hat kein Keyring-Backend. SMTP-/JWT-/DB-Credentials immer über Env-Vars, mit Keyring als Desktop-Fallback:
+
+```python
+def get_smtp_credentials():
+    if env_host := os.environ.get("SMTP_HOST"):
+        return {...}  # Server-Pfad
+    try:
+        return {... keyring.get_password(...) ...}  # Desktop-Pfad
+    except keyring.errors.KeyringError:
+        return {"smtp_host": "", ...}  # Fallback
+```
+
+### Schnell-Check vor Web-API-Erweiterung
+
+Wenn ein neues Web-API-Modul auf einen bisher unbenutzten Codeteil zugreifen soll, vorher prüfen:
+
+```bash
+# Lädt der neue Pfad Desktop-only-Symbole?
+uv run --package hcc-plan-web-api python -c "from web_api.main import app; print(len(app.routes))"
+```
+
+Erfolgt der Import durch und werden Routes registriert, ist der Pfad importsicher. ImportError → Modul am Eintrittspunkt fixen (lazy-import, PEP 562, oder Refactor).
+
+### Was außerhalb des Web-API-Pfads explizit erlaubt ist
+
+Reine Desktop-Subsysteme dürfen weiterhin eager Desktop-Deps importieren, weil sie auf Render nie geladen werden:
+- `gui/`
+- `sat_solver/` (ortools), `commands/database_commands/` (gui.api_client), `google_calendar_api/`, `export_to_file/`, `help/`
+- `tools/screen.py`, `tools/actions.py`, `tools/custom_validators.py`, `tools/delayed_execution_timer.py`, `tools/logging/{minimal,crash}_*.py`, `tools/translation_tool_gui.py`
+
+Falls eines dieser Module je in den Web-API-Importgraph gezogen wird, ist Refactoring nötig (Lazy-Pattern oder Aufteilung in `gui/`-spezifische und shared-Anteile).

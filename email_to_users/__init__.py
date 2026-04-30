@@ -5,14 +5,24 @@ Dieses Paket enthält Module für die Konfiguration, den E-Mail-Versand, Templat
 und eine Service-Schicht für die Integration mit dem Datenmodell.
 """
 
-# `email_config` bewusst NICHT eager re-exportieren — würde den Lazy-Init in
-# email_to_users.config beim Package-Import triggern. Bei Bedarf direkt
-# `from email_to_users.config import email_config` importieren oder
-# `email_to_users.config.get_email_config()` aufrufen.
+# `email_config` und `email_service` bewusst NICHT eager re-exportieren —
+# würde Lazy-Init in den Submodulen beim Package-Import triggern.
+# Stattdessen über Module-Level __getattr__ (PEP 562) lazy bereitstellen.
 from .config import EmailConfig, load_config_from_file
 from .sender import EmailSender
-from .service import EmailService, email_service
+from .service import EmailService, get_email_service
 from .templates import EmailTemplate, PlanNotificationTemplate, AvailabilityRequestTemplate
+
+
+def __getattr__(name: str):
+    """Lazy-Provider für `email_service` und `email_config` als Package-Attribute."""
+    if name == "email_service":
+        return get_email_service()
+    if name == "email_config":
+        from .config import get_email_config
+        return get_email_config()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
 
 # GUI-Integration (nur importieren, wenn PySide6 verfügbar ist)
 try:
@@ -24,6 +34,7 @@ try:
     )
     __all__ = [
         'EmailConfig',
+        'email_config',
         'load_config_from_file',
         'EmailSender',
         'EmailService',
@@ -41,6 +52,7 @@ except ImportError:
     # Wenn PySide6 nicht verfügbar ist
     __all__ = [
         'EmailConfig',
+        'email_config',
         'load_config_from_file',
         'EmailSender',
         'EmailService',

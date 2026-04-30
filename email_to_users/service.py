@@ -297,5 +297,21 @@ class EmailService:
             return {'success': 0, 'failed': 1, 'error': str(e)}
 
 
-# Globale Service-Instanz
-email_service = EmailService()
+# Globale Service-Instanz — lazy initialisiert (PEP 562).
+# Eager-Init triggert beim Modul-Import einen EmailSender → EmailConfig-Aufbau,
+# mit Filesystem-Side-Effects. Schädlich für Web-API-Deploys und Tests.
+_email_service_instance: "EmailService | None" = None
+
+
+def get_email_service() -> "EmailService":
+    """Lazy-Getter für die globale email_service-Instanz."""
+    global _email_service_instance
+    if _email_service_instance is None:
+        _email_service_instance = EmailService()
+    return _email_service_instance
+
+
+def __getattr__(name: str):
+    if name == "email_service":
+        return get_email_service()
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")

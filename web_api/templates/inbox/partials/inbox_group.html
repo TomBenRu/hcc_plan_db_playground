@@ -72,7 +72,9 @@
                     {{ group.location_name }}
                 </p>
                 {% if group.event_date %}
-                <p class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">{{ group.event_date }}</p>
+                <p class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                    {{ group.event_date }}{% if group.time_of_day_name %} · {{ group.time_of_day_name }}{% endif %}{% if group.time_start and group.time_end %} · {{ group.time_start[:5] }}–{{ group.time_end[:5] }}{% endif %}
+                </p>
                 {% endif %}
             </div>
 

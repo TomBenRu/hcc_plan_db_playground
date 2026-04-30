@@ -58,7 +58,9 @@
                 {% if item.snapshot_data.get("employee_name") %}{{ item.snapshot_data.get("employee_name") }} · {% endif %}{{ item.snapshot_data.get("location_name", "") }}
             </p>
             {% if item.snapshot_data.get("event_date") %}
-            <p class="text-xs text-slate-400 mt-0.5">{{ item.snapshot_data.get("event_date") }}</p>
+            <p class="text-xs text-slate-400 mt-0.5">
+                {{ item.snapshot_data.get("event_date") }}{% if item.snapshot_data.get("time_of_day_name") %} · {{ item.snapshot_data.get("time_of_day_name") }}{% endif %}{% if item.snapshot_data.get("time_start") and item.snapshot_data.get("time_end") %} · {{ item.snapshot_data.get("time_start")[:5] }}–{{ item.snapshot_data.get("time_end")[:5] }}{% endif %}
+            </p>
             {% endif %}
             {% endif %}
         </div>

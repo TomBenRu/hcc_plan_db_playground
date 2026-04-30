@@ -67,6 +67,9 @@ class InboxGroup:
     location_name: str
     event_date: str
     employee_name: str
+    time_of_day_name: str = ""
+    time_start: str = ""
+    time_end: str = ""
     messages: list[InboxItem] = field(default_factory=list)
     has_unread: bool = False
     cancellation_open: bool = False
@@ -189,6 +192,9 @@ def get_inbox_grouped(
                 location_name=snap.get("location_name", ""),
                 event_date=snap.get("event_date", ""),
                 employee_name=snap.get("employee_name", ""),
+                time_of_day_name=snap.get("time_of_day_name") or "",
+                time_start=snap.get("time_start") or "",
+                time_end=snap.get("time_end") or "",
             )
         groups[key].messages.append(item)
         if not item.is_read:

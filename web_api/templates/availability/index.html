@@ -222,6 +222,10 @@
         /* Brand-Block kompakt im Drawer */
         .cal-sidebar > div:first-child { margin-bottom: 1rem !important; }
         .cal-sidebar h1 { font-size: 1.25rem !important; }
+        /* Statistik im Drawer ausblenden — sie ist "nice to have" und blockiert
+           sonst den Zugriff auf Anmerkungen/Hinweise im 70vh-Drawer. Bleibt
+           auf Desktop weiter sichtbar. */
+        .sidebar-stats-section { display: none !important; }
         .fc .fc-toolbar-title { font-size: 1rem; }
         .detail-panel.has-content {
             right: 0 !important; left: 0 !important;

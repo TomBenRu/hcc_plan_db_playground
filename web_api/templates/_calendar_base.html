@@ -275,7 +275,11 @@
             min-height: 0 !important;
         }
         .cal-sidebar.drawer-open {
-            max-height: 70vh;
+            /* 100dvh — der Kalender-Peek unter dem Drawer ist nicht
+               nutzbar; der parent `cal-wrapper` (overflow: hidden)
+               beschneidet auf den Content-Bereich, intern scrollt der
+               Drawer via overflow-y: auto. */
+            max-height: 100dvh;
             padding: 1.25rem !important;
             overflow-y: auto;
         }

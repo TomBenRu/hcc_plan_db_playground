@@ -769,7 +769,9 @@ def get_cancellations_for_dispatcher(
         return []
 
     team_ids = session.execute(
-        sa_select(Team.id).where(Team.dispatcher_id == web_user.person_id)
+        sa_select(Team.id)
+        .where(Team.dispatcher_id == web_user.person_id)
+        .where(Team.prep_delete.is_(None))
     ).scalars().all()
     if not team_ids:
         return []
@@ -848,7 +850,9 @@ def get_cancellation_detail(
 
     is_own = cr.web_user_id == web_user.id
     is_dispatcher = web_user.person_id and session.execute(
-        sa_select(Team.id).where(Team.dispatcher_id == web_user.person_id)
+        sa_select(Team.id)
+        .where(Team.dispatcher_id == web_user.person_id)
+        .where(Team.prep_delete.is_(None))
     ).first() is not None
     is_in_circle = session.execute(
         sa_select(CancellationNotificationRecipient.id)
@@ -934,7 +938,9 @@ def count_open_cancellations_for_dispatcher(
     if web_user.person_id is None:
         return 0
     team_ids = session.execute(
-        sa_select(Team.id).where(Team.dispatcher_id == web_user.person_id)
+        sa_select(Team.id)
+        .where(Team.dispatcher_id == web_user.person_id)
+        .where(Team.prep_delete.is_(None))
     ).scalars().all()
     if not team_ids:
         return 0

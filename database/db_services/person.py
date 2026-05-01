@@ -164,10 +164,16 @@ def get_all_possible_from__plan_period_minimal(plan_period_id: UUID) -> dict[str
 
 
 def get_dispatchers_from__project(project_id: UUID) -> list[schemas.PersonShow]:
+    """Personen, die in mindestens einem aktiven Team als Dispatcher eingetragen sind.
+
+    Filtert soft-deletete Teams aus — eine Person, deren einziges Dispatcher-Team
+    soft-deletet ist, taucht nicht mehr in der Liste auf.
+    """
     with get_session() as session:
         dispatchers = session.exec(
             select(models.Person).join(models.Team, models.Team.dispatcher_id == models.Person.id)
             .where(models.Person.project_id == project_id)
+            .where(models.Team.prep_delete.is_(None))
         ).unique().all()
         return [schemas.PersonShow.model_validate(d) for d in dispatchers]
 
@@ -195,7 +201,11 @@ def create_persons_from_xlsx(file_name: str, project_id: UUID) -> list[schemas.P
     import pandas as pd  # lazy: pandas ist Desktop-only Dependency, im Web-API-Container nicht installiert
     log_function_info()
     with get_session() as session:
-        team_db = session.exec(select(models.Team).where(models.Team.project_id == project_id)).first()
+        team_db = session.exec(
+            select(models.Team)
+            .where(models.Team.project_id == project_id)
+            .where(models.Team.prep_delete.is_(None))
+        ).first()
         try:
             df = pd.read_excel(file_name)
         except Exception as e:

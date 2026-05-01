@@ -551,7 +551,9 @@ def get_swap_requests_for_dispatcher(
 
     # Alle Teams, für die der Nutzer Dispatcher ist (kann mehrere sein)
     team_ids = session.execute(
-        sa_select(Team.id).where(Team.dispatcher_id == web_user.person_id)
+        sa_select(Team.id)
+        .where(Team.dispatcher_id == web_user.person_id)
+        .where(Team.prep_delete.is_(None))
     ).scalars().all()
 
     if not team_ids:
@@ -885,7 +887,9 @@ def count_swap_requests_pending_confirm_for_dispatcher(
     if web_user.person_id is None:
         return 0
     team_ids = session.execute(
-        sa_select(Team.id).where(Team.dispatcher_id == web_user.person_id)
+        sa_select(Team.id)
+        .where(Team.dispatcher_id == web_user.person_id)
+        .where(Team.prep_delete.is_(None))
     ).scalars().all()
     if not team_ids:
         return 0

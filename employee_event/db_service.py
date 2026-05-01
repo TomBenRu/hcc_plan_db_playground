@@ -178,7 +178,8 @@ class EmployeeEventService:
                 team_db = session.exec(
                     select(models.Team).where(
                         models.Team.name == team_name,
-                        models.Team.project_id == project_db.id
+                        models.Team.project_id == project_db.id,
+                        models.Team.prep_delete.is_(None),
                     )
                 ).first()
                 if not team_db:
@@ -693,10 +694,14 @@ class EmployeeEventService:
     # Private Helper Methods
 
     def _get_team_id_by_name(self, name: str, project_id: UUID) -> Optional[UUID]:
-        """Ermittelt Team-ID anhand des Namens."""
+        """Ermittelt Team-ID anhand des Namens (nur aktive Teams)."""
         with get_session() as session:
             team = session.exec(
-                select(Team).where(Team.name == name, Team.project_id == project_id)
+                select(Team).where(
+                    Team.name == name,
+                    Team.project_id == project_id,
+                    Team.prep_delete.is_(None),
+                )
             ).first()
             return team.id if team else None
 

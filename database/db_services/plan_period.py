@@ -233,12 +233,15 @@ def find_overlapping_period(
     Range-Overlap-Formel: existing.start <= new.end AND existing.end >= new.start.
     """
     with get_session() as session:
-        stmt = select(models.PlanPeriod).where(
-            models.PlanPeriod.team_id == team_id,
-            models.PlanPeriod.prep_delete.is_(None),
-            models.PlanPeriod.start <= end,
-            models.PlanPeriod.end >= start,
-        )
+        stmt = (select(models.PlanPeriod)
+                .join(models.Team)
+                .where(
+                    models.PlanPeriod.team_id == team_id,
+                    models.PlanPeriod.prep_delete.is_(None),
+                    models.Team.prep_delete.is_(None),
+                    models.PlanPeriod.start <= end,
+                    models.PlanPeriod.end >= start,
+                ))
         if exclude_id is not None:
             stmt = stmt.where(models.PlanPeriod.id != exclude_id)
         hit = session.exec(stmt).first()

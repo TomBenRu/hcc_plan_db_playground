@@ -549,7 +549,9 @@ def count_pending_offers_for_dispatcher(
     if dispatcher_user.person_id is None:
         return 0
     my_team_ids = session.execute(
-        sa_select(Team.id).where(Team.dispatcher_id == dispatcher_user.person_id)
+        sa_select(Team.id)
+        .where(Team.dispatcher_id == dispatcher_user.person_id)
+        .where(Team.prep_delete.is_(None))
     ).scalars().all()
     if not my_team_ids:
         return 0
@@ -586,7 +588,9 @@ def get_offers_for_dispatcher(
     if dispatcher_user.person_id is None:
         return []
     my_team_ids = session.execute(
-        sa_select(Team.id).where(Team.dispatcher_id == dispatcher_user.person_id)
+        sa_select(Team.id)
+        .where(Team.dispatcher_id == dispatcher_user.person_id)
+        .where(Team.prep_delete.is_(None))
     ).scalars().all()
     if not my_team_ids:
         return []

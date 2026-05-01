@@ -41,9 +41,13 @@ def require_team_dispatcher_for_appointment(
         .join(PlanPeriod, PlanPeriod.id == Plan.plan_period_id)
         .join(Team, Team.id == PlanPeriod.team_id)
         .where(Appointment.id == appointment_id)
+        .where(PlanPeriod.prep_delete.is_(None))
+        .where(Team.prep_delete.is_(None))
     ).first()
 
     if row is None:
+        # Treffer für: Appointment existiert nicht, ODER seine PlanPeriod / sein
+        # Team ist soft-deleted (Disponent hat dort keine operationalen Rechte mehr).
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Termin nicht gefunden")
 
     appointment, dispatcher_id = row

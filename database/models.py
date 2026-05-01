@@ -778,6 +778,9 @@ class Team(SQLModel, table=True):
     team_actor_assigns: list["TeamActorAssign"] = Relationship(back_populates="team", cascade_delete=True)
     team_location_assigns: list["TeamLocationAssign"] = Relationship(back_populates="team", cascade_delete=True)
     plan_periods: list["PlanPeriod"] = Relationship(back_populates="team", cascade_delete=True)
+    notification_groups: list["NotificationGroup"] = Relationship(
+        back_populates="team", cascade_delete=True
+    )
     combination_locations_possibles: list["CombinationLocationsPossible"] = Relationship(
         back_populates="team"
     )
@@ -786,6 +789,30 @@ class Team(SQLModel, table=True):
     employee_events: list["EmployeeEvent"] = Relationship(
         back_populates="teams", link_model=TeamEmployeeEventLink
     )
+
+
+class NotificationGroup(SQLModel, table=True):
+    """Buendelt PlanPerioden mit gemeinsamer Reminder-Deadline.
+
+    Jede PlanPeriod gehoert zu genau einer NotificationGroup; im Default-Fall
+    eine 1er-Gruppe pro PP (auto-erzeugt beim PP-Insert). Mehrere PPs in einer
+    Gruppe teilen sich eine gemeinsame Deadline und einen gemeinsamen
+    Reminder-Schedule (T-7/T-3/T-1), damit Empfaenger nicht je PP eine eigene
+    Erinnerungsmail bekommen.
+    """
+    __tablename__ = "notification_group"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    deadline: date
+    name: str | None = Field(default=None, max_length=255)
+    created_at: datetime = Field(default_factory=_utcnow, sa_column=_created_at_col())
+
+    # FK
+    team_id: uuid.UUID = Field(foreign_key="team.id", ondelete="CASCADE")
+
+    # Relationships
+    team: Team = Relationship(back_populates="notification_groups")
+    plan_periods: list["PlanPeriod"] = Relationship(back_populates="notification_group")
 
 
 class PlanPeriod(SQLModel, table=True):
@@ -805,9 +832,11 @@ class PlanPeriod(SQLModel, table=True):
 
     # FK
     team_id: uuid.UUID = Field(foreign_key="team.id", ondelete="CASCADE")
+    notification_group_id: uuid.UUID = Field(foreign_key="notification_group.id")
 
     # Relationships
     team: Team = Relationship(back_populates="plan_periods")
+    notification_group: NotificationGroup = Relationship(back_populates="plan_periods")
 
     @property
     def project(self) -> "Project":

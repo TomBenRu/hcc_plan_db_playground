@@ -1,13 +1,33 @@
-"""Auth-Service: Passwort-Hashing und JWT-Token-Verwaltung."""
+"""Auth-Service: Passwort-Hashing, JWT-Token-Verwaltung und User-Lookup."""
 
 from datetime import datetime, timedelta, timezone
 
 import bcrypt
 import jwt
+from sqlalchemy.orm import selectinload
+from sqlmodel import Session, select
 
 from web_api.config import Settings
+from web_api.models.web_models import WebUser
 
 _ALGORITHM = "HS256"
+
+
+# ── User-Lookup ───────────────────────────────────────────────────────────────
+
+
+def normalize_email(email: str) -> str:
+    """Email-Normalisierung für Login-Lookup: trimmen + lowercase."""
+    return email.strip().lower()
+
+
+def load_user_with_roles(session: Session, email: str) -> WebUser | None:
+    """Lädt einen WebUser per Email mit eager-loaded Rollen."""
+    return session.exec(
+        select(WebUser)
+        .where(WebUser.email == normalize_email(email))
+        .options(selectinload(WebUser.role_links))  # type: ignore[arg-type]
+    ).first()
 
 
 # ── Passwort ──────────────────────────────────────────────────────────────────

@@ -34,6 +34,7 @@ from web_api.auth.service import (
     create_access_token,
     create_refresh_token,
     decode_token,
+    load_user_with_roles,
     verify_password,
 )
 from web_api.config import Settings, get_settings
@@ -47,18 +48,6 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 # ── Hilfsfunktionen ───────────────────────────────────────────────────────────
-
-
-def _normalize_email(email: str) -> str:
-    return email.strip().lower()
-
-
-def _load_user_with_roles(session: Session, email: str) -> WebUser | None:
-    return session.exec(
-        select(WebUser)
-        .where(WebUser.email == _normalize_email(email))
-        .options(selectinload(WebUser.role_links))  # type: ignore[arg-type]
-    ).first()
 
 
 def _validate_next_url(next_url: str | None) -> str | None:
@@ -130,7 +119,7 @@ def login(
 
     ?next= leitet nach erfolgreichem Login zu einer bestimmten URL weiter.
     """
-    user = _load_user_with_roles(session, form.username)
+    user = load_user_with_roles(session, form.username)
 
     # ── Fehlerfälle ──
     if not user or not verify_password(form.password, user.hashed_password):
@@ -300,7 +289,7 @@ def forgot_password(
     existiert oder nicht — verhindert User-Enumeration.
     Pro User höchstens alle EMAIL_THROTTLE_MINUTES eine neue Mail.
     """
-    user = _load_user_with_roles(session, email)
+    user = load_user_with_roles(session, email)
 
     if user is not None and user.is_active and not has_recent_token(session, user.id):
         token = create_reset_token(session, user)

@@ -4,6 +4,11 @@ Speichert, in welchem Zeitraum (start bis end) eine Person einem Team angehört.
 Abfragen berücksichtigen datumsbezogene Überschneidungen (mit `or_`-Filter auf
 `end IS NULL`). `get_at__date` gibt die aktive Zuweisung zu einem konkreten Datum
 zurück und liefert `None`, wenn keine gültige Zuweisung existiert.
+
+Read-Funktionen filtern soft-deletete Teams konsistent aus: TAAs eines
+soft-deleten Teams gelten als nicht mehr existent — andernfalls würden
+Stammdaten-Tabelle, Disponenten-Sicht und Solver weiter Personen einem
+Team zuordnen, das im Rest der Anwendung als gelöscht angesehen wird.
 """
 import datetime
 from uuid import UUID
@@ -25,7 +30,13 @@ def get(team_actor_assign_id: UUID) -> schemas.TeamActorAssignShow:
 def get_at__date(person_id: UUID, date: datetime.date | None) -> schemas.TeamActorAssignShow | None:
     with get_session() as session:
         assigns = session.exec(
-            select(models.TeamActorAssign).where(models.TeamActorAssign.person_id == person_id)).all()
+            select(models.TeamActorAssign)
+            .join(models.Team)
+            .where(
+                models.TeamActorAssign.person_id == person_id,
+                models.Team.prep_delete.is_(None),
+            )
+        ).all()
         if not assigns:
             return None
         if not date:
@@ -42,36 +53,64 @@ def get_at__date(person_id: UUID, date: datetime.date | None) -> schemas.TeamAct
 def get_all_between_dates(person_id: UUID, team_id: UUID,
                           date_start: datetime.date, date_end: datetime.date) -> list[schemas.TeamActorAssignShow]:
     with get_session() as session:
-        assigns = session.exec(select(models.TeamActorAssign).where(
-            models.TeamActorAssign.team_id == team_id, models.TeamActorAssign.person_id == person_id,
-            models.TeamActorAssign.start <= date_end,
-            or_(models.TeamActorAssign.end.is_(None), models.TeamActorAssign.end >= date_start))).all()
+        assigns = session.exec(
+            select(models.TeamActorAssign)
+            .join(models.Team)
+            .where(
+                models.TeamActorAssign.team_id == team_id,
+                models.TeamActorAssign.person_id == person_id,
+                models.TeamActorAssign.start <= date_end,
+                or_(models.TeamActorAssign.end.is_(None), models.TeamActorAssign.end >= date_start),
+                models.Team.prep_delete.is_(None),
+            )
+        ).all()
         return [schemas.TeamActorAssignShow.model_validate(a) for a in assigns]
 
 
 def get_all_actor_ids_between_dates(team_id: UUID,
                                     date_start: datetime.date, date_end: datetime.date) -> set[UUID]:
     with get_session() as session:
-        assigns = session.exec(select(models.TeamActorAssign).where(
-            models.TeamActorAssign.team_id == team_id, models.TeamActorAssign.start <= date_end,
-            or_(models.TeamActorAssign.end.is_(None), models.TeamActorAssign.end > date_start))).all()
+        assigns = session.exec(
+            select(models.TeamActorAssign)
+            .join(models.Team)
+            .where(
+                models.TeamActorAssign.team_id == team_id,
+                models.TeamActorAssign.start <= date_end,
+                or_(models.TeamActorAssign.end.is_(None), models.TeamActorAssign.end > date_start),
+                models.Team.prep_delete.is_(None),
+            )
+        ).all()
         return {a.person_id for a in assigns}
 
 
 def get_all_at__date(date: datetime.date, team_id: UUID) -> list[schemas.TeamActorAssignShow]:
     with get_session() as session:
-        assigns = session.exec(select(models.TeamActorAssign).where(
-            models.TeamActorAssign.team_id == team_id, models.TeamActorAssign.start <= date,
-            or_(models.TeamActorAssign.end.is_(None), models.TeamActorAssign.end > date))).all()
+        assigns = session.exec(
+            select(models.TeamActorAssign)
+            .join(models.Team)
+            .where(
+                models.TeamActorAssign.team_id == team_id,
+                models.TeamActorAssign.start <= date,
+                or_(models.TeamActorAssign.end.is_(None), models.TeamActorAssign.end > date),
+                models.Team.prep_delete.is_(None),
+            )
+        ).all()
         return [schemas.TeamActorAssignShow.model_validate(a) for a in assigns]
 
 
 def get_all_teams_at_date(person_id: UUID, date: datetime.date,
                           only_uuids: bool = False) -> list[schemas.TeamShow] | list[UUID]:
     with get_session() as session:
-        assigns = session.exec(select(models.TeamActorAssign).where(
-            models.TeamActorAssign.person_id == person_id, models.TeamActorAssign.start <= date,
-            or_(models.TeamActorAssign.end.is_(None), models.TeamActorAssign.end > date))).all()
+        assigns = session.exec(
+            select(models.TeamActorAssign)
+            .join(models.Team)
+            .where(
+                models.TeamActorAssign.person_id == person_id,
+                models.TeamActorAssign.start <= date,
+                or_(models.TeamActorAssign.end.is_(None), models.TeamActorAssign.end > date),
+                models.Team.prep_delete.is_(None),
+            )
+        ).all()
         if only_uuids:
             return [a.team_id for a in assigns]
         return [schemas.TeamShow.model_validate(a.team) for a in assigns]
@@ -84,6 +123,7 @@ def get_team_names_for_persons_at_date(
     Ersetzt N einzelne get_all_teams_at_date()-Aufrufe (je eine Session + model_validate)
     durch einen einzigen JOIN-Query über alle person_ids.
     Gibt {person_id: [team_name, ...]} zurück — nur die Namen, kein Schema-Overhead.
+    Soft-deletete Teams erscheinen nicht in der Liste.
     """
     if not person_ids:
         return {}
@@ -97,6 +137,7 @@ def get_team_names_for_persons_at_date(
                 models.TeamActorAssign.start <= date,
                 or_(models.TeamActorAssign.end.is_(None),
                     models.TeamActorAssign.end > date),
+                models.Team.prep_delete.is_(None),
             )
         ).all()
     for person_id, team_name in rows:
@@ -110,15 +151,22 @@ def get_all_teams_at_dates(person_id: UUID, dates: list[datetime.date]) -> dict[
     Ersetzt N einzelne get_all_teams_at_date()-Aufrufe pro Tag durch eine
     Batch-Abfrage. Deckt den gesamten Datumsbereich mit einem WHERE-Filter ab
     und verteilt die Ergebnisse in Python auf die einzelnen Tage.
+    Soft-deletete Teams werden ausgefiltert.
     """
     if not dates:
         return {}
     date_min, date_max = min(dates), max(dates)
     with get_session() as session:
-        assigns = session.exec(select(models.TeamActorAssign).where(
-            models.TeamActorAssign.person_id == person_id,
-            models.TeamActorAssign.start <= date_max,
-            or_(models.TeamActorAssign.end.is_(None), models.TeamActorAssign.end > date_min))).all()
+        assigns = session.exec(
+            select(models.TeamActorAssign)
+            .join(models.Team)
+            .where(
+                models.TeamActorAssign.person_id == person_id,
+                models.TeamActorAssign.start <= date_max,
+                or_(models.TeamActorAssign.end.is_(None), models.TeamActorAssign.end > date_min),
+                models.Team.prep_delete.is_(None),
+            )
+        ).all()
         # Primitive Werte innerhalb der Session extrahieren, bevor die Session schließt
         assign_data = [(a.start, a.end, a.team_id) for a in assigns]
     result: dict[datetime.date, list[UUID]] = {d: [] for d in dates}

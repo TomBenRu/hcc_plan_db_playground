@@ -4,6 +4,9 @@ Speichert, in welchem Zeitraum (start bis end) ein Arbeitsort einem Team
 zugeordnet ist. Analog zu TeamActorAssign mit datumsbezogenen Überschneidungs-
 abfragen. Wird u. a. genutzt, um in `location_of_work.get_all_possible_from__plan_period_minimal`
 die für eine PlanPeriod relevanten Standorte zu ermitteln.
+
+Read-Funktionen filtern soft-deletete Teams konsistent aus: TLAs eines
+soft-deleten Teams gelten als nicht mehr existent (analog zu team_actor_assign).
 """
 import datetime
 from uuid import UUID
@@ -24,8 +27,14 @@ def get(team_location_assign_id: UUID) -> schemas.TeamLocationAssignShow:
 
 def get_at__date(location_id: UUID, date: datetime.date | None) -> schemas.TeamLocationAssignShow | None:
     with get_session() as session:
-        assigns = session.exec(select(models.TeamLocationAssign).where(
-            models.TeamLocationAssign.location_of_work_id == location_id)).all()
+        assigns = session.exec(
+            select(models.TeamLocationAssign)
+            .join(models.Team)
+            .where(
+                models.TeamLocationAssign.location_of_work_id == location_id,
+                models.Team.prep_delete.is_(None),
+            )
+        ).all()
         if not assigns:
             return None
         if not date:
@@ -42,19 +51,33 @@ def get_at__date(location_id: UUID, date: datetime.date | None) -> schemas.TeamL
 def get_all_of_location_between_dates(location_id: UUID, team_id: UUID,
                                       date_start: datetime.date, date_end: datetime.date) -> list[schemas.TeamLocationAssignShow]:
     with get_session() as session:
-        assigns = session.exec(select(models.TeamLocationAssign).where(
-            models.TeamLocationAssign.team_id == team_id, models.TeamLocationAssign.location_of_work_id == location_id,
-            models.TeamLocationAssign.start <= date_end,
-            or_(models.TeamLocationAssign.end.is_(None), models.TeamLocationAssign.end >= date_start))).all()
+        assigns = session.exec(
+            select(models.TeamLocationAssign)
+            .join(models.Team)
+            .where(
+                models.TeamLocationAssign.team_id == team_id,
+                models.TeamLocationAssign.location_of_work_id == location_id,
+                models.TeamLocationAssign.start <= date_end,
+                or_(models.TeamLocationAssign.end.is_(None), models.TeamLocationAssign.end >= date_start),
+                models.Team.prep_delete.is_(None),
+            )
+        ).all()
         return [schemas.TeamLocationAssignShow.model_validate(a) for a in assigns]
 
 
 def get_all_between_dates(team_id: UUID,
                           date_start: datetime.date, date_end: datetime.date) -> list[schemas.TeamLocationAssignShow]:
     with get_session() as session:
-        assigns = session.exec(select(models.TeamLocationAssign).where(
-            models.TeamLocationAssign.team_id == team_id, models.TeamLocationAssign.start <= date_end,
-            or_(models.TeamLocationAssign.end.is_(None), models.TeamLocationAssign.end >= date_start))).all()
+        assigns = session.exec(
+            select(models.TeamLocationAssign)
+            .join(models.Team)
+            .where(
+                models.TeamLocationAssign.team_id == team_id,
+                models.TeamLocationAssign.start <= date_end,
+                or_(models.TeamLocationAssign.end.is_(None), models.TeamLocationAssign.end >= date_start),
+                models.Team.prep_delete.is_(None),
+            )
+        ).all()
         return [schemas.TeamLocationAssignShow.model_validate(a) for a in assigns]
 
 
@@ -63,19 +86,34 @@ def get_location_ids_at_date(team_id: UUID, date: datetime.date) -> set[UUID]:
 
     Deutlich schneller als get_all_at__date(), da keine Schema-Validierung stattfindet —
     geeignet für reine ID-Vergleiche (z.B. Info-Text-Prüfung).
+    Soft-deletete Teams liefern eine leere Menge.
     """
     with get_session() as session:
-        assigns = session.exec(select(models.TeamLocationAssign).where(
-            models.TeamLocationAssign.team_id == team_id, models.TeamLocationAssign.start <= date,
-            or_(models.TeamLocationAssign.end.is_(None), models.TeamLocationAssign.end > date))).all()
+        assigns = session.exec(
+            select(models.TeamLocationAssign)
+            .join(models.Team)
+            .where(
+                models.TeamLocationAssign.team_id == team_id,
+                models.TeamLocationAssign.start <= date,
+                or_(models.TeamLocationAssign.end.is_(None), models.TeamLocationAssign.end > date),
+                models.Team.prep_delete.is_(None),
+            )
+        ).all()
         return {a.location_of_work_id for a in assigns}
 
 
 def get_all_at__date(date: datetime.date, team_id: UUID) -> list[schemas.TeamLocationAssignShow]:
     with get_session() as session:
-        assigns = session.exec(select(models.TeamLocationAssign).where(
-            models.TeamLocationAssign.team_id == team_id, models.TeamLocationAssign.start <= date,
-            or_(models.TeamLocationAssign.end.is_(None), models.TeamLocationAssign.end > date))).all()
+        assigns = session.exec(
+            select(models.TeamLocationAssign)
+            .join(models.Team)
+            .where(
+                models.TeamLocationAssign.team_id == team_id,
+                models.TeamLocationAssign.start <= date,
+                or_(models.TeamLocationAssign.end.is_(None), models.TeamLocationAssign.end > date),
+                models.Team.prep_delete.is_(None),
+            )
+        ).all()
         return [schemas.TeamLocationAssignShow.model_validate(a) for a in assigns]
 
 

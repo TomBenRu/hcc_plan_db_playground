@@ -9,6 +9,26 @@ from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
 from database.enums import Gender, Role
 
 
+def _filter_assigns_with_active_team(values):
+    """Entfernt TeamActorAssign-/TeamLocationAssign-Items, deren `team`-Pointer
+    None ist.
+
+    Hintergrund: Der zentrale Soft-Delete-Filter (with_loader_criteria(Team, ...)
+    in db_services._soft_delete) blockiert das Laden des verknüpften Teams,
+    wenn es soft-deletet ist. Die Assign-Zeile selbst bleibt aber in der
+    M:N-Liste der Person/LocationOfWork erhalten — mit team=None. Pydantic
+    würde dort beim Validieren des Sub-Schemas crashen, weil TeamActorAssign.
+    team / TeamLocationAssign.team Pflichtfelder sind.
+
+    Wird von PersonShow, PersonForCombLocDialog und LocationOfWorkShow als
+    field_validator(mode='before') eingehängt, damit die Filterung VOR der
+    Item-Validierung greift.
+    """
+    if values is None:
+        return []
+    return [v for v in values if getattr(v, 'team', None) is not None]
+
+
 @runtime_checkable
 class ModelWithTimeOfDays(Protocol):
     id: UUID
@@ -128,6 +148,11 @@ class PersonShow(Person):
     actor_partner_location_prefs_defaults: list['ActorPartnerLocationPref']
     flags: list['Flag']
 
+    @field_validator('team_actor_assigns', mode='before')
+    @classmethod
+    def _drop_taas_with_softdeleted_team(cls, values):
+        return _filter_assigns_with_active_team(values)
+
     @field_validator('teams_of_dispatcher', 'time_of_days', 'time_of_day_standards',
                      'combination_locations_possibles', 'actor_location_prefs_defaults',
                      'actor_partner_location_prefs_defaults', 'team_actor_assigns', 'flags', 'skills')
@@ -175,6 +200,11 @@ class PersonForCombLocDialog(BaseModel):
     prep_delete: Optional[datetime.datetime] = None
     team_actor_assigns: List['TeamActorAssign']
     combination_locations_possibles: list['CombinationLocationsPossible']
+
+    @field_validator('team_actor_assigns', mode='before')
+    @classmethod
+    def _drop_taas_with_softdeleted_team(cls, values):
+        return _filter_assigns_with_active_team(values)
 
     @field_validator('team_actor_assigns', 'combination_locations_possibles')
     @classmethod
@@ -880,6 +910,11 @@ class LocationOfWorkShow(LocationOfWork):
     time_of_days: List[TimeOfDay]
     time_of_day_standards: list[TimeOfDay]
     skill_groups: list['SkillGroup']
+
+    @field_validator('team_location_assigns', mode='before')
+    @classmethod
+    def _drop_tlas_with_softdeleted_team(cls, values):
+        return _filter_assigns_with_active_team(values)
 
     @field_validator('time_of_days', 'time_of_day_standards', 'team_location_assigns', 'skill_groups')
     @classmethod

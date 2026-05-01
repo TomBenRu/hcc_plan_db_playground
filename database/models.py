@@ -821,7 +821,6 @@ class PlanPeriod(SQLModel, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     start: date
     end: date
-    deadline: date
     notes: str | None = Field(default=None)
     notes_for_employees: str | None = Field(default=None)
     closed: bool = Field(default=False)

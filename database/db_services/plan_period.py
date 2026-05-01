@@ -255,11 +255,11 @@ def create(plan_period: schemas.PlanPeriodCreate) -> schemas.PlanPeriodShow:
     log_function_info()
     with get_session() as session:
         team = session.get(models.Team, plan_period.team.id)
-        # Phase 0: Auto-Gruppe (1er) miterzeugen, deadline dual-write.
+        # Phase 0.9+: Deadline lebt auf der Gruppe, nicht auf der PP.
         group = models.NotificationGroup(team=team, deadline=plan_period.deadline)
         session.add(group)
         session.flush()
-        pp = models.PlanPeriod(start=plan_period.start, end=plan_period.end, deadline=plan_period.deadline,
+        pp = models.PlanPeriod(start=plan_period.start, end=plan_period.end,
                                notes=plan_period.notes, notes_for_employees=plan_period.notes_for_employees,
                                team=team, notification_group=group)
         session.add(pp)
@@ -284,13 +284,13 @@ def create_with_children(plan_period: schemas.PlanPeriodCreate) -> schemas.PlanP
     log_function_info()
     with get_session() as session:
         team = session.get(models.Team, plan_period.team.id)
-        # Phase 0: Auto-Gruppe (1er) in derselben Transaktion. Wenn der PP-
-        # Insert weiter unten failt, rollbackt die Group automatisch mit.
+        # Auto-Gruppe (1er) in derselben Transaktion. Wenn der PP-Insert
+        # weiter unten failt, rollbackt die Group automatisch mit.
         group = models.NotificationGroup(team=team, deadline=plan_period.deadline)
         session.add(group)
         session.flush()
         pp = models.PlanPeriod(
-            start=plan_period.start, end=plan_period.end, deadline=plan_period.deadline,
+            start=plan_period.start, end=plan_period.end,
             notes=plan_period.notes, notes_for_employees=plan_period.notes_for_employees,
             remainder=plan_period.remainder, team=team, notification_group=group,
         )
@@ -354,12 +354,7 @@ def update(plan_period: schemas.PlanPeriod) -> schemas.PlanPeriodShow:
 
         pp.start = plan_period.start
         pp.end = plan_period.end
-        pp.deadline = plan_period.deadline
-        # Phase 0: deadline dual-write auf die zugehoerige Gruppe spiegeln.
-        # Bei 1er-Gruppen unkritisch; bei N-er-Gruppen aktualisiert das die
-        # gemeinsame Reminder-Deadline aller Gruppen-PPs (Variante-C-Verhalten
-        # waehrend des Refactors). Phase 1 lagert die Authoritaet auf die
-        # Gruppe aus, damit dieses Mit-Setzen entfaellt.
+        # Phase 0.9+: Deadline lebt nur noch auf der Gruppe.
         pp.notification_group.deadline = plan_period.deadline
         pp.notes = plan_period.notes
         pp.notes_for_employees = plan_period.notes_for_employees

@@ -29,12 +29,12 @@ from web_api.settings.router import router as settings_router
 from web_api.swap_requests.router import router as swap_requests_router
 from web_api.user_settings.router import router as user_settings_router
 
-scheduler = None
-
-
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global scheduler
+    """Startet den APScheduler beim App-Start; `create_scheduler` setzt zudem
+    die Modul-Globale in `web_api.scheduler.setup`, ueber die `db_services`-
+    Hooks die Scheduler-Instanz erreichen (siehe `setup.get_scheduler`).
+    """
     settings = get_settings()
     scheduler = create_scheduler(settings.DATABASE_URL)
     scheduler.start()

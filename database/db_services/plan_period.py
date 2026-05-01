@@ -28,6 +28,24 @@ from ._eager_loading import plan_period_show_options, plan_period_actor_tab_opti
 from ._soft_delete import active_team_pp_criteria
 
 
+def _register_reminder_jobs(group: "models.NotificationGroup") -> None:
+    """Registriert die Reminder-Jobs (T-7/T-3/T-1) fuer eine Gruppe.
+
+    Lazy-Import + try/except: auf Desktop ohne `web_api`-Stack vorhandenem
+    APScheduler bricht das Modul nicht; auf Server vor `lifespan`-Start
+    ist der Scheduler `None` und der Aufruf wird still uebersprungen.
+    """
+    try:
+        from web_api.scheduler.setup import get_scheduler
+        from web_api.scheduler.jobs import register_jobs_for_group
+    except ImportError:
+        return
+    scheduler = get_scheduler()
+    if scheduler is None:
+        return
+    register_jobs_for_group(scheduler, group)
+
+
 class PlanPeriodClosedError(Exception):
     """Wird geworfen, wenn ein struktur-relevanter Schreibzugriff auf eine
     geschlossene PlanPeriod versucht wird."""
@@ -264,6 +282,7 @@ def create(plan_period: schemas.PlanPeriodCreate) -> schemas.PlanPeriodShow:
                                team=team, notification_group=group)
         session.add(pp)
         session.flush()
+        _register_reminder_jobs(group)
         return schemas.PlanPeriodShow.model_validate(pp)
 
 
@@ -296,6 +315,7 @@ def create_with_children(plan_period: schemas.PlanPeriodCreate) -> schemas.PlanP
         )
         session.add(pp)
         session.flush()
+        _register_reminder_jobs(group)
 
         person_ids = _team_member_person_ids_in_range(
             session, team.id, plan_period.start, plan_period.end)
@@ -355,6 +375,7 @@ def update(plan_period: schemas.PlanPeriod) -> schemas.PlanPeriodShow:
         pp.start = plan_period.start
         pp.end = plan_period.end
         # Phase 0.9+: Deadline lebt nur noch auf der Gruppe.
+        deadline_changed = pp.notification_group.deadline != plan_period.deadline
         pp.notification_group.deadline = plan_period.deadline
         pp.notes = plan_period.notes
         pp.notes_for_employees = plan_period.notes_for_employees
@@ -405,6 +426,8 @@ def update(plan_period: schemas.PlanPeriod) -> schemas.PlanPeriodShow:
                 session.add(models.EventGroup(location_plan_period=lpp))
 
         session.flush()
+        if deadline_changed:
+            _register_reminder_jobs(pp.notification_group)
         return schemas.PlanPeriodShow.model_validate(pp)
 
 

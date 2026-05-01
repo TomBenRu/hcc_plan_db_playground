@@ -1261,3 +1261,12 @@ def replace_person_time_of_day(
     name = old.name
     remove_person_time_of_day(session, person_id, old)
     return create_person_time_of_day(session, person_id, enum_id, start, end, name or "")
+
+
+def is_app_locked(app: ActorPlanPeriod) -> bool:
+    """Lock-Status einer ActorPlanPeriod fuer den Mitarbeiter-Kalender.
+
+    Lock ist ausschliesslich an `plan_period.closed` gebunden — die Deadline
+    ist informativ. Setzt voraus, dass `app.plan_period` bereits geladen ist.
+    """
+    return app.plan_period.closed

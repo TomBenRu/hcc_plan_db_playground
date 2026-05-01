@@ -519,14 +519,6 @@ def sidebar_stats(
 # ── Hilfsfunktionen ───────────────────────────────────────────────────────────
 
 
-def _build_is_locked(app: service.ActorPlanPeriod) -> bool:
-    """Lock-Check fuer einen ActorPlanPeriod (nach Laden von plan_period).
-
-    Lock ist ausschliesslich an `closed` gebunden — die Deadline ist informativ.
-    """
-    return app.plan_period.closed
-
-
 def _render_enum_group(
     request: Request,
     session: Session,
@@ -549,7 +541,7 @@ def _render_enum_group(
     detail = service.DayDetailViewModel(
         day=day,
         actor_plan_period_id=app.id,
-        is_locked=_build_is_locked(app),
+        is_locked=service.is_app_locked(app),
         enum_groups=[],
     )
     grp = None

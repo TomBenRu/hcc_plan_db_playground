@@ -11,7 +11,7 @@ Hier kannst du deine Verfügbarkeiten eingeben: {{ url }}
 {% if notes %}Hinweise:
 {{ notes }}
 {% endif %}
-Bei Fragen wende dich bitte an deinen Team-Dispatcher.
+Bei Fragen wende dich bitte an deine Einsatzplanung.
 
 Mit freundlichen Grüßen
 Das HCC-Plan-Team

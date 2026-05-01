@@ -10,7 +10,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 from database import db_services
-from email_to_users.service import email_service
+from gui.api_client import email as email_api
 from gui.email_to_users.shared_dialogs import show_email_send_result
 from tools.helper_functions import setup_form_help
 
@@ -136,11 +136,11 @@ class PlanNotificationDialog(QDialog):
         progress.setWindowModality(Qt.WindowModal)
         progress.setValue(10)
         
-        # E-Mails senden
-        stats = email_service.send_plan_notification(
+        # E-Mails ueber Web-API senden (Server haelt SMTP-Konfig)
+        stats = email_api.send_plan_notification(
             plan_id=self.plan_id,
             recipient_ids=recipient_ids or None,
-            include_attachments=self.include_attachments_check.isChecked()
+            include_attachments=self.include_attachments_check.isChecked(),
         )
         
         progress.setValue(100)

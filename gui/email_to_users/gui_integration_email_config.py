@@ -1,201 +1,77 @@
-"""
-GUI-Integration für die E-Mail-Funktionalität.
+"""SMTP-Konfigurations-Dialog (Hinweis auf Web-Admin).
 
-Dieses Modul bietet Klassen und Funktionen zur Integration der E-Mail-Funktionalität
-in die Qt-basierte GUI des HCC Plan DB Playground-Projekts.
+Vorher pflegte der Desktop-Client die SMTP-Zugangsdaten lokal in der
+Systemkeychain. Seit Mai 2026 liegt die Konfiguration in der Server-DB
+(verschlüsselt mit EMAIL_ENCRYPTION_KEY) und wird über die Web-Admin-
+Oberfläche unter /admin/email-settings gepflegt.
+
+Dieser Dialog ist nur noch ein Hinweis und ein Direkt-Link zur Web-UI.
 """
 
 import logging
 
+from PySide6.QtCore import QUrl
+from PySide6.QtGui import QDesktopServices
 from PySide6.QtWidgets import (
-    QDialog, QVBoxLayout, QHBoxLayout, QLabel, QLineEdit, QTextEdit,
-    QPushButton, QComboBox, QCheckBox, QMessageBox, QFileDialog, QGroupBox,
-    QFormLayout, QListWidget, QListWidgetItem, QProgressDialog
+    QDialog,
+    QHBoxLayout,
+    QLabel,
+    QPushButton,
+    QVBoxLayout,
 )
 
-from email_to_users.config import email_config
-from tools.helper_functions import setup_form_help
+from gui.api_client.client import get_api_client
 
 logger = logging.getLogger(__name__)
 
 
 class EmailConfigDialog(QDialog):
-    """Dialog zur Konfiguration der E-Mail-Einstellungen."""
-    
+    """Hinweis-Dialog: Konfiguration läuft jetzt im Web-Admin."""
+
     def __init__(self, parent=None):
-        """Initialisiert den Dialog."""
         super().__init__(parent)
         self.setWindowTitle("E-Mail-Konfiguration")
-        self.setMinimumWidth(500)
-        
+        self.setMinimumWidth(520)
         self._setup_ui()
-        self.load_config()
-        
-        # F1 Help Integration
-        setup_form_help(self, "email_config", add_help_button=True)
-        
+
     def _setup_ui(self):
-        """Erstellt die UI-Elemente."""
         layout = QVBoxLayout(self)
-        
-        # SMTP-Server-Gruppe
-        smtp_group = QGroupBox("SMTP-Server")
-        smtp_layout = QFormLayout(smtp_group)
-        
-        self.host_edit = QLineEdit()
-        self.port_edit = QLineEdit()
-        self.username_edit = QLineEdit()
-        self.password_edit = QLineEdit()
-        self.password_edit.setEchoMode(QLineEdit.EchoMode.PasswordEchoOnEdit)
-        
-        smtp_layout.addRow("SMTP-Server:", self.host_edit)
-        smtp_layout.addRow("Port:", self.port_edit)
-        smtp_layout.addRow("Benutzername:", self.username_edit)
-        smtp_layout.addRow("Passwort:", self.password_edit)
-        
-        layout.addWidget(smtp_group)
-        
-        # Absender-Gruppe
-        sender_group = QGroupBox("Absender")
-        sender_layout = QFormLayout(sender_group)
-        
-        self.sender_email_edit = QLineEdit()
-        self.sender_name_edit = QLineEdit()
-        self.sender_name_edit.setPlaceholderText("Keine Umlaute verwenden!")
-        
-        sender_layout.addRow("E-Mail-Adresse:", self.sender_email_edit)
-        sender_layout.addRow("Name:", self.sender_name_edit)
-        
-        layout.addWidget(sender_group)
-        
-        # Verbindungs-Gruppe
-        connection_group = QGroupBox("Verbindungsoptionen")
-        connection_layout = QFormLayout(connection_group)
-        
-        self.use_tls_check = QCheckBox("TLS verwenden")
-        self.use_ssl_check = QCheckBox("SSL verwenden")
-        self.debug_mode_check = QCheckBox("Debug-Modus (keine E-Mails senden)")
-        self.debug_mode_check.setDisabled(True)
-        
-        connection_layout.addRow(self.use_tls_check)
-        connection_layout.addRow(self.use_ssl_check)
-        connection_layout.addRow(self.debug_mode_check)
-        
-        layout.addWidget(connection_group)
-        
-        # Buttons
+
+        info = QLabel(
+            "<h3>SMTP-Konfiguration läuft jetzt im Web-Admin</h3>"
+            "<p>Seit Mai 2026 werden SMTP-Server, Anmeldedaten und Absender-"
+            "Identität zentral auf dem Server gepflegt. Der Desktop-Client "
+            "hält keine SMTP-Credentials mehr.</p>"
+            "<p>Öffne die Konfigurations-Seite mit einem Klick unten — "
+            "dort kannst du auch eine Test-Mail an deinen Account schicken.</p>"
+            "<p style='color:#666; font-size:11px;'>Voraussetzung: Du bist als "
+            "Admin auf der Web-API angemeldet.</p>"
+        )
+        info.setWordWrap(True)
+        info.setTextFormat(1)  # Qt.RichText
+        layout.addWidget(info)
+
         button_layout = QHBoxLayout()
-        
-        self.save_button = QPushButton("Speichern")
-        self.cancel_button = QPushButton("Abbrechen")
-        self.test_button = QPushButton("Verbindung testen")
-        
-        self.save_button.clicked.connect(self.save_config)
-        self.cancel_button.clicked.connect(self.reject)
-        self.test_button.clicked.connect(self.test_connection)
-        
-        button_layout.addWidget(self.test_button)
+        open_button = QPushButton("Im Browser öffnen")
+        close_button = QPushButton("Schließen")
+        open_button.clicked.connect(self._open_admin_ui)
+        close_button.clicked.connect(self.accept)
         button_layout.addStretch()
-        button_layout.addWidget(self.save_button)
-        button_layout.addWidget(self.cancel_button)
-        
+        button_layout.addWidget(open_button)
+        button_layout.addWidget(close_button)
         layout.addLayout(button_layout)
-        
-    def load_config(self):
-        """Lädt die Konfiguration in die UI-Elemente."""
-        # Aktualisiere die Konfiguration aus der zentralen Quelle
-        if hasattr(email_config, 'refresh'):
-            email_config.refresh()
-            
-        self.host_edit.setText(email_config.smtp_host)
-        self.port_edit.setText(str(email_config.smtp_port))
-        self.username_edit.setText(email_config.smtp_username)
-        self.password_edit.setText(email_config.smtp_password)
-        
-        self.sender_email_edit.setText(email_config.default_sender_email)
-        self.sender_name_edit.setText(email_config.default_sender_name)
-        
-        self.use_tls_check.setChecked(email_config.use_tls)
-        self.use_ssl_check.setChecked(email_config.use_ssl)
-        self.debug_mode_check.setChecked(email_config.debug_mode)
-        
-    def save_config(self):
-        """Speichert die Konfiguration."""
-        # Sammle alle Einstellungen in einem Dictionary
-        settings = {
-            "smtp_host": self.host_edit.text(),
-            "smtp_port": int(self.port_edit.text() or "587"),
-            "smtp_username": self.username_edit.text(),
-            "smtp_password": self.password_edit.text(),
-            "default_sender_email": self.sender_email_edit.text(),
-            "default_sender_name": self.sender_name_edit.text(),
-            "use_tls": self.use_tls_check.isChecked(),
-            "use_ssl": self.use_ssl_check.isChecked(),
-            "debug_mode": self.debug_mode_check.isChecked()
-        }
-        
+
+    def _open_admin_ui(self):
+        """Öffnet /admin/email-settings im Standard-Browser.
+
+        Liest die Server-URL aus dem konfigurierten API-Client — damit
+        landet der Admin auf der Instanz, gegen die der Desktop-Client
+        gerade arbeitet (Dev-Server lokal vs. Render-Production).
+        """
         try:
-            email_config.save_settings(settings)
-        
-            QMessageBox.information(self, "Konfiguration gespeichert", 
-                                "Die E-Mail-Konfiguration wurde erfolgreich gespeichert.")
+            base_url = get_api_client().base_url.rstrip("/")
+            url = f"{base_url}/admin/email-settings"
+            QDesktopServices.openUrl(QUrl(url))
             self.accept()
-        except Exception as e:
-            logger.error(f"Fehler beim Speichern der E-Mail-Konfiguration: {str(e)}")
-            QMessageBox.critical(self, "Fehler", 
-                              f"Fehler beim Speichern der E-Mail-Konfiguration: {str(e)}")
-        
-    def test_connection(self):
-        """Testet die SMTP-Verbindung."""
-        from email_to_users.sender import EmailSender
-        import smtplib
-        
-        # Temporäre Konfiguration erstellen
-        test_config = {
-            "smtp_host": self.host_edit.text(),
-            "smtp_port": int(self.port_edit.text() or "587"),
-            "smtp_username": self.username_edit.text(),
-            "smtp_password": self.password_edit.text(),
-            "use_tls": self.use_tls_check.isChecked(),
-            "use_ssl": self.use_ssl_check.isChecked(),
-            "debug_mode": False  # Debug-Modus für den Test deaktivieren
-        }
-        
-        # Test-E-Mail-Sender erstellen mit temporärer Konfiguration
-        try:
-            # Wir testen die Verbindung manuell, um die vorhandene EmailSender-Klasse
-            # nicht ändern zu müssen
-            if test_config["use_ssl"]:
-                smtp = smtplib.SMTP_SSL(
-                    test_config["smtp_host"],
-                    test_config["smtp_port"],
-                    timeout=30
-                )
-            else:
-                smtp = smtplib.SMTP(
-                    test_config["smtp_host"],
-                    test_config["smtp_port"],
-                    timeout=30
-                )
-                
-                if test_config["use_tls"]:
-                    smtp.starttls()
-                    
-            # Authentifizierung, falls Benutzername und Passwort vorhanden sind
-            if test_config["smtp_username"] and test_config["smtp_password"]:
-                smtp.login(test_config["smtp_username"], test_config["smtp_password"])
-                
-            # Verbindung wieder schließen
-            smtp.quit()
-            
-            QMessageBox.information(self, "Verbindungstest",
-                                  "Die Verbindung zum SMTP-Server wurde erfolgreich hergestellt.")
-        except smtplib.SMTPAuthenticationError:
-            QMessageBox.critical(self, "Verbindungsfehler",
-                               "Authentifizierungsfehler. Bitte überprüfen Sie Benutzername und Passwort.")
-        except smtplib.SMTPConnectError:
-            QMessageBox.critical(self, "Verbindungsfehler",
-                               "Verbindung zum SMTP-Server fehlgeschlagen. Bitte überprüfen Sie Host und Port.")
-        except Exception as e:
-            QMessageBox.critical(self, "Verbindungsfehler",
-                               f"Fehler beim Verbindungstest: {str(e)}")
+        except Exception:
+            logger.exception("Konnte Admin-UI nicht öffnen")

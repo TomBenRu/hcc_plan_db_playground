@@ -11,7 +11,7 @@ from PySide6.QtWidgets import (
 from PySide6.QtCore import Qt
 
 from database import db_services
-from email_to_users.service import email_service
+from gui.api_client import email as email_api
 from gui.email_to_users.shared_dialogs import show_email_send_result
 from tools.helper_functions import setup_form_help
 
@@ -152,12 +152,12 @@ class AvailabilityRequestDialog(QDialog):
         progress.setWindowModality(Qt.WindowModal)
         progress.setValue(10)
         
-        # E-Mails senden
-        stats = email_service.send_availability_request(
+        # E-Mails ueber Web-API senden (Server haelt SMTP-Konfig)
+        stats = email_api.send_availability_request(
             plan_period_id=self.plan_period_id,
             recipient_ids=recipient_ids or None,
             url_base=self.url_edit.text() if self.url_edit.text() else None,
-            notes=self.notes_edit.toPlainText() if self.notes_edit.toPlainText() else None
+            notes=self.notes_edit.toPlainText() if self.notes_edit.toPlainText() else None,
         )
         
         progress.setValue(100)

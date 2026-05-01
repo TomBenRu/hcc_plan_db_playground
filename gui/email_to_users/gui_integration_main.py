@@ -3,10 +3,14 @@ Hauptmodul der GUI-Integration für die E-Mail-Funktionalität.
 
 Dieses Modul importiert alle benötigten Klassen aus den Teil-Modulen und
 bietet einfache Funktionen zum Öffnen der verschiedenen Dialoge.
+
+Seit Mai 2026: SMTP-Konfiguration liegt zentral in der Server-DB und
+wird über /admin/email-settings gepflegt. Die alte lokale TOML/Keyring-
+Konfiguration ist obsolet — load_email_config() ist ein No-Op zur
+Backwards-Kompatibilität älterer Caller.
 """
 
 import logging
-from pathlib import Path
 from uuid import UUID
 
 from gui.email_to_users.gui_integration_bulk_email import BulkEmailDialog
@@ -14,28 +18,19 @@ from .gui_integration_email_config import EmailConfigDialog
 from .gui_integration_plan_notification import PlanNotificationDialog
 from .gui_integration_availability_request import AvailabilityRequestDialog
 from .gui_integration_custom_email import CustomEmailDialog
-from email_to_users.config import load_config_from_file
 
 
 logger = logging.getLogger(__name__)
 
 
-def load_email_config():
+def load_email_config() -> bool:
+    """No-Op: SMTP-Konfiguration liegt jetzt server-seitig in der DB.
+
+    Bleibt als Funktion erhalten, damit alte Caller (z.B. Module-Import-
+    Zeit-Aufrufe) nicht crashen. Gibt True zurück, weil die Server-Konfig
+    nicht von Desktop-Initialisierung abhängt.
     """
-    Lädt die E-Mail-Konfiguration aus der Konfigurationsdatei.
-    
-    Returns:
-        bool: True, wenn die Konfiguration geladen wurde, sonst False
-    """
-    config_path = Path("configuration") / "email_config.toml"
-    if config_path.exists():
-        try:
-            load_config_from_file(str(config_path))
-            return True
-        except Exception as e:
-            logger.error(f"Fehler beim Laden der E-Mail-Konfiguration: {str(e)}")
-            return False
-    return False
+    return True
 
 
 def show_config_dialog(parent=None):

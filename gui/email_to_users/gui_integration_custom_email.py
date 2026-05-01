@@ -7,7 +7,7 @@ from uuid import UUID
 from PySide6.QtWidgets import QMessageBox, QProgressDialog
 from PySide6.QtCore import Qt
 
-from email_to_users.service import email_service
+from gui.api_client import email as email_api
 from gui.email_to_users.base_email_dialog import BaseEmailDialog
 from gui.email_to_users.shared_dialogs import show_email_send_result
 
@@ -39,30 +39,37 @@ class CustomEmailDialog(BaseEmailDialog):
             return
             
         # Empfänger bestimmen
-        recipients = []
+        recipient_ids = []
 
         for i in range(self.person_list.count()):
             item = self.person_list.item(i)
             if item.isSelected():
-                recipients.append(item.data(Qt.ItemDataRole.UserRole))
+                person = item.data(Qt.ItemDataRole.UserRole)
+                recipient_ids.append(person.id)
 
-        if not recipients:
+        if not recipient_ids:
             QMessageBox.warning(self, "Keine Empfänger", "Bitte wählen Sie mindestens einen Empfänger aus.")
             return
-            
+
+        if self.attachment_files:
+            QMessageBox.warning(
+                self,
+                "Anhänge nicht unterstützt",
+                "Anhänge werden im aktuellen Versand-Pfad nicht unterstützt und werden ignoriert.",
+            )
+
         # Fortschrittsdialog anzeigen
         progress = QProgressDialog("Sende E-Mails...", "Abbrechen", 0, 100, self)
         progress.setWindowTitle("E-Mail-Versand")
         progress.setWindowModality(Qt.WindowModality.WindowModal)
         progress.setValue(10)
-        
-        # E-Mails senden
-        stats = email_service.send_custom_email(
+
+        # E-Mails ueber Web-API senden (Server haelt SMTP-Konfig)
+        stats = email_api.send_custom_email(
             subject=self.subject_edit.text(),
             text_content=self.content_edit.toPlainText(),
             html_content=self.content_edit.toHtml(),
-            recipients=recipients or None,
-            attachments=[{'path': file_path} for file_path in self.attachment_files]
+            recipient_ids=recipient_ids,
         )
         
         progress.setValue(100)

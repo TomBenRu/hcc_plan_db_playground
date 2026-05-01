@@ -7,7 +7,7 @@ from uuid import UUID
 from PySide6.QtWidgets import QMessageBox, QProgressDialog, QMenu
 from PySide6.QtCore import Qt
 
-from email_to_users.service import email_service
+from gui.api_client import email as email_api
 from gui.email_to_users.base_email_dialog import BaseEmailDialog
 from gui.email_to_users.shared_dialogs import show_email_send_result
 
@@ -93,27 +93,33 @@ class BulkEmailDialog(BaseEmailDialog):
             return
 
         # Empfänger bestimmen
-        to_recipients = []
-        cc_recipients = []
-        bcc_recipients = []
+        to_ids = []
+        cc_ids = []
+        bcc_ids = []
 
         for i in range(self.person_list.count()):
             item = self.person_list.item(i)
             if item.isSelected():
                 person = item.data(Qt.ItemDataRole.UserRole)
-                # Empfängertyp direkt aus dem Item lesen
                 recipient_type = item.data(self.RECIPIENT_TYPE_ROLE)
-                
-                if recipient_type == "To":
-                    to_recipients.append(person)
-                elif recipient_type == "CC":
-                    cc_recipients.append(person)
-                elif recipient_type == "BCC":
-                    bcc_recipients.append(person)
 
-        if not (to_recipients or cc_recipients or bcc_recipients):
+                if recipient_type == "To":
+                    to_ids.append(person.id)
+                elif recipient_type == "CC":
+                    cc_ids.append(person.id)
+                elif recipient_type == "BCC":
+                    bcc_ids.append(person.id)
+
+        if not (to_ids or cc_ids or bcc_ids):
             QMessageBox.warning(self, "Keine Empfänger", "Bitte wählen Sie mindestens einen Empfänger aus.")
             return
+
+        if self.attachment_files:
+            QMessageBox.warning(
+                self,
+                "Anhänge nicht unterstützt",
+                "Anhänge werden im aktuellen Versand-Pfad nicht unterstützt und werden ignoriert.",
+            )
 
         # Fortschrittsdialog anzeigen
         progress = QProgressDialog("Sende E-Mail...", "Abbrechen", 0, 100, self)
@@ -121,15 +127,14 @@ class BulkEmailDialog(BaseEmailDialog):
         progress.setWindowModality(Qt.WindowModality.WindowModal)
         progress.setValue(10)
 
-        # E-Mail senden
-        stats = email_service.send_bulk_email(
+        # E-Mail ueber Web-API senden (Server haelt SMTP-Konfig)
+        stats = email_api.send_bulk_email(
             subject=self.subject_edit.text(),
             text_content=self.content_edit.toPlainText(),
             html_content=self.content_edit.toHtml(),
-            recipients=to_recipients,
-            cc=cc_recipients,
-            bcc=bcc_recipients,
-            attachments=[{'path': file_path} for file_path in self.attachment_files]
+            recipient_ids=to_ids,
+            cc_ids=cc_ids,
+            bcc_ids=bcc_ids,
         )
 
         progress.setValue(100)

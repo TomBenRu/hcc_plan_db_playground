@@ -8,18 +8,45 @@ DB lädt. Damit gibt es nur noch eine SMTP-Konfigurationsquelle im System.
 """
 
 import logging
+import uuid
+from datetime import date
 from typing import Any, Dict, List, Optional
 
 from jinja2.sandbox import SandboxedEnvironment
+from sqlalchemy import select as sa_select
 
 from database import schemas
 from database.database import get_session
-from database.models import Person, Plan, PlanPeriod
+from database.models import (
+    NotificationGroup,
+    NotificationLog,
+    Person,
+    Plan,
+    PlanPeriod,
+)
 from web_api.email.config_loader import SmtpConfig
 from web_api.email.service import EmailPayload, _send_one_smtp
 from web_api.templating import templates as jinja_templates
 
 logger = logging.getLogger(__name__)
+
+
+# ── Reminder-Konstanten ───────────────────────────────────────────────────────
+# kind ∈ {"t7", "t3", "t1", "catchup", "manual"} — Konsistent mit den
+# Scheduler-Job-IDs (`reminder:{group.id}:{kind}`) und dem notification_log.
+_REMINDER_TEMPLATE = {
+    "t7": "availability_reminder_t7.html",
+    "t3": "availability_reminder_t3.html",
+    "t1": "availability_reminder_t1.html",
+    "catchup": "availability_reminder_catchup.html",
+}
+_REMINDER_SUBJECT = {
+    "t7": "Erinnerung: Verfügbarkeitseingabe — Deadline in 7 Tagen",
+    "t3": "Erinnerung: Verfügbarkeitseingabe — Deadline in 3 Tagen",
+    "t1": "Letzte Erinnerung: Deadline morgen",
+    "catchup": "Verfügbarkeitsanfrage aktualisiert",
+}
+_REMINDER_DAYS_LEFT = {"t7": 7, "t3": 3, "t1": 1, "catchup": 0}
 
 # SandboxedEnvironment blockiert Attribut-Zugriffe wie {{ x.__class__ }}
 # — Defense-in-Depth gegen versehentliche Code-Injection in User-Templates.
@@ -160,7 +187,7 @@ class EmailService:
                     "recipient_name": person.full_name,
                     "plan_period": period_name,
                     "team_name": team.name,
-                    "deadline": plan_period.deadline.strftime("%d.%m.%Y"),
+                    "deadline": plan_period.effective_deadline.strftime("%d.%m.%Y"),
                     "period_start": plan_period.start.strftime("%d.%m.%Y"),
                     "period_end": plan_period.end.strftime("%d.%m.%Y"),
                     "url": url,
@@ -172,6 +199,90 @@ class EmailService:
                     html_body=self._render("availability_request.html", ctx),
                 )
                 if self._send_one(payload):
+                    stats["success"] += 1
+                else:
+                    stats["failed"] += 1
+
+            return stats
+
+    def send_availability_reminder(
+        self,
+        group_id: uuid.UUID,
+        kind: str,
+        url_base: Optional[str] = None,
+    ) -> Dict[str, Any]:
+        """Versendet einen Reminder fuer alle Empfaenger einer NotificationGroup.
+
+        kind ∈ {"t7", "t3", "t1", "catchup"}:
+          * t7      — alle Team-Members der Gruppen-PPs (Awareness)
+          * t3, t1  — nur Empfaenger, die in mindestens einer Gruppen-PP keine
+                      AvailDays haben (saumig)
+          * catchup — alle Team-Members (informiert ueber neuen Zeitraum)
+
+        Idempotenz: pro `(group_id, person_id, kind)` wird hoechstens einmal
+        erfolgreich versendet — schreibt `notification_log`-Zeile pro Versuch
+        (success/failure), liest vor jedem Versand den Log und skipped
+        Empfaenger mit erfolgreichem vorherigem Eintrag.
+        """
+        if kind not in _REMINDER_TEMPLATE:
+            return {"success": 0, "failed": 0, "skipped": 0,
+                    "error": f"Unbekannter kind: {kind!r}"}
+
+        with get_session() as session:
+            group = session.get(NotificationGroup, group_id)
+            if group is None:
+                return {"success": 0, "failed": 0, "skipped": 0,
+                        "error": "NotificationGroup nicht gefunden"}
+            team = group.team
+            if team is None or team.prep_delete is not None:
+                return {"success": 0, "failed": 0, "skipped": 0,
+                        "error": "Team nicht aktiv"}
+
+            if kind in ("t3", "t1"):
+                recipients = self._resolve_group_recipients_saumig(session, group)
+            else:
+                recipients = self._resolve_group_recipients_t7(session, group)
+
+            stats = {"success": 0, "failed": 0, "skipped": 0}
+            template_name = _REMINDER_TEMPLATE[kind]
+            subject = _REMINDER_SUBJECT[kind]
+            days_left = _REMINDER_DAYS_LEFT[kind]
+            deadline_str = group.deadline.strftime("%d.%m.%Y")
+
+            for person in recipients:
+                if not person.email:
+                    stats["failed"] += 1
+                    continue
+
+                if self._reminder_already_sent(session, group.id, person.id, kind):
+                    stats["skipped"] += 1
+                    continue
+
+                periods_ctx = self._build_group_periods_ctx(group, person, url_base)
+                if not periods_ctx:
+                    # Kein einziger relevanter Zeitraum fuer diese Person —
+                    # vermutlich wurde sie nach Group-Anlage aus dem Team genommen.
+                    stats["skipped"] += 1
+                    continue
+
+                ctx = {
+                    "recipient_name": person.full_name,
+                    "team_name": team.name,
+                    "deadline": deadline_str,
+                    "days_left": days_left,
+                    "periods": periods_ctx,
+                }
+                payload = EmailPayload(
+                    to=[str(person.email)],
+                    subject=subject,
+                    html_body=self._render(template_name, ctx),
+                )
+                success = self._send_one(payload)
+                self._log_reminder(session, group.id, person.id, kind, success)
+                # Pro Mail commit, damit der Idempotenz-Schutz auch bei
+                # Crash/Restart mitten im Loop greift.
+                session.commit()
+                if success:
                     stats["success"] += 1
                 else:
                     stats["failed"] += 1
@@ -295,6 +406,125 @@ class EmailService:
                     "location": location.name,
                 })
         return assignments
+
+    # ── Reminder-Helfer ────────────────────────────────────────────────────────
+
+    def _resolve_group_recipients_t7(
+        self, session, group: NotificationGroup
+    ) -> List[Person]:
+        """Union der Team-Members aller Gruppen-PPs (mit TeamActorAssign-Overlap)."""
+        seen: dict[uuid.UUID, Person] = {}
+        for pp in group.plan_periods:
+            for person in self._resolve_period_recipients(session, pp, None):
+                if person.prep_delete is not None:
+                    continue
+                if person.id not in seen:
+                    seen[person.id] = person
+        return list(seen.values())
+
+    def _resolve_group_recipients_saumig(
+        self, session, group: NotificationGroup
+    ) -> List[Person]:
+        """Personen mit mind. einer Gruppen-PP ohne AvailDay.
+
+        Pro Person wird gefragt: gibt es eine ActorPlanPeriod in einer der
+        Gruppen-PPs, in der die Person noch keinen aktiven AvailDay hat? Wenn
+        ja → saumig, Reminder geht raus. Wer ueberall (alle relevanten APPs)
+        bereits ≥1 AvailDay hat, ist fuer diese Stufe fertig.
+        """
+        candidates = self._resolve_group_recipients_t7(session, group)
+        saumig: list[Person] = []
+        for person in candidates:
+            if self._person_has_open_period(group, person):
+                saumig.append(person)
+        return saumig
+
+    @staticmethod
+    def _person_has_open_period(group: NotificationGroup, person: Person) -> bool:
+        for pp in group.plan_periods:
+            person_app = next(
+                (app for app in pp.actor_plan_periods if app.person_id == person.id),
+                None,
+            )
+            if person_app is None:
+                continue
+            active_avail_days = [ad for ad in person_app.avail_days if ad.prep_delete is None]
+            if not active_avail_days:
+                return True
+        return False
+
+    @staticmethod
+    def _build_group_periods_ctx(
+        group: NotificationGroup,
+        person: Person,
+        url_base: Optional[str],
+    ) -> List[Dict[str, Any]]:
+        """Liste der fuer `person` relevanten Gruppen-PPs mit Status + Link.
+
+        Eine PP ist relevant, wenn die Person dort eine ActorPlanPeriod hat
+        (was beim PP-Insert nur passiert, wenn ihr TeamActorAssign mit der PP
+        ueberlappt). Status `submitted` ↔ ≥1 aktiver AvailDay; sonst `open`.
+        """
+        items: list[dict] = []
+        for pp in group.plan_periods:
+            person_app = next(
+                (app for app in pp.actor_plan_periods if app.person_id == person.id),
+                None,
+            )
+            if person_app is None:
+                continue
+            active_avail_days = [ad for ad in person_app.avail_days if ad.prep_delete is None]
+            status = "submitted" if active_avail_days else "open"
+            url = (
+                f"{url_base.rstrip('/')}/{pp.id}/{person.id}"
+                if url_base
+                else None
+            )
+            items.append({
+                "label": (
+                    f"{pp.start.strftime('%d.%m.%Y')} – "
+                    f"{pp.end.strftime('%d.%m.%Y')}"
+                ),
+                "url": url,
+                "status": status,
+                "notes_for_employees": pp.notes_for_employees,
+            })
+        return items
+
+    @staticmethod
+    def _reminder_already_sent(
+        session,
+        group_id: uuid.UUID,
+        person_id: uuid.UUID,
+        kind: str,
+    ) -> bool:
+        """True, wenn fuer (group, person, kind) bereits ein erfolgreicher Log existiert."""
+        stmt = sa_select(NotificationLog.id).where(
+            NotificationLog.notification_group_id == group_id,
+            NotificationLog.person_id == person_id,
+            NotificationLog.kind == kind,
+            NotificationLog.success.is_(True),
+        )
+        return session.execute(stmt).first() is not None
+
+    @staticmethod
+    def _log_reminder(
+        session,
+        group_id: uuid.UUID,
+        person_id: uuid.UUID,
+        kind: str,
+        success: bool,
+        error_detail: Optional[str] = None,
+    ) -> None:
+        log = NotificationLog(
+            notification_group_id=group_id,
+            person_id=person_id,
+            kind=kind,
+            success=success,
+            error_detail=error_detail,
+        )
+        session.add(log)
+        session.flush()
 
 
 def _text_to_html(text: str) -> str:

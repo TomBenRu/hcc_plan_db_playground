@@ -813,6 +813,39 @@ class NotificationGroup(SQLModel, table=True):
     # Relationships
     team: Team = Relationship(back_populates="notification_groups")
     plan_periods: list["PlanPeriod"] = Relationship(back_populates="notification_group")
+    notification_logs: list["NotificationLog"] = Relationship(
+        back_populates="notification_group", cascade_delete=True
+    )
+
+
+class NotificationLog(SQLModel, table=True):
+    """Audit + Idempotenz-Schutz fuer ausgesandte Reminder.
+
+    Pro versendeter Mail (T-7, T-3, T-1, Catch-Up oder manuell) schreibt der
+    Service eine Zeile. Der Idempotenz-Check liest VOR dem Versand, ob fuer
+    `(notification_group_id, person_id, kind)` am heutigen Tag bereits ein
+    erfolgreicher Eintrag existiert — falls ja, skip. Verhindert Doppel-
+    Versand bei Job-Restarts oder versehentlichem zweiten manuellen Trigger.
+
+    `kind` ist als VARCHAR(32) modelliert (kein Enum), weil neue Stufen
+    (T-14, final_warning, etc.) ohne Migration ergaenzbar sein sollen.
+    """
+    __tablename__ = "notification_log"
+
+    id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
+    kind: str = Field(max_length=32, index=True)
+    sent_at: datetime = Field(default_factory=_utcnow, sa_column=_created_at_col())
+    success: bool
+    error_detail: str | None = Field(default=None)
+
+    # FK
+    notification_group_id: uuid.UUID = Field(
+        foreign_key="notification_group.id", ondelete="CASCADE"
+    )
+    person_id: uuid.UUID = Field(foreign_key="person.id", ondelete="CASCADE")
+
+    # Relationships
+    notification_group: NotificationGroup = Relationship(back_populates="notification_logs")
 
 
 class PlanPeriod(SQLModel, table=True):

@@ -20,6 +20,7 @@ from database.models import (
     AvailDay,
     AvailDayAppointmentLink,
     AvailDayGroup,
+    NotificationGroup,
     Person,
     PersonTimeOfDayLink,
     Plan,
@@ -303,6 +304,8 @@ def get_open_plan_periods_for_person(
     `closed` ist KEIN Sichtbarkeits-Filter mehr — eine geschlossene PP wird
     angezeigt, aber im UI als read-only markiert (siehe `is_locked`).
     """
+    # JOIN auf NotificationGroup, weil die Deadline nicht mehr von der PP-
+    # Spalte gelesen wird sondern aus der zugehoerigen Gruppe (Phase 0.5+).
     stmt = (
         sa_select(
             ActorPlanPeriod.id.label("app_id"),
@@ -311,7 +314,7 @@ def get_open_plan_periods_for_person(
             PlanPeriod.id.label("pp_id"),
             PlanPeriod.start.label("pp_start"),
             PlanPeriod.end.label("pp_end"),
-            PlanPeriod.deadline.label("pp_deadline"),
+            NotificationGroup.deadline.label("pp_deadline"),
             PlanPeriod.notes_for_employees.label("pp_notes_for_employees"),
             PlanPeriod.closed.label("pp_closed"),
             Team.id.label("team_id"),
@@ -319,6 +322,7 @@ def get_open_plan_periods_for_person(
         )
         .select_from(ActorPlanPeriod)
         .join(PlanPeriod, PlanPeriod.id == ActorPlanPeriod.plan_period_id)
+        .join(NotificationGroup, NotificationGroup.id == PlanPeriod.notification_group_id)
         .join(Team, Team.id == PlanPeriod.team_id)
         .where(ActorPlanPeriod.person_id == person_id)
         .where(PlanPeriod.prep_delete.is_(None))

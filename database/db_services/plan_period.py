@@ -340,7 +340,7 @@ def update(plan_period: schemas.PlanPeriod) -> schemas.PlanPeriodShow:
         structure_changed = (
             pp.start != plan_period.start
             or pp.end != plan_period.end
-            or pp.deadline != plan_period.deadline
+            or pp.effective_deadline != plan_period.deadline
             or pp.remainder != plan_period.remainder
         )
         if pp.closed and structure_changed:

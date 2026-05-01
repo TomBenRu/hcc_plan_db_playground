@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from typing import Optional, List, Protocol, runtime_checkable, Union, Any
 from uuid import UUID
 
-from pydantic import BaseModel, EmailStr, ConfigDict, field_validator
+from pydantic import BaseModel, EmailStr, ConfigDict, Field, field_validator
 
 from database.enums import Gender, Role
 
@@ -315,12 +315,16 @@ class PlanPeriodCreate(BaseModel):
 
 
 class PlanPeriodMinimal(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    # `populate_by_name` erlaubt, das Feld weiterhin per `deadline=...` zu
+    # konstruieren (Tests, Manual-Init); from_attributes liest es per
+    # `validation_alias='effective_deadline'` aus der ORM-Property — damit
+    # ist Phase 0.9 (Spalten-Drop) ohne Schema-Bruch moeglich.
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
     id: UUID
     start: datetime.date
     end: datetime.date
-    deadline: datetime.date
+    deadline: datetime.date = Field(validation_alias='effective_deadline')
     closed: bool = False
     prep_delete: Optional[datetime.datetime] = None
     remainder: bool = True
@@ -330,11 +334,15 @@ class PlanPeriodMinimal(BaseModel):
 
 
 class PlanPeriod(PlanPeriodCreate):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
     id: UUID
     closed: bool = False
     prep_delete: Optional[datetime.datetime] = None
+    # Override: liest beim from_attributes-Loading aus pp.effective_deadline.
+    # populate_by_name=True (s.o.) laesst manuelle `PlanPeriod(deadline=...)`-
+    # Konstruktion weiterhin zu.
+    deadline: datetime.date = Field(validation_alias='effective_deadline')
 
 
 class TakeoverCandidate(BaseModel):

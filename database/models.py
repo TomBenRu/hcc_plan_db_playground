@@ -843,6 +843,17 @@ class PlanPeriod(SQLModel, table=True):
         """Kompatibilitäts-Property für PlanPeriodShow.project (war @property in PonyORM)."""
         return self.team.project
 
+    @property
+    def effective_deadline(self) -> date:
+        """Authoritative Deadline der zugehoerigen NotificationGroup.
+
+        Phase 0.5+: Caller sollten diese Property statt der `deadline`-Spalte
+        lesen. In Phase 0.9 wird die Spalte gedroppt; die Property bleibt und
+        liefert weiterhin den Group-Wert. Bei einer 1er-Auto-Gruppe ist das
+        identisch mit der frueheren PP-Spalte.
+        """
+        return self.notification_group.deadline
+
     # 1:N reverse
     actor_plan_periods: list["ActorPlanPeriod"] = Relationship(back_populates="plan_period", cascade_delete=True)
     location_plan_periods: list["LocationPlanPeriod"] = Relationship(

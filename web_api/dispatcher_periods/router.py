@@ -24,6 +24,7 @@ from database.db_services.plan_period import (
 from web_api.auth.dependencies import LoggedInUser, require_role
 from web_api.dependencies import get_db_session
 from web_api.dispatcher.service import get_teams_for_dispatcher
+from web_api.dispatcher_periods.service import filter_periods, validate_period_dates
 from web_api.models.web_models import WebUser, WebUserRole
 from web_api.templating import templates
 
@@ -58,56 +59,8 @@ def _resolve_team_choices(session: Session, user: WebUser):
     return get_teams_for_dispatcher(session, user.person_id)
 
 
-def _filter_periods(periods, status_filter: str | None):
-    """Status-Filter: aktiv | geschlossen | papierkorb (alle PPs sind dabei,
-    Soft-Deleted werden nur bei status_filter='papierkorb' gezeigt)."""
-    if status_filter == "papierkorb":
-        return [p for p in periods if p.prep_delete is not None]
-    active = [p for p in periods if p.prep_delete is None]
-    if status_filter == "geschlossen":
-        return [p for p in active if p.closed]
-    if status_filter == "aktiv":
-        return [p for p in active if not p.closed]
-    return active
-
-
 def _today() -> datetime.date:
     return datetime.date.today()
-
-
-def _validate_period_dates(
-    team_id: uuid.UUID,
-    start: datetime.date,
-    end: datetime.date,
-    deadline: datetime.date,
-    exclude_id: uuid.UUID | None = None,
-) -> str | None:
-    """Prüft die vier Datumsregeln einer Plan-Periode. Gibt eine deutsche
-    Fehlermeldung zurück oder None, wenn alle Regeln erfüllt sind.
-
-    Regeln:
-        1. start < end
-        2. today < deadline
-        3. deadline < start
-        4. keine Überlappung mit anderen non-deleted PPs des Teams
-           (eigene Periode optional via `exclude_id` ausgenommen)
-    """
-    if start >= end:
-        return "Das Ende der Periode muss nach dem Start liegen."
-    today = _today()
-    if deadline <= today:
-        return "Die Deadline muss nach dem heutigen Tag liegen."
-    if deadline >= start:
-        return "Die Deadline muss vor dem Start der Periode liegen."
-    overlap = db_services.PlanPeriod.find_overlapping_period(
-        team_id, start, end, exclude_id=exclude_id
-    )
-    if overlap:
-        return (
-            f"Die Periode überschneidet eine bestehende Periode "
-            f"({overlap.start.strftime('%d.%m.%Y')} – {overlap.end.strftime('%d.%m.%Y')})."
-        )
-    return None
 
 
 @router.get("", response_class=HTMLResponse)
@@ -140,7 +93,7 @@ def index(
         )
     else:
         periods = []
-    periods = _filter_periods(periods, status_filter)
+    periods = filter_periods(periods, status_filter)
     periods = sorted(periods, key=lambda p: p.start, reverse=True)
 
     return templates.TemplateResponse(
@@ -174,7 +127,7 @@ def list_partial(
         )
     else:
         periods = []
-    periods = _filter_periods(periods, status_filter)
+    periods = filter_periods(periods, status_filter)
     periods = sorted(periods, key=lambda p: p.start, reverse=True)
     return templates.TemplateResponse(
         "dispatcher/periods/partials/list.html",
@@ -277,7 +230,7 @@ def create_with_children(
 ):
     """Atomarer Create-Submit. Bei Erfolg: Take-Over-Modal oder Liste-Refresh.
     Bei Validierungsfehler: Form mit Banner re-rendern, Eingaben bleiben."""
-    error = _validate_period_dates(team_id, start, end, deadline)
+    error = validate_period_dates(team_id, start, end, deadline)
     if error:
         latest_end = db_services.PlanPeriod.get_latest_end_for_team(team_id)
         earliest_start = max(
@@ -396,7 +349,7 @@ def patch_period(
 ):
     current = db_services.PlanPeriod.get(plan_period_id)
 
-    error = _validate_period_dates(
+    error = validate_period_dates(
         current.team.id, start, end, deadline, exclude_id=plan_period_id
     )
     if error:

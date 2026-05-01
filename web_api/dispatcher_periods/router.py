@@ -14,9 +14,9 @@ import uuid
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, Response
 from sqlalchemy.exc import NoResultFound
-from sqlmodel import Session
+from sqlmodel import Session, select
 
-from database import db_services, schemas
+from database import db_services, models, schemas
 from database.db_services.plan_period import (
     PlanPeriodClosedError,
     PlanPeriodPermissionError,
@@ -275,6 +275,33 @@ def create_with_children(
     return _redirect_to_list(team_id)
 
 
+def _list_groups_for_team(session: Session, team_id: uuid.UUID) -> list[dict]:
+    """Liste aller NotificationGroups eines Teams fuer das Edit-Form-Dropdown.
+
+    Zurueckgegeben als Plain-Dicts (id/deadline/name/pp_count), damit das
+    Template keine ORM-Relationen lazy-loaden muss.
+    """
+    groups = session.exec(
+        select(models.NotificationGroup)
+        .where(models.NotificationGroup.team_id == team_id)
+        .order_by(models.NotificationGroup.deadline.desc())
+    ).all()
+    return [
+        {
+            "id": g.id,
+            "deadline": g.deadline,
+            "name": g.name,
+            "pp_count": len(g.plan_periods),
+        }
+        for g in groups
+    ]
+
+
+def _get_pp_group_id(session: Session, plan_period_id: uuid.UUID) -> uuid.UUID | None:
+    pp = session.get(models.PlanPeriod, plan_period_id)
+    return pp.notification_group_id if pp is not None else None
+
+
 def _edit_form_context(
     request: Request,
     pp,
@@ -286,6 +313,8 @@ def _edit_form_context(
     notes_for_employees: str,
     remainder: bool,
     is_admin: bool,
+    available_groups: list[dict] | None = None,
+    current_group_id: uuid.UUID | None = None,
     error_message: str | None = None,
 ) -> dict:
     """Bündelt alle Werte für `edit_form.html`.
@@ -311,6 +340,8 @@ def _edit_form_context(
         "default_notes": notes,
         "default_notes_for_employees": notes_for_employees,
         "default_remainder": remainder,
+        "available_groups": available_groups or [],
+        "current_group_id": current_group_id,
         "error_message": error_message,
     }
 
@@ -320,8 +351,11 @@ def edit_form(
     request: Request,
     plan_period_id: uuid.UUID,
     user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
+    session: Session = Depends(get_db_session),
 ):
     pp = db_services.PlanPeriod.get(plan_period_id)
+    available_groups = _list_groups_for_team(session, pp.team.id)
+    current_group_id = _get_pp_group_id(session, plan_period_id)
     return templates.TemplateResponse(
         "dispatcher/periods/partials/edit_form.html",
         _edit_form_context(
@@ -331,6 +365,8 @@ def edit_form(
             notes_for_employees=pp.notes_for_employees or "",
             remainder=pp.remainder,
             is_admin=_is_admin(user),
+            available_groups=available_groups,
+            current_group_id=current_group_id,
         ),
     )
 
@@ -340,6 +376,7 @@ def patch_period(
     request: Request,
     plan_period_id: uuid.UUID,
     user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
+    session: Session = Depends(get_db_session),
     start: datetime.date = Form(...),
     end: datetime.date = Form(...),
     deadline: datetime.date = Form(...),
@@ -353,6 +390,8 @@ def patch_period(
         current.team.id, start, end, deadline, exclude_id=plan_period_id
     )
     if error:
+        available_groups = _list_groups_for_team(session, current.team.id)
+        current_group_id = _get_pp_group_id(session, plan_period_id)
         return templates.TemplateResponse(
             "dispatcher/periods/partials/edit_form.html",
             _edit_form_context(
@@ -361,6 +400,8 @@ def patch_period(
                 notes=notes, notes_for_employees=notes_for_employees,
                 remainder=remainder,
                 is_admin=_is_admin(user),
+                available_groups=available_groups,
+                current_group_id=current_group_id,
                 error_message=error,
             ),
         )
@@ -382,6 +423,40 @@ def patch_period(
             status_code=status.HTTP_409_CONFLICT,
         )
     return _redirect_to_list(current.team.id)
+
+
+@router.post("/{plan_period_id}/move-group", response_class=HTMLResponse)
+def move_to_group(
+    request: Request,
+    plan_period_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
+    target_group_id: str = Form(...),
+):
+    """Verschiebt eine PP in eine andere NotificationGroup.
+
+    `target_group_id="new"` ist Sentinel: legt eine neue 1er-Gruppe an und
+    verschiebt die PP dorthin. Ansonsten muss es eine UUID einer Gruppe des
+    selben Teams sein. Triggert bei erfolgreicher Move-Operation eine
+    Catch-Up-Mail an alle Empfaenger der Ziel-Gruppe.
+    """
+    parsed_target: uuid.UUID | None
+    if target_group_id == "new":
+        parsed_target = None
+    else:
+        try:
+            parsed_target = uuid.UUID(target_group_id)
+        except ValueError:
+            raise HTTPException(
+                status.HTTP_400_BAD_REQUEST,
+                detail=f"Ungültige target_group_id: {target_group_id!r}",
+            )
+
+    try:
+        result = db_services.PlanPeriod.move_to_group(plan_period_id, parsed_target)
+    except ValueError as e:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    return _redirect_to_list(result.team_id)
 
 
 @router.get("/{plan_period_id}/notes-display", response_class=HTMLResponse)

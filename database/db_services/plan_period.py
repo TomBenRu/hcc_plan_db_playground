@@ -46,6 +46,28 @@ def _register_reminder_jobs(group: "models.NotificationGroup") -> None:
     register_jobs_for_group(scheduler, group)
 
 
+def _unregister_reminder_jobs(group_id: UUID) -> None:
+    """Pendant zu `_register_reminder_jobs` — fuer Group-Loeschung."""
+    try:
+        from web_api.scheduler.setup import get_scheduler
+        from web_api.scheduler.jobs import unregister_jobs_for_group
+    except ImportError:
+        return
+    scheduler = get_scheduler()
+    if scheduler is None:
+        return
+    unregister_jobs_for_group(scheduler, group_id)
+
+
+def _trigger_catchup(group: "models.NotificationGroup") -> None:
+    """Synchroner Catch-Up-Mailer-Aufruf — laeuft auch ohne Scheduler-Instanz."""
+    try:
+        from web_api.scheduler.jobs import trigger_catchup
+    except ImportError:
+        return
+    trigger_catchup(group)
+
+
 class PlanPeriodClosedError(Exception):
     """Wird geworfen, wenn ein struktur-relevanter Schreibzugriff auf eine
     geschlossene PlanPeriod versucht wird."""
@@ -438,6 +460,72 @@ def update_notes(plan_period_id: UUID, notes: str) -> schemas.PlanPeriodShow:
         pp.notes = notes
         session.flush()
         return schemas.PlanPeriodShow.model_validate(pp)
+
+
+def move_to_group(
+    plan_period_id: UUID,
+    target_group_id: UUID | None,
+) -> schemas.PlanPeriodMinimal:
+    """Verschiebt eine PlanPeriod in eine andere NotificationGroup.
+
+    `target_group_id=None` ist Sentinel fuer "neue 1er-Gruppe": legt eine
+    leere Gruppe mit gleicher Deadline an und verschiebt die PP dorthin.
+
+    Side-Effects:
+      - Quell-Gruppe wird geloescht, wenn sie nach Wegnahme leer ist
+        (Reminder-Jobs der Quell-Gruppe werden mit-deregistriert).
+      - Reminder-Jobs der Ziel-Gruppe werden re-registriert (Empfaengerkreis
+        kann sich durch die neue PP veraendern).
+      - Catch-Up-Mail an alle Empfaenger der Ziel-Gruppe.
+
+    No-op, wenn `target_group_id` schon die aktuelle Gruppe ist.
+    """
+    log_function_info()
+    with get_session() as session:
+        pp = session.get(models.PlanPeriod, plan_period_id)
+        if pp is None:
+            raise ValueError(f"PlanPeriod {plan_period_id} nicht gefunden.")
+
+        source_group = pp.notification_group
+        if target_group_id is None:
+            # Sentinel "neue 1er-Gruppe": Deadline aus aktueller Gruppe uebernehmen.
+            target = models.NotificationGroup(
+                team=pp.team, deadline=source_group.deadline,
+            )
+            session.add(target)
+            session.flush()
+        else:
+            target = session.get(models.NotificationGroup, target_group_id)
+            if target is None:
+                raise ValueError(
+                    f"NotificationGroup {target_group_id} nicht gefunden."
+                )
+            if target.team_id != pp.team_id:
+                raise ValueError(
+                    "NotificationGroup gehoert nicht zum selben Team."
+                )
+
+        if source_group.id == target.id:
+            return schemas.PlanPeriodMinimal.model_validate(pp)  # No-op
+
+        source_group_id = source_group.id
+        pp.notification_group_id = target.id
+        session.flush()
+
+        # Quell-Gruppe leer? → loeschen + Jobs deregistrieren.
+        session.refresh(source_group)
+        if not source_group.plan_periods:
+            session.delete(source_group)
+            session.flush()
+            _unregister_reminder_jobs(source_group_id)
+
+        _register_reminder_jobs(target)
+
+        # Catch-Up-Mail laeuft sync. Bei vielen Empfaengern ggf. spaeter
+        # in einen Background-Task auslagern (TODO Phase 2).
+        _trigger_catchup(target)
+
+        return schemas.PlanPeriodMinimal.model_validate(pp)
 
 
 def delete(plan_period_id: UUID) -> schemas.PlanPeriodMinimal:

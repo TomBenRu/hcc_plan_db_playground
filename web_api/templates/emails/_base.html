@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}hcc plan{% endblock %}</title>
+  <style>
+    body { font-family: 'Helvetica Neue', Arial, sans-serif; background: #f8fafc; margin: 0; padding: 24px; color: #334155; }
+    .card { background: white; border-radius: 12px; max-width: 540px; margin: 0 auto; padding: 32px; border: 1px solid #e2e8f0; }
+    .badge { display: inline-block; border-radius: 999px; padding: 2px 10px; font-size: 11px; font-weight: 600; }
+    .badge-info   { background: #dbeafe; color: #1e40af; }
+    .badge-warn   { background: #fef9c3; color: #a16207; }
+    .badge-urgent { background: #fee2e2; color: #b91c1c; }
+    .label { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; margin-top: 16px; margin-bottom: 4px; }
+    .value { font-size: 14px; color: #1e293b; }
+    .lead { font-size: 13px; color: #64748b; margin: 4px 0 20px; }
+    .meta { font-size: 12px; color: #64748b; margin-top: 8px; }
+    .button { display: inline-block; background: #F97316; color: white !important; padding: 10px 20px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 14px; margin-top: 8px; }
+    .button-secondary { display: inline-block; background: #f1f5f9; color: #334155 !important; padding: 8px 14px; border-radius: 6px; text-decoration: none; font-weight: 600; font-size: 13px; margin-top: 4px; }
+    .period-row { padding: 10px 0; border-bottom: 1px solid #f1f5f9; }
+    .period-row:last-child { border-bottom: none; }
+    .period-status-submitted { color: #15803d; font-weight: 600; font-size: 12px; }
+    .period-status-open { color: #b91c1c; font-weight: 600; font-size: 12px; }
+    .notes { background: #fef9c3; border-left: 3px solid #facc15; padding: 12px 16px; margin: 16px 0; border-radius: 4px; font-size: 13px; color: #713f12; }
+    .fallback { font-size: 12px; color: #94a3b8; margin-top: 24px; word-break: break-all; }
+    .footer { margin-top: 24px; font-size: 11px; color: #94a3b8; text-align: center; }
+    h1 { font-size: 18px; font-weight: 700; color: #0f172a; margin: 0 0 4px; }
+    table.assignments { width: 100%; border-collapse: collapse; margin-top: 8px; font-size: 13px; }
+    table.assignments th { text-align: left; padding: 8px 10px; background: #f8fafc; color: #94a3b8; font-weight: 600; font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em; }
+    table.assignments td { padding: 8px 10px; border-top: 1px solid #f1f5f9; color: #1e293b; }
+  </style>
+</head>
+<body>
+<div class="card">
+  {% block badge %}{% endblock %}
+  <h1>{% block heading %}{% endblock %}</h1>
+  {% block lead %}<p class="lead">Diese E-Mail wurde automatisch versendet.</p>{% endblock %}
+  {% block content %}{% endblock %}
+  <div class="footer">hcc plan · Diese Nachricht wurde automatisch generiert.</div>
+</div>
+</body>
+</html>

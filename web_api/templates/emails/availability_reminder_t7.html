@@ -1,0 +1,38 @@
+{% extends "emails/_base.html" %}
+
+{% block title %}Verfügbarkeit eintragen — Deadline in {{ days_left }} Tagen{% endblock %}
+
+{% block badge %}<p style="margin:0 0 16px"><span class="badge badge-info">Erinnerung · {{ days_left }} Tage</span></p>{% endblock %}
+
+{% block heading %}Hallo {{ recipient_name }}{% endblock %}
+
+{% block lead %}
+<p class="lead">
+  In {{ days_left }} Tagen ist Deadline für deine Verfügbarkeitseingabe — am
+  <strong>{{ deadline }}</strong>. Bitte trage deine Verfügbarkeiten zeitig ein.
+</p>
+{% endblock %}
+
+{% block content %}
+  <div class="label">Team</div>
+  <div class="value">{{ team_name }}</div>
+
+  <div class="label" style="margin-top:20px;">Zeiträume</div>
+  {% for period in periods %}
+  <div class="period-row">
+    <div class="value"><strong>{{ period.label }}</strong></div>
+    {% if period.notes_for_employees %}
+    <div class="meta">{{ period.notes_for_employees }}</div>
+    {% endif %}
+    {% if period.url %}
+    <p style="margin:8px 0 0;">
+      <a href="{{ period.url }}" class="button-secondary">Verfügbarkeit eingeben</a>
+    </p>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <p class="meta" style="margin-top:20px;">
+    Bei Fragen wende dich an deine Einsatzplanung.
+  </p>
+{% endblock %}

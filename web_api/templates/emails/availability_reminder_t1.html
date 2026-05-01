@@ -1,0 +1,49 @@
+{% extends "emails/_base.html" %}
+
+{% block title %}Letzte Erinnerung — Deadline morgen{% endblock %}
+
+{% block badge %}<p style="margin:0 0 16px"><span class="badge badge-urgent">Letzte Erinnerung · morgen Deadline</span></p>{% endblock %}
+
+{% block heading %}Hallo {{ recipient_name }}{% endblock %}
+
+{% block lead %}
+<p class="lead">
+  <strong>Morgen ist Deadline</strong> — du hast für mindestens einen Zeitraum
+  noch keine Verfügbarkeit eingegeben. Bitte trage sie heute ein, sonst kann
+  die Einsatzplanung dich nicht berücksichtigen.
+</p>
+{% endblock %}
+
+{% block content %}
+  <div class="label">Team</div>
+  <div class="value">{{ team_name }}</div>
+
+  <div class="label" style="margin-top:20px;">Deadline</div>
+  <div class="value" style="color:#b91c1c; font-weight:700; font-size:16px;">{{ deadline }}</div>
+
+  <div class="label" style="margin-top:20px;">Status pro Zeitraum</div>
+  {% for period in periods %}
+  <div class="period-row">
+    <div class="value">
+      <strong>{{ period.label }}</strong>
+      {% if period.status == 'submitted' %}
+        <span class="period-status-submitted" style="margin-left:8px;">✓ erledigt</span>
+      {% else %}
+        <span class="period-status-open" style="margin-left:8px;">✗ offen</span>
+      {% endif %}
+    </div>
+    {% if period.notes_for_employees %}
+    <div class="meta">{{ period.notes_for_employees }}</div>
+    {% endif %}
+    {% if period.status == 'open' and period.url %}
+    <p style="margin:8px 0 0;">
+      <a href="{{ period.url }}" class="button">Jetzt eingeben</a>
+    </p>
+    {% endif %}
+  </div>
+  {% endfor %}
+
+  <p class="meta" style="margin-top:20px;">
+    Bei Fragen wende dich an deine Einsatzplanung.
+  </p>
+{% endblock %}

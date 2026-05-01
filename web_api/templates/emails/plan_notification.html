@@ -1,100 +1,40 @@
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            color: #333;
-            margin: 0;
-            padding: 20px;
-        }
-        .container {
-            max-width: 600px;
-            margin: 0 auto;
-            border: 1px solid #ddd;
-            border-radius: 5px;
-            overflow: hidden;
-        }
-        .header {
-            background-color: #4a86e8;
-            color: white;
-            padding: 15px;
-            text-align: center;
-        }
-        .content {
-            padding: 20px;
-        }
-        .footer {
-            background-color: #f5f5f5;
-            padding: 15px;
-            text-align: center;
-            font-size: 0.8em;
-            color: #777;
-        }
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            margin: 20px 0;
-        }
-        th, td {
-            padding: 10px;
-            border: 1px solid #ddd;
-            text-align: left;
-        }
-        th {
-            background-color: #f2f2f2;
-        }
-        .notes {
-            background-color: #fff8dc;
-            padding: 10px;
-            border-left: 3px solid #ffeb3b;
-            margin: 15px 0;
-        }
-    </style>
-</head>
-<body>
-    <div class="container">
-        <div class="header">
-            <h2>Neuer Einsatzplan</h2>
-        </div>
-        <div class="content">
-            <p>Hallo {{ recipient_name }},</p>
+{% extends "emails/_base.html" %}
 
-            <p>ein neuer Einsatzplan <strong>"{{ plan_name }}"</strong> für den Zeitraum <strong>{{ plan_period }}</strong> ist verfügbar.</p>
+{% block title %}Neuer Einsatzplan{% endblock %}
 
-            <p><strong>Team:</strong> {{ team_name }}</p>
+{% block badge %}<p style="margin:0 0 16px"><span class="badge badge-info">Einsatzplan</span></p>{% endblock %}
 
-            <h3>Deine geplanten Einsätze:</h3>
+{% block heading %}Neuer Einsatzplan: {{ plan_name }}{% endblock %}
 
-            <table>
-                <tr>
-                    <th>Datum</th>
-                    <th>Uhrzeit</th>
-                    <th>Einsatzort</th>
-                </tr>
-                {% for assignment in assignments %}
-                <tr>
-                    <td>{{ assignment.date }}</td>
-                    <td>{{ assignment.time }}</td>
-                    <td>{{ assignment.location }}</td>
-                </tr>
-                {% endfor %}
-            </table>
+{% block lead %}
+<p class="lead">
+  Hallo {{ recipient_name }}, ein neuer Einsatzplan für <strong>{{ plan_period }}</strong>
+  ist verfügbar.
+</p>
+{% endblock %}
 
-            {% if notes %}
-            <div class="notes">
-                <h3>Hinweise:</h3>
-                <p>{{ notes }}</p>
-            </div>
-            {% endif %}
+{% block content %}
+  <div class="label">Team</div>
+  <div class="value">{{ team_name }}</div>
 
-            <p>Bei Fragen wende dich bitte an deine Einsatzplanung.</p>
-        </div>
-        <div class="footer">
-            <p>Mit freundlichen Grüßen<br>Das HCC-Plan-Team</p>
-        </div>
-    </div>
-</body>
-</html>
+  <div class="label" style="margin-top:20px;">Deine Einsätze</div>
+  <table class="assignments">
+    <tr><th>Datum</th><th>Uhrzeit</th><th>Einsatzort</th></tr>
+    {% for assignment in assignments %}
+    <tr>
+      <td>{{ assignment.date }}</td>
+      <td>{{ assignment.time }}</td>
+      <td>{{ assignment.location }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+
+  {% if notes %}
+  <div class="notes">
+    <strong>Hinweise:</strong><br>
+    {{ notes }}
+  </div>
+  {% endif %}
+
+  <p class="meta">Bei Fragen wende dich an deine Einsatzplanung.</p>
+{% endblock %}

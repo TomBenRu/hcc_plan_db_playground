@@ -11,6 +11,7 @@ from datetime import date
 from fastapi import HTTPException, status
 from sqlalchemy import and_, func, or_
 from sqlalchemy import select as sa_select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.orm.attributes import flag_modified
 from sqlmodel import Session
 
@@ -33,6 +34,7 @@ from database.models import (
     Project,
     Team,
     TeamActorAssign,
+    TeamLocationAssign,
     TimeOfDay,
     TimeOfDayEnum,
 )
@@ -838,4 +840,193 @@ def set_cast_group_nr_actors(
         "cast_group_id": cast_group_id,
         "nr_actors": nr_actors,
         "warnings": warnings,
+    }
+
+
+# ── Last-Minute-Appointment-Form (D3) ────────────────────────────────────────
+# Domain-Logik für das Anlage-Formular eines Last-Minute-Appointments im
+# Disponenten-Plan. Wurde aus dispatcher/router.py hierher migriert (vorher
+# als Router-private Helper) — nimmt nur Session und Domain-IDs entgegen,
+# liefert Domain-Daten als dict zurück, kein FastAPI-/Template-Spezifisches.
+
+# Warning-Zustände für das Last-Minute-Modal — siehe resolve_appointment_form_state.
+# Werte sind Strings, weil sie 1:1 in das Template (_appt_form_period_warning.html)
+# eingehen: ein Enum würde dort keinen Mehrwert bringen.
+WARNING_OK = "ok"
+WARNING_NO_PLAN_PERIOD = "no_plan_period"
+WARNING_NO_BINDING_PLAN = "no_binding_plan"
+WARNING_NO_LPP = "no_lpp"
+
+
+def load_locations_for_team(
+    session: Session,
+    team_id: uuid.UUID,
+    *,
+    date_filter: date | None = None,
+) -> list[dict]:
+    """Locations, die dem Team am gewählten Tag zugeordnet sind.
+
+    Quelle: `TeamLocationAssign` mit tagesgenauer Range
+    `start <= date < end` (end IS NULL → unbefristete Zuordnung).
+    """
+    location_query = (
+        sa_select(LocationOfWork.id, LocationOfWork.name, Address.city)
+        .select_from(LocationOfWork)
+        .join(Address, Address.id == LocationOfWork.address_id, isouter=True)
+        .join(TeamLocationAssign, TeamLocationAssign.location_of_work_id == LocationOfWork.id)
+        .where(TeamLocationAssign.team_id == team_id)
+        .where(LocationOfWork.prep_delete.is_(None))
+    )
+    if date_filter is not None:
+        location_query = (
+            location_query
+            .where(TeamLocationAssign.start <= date_filter)
+            .where(
+                (TeamLocationAssign.end.is_(None))
+                | (TeamLocationAssign.end > date_filter)
+            )
+        )
+    location_query = location_query.distinct().order_by(LocationOfWork.name)
+
+    location_rows = list(session.execute(location_query).mappings().all())
+    return [
+        {"id": row["id"], "display_name": location_display_name(row["name"], row["city"])}
+        for row in location_rows
+    ]
+
+
+def _build_lpp_form_data(lpp: LocationPlanPeriod) -> dict:
+    """TODs + nr_actors aus einer geladenen LPP extrahieren.
+
+    TODs werden nach `start` sortiert; jede TOD bekommt ein `is_standard`-Flag.
+    Default-TOD ist die zeitlich erste aus `time_of_day_standards`.
+    """
+    standard_ids = {tod.id for tod in lpp.time_of_day_standards if tod.prep_delete is None}
+    active_tods = sorted(
+        (t for t in lpp.time_of_days if t.prep_delete is None),
+        key=lambda t: t.start,
+    )
+    time_of_days = [
+        {
+            "id": t.id,
+            "name": t.name,
+            "start": t.start,
+            "is_standard": t.id in standard_ids,
+        }
+        for t in active_tods
+    ]
+    standard_active_sorted = [t for t in active_tods if t.id in standard_ids]
+    default_id = standard_active_sorted[0].id if standard_active_sorted else None
+
+    return {
+        "time_of_days": time_of_days,
+        "default_time_of_day_id": default_id,
+        "nr_actors": lpp.nr_actors if lpp.nr_actors is not None else 1,
+    }
+
+
+def resolve_appointment_form_state(
+    session: Session,
+    *,
+    team_id: uuid.UUID,
+    date_filter: date | None,
+    location_id: uuid.UUID | None,
+) -> dict:
+    """Auflösung (Team, Datum, Location) → Form-Zustand für das Last-Minute-Modal.
+
+    Liefert ein Dict mit:
+    - `time_of_days`: list[dict] mit id/name/start/is_standard, sortiert nach start
+    - `default_time_of_day_id`: UUID | None (zeitlich erste aus time_of_day_standards)
+    - `nr_actors`: int (Prefill-Wert für Cast-Soll-Größe)
+    - `warning_state`: str (siehe WARNING_*-Konstanten)
+    - `submit_enabled`: bool (False, wenn kein bindender Plan ODER keine PlanPeriode)
+
+    Logik:
+    1. Datum oder Location nicht gesetzt → leer + warning=ok (initial-state, kein Banner)
+    2. Keine PlanPeriode für (team, date) → leer + warning=no_plan_period, submit=False
+    3. Kein bindender Plan in der Periode → TODs/nr_actors aus LPP laden falls vorhanden,
+       warning=no_binding_plan, submit=False (Last-Minute nur auf bindendem Plan erlaubt)
+    4. Bindender Plan + LPP fehlt (Location nicht in Periode) → leer + warning=no_lpp,
+       submit=False
+    5. Alles ok → TODs/nr_actors aus LPP, warning=ok, submit=True
+    """
+    empty_state = {
+        "time_of_days": [],
+        "default_time_of_day_id": None,
+        "nr_actors": 1,
+        "warning_state": WARNING_OK,
+        "submit_enabled": False,
+    }
+
+    if date_filter is None:
+        return empty_state
+
+    plan_period = session.execute(
+        sa_select(PlanPeriod)
+        .join(Team, Team.id == PlanPeriod.team_id)
+        .where(PlanPeriod.team_id == team_id)
+        .where(PlanPeriod.start <= date_filter)
+        .where(PlanPeriod.end >= date_filter)
+        .where(PlanPeriod.prep_delete.is_(None))
+        .where(Team.prep_delete.is_(None))
+    ).scalars().first()
+
+    if plan_period is None:
+        return {**empty_state, "warning_state": WARNING_NO_PLAN_PERIOD}
+
+    has_binding_plan = session.execute(
+        sa_select(Plan.id)
+        .where(Plan.plan_period_id == plan_period.id)
+        .where(Plan.is_binding.is_(True))
+        .where(Plan.prep_delete.is_(None))
+    ).scalars().first() is not None
+
+    if not has_binding_plan:
+        # Banner sofort zeigen — auch ohne Location-Auswahl, sonst sieht der User
+        # erst nach Location-Wechsel, dass die ganze Periode noch keinen bindenden
+        # Plan hat. Submit bleibt in jedem Fall blockiert.
+        if location_id is None:
+            return {**empty_state, "warning_state": WARNING_NO_BINDING_PLAN}
+        lpp = session.execute(
+            sa_select(LocationPlanPeriod)
+            .options(
+                selectinload(LocationPlanPeriod.time_of_days),
+                selectinload(LocationPlanPeriod.time_of_day_standards),
+            )
+            .where(LocationPlanPeriod.plan_period_id == plan_period.id)
+            .where(LocationPlanPeriod.location_of_work_id == location_id)
+        ).scalars().first()
+        if lpp is None:
+            return {**empty_state, "warning_state": WARNING_NO_BINDING_PLAN}
+        return {
+            **_build_lpp_form_data(lpp),
+            "warning_state": WARNING_NO_BINDING_PLAN,
+            "submit_enabled": False,
+        }
+
+    if location_id is None:
+        # PlanPeriode + bindender Plan ok, aber Location noch nicht ausgewählt.
+        # Form ist neutral, Submit-Button bleibt aus, bis Location gesetzt ist.
+        return empty_state
+
+    lpp = session.execute(
+        sa_select(LocationPlanPeriod)
+        .options(
+            selectinload(LocationPlanPeriod.time_of_days),
+            selectinload(LocationPlanPeriod.time_of_day_standards),
+        )
+        .where(LocationPlanPeriod.plan_period_id == plan_period.id)
+        .where(LocationPlanPeriod.location_of_work_id == location_id)
+    ).scalars().first()
+
+    if lpp is None:
+        return {**empty_state, "warning_state": WARNING_NO_LPP}
+
+    lpp_data = _build_lpp_form_data(lpp)
+    return {
+        **lpp_data,
+        "warning_state": WARNING_OK,
+        # Edge-Case: LPP existiert, aber alle TODs sind soft-deleted.
+        # Dropdown zeigt seinen Empty-State, Submit-Button bleibt aus.
+        "submit_enabled": bool(lpp_data["time_of_days"]),
     }

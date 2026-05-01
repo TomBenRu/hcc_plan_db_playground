@@ -15,20 +15,31 @@ from ..database import get_session
 from ..models import _utcnow
 from ._common import log_function_info
 from ._eager_loading import project_show_options
+from ._soft_delete import active_team_pp_criteria
 
 
-def get(project_id: UUID) -> schemas.ProjectShow:
+def get(project_id: UUID, *, include_deleted_teams: bool = False) -> schemas.ProjectShow:
+    """Lädt ein Projekt mit allen Beziehungen.
+
+    `include_deleted_teams=False` (Default) blendet soft-deleted Teams (und
+    deren PlanPeriods) aus der `Project.teams[]`-Liste aus.
+    """
     with get_session() as session:
         stmt = (select(models.Project)
                 .where(models.Project.id == project_id)
                 .options(*project_show_options()))
+        if not include_deleted_teams:
+            stmt = stmt.options(*active_team_pp_criteria())
         project = session.exec(stmt).unique().one()
         return schemas.ProjectShow.model_validate(project)
 
 
-def get_all() -> list[schemas.ProjectShow]:
+def get_all(*, include_deleted_teams: bool = False) -> list[schemas.ProjectShow]:
     with get_session() as session:
-        projects = session.exec(select(models.Project)).all()
+        stmt = select(models.Project)
+        if not include_deleted_teams:
+            stmt = stmt.options(*active_team_pp_criteria())
+        projects = session.exec(stmt).all()
         return [schemas.ProjectShow.model_validate(p) for p in projects]
 
 

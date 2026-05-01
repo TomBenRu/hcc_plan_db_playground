@@ -20,6 +20,7 @@ from database.models import (
     AvailDayAppointmentLink,
     Person,
     PlanPeriod,
+    Team,
 )
 from web_api.cancellations.service import (
     _get_dispatcher_web_user,
@@ -108,10 +109,12 @@ def _person_has_actor_plan_period_in_team(
     row = session.execute(
         sa_select(ActorPlanPeriod.id)
         .join(PlanPeriod, PlanPeriod.id == ActorPlanPeriod.plan_period_id)
+        .join(Team, Team.id == PlanPeriod.team_id)
         .where(ActorPlanPeriod.person_id == person_id)
         .where(PlanPeriod.id == plan_period_id)
         .where(PlanPeriod.team_id == team_id)
         .where(PlanPeriod.prep_delete.is_(None))
+        .where(Team.prep_delete.is_(None))
     ).first()
     return row is not None
 

@@ -22,13 +22,21 @@ def update(team: schemas.Team) -> schemas.TeamShow:
     return schemas.TeamShow.model_validate(data)
 
 
-def delete(team_id: uuid.UUID) -> schemas.Team:
+def delete(team_id: uuid.UUID) -> schemas.TeamDeletionResult:
+    """Soft-Delete inkl. Cascade auf aktive PlanPeriods.
+
+    Antwort enthält `cascaded_plan_period_ids` — die der Caller (Undo-Stack) für
+    ein späteres `undelete()` aufheben sollte.
+    """
     data = get_api_client().delete(f"/api/v1/teams/{team_id}")
-    return schemas.Team.model_validate(data)
+    return schemas.TeamDeletionResult.model_validate(data)
 
 
-def undelete(team_id: uuid.UUID) -> schemas.Team:
-    data = get_api_client().post(f"/api/v1/teams/{team_id}/undelete")
+def undelete(team_id: uuid.UUID,
+             cascaded_plan_period_ids: list[uuid.UUID] | None = None) -> schemas.Team:
+    payload = {"cascaded_plan_period_ids": [str(i) for i in cascaded_plan_period_ids]} \
+        if cascaded_plan_period_ids else {"cascaded_plan_period_ids": []}
+    data = get_api_client().post(f"/api/v1/teams/{team_id}/undelete", json=payload)
     return schemas.Team.model_validate(data)
 
 

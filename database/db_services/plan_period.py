@@ -25,6 +25,7 @@ from ..database import get_session
 from ..models import _utcnow
 from ._common import log_function_info
 from ._eager_loading import plan_period_show_options, plan_period_actor_tab_options
+from ._soft_delete import active_team_pp_criteria
 
 
 class PlanPeriodClosedError(Exception):
@@ -72,12 +73,17 @@ def _team_location_ids_in_range(session, team_id: UUID,
     return set(session.exec(stmt).all())
 
 
-def get(plan_period_id: UUID, minimal: bool = False) -> schemas.PlanPeriodShow | schemas.PlanPeriod:
+def get(plan_period_id: UUID, minimal: bool = False, *,
+        include_deleted: bool = False) -> schemas.PlanPeriodShow | schemas.PlanPeriod:
     """Lädt eine PlanPeriod.
 
     minimal=True gibt schemas.PlanPeriod (id, start, end, team) zurück ohne
     actor_plan_periods, location_plan_periods und cast_groups — für Aufrufer,
     die nur Datum und ID benötigen (~120ms statt ~490ms).
+
+    `include_deleted=False` (Default) blendet sowohl soft-deleted PPs als auch
+    PPs eines soft-deleted Teams aus — letzteres greift über das mitgegebene
+    `with_loader_criteria(Team, ...)` als zusätzliches WHERE über den Team-Join.
     """
     with get_session() as session:
         if minimal:
@@ -88,16 +94,21 @@ def get(plan_period_id: UUID, minimal: bool = False) -> schemas.PlanPeriodShow |
                         joinedload(models.PlanPeriod.team).joinedload(models.Team.dispatcher),
                         joinedload(models.PlanPeriod.team).joinedload(models.Team.excel_export_settings),
                     ))
+            if not include_deleted:
+                stmt = stmt.options(*active_team_pp_criteria())
             pp = session.exec(stmt).unique().one()
             return schemas.PlanPeriod.model_validate(pp)
         stmt = (select(models.PlanPeriod)
                 .where(models.PlanPeriod.id == plan_period_id)
                 .options(*plan_period_show_options()))
+        if not include_deleted:
+            stmt = stmt.options(*active_team_pp_criteria())
         pp = session.exec(stmt).unique().one()
         return schemas.PlanPeriodShow.model_validate(pp)
 
 
-def get_for_actor_tab(plan_period_id: UUID) -> schemas.PlanPeriodForActorTab:
+def get_for_actor_tab(plan_period_id: UUID, *,
+                      include_deleted: bool = False) -> schemas.PlanPeriodForActorTab:
     """Lädt PlanPeriod für FrmTabActorPlanPeriods — ohne location_plan_periods, cast_groups, project.
 
     Spart ~600ms gegenüber get() mit vollem PlanPeriodShow, da die schweren
@@ -107,6 +118,8 @@ def get_for_actor_tab(plan_period_id: UUID) -> schemas.PlanPeriodForActorTab:
         stmt = (select(models.PlanPeriod)
                 .where(models.PlanPeriod.id == plan_period_id)
                 .options(*plan_period_actor_tab_options()))
+        if not include_deleted:
+            stmt = stmt.options(*active_team_pp_criteria())
         pp = session.exec(stmt).unique().one()
         return schemas.PlanPeriodForActorTab.model_validate(pp)
 
@@ -133,17 +146,23 @@ def get_lpp_and_app_ids(plan_period_id: UUID) -> tuple[list[UUID], list[UUID]]:
     return list(lpp_ids), list(app_ids)
 
 
-def exists_any_from__project(project_id: UUID) -> bool:
+def exists_any_from__project(project_id: UUID, *, include_deleted: bool = False) -> bool:
     """Gibt True zurück, wenn das Projekt mindestens einen Planungszeitraum hat (kein model_validate)."""
     with get_session() as session:
         stmt = (select(models.PlanPeriod)
                 .join(models.Team)
                 .where(models.Team.project_id == project_id)
                 .limit(1))
+        if not include_deleted:
+            stmt = stmt.where(
+                models.PlanPeriod.prep_delete.is_(None),
+                models.Team.prep_delete.is_(None),
+            )
         return session.exec(stmt).first() is not None
 
 
-def get_all_from__project(project_id: UUID) -> list[schemas.PlanPeriod]:
+def get_all_from__project(project_id: UUID, *,
+                          include_deleted: bool = False) -> list[schemas.PlanPeriod]:
     """Gibt alle PlanPeriod-Basis-Objekte eines Projekts zurück.
 
     Verwendet bewusst das Basis-Schema (nicht PlanPeriodShow), da Aufrufer
@@ -159,19 +178,29 @@ def get_all_from__project(project_id: UUID) -> list[schemas.PlanPeriod]:
                     joinedload(models.PlanPeriod.team).joinedload(models.Team.dispatcher),
                     joinedload(models.PlanPeriod.team).joinedload(models.Team.excel_export_settings),
                 ))
+        if not include_deleted:
+            stmt = stmt.options(*active_team_pp_criteria())
         pps = session.exec(stmt).unique().all()
         return [schemas.PlanPeriod.model_validate(p) for p in pps]
 
 
-def get_all_from__team(team_id: UUID) -> list[schemas.PlanPeriodShow]:
+def get_all_from__team(team_id: UUID, *,
+                       include_deleted: bool = False) -> list[schemas.PlanPeriodShow]:
     with get_session() as session:
-        pps = session.exec(select(models.PlanPeriod).where(models.PlanPeriod.team_id == team_id)).all()
+        stmt = select(models.PlanPeriod).where(models.PlanPeriod.team_id == team_id)
+        if not include_deleted:
+            stmt = stmt.options(*active_team_pp_criteria())
+        pps = session.exec(stmt).all()
         return [schemas.PlanPeriodShow.model_validate(p) for p in pps]
 
 
-def get_all_from__team_minimal(team_id: UUID) -> list[schemas.PlanPeriodMinimal]:
+def get_all_from__team_minimal(team_id: UUID, *,
+                               include_deleted: bool = False) -> list[schemas.PlanPeriodMinimal]:
     with get_session() as session:
-        pps = session.exec(select(models.PlanPeriod).where(models.PlanPeriod.team_id == team_id)).all()
+        stmt = select(models.PlanPeriod).where(models.PlanPeriod.team_id == team_id)
+        if not include_deleted:
+            stmt = stmt.options(*active_team_pp_criteria())
+        pps = session.exec(stmt).all()
         return [schemas.PlanPeriodMinimal.model_validate(p) for p in pps]
 
 

@@ -4,8 +4,14 @@ Ein Team gehört zu einem Projekt, hat einen optionalen Dispatcher (Person) und
 verwaltet seine eigenen Standortkombinationen und Excel-Exporteinstellungen.
 Soft-Delete via `prep_delete`. Abfragen liefern Teams eines Projekts entweder
 vollständig oder als kompakte (Name, ID)-Liste für Dropdown-Menüs.
+
+Read-Funktionen filtern soft-deleted Records standardmäßig aus
+(`include_deleted=False`). Über die zugehörigen `with_loader_criteria`-Optionen
+werden auch durchnavigierte Relationship-Pfade (`Team.plan_periods` etc.)
+automatisch von soft-deleted Einträgen befreit. Restore- und Audit-Pfade
+können `include_deleted=True` setzen, um wirklich alle Zeilen zu sehen.
 """
-import datetime
+import logging
 from uuid import UUID
 
 from sqlmodel import select
@@ -15,35 +21,46 @@ from ..database import get_session
 from ..models import _utcnow
 from ._common import log_function_info
 from ._eager_loading import team_show_options
+from ._soft_delete import active_team_pp_criteria
 from .combination_locations_possible import is_comb_loc_orphaned
 
+logger = logging.getLogger(__name__)
 
-def get(team_id: UUID) -> schemas.TeamShow:
+
+def get(team_id: UUID, *, include_deleted: bool = False) -> schemas.TeamShow:
     with get_session() as session:
         stmt = (select(models.Team)
                 .where(models.Team.id == team_id)
                 .options(*team_show_options()))
+        if not include_deleted:
+            stmt = stmt.options(*active_team_pp_criteria())
         team = session.exec(stmt).unique().one()
         return schemas.TeamShow.model_validate(team)
 
 
-def exists_any_from__project(project_id: UUID) -> bool:
+def exists_any_from__project(project_id: UUID, *, include_deleted: bool = False) -> bool:
     """Gibt True zurück, wenn das Projekt mindestens ein Team hat (kein model_validate)."""
     with get_session() as session:
         stmt = select(models.Team).where(models.Team.project_id == project_id).limit(1)
+        if not include_deleted:
+            stmt = stmt.where(models.Team.prep_delete.is_(None))
         return session.exec(stmt).first() is not None
 
 
-def get_all_from__project(project_id: UUID, minimal: bool = False) -> list[schemas.TeamShow | tuple[str, UUID]]:
+def get_all_from__project(project_id: UUID, minimal: bool = False, *,
+                          include_deleted: bool = False) -> list[schemas.TeamShow | tuple[str, UUID]]:
     with get_session() as session:
         if minimal:
-            teams = session.exec(
-                select(models.Team).where(models.Team.project_id == project_id)
-            ).all()
+            stmt = select(models.Team).where(models.Team.project_id == project_id)
+            if not include_deleted:
+                stmt = stmt.where(models.Team.prep_delete.is_(None))
+            teams = session.exec(stmt).all()
             return [(t.name, t.id) for t in teams]
         stmt = (select(models.Team)
                 .where(models.Team.project_id == project_id)
                 .options(*team_show_options()))
+        if not include_deleted:
+            stmt = stmt.options(*active_team_pp_criteria())
         teams = session.exec(stmt).unique().all()
         return [schemas.TeamShow.model_validate(t) for t in teams]
 
@@ -182,20 +199,65 @@ def restore_comb_loc_possibles(
         session.flush()
 
 
-def delete(team_id: UUID) -> schemas.Team:
+def delete(team_id: UUID) -> schemas.TeamDeletionResult:
+    """Soft-Delete des Teams mit Kaskade auf alle aktiven PlanPeriods.
+
+    Cascade-Verhalten:
+      - Alle PlanPeriods mit `prep_delete IS NULL` werden mit dem gleichen
+        Timestamp soft-deleted.
+      - Geschlossene PlanPeriods (`closed=True`) werden bewusst mit-soft-deleted —
+        die übliche `PlanPeriodClosedError`-Invariante wird umgangen, weil ein
+        gelöschtes Team die "aktiv archiviert"-Semantik der geschlossenen PP
+        ohnehin obsolet macht. Pro überschriebene Closed-PP wird eine
+        `logger.info`-Zeile geschrieben.
+
+    Rückgabe enthält die IDs der mit-cascade-deleteten PlanPeriods, damit der
+    Undo-Pfad sie gezielt restoren kann (kein Timestamp-Heuristik-Match).
+    """
     log_function_info()
     with get_session() as session:
         team_db = session.get(models.Team, team_id)
-        team_db.prep_delete = _utcnow()
+        now = _utcnow()
+        team_db.prep_delete = now
+
+        cascaded_pp_ids: list[UUID] = []
+        for pp in team_db.plan_periods:
+            if pp.prep_delete is not None:
+                continue
+            if pp.closed:
+                logger.info(
+                    "team.delete cascade: bypass closed-invariant for "
+                    "PlanPeriod %s (team %s) — soft-delete erzwungen, da Team gelöscht.",
+                    pp.id, team_db.id,
+                )
+            pp.prep_delete = now
+            cascaded_pp_ids.append(pp.id)
+
         session.flush()
-        return schemas.Team.model_validate(team_db)
+        return schemas.TeamDeletionResult(
+            team=schemas.Team.model_validate(team_db),
+            cascaded_plan_period_ids=cascaded_pp_ids,
+        )
 
 
-def undelete(team_id: UUID) -> schemas.Team:
-    """Hebt das Soft-Delete einer Team-Zeile auf (Undo-Pfad)."""
+def undelete(team_id: UUID, cascaded_plan_period_ids: list[UUID] | None = None) -> schemas.Team:
+    """Hebt das Soft-Delete einer Team-Zeile auf (Undo-Pfad).
+
+    Mit `cascaded_plan_period_ids` werden die im selben Soft-Delete-Schritt
+    mit-cascade-deleteten PlanPeriods explizit zurückgesetzt — typischerweise
+    übergeben aus dem Ergebnis eines vorigen `delete()`-Aufrufs. PPs, die
+    schon vor dem Team-Soft-Delete gelöscht waren, bleiben unverändert.
+    """
     log_function_info()
     with get_session() as session:
         team_db = session.get(models.Team, team_id)
         team_db.prep_delete = None
+
+        if cascaded_plan_period_ids:
+            for pp_id in cascaded_plan_period_ids:
+                pp = session.get(models.PlanPeriod, pp_id)
+                if pp is not None and pp.prep_delete is not None:
+                    pp.prep_delete = None
+
         session.flush()
         return schemas.Team.model_validate(team_db)

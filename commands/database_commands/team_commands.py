@@ -17,7 +17,8 @@ from gui.api_client import team as api_team, excel_export_settings as api_excel_
 
 
 class Create(Command):
-    """Team-Erstellung. Undo soft-loescht, Redo undelete (selbe ID)."""
+    """Team-Erstellung. Undo soft-loescht (inkl. Cascade), Redo undelete restored
+    Team plus die im Undo-Schritt mit-cascade-deleteten PlanPeriods."""
 
     def __init__(self, name: str, project_id: UUID, dispatcher_id: UUID | None = None):
         super().__init__()
@@ -25,17 +26,20 @@ class Create(Command):
         self.project_id = project_id
         self.dispatcher_id = dispatcher_id
         self.created_team: schemas.TeamShow | None = None
+        self._cascaded_pp_ids: list[UUID] = []
 
     def execute(self):
         self.created_team = api_team.create(self.name, self.project_id, self.dispatcher_id)
 
     def _undo(self):
         if self.created_team:
-            api_team.delete(self.created_team.id)
+            result = api_team.delete(self.created_team.id)
+            self._cascaded_pp_ids = result.cascaded_plan_period_ids
 
     def _redo(self):
         if self.created_team:
-            api_team.undelete(self.created_team.id)
+            api_team.undelete(self.created_team.id,
+                              cascaded_plan_period_ids=self._cascaded_pp_ids)
 
 
 class Update(Command):
@@ -58,20 +62,30 @@ class Update(Command):
 
 
 class Delete(Command):
-    """Soft-Delete mit Undo via undelete."""
+    """Soft-Delete mit Undo via undelete.
+
+    Bei jedem `execute`/`_redo` wird die aktuelle Cascade-PP-Liste gespeichert,
+    damit der Undo-Pfad dieselben PlanPeriods restored, die der Delete
+    soft-gelöscht hat — auch wenn sich die PP-Lage zwischen Execute und Undo
+    ändert (z. B. weil zwischendrin eine andere PP soft-gelöscht wurde).
+    """
 
     def __init__(self, team_id: UUID):
         super().__init__()
         self.team_id = team_id
+        self._cascaded_pp_ids: list[UUID] = []
 
     def execute(self):
-        api_team.delete(self.team_id)
+        result = api_team.delete(self.team_id)
+        self._cascaded_pp_ids = result.cascaded_plan_period_ids
 
     def _undo(self):
-        api_team.undelete(self.team_id)
+        api_team.undelete(self.team_id,
+                          cascaded_plan_period_ids=self._cascaded_pp_ids)
 
     def _redo(self):
-        api_team.delete(self.team_id)
+        result = api_team.delete(self.team_id)
+        self._cascaded_pp_ids = result.cascaded_plan_period_ids
 
 
 class PutInCombLocPossible(Command):

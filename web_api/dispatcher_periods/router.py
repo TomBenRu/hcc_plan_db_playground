@@ -13,6 +13,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, Response
+from sqlalchemy.exc import NoResultFound
 from sqlmodel import Session
 
 from database import db_services, schemas
@@ -32,6 +33,22 @@ router = APIRouter(prefix="/dispatcher/periods", tags=["dispatcher-periods"])
 
 def _is_admin(user: WebUser) -> bool:
     return user.has_any_role(WebUserRole.admin)
+
+
+def _get_active_team_or_404(team_id: uuid.UUID) -> schemas.TeamShow:
+    """Lädt das Team, gibt 404 zurück wenn es nicht existiert oder soft-deleted ist.
+
+    `db_services.Team.get` filtert per Default soft-deleted Teams aus und wirft
+    `NoResultFound` für nicht existente UND soft-deletete IDs — beide Fälle
+    werden hier zu einer sauberen 404 gemappt, sonst kommt es als HTTP 500
+    raus."""
+    try:
+        return db_services.Team.get(team_id)
+    except NoResultFound:
+        raise HTTPException(
+            status.HTTP_404_NOT_FOUND,
+            detail=f"Team {team_id} nicht gefunden oder gelöscht.",
+        )
 
 
 def _resolve_team_choices(session: Session, user: WebUser):
@@ -106,10 +123,17 @@ def index(
     selected_team_id = team_id
     if selected_team_id is None and teams:
         selected_team_id = teams[0].id
-    periods = (
-        db_services.PlanPeriod.get_all_from__team_minimal(selected_team_id)
-        if selected_team_id else []
-    )
+    if selected_team_id:
+        # Schutz gegen URL-Manipulation: ein soft-deletes Team darf nicht
+        # über die Periodenliste sichtbar sein, auch wenn jemand die ID kennt.
+        _get_active_team_or_404(selected_team_id)
+        # include_deleted=True, weil _filter_periods('papierkorb') die soft-deleted
+        # PPs anzeigen können muss; aktive Filter werden Python-seitig gemacht.
+        periods = db_services.PlanPeriod.get_all_from__team_minimal(
+            selected_team_id, include_deleted=True,
+        )
+    else:
+        periods = []
     periods = _filter_periods(periods, status_filter)
     periods = sorted(periods, key=lambda p: p.start, reverse=True)
 
@@ -137,10 +161,13 @@ def list_partial(
     status_filter: str | None = None,
 ):
     """HTMX-Partial: nur die Liste, nach Filter-Wechsel."""
-    periods = (
-        db_services.PlanPeriod.get_all_from__team_minimal(team_id)
-        if team_id else []
-    )
+    if team_id:
+        _get_active_team_or_404(team_id)
+        periods = db_services.PlanPeriod.get_all_from__team_minimal(
+            team_id, include_deleted=True,
+        )
+    else:
+        periods = []
     periods = _filter_periods(periods, status_filter)
     periods = sorted(periods, key=lambda p: p.start, reverse=True)
     return templates.TemplateResponse(
@@ -201,7 +228,7 @@ def new_form(
     """Modal: Anlage-Formular für eine neue Periode mit smart Defaults
     (Notizen aus Team, Start ab Tag nach jüngster bestehender PP)."""
     today = _today()
-    team = db_services.Team.get(team_id)
+    team = _get_active_team_or_404(team_id)
     latest_end = db_services.PlanPeriod.get_latest_end_for_team(team_id)
     earliest_start = max(
         today + datetime.timedelta(days=1),
@@ -264,7 +291,7 @@ def create_with_children(
             ),
         )
 
-    team = db_services.Team.get(team_id)
+    team = _get_active_team_or_404(team_id)
     create_schema = schemas.PlanPeriodCreate(
         start=start, end=end, deadline=deadline,
         notes=notes or None, notes_for_employees=notes_for_employees or None,
@@ -404,7 +431,10 @@ def notes_display(
     plan_period_id: uuid.UUID,
     user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
 ):
-    pp = db_services.PlanPeriod.get(plan_period_id)
+    # include_deleted=True: notes_display.html rendert den Notes-Edit-Button auch
+    # für Papierkorb-PPs (siehe Template Z.16-22). Ohne den Override wirft der
+    # Default-Filter NoResultFound → 404 → Papierkorb-Notes wären unzugänglich.
+    pp = db_services.PlanPeriod.get(plan_period_id, include_deleted=True)
     return templates.TemplateResponse(
         "dispatcher/periods/partials/notes_display.html",
         {"request": request, "pp": pp},
@@ -417,7 +447,7 @@ def notes_edit(
     plan_period_id: uuid.UUID,
     user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
 ):
-    pp = db_services.PlanPeriod.get(plan_period_id)
+    pp = db_services.PlanPeriod.get(plan_period_id, include_deleted=True)
     return templates.TemplateResponse(
         "dispatcher/periods/partials/notes_edit.html",
         {"request": request, "pp": pp},
@@ -432,7 +462,7 @@ def patch_notes(
     notes: str = Form(default=""),
 ):
     db_services.PlanPeriod.update_notes(plan_period_id, notes)
-    pp = db_services.PlanPeriod.get(plan_period_id)
+    pp = db_services.PlanPeriod.get(plan_period_id, include_deleted=True)
     return templates.TemplateResponse(
         "dispatcher/periods/partials/notes_display.html",
         {"request": request, "pp": pp},

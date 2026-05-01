@@ -88,7 +88,7 @@ class FrmTeam(QDialog):
             return
         dispatcher_id = self.cb_dispatcher.currentData()
         if self.chk_new_mode.isChecked():
-            if (team_name := self.le_name.text()) in [t.name for t in self.project.teams if not t.prep_delete]:
+            if (team_name := self.le_name.text()) in [t.name for t in self.project.teams]:
                 QMessageBox.critical(self, self.tr('New Team'),
                                    self.tr('Team name {name} already exists.\nPlease choose a different name.')
                                    .format(name=team_name))

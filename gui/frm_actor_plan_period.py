@@ -1899,8 +1899,7 @@ class FrmActorPlanPeriod(QWidget):
 
 if __name__ == '__main__':
     app = QApplication()
-    plan_periods = [pp for pp in db_services.PlanPeriod.get_all_from__project(UUID('116C83375CA842E79DF97B0D2C7DBDE0'))
-                    if not pp.prep_delete]
+    plan_periods = db_services.PlanPeriod.get_all_from__project(UUID('116C83375CA842E79DF97B0D2C7DBDE0'))
     window = FrmTabActorPlanPeriods(None, plan_periods[0])
     window.show()
     app.exec()

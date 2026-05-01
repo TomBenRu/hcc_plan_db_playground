@@ -99,7 +99,7 @@ class DlgSettingsProject(QDialog):
 
     def fill_teams(self):
         self.cb_teams.clear()
-        for t in sorted([t for t in self.project.teams if not t.prep_delete], key=lambda x: x.name):
+        for t in sorted(self.project.teams, key=lambda x: x.name):
             self.cb_teams.addItem(QIcon(os.path.join(self.path_to_icons, 'users.png')), t.name, t)
 
     def fill_admins(self):

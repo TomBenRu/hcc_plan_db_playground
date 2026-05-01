@@ -44,8 +44,7 @@ class DlgOpenPlanPeriodMask(QDialog):
     def fill_combo_plan_periods(self):
         self.plan_periods = sorted((pp for pp in db_services.PlanPeriod.get_all_from__team_minimal(self.team_id)
                                     if pp.id not in {self.tabs_planning_masks.widget(i).plan_period_id
-                                                     for i in range(self.tabs_planning_masks.count())}
-                                    and not pp.prep_delete),
+                                                     for i in range(self.tabs_planning_masks.count())}),
                                    key=lambda x: x.start, reverse=True)
         for pp in self.plan_periods:
             self.combo_plan_periods.addItem(f'{pp.start:%d.%m.%y} - {pp.end:%d.%m.%y}', pp.id)

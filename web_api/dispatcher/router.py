@@ -18,6 +18,7 @@ from database.models import (
     LocationPlanPeriod,
     Plan,
     PlanPeriod,
+    Team,
     TeamLocationAssign,
     TimeOfDay,
 )
@@ -306,10 +307,12 @@ def _resolve_appointment_form_state(
 
     plan_period = session.execute(
         sa_select(PlanPeriod)
+        .join(Team, Team.id == PlanPeriod.team_id)
         .where(PlanPeriod.team_id == team_id)
         .where(PlanPeriod.start <= date_filter)
         .where(PlanPeriod.end >= date_filter)
         .where(PlanPeriod.prep_delete.is_(None))
+        .where(Team.prep_delete.is_(None))
     ).scalars().first()
 
     if plan_period is None:

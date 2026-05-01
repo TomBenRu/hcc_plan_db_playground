@@ -258,6 +258,22 @@ class TeamShow(TeamWithAssigns):
         return [v for v in values]
 
 
+class TeamDeletionResult(BaseModel):
+    """Ergebnis eines Soft-Deletes auf einem Team.
+
+    `team` ist die soft-deletete Team-Zeile, `cascaded_plan_period_ids` enthält
+    die IDs aller PlanPeriods, die im selben Schritt mit-soft-deleted wurden
+    (inklusive geschlossener PPs — Closed-Invariante wird in der Cascade
+    bewusst umgangen, mit Logger-Eintrag pro betroffene PP).
+    Der Undo-Pfad nutzt `cascaded_plan_period_ids`, um die Cascade gezielt
+    rückgängig zu machen, ohne sich auf Timestamp-Heuristik verlassen zu müssen.
+    """
+    model_config = ConfigDict(from_attributes=True)
+
+    team: Team
+    cascaded_plan_period_ids: List[UUID]
+
+
 class PlanPeriodCreate(BaseModel):
     start: datetime.date
     end: datetime.date

@@ -4,7 +4,7 @@ from urllib.parse import quote
 from fastapi import Depends, FastAPI, Request, Response, status
 from fastapi.responses import JSONResponse, RedirectResponse
 from slowapi.errors import RateLimitExceeded
-from sqlalchemy.exc import IntegrityError
+from sqlalchemy.exc import IntegrityError, NoResultFound
 from sqlmodel import Session, text
 
 from web_api.rate_limit import limiter
@@ -95,6 +95,21 @@ async def login_required_handler(request: Request, exc: LoginRequired) -> Respon
         response.headers["HX-Redirect"] = redirect_url
         return response
     return RedirectResponse(url=redirect_url, status_code=status.HTTP_303_SEE_OTHER)
+
+
+@app.exception_handler(NoResultFound)
+async def no_result_found_handler(request: Request, exc: NoResultFound) -> JSONResponse:
+    """SQLAlchemy `.one()` ohne Ergebnis → 404 Not Found statt 500.
+
+    Tritt typisch auf, wenn ein direkter ID-Lookup (z. B. `Team.get(uuid)`) ins Leere
+    läuft — entweder weil die ID nicht existiert oder weil der Datensatz soft-deleted
+    ist und der Service-Layer ihn ausfiltert. In beiden Fällen ist 404 die
+    semantisch korrekte Antwort.
+    """
+    return JSONResponse(
+        status_code=status.HTTP_404_NOT_FOUND,
+        content={"detail": "Resource not found or has been deleted."},
+    )
 
 
 @app.exception_handler(IntegrityError)

@@ -25,6 +25,7 @@ from database.models import (
     Person,
     Plan,
     PlanPeriod,
+    Team,
     TimeOfDay,
 )
 from web_api.availability.service import create_avail_day, find_avail_day, reset_location_prefs_to_normal
@@ -630,10 +631,12 @@ def create_appointment_with_event(
     plan = session.execute(
         sa_select(Plan)
         .join(PlanPeriod, PlanPeriod.id == Plan.plan_period_id)
+        .join(Team, Team.id == PlanPeriod.team_id)
         .where(PlanPeriod.team_id == team_id)
         .where(PlanPeriod.start <= date)
         .where(PlanPeriod.end >= date)
         .where(PlanPeriod.prep_delete.is_(None))
+        .where(Team.prep_delete.is_(None))
         .where(Plan.is_binding.is_(True))
         .where(Plan.prep_delete.is_(None))
     ).scalars().first()

@@ -99,8 +99,10 @@ def get_plan_periods_for_person(
     rows = session.execute(
         sa_select(PlanPeriod)
         .join(ActorPlanPeriod, ActorPlanPeriod.plan_period_id == PlanPeriod.id)
+        .join(Team, Team.id == PlanPeriod.team_id)
         .where(ActorPlanPeriod.person_id == person_id)
         .where(PlanPeriod.prep_delete.is_(None))
+        .where(Team.prep_delete.is_(None))
         .order_by(PlanPeriod.start.desc())
         .distinct()
     ).scalars().all()
@@ -257,12 +259,18 @@ def get_appointment_detail(
 
 
 def get_team_ids_for_person(session: Session, person_id: uuid.UUID) -> list[uuid.UUID]:
-    """Alle Teams, in denen die Person ActorPlanPeriods hat (aktiv oder historisch)."""
+    """Alle Teams, in denen die Person ActorPlanPeriods hat (aktiv oder historisch).
+
+    Soft-deletete Teams (`Team.prep_delete IS NOT NULL`) werden ausgefiltert —
+    sonst würde ein gelöschtes Team noch in Mitarbeiter-Sichten auftauchen.
+    """
     return list(session.execute(
         sa_select(PlanPeriod.team_id)
         .join(ActorPlanPeriod, ActorPlanPeriod.plan_period_id == PlanPeriod.id)
+        .join(Team, Team.id == PlanPeriod.team_id)
         .where(ActorPlanPeriod.person_id == person_id)
         .where(PlanPeriod.prep_delete.is_(None))
+        .where(Team.prep_delete.is_(None))
         .distinct()
     ).scalars().all())
 

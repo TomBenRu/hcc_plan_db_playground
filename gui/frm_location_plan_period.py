@@ -1700,8 +1700,7 @@ class FrmLocationPlanPeriod(QWidget):
 
 if __name__ == '__main__':
     app = QApplication()
-    plan_periods = [pp for pp in db_services.PlanPeriod.get_all_from__project(UUID('72F1D1E9BF554F11AE44916411A9819E'))
-                    if not pp.prep_delete]
+    plan_periods = db_services.PlanPeriod.get_all_from__project(UUID('72F1D1E9BF554F11AE44916411A9819E'))
     window = FrmTabLocationPlanPeriods(None, plan_periods[0])
     window.show()
     app.exec()

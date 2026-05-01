@@ -82,7 +82,7 @@ class DlgPlanPeriodCreate(QDialog):
 
     def fill_teams(self):
         curr_dispatcher: schemas.PersonShow = self.cb_dispatcher.currentData()
-        for t in sorted([t for t in curr_dispatcher.teams_of_dispatcher if not t.prep_delete], key=lambda t: t.name):
+        for t in sorted(curr_dispatcher.teams_of_dispatcher, key=lambda t: t.name):
             team = db_services.Team.get(t.id)
             self.cb_teams.addItem(QIcon(os.path.join(self.path_to_icons,
                                                      'resources/toolbar_icons/icons/users.png')), team.name, team)
@@ -99,7 +99,7 @@ class DlgPlanPeriodCreate(QDialog):
         team: schemas.TeamShow = self.cb_teams.currentData()
         if not team:
             return
-        if plan_periods := [pp for pp in team.plan_periods if not pp.prep_delete]:
+        if plan_periods := list(team.plan_periods):
             self.max_end_plan_periods = max(p.end for p in plan_periods)
         else:
             self.max_end_plan_periods = datetime.date.today()
@@ -243,14 +243,14 @@ class DlgPlanPeriodEdit(QDialog):
     def fill_teams(self, *args):
         self.cb_teams.clear()
         curr_dispatcher: schemas.PersonShow = self.cb_dispatcher.currentData()
-        for t in sorted([t for t in curr_dispatcher.teams_of_dispatcher if not t.prep_delete], key=lambda t: t.name):
+        for t in sorted(curr_dispatcher.teams_of_dispatcher, key=lambda t: t.name):
             team = db_services.Team.get(t.id)
             self.cb_teams.addItem(QIcon(os.path.join(self.path_to_icons, 'resources/toolbar_icons/icons/users.png')), team.name, team)
 
     def fill_plan_periods(self, *args):
         self.cb_planperiods.clear()
         curr_team: schemas.TeamShow = self.cb_teams.currentData()
-        self.curr_plan_periods = sorted([p for p in curr_team.plan_periods if not p.prep_delete],
+        self.curr_plan_periods = sorted(curr_team.plan_periods,
                                         key=lambda x: x.start, reverse=True)
         for pp in self.curr_plan_periods:
             text = f'{date_to_string(pp.start)} - {date_to_string(pp.end)}'

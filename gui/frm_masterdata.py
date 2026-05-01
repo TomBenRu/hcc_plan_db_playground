@@ -884,7 +884,7 @@ class DlgLocationModify(DlgLocationData):
     def fill_teams(self):
         self.cb_teams.blockSignals(True)
         self.cb_teams.clear()
-        teams: list[schemas.Team] = sorted([t for t in self.get_teams() if not t.prep_delete], key=lambda t: t.name)
+        teams: list[schemas.Team] = sorted(self.get_teams(), key=lambda t: t.name)
         self.cb_teams.addItem(QIcon(os.path.join(self.path_to_icons, 'users.png')), self.tr('No Team'), None)
         for team in teams:
             self.cb_teams.addItem(QIcon(os.path.join(self.path_to_icons, 'users.png')), team.name, team.id)

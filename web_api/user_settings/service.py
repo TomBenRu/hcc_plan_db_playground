@@ -54,12 +54,16 @@ def get_visible_locations_with_colors(
     employee_team_ids = set(session.execute(
         sa_select(PlanPeriod.team_id)
         .join(ActorPlanPeriod, ActorPlanPeriod.plan_period_id == PlanPeriod.id)
+        .join(Team, Team.id == PlanPeriod.team_id)
         .where(ActorPlanPeriod.person_id == web_user.person_id)
         .where(PlanPeriod.prep_delete.is_(None))
+        .where(Team.prep_delete.is_(None))
         .distinct()
     ).scalars().all())
     dispatcher_team_ids = set(session.execute(
-        sa_select(Team.id).where(Team.dispatcher_id == web_user.person_id)
+        sa_select(Team.id)
+        .where(Team.dispatcher_id == web_user.person_id)
+        .where(Team.prep_delete.is_(None))
     ).scalars().all())
     team_ids = list(employee_team_ids | dispatcher_team_ids)
     if not team_ids:

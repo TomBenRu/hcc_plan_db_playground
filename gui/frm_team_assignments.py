@@ -250,7 +250,7 @@ class DlgAddTeamAssignment(QDialog):
 
         # Load all teams of the project
         all_teams = db_services.Team.get_all_from__project(self.project_id)
-        available_teams = [t for t in all_teams if t.id not in current_team_ids and not t.prep_delete]
+        available_teams = [t for t in all_teams if t.id not in current_team_ids]
 
         if not available_teams:
             self.lb_info.setText(self.tr('This person is already assigned to all available teams.'))

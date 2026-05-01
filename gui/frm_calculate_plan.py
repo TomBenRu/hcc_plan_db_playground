@@ -163,7 +163,7 @@ class DlgCalculate(QDialog):
         """
         team = db_services.Team.get(self.team_id)
         plan_periods = sorted(
-            [pp for pp in team.plan_periods if not pp.prep_delete],
+            team.plan_periods,
             key=lambda x: x.start, reverse=True
         )
         
@@ -481,7 +481,7 @@ class DlgCalculate(QDialog):
 
         self.spin_time_calculate_fair_distribution.setMaximum(10000)
 
-        plan_periods = sorted([pp for pp in team.plan_periods if not pp.prep_delete],
+        plan_periods = sorted(team.plan_periods,
                               key=lambda x: x.start, reverse=True)
         for plan_period in plan_periods:
             self.combo_plan_periods.addItem(f'{date_to_string(plan_period.start)} - {date_to_string(plan_period.end)}',

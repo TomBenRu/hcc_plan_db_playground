@@ -46,15 +46,29 @@ def update_team(team_id: uuid.UUID, body: schemas.Team, _: DesktopUser):
     return db_services.Team.update(body)
 
 
-@router.delete("/{team_id}", response_model=schemas.Team)
+@router.delete("/{team_id}", response_model=schemas.TeamDeletionResult)
 def delete_team(team_id: uuid.UUID, _: DesktopUser):
-    """Soft-Delete (setzt prep_delete)."""
+    """Soft-Delete (setzt prep_delete) inkl. Cascade auf alle aktiven PlanPeriods.
+
+    Antwort enthält die IDs der mit-cascade-deleteten PlanPeriods, damit der
+    Aufrufer (Undo-Stack) sie für ein gezieltes Restore aufheben kann.
+    """
     return db_services.Team.delete(team_id)
 
 
+class TeamUndeleteBody(BaseModel):
+    cascaded_plan_period_ids: list[uuid.UUID] = []
+
+
 @router.post("/{team_id}/undelete", response_model=schemas.Team)
-def undelete_team(team_id: uuid.UUID, _: DesktopUser):
-    return db_services.Team.undelete(team_id)
+def undelete_team(team_id: uuid.UUID, _: DesktopUser, body: TeamUndeleteBody | None = None):
+    """Hebt das Soft-Delete eines Teams auf.
+
+    Optional: `cascaded_plan_period_ids` aus dem zugehörigen Delete-Ergebnis
+    — restored die im selben Schritt mit-soft-deleteten PlanPeriods.
+    """
+    pp_ids = body.cascaded_plan_period_ids if body else None
+    return db_services.Team.undelete(team_id, cascaded_plan_period_ids=pp_ids)
 
 
 @router.patch("/{team_id}/notes", response_model=schemas.TeamShow)

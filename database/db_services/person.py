@@ -20,24 +20,37 @@ from ..models import _utcnow
 from ..enums import Gender
 from ._common import log_function_info
 from ._eager_loading import person_show_options, person_for_comb_loc_dialog_options, person_for_master_data_options
+from ._soft_delete import active_team_pp_criteria
 from .combination_locations_possible import is_comb_loc_orphaned
 
 
-def get(person_id: UUID) -> schemas.PersonShow:
+def get(person_id: UUID, *, include_deleted_teams: bool = False) -> schemas.PersonShow:
+    """Lädt eine Person mit allen relationship-Pfaden.
+
+    `include_deleted_teams=False` (Default) blendet soft-deleted Teams auf den
+    durchnavigierten Pfaden `Person.teams_of_dispatcher` und
+    `Person.team_actor_assigns[].team` aus, sowie deren PlanPeriods. Die Person
+    selbst wird unabhängig vom Team-Soft-Delete-Status geladen.
+    """
     with get_session() as session:
         stmt = (select(models.Person)
                 .where(models.Person.id == person_id)
                 .options(*person_show_options()))
+        if not include_deleted_teams:
+            stmt = stmt.options(*active_team_pp_criteria())
         person = session.exec(stmt).unique().one()
         return schemas.PersonShow.model_validate(person)
 
 
-def get_for_comb_loc_dialog(person_id: UUID) -> schemas.PersonForCombLocDialog:
+def get_for_comb_loc_dialog(person_id: UUID, *,
+                            include_deleted_teams: bool = False) -> schemas.PersonForCombLocDialog:
     """Lädt nur team_actor_assigns + combination_locations_possibles für DlgCombLocPossibleEditList."""
     with get_session() as session:
         stmt = (select(models.Person)
                 .where(models.Person.id == person_id)
                 .options(*person_for_comb_loc_dialog_options()))
+        if not include_deleted_teams:
+            stmt = stmt.options(*active_team_pp_criteria())
         person = session.exec(stmt).unique().one()
         return schemas.PersonForCombLocDialog.model_validate(person)
 
@@ -74,7 +87,8 @@ def get_full_names_for_ids(person_ids: list[UUID]) -> dict[UUID, str]:
         return {p_id: f'{f_name} {l_name}' for p_id, f_name, l_name in persons}
 
 
-def get_all_from__project(project_id: UUID, minimal: bool = False) -> list[schemas.PersonShow | tuple[str, UUID]]:
+def get_all_from__project(project_id: UUID, minimal: bool = False, *,
+                          include_deleted_teams: bool = False) -> list[schemas.PersonShow | tuple[str, UUID]]:
     with get_session() as session:
         query = select(models.Person).where(
             models.Person.project_id == project_id,
@@ -82,6 +96,8 @@ def get_all_from__project(project_id: UUID, minimal: bool = False) -> list[schem
         )
         if not minimal:
             query = query.options(*person_show_options())
+            if not include_deleted_teams:
+                query = query.options(*active_team_pp_criteria())
         persons = session.exec(query).all()
         return ([(p.full_name, p.id) for p in persons] if minimal
                 else [schemas.PersonShow.model_validate(p) for p in persons])

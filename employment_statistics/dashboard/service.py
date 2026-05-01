@@ -264,11 +264,12 @@ class DashboardService:
 
         if team_id:
             plan_periods = session.exec(
-                select(models.PlanPeriod).where(
+                select(models.PlanPeriod).join(models.Team).where(
                     models.PlanPeriod.team_id == team_id,
                     models.PlanPeriod.start <= end_date,
                     models.PlanPeriod.end >= start_date,
-                    models.PlanPeriod.prep_delete.is_(None)
+                    models.PlanPeriod.prep_delete.is_(None),
+                    models.Team.prep_delete.is_(None),
                 ).order_by(models.PlanPeriod.start)
             ).all()
         else:
@@ -277,7 +278,8 @@ class DashboardService:
                     models.Team.project_id == project_id,
                     models.PlanPeriod.start <= end_date,
                     models.PlanPeriod.end >= start_date,
-                    models.PlanPeriod.prep_delete.is_(None)
+                    models.PlanPeriod.prep_delete.is_(None),
+                    models.Team.prep_delete.is_(None),
                 ).order_by(models.PlanPeriod.start)
             ).all()
 

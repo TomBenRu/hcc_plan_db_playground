@@ -120,13 +120,19 @@ def index(
 ):
     """Listenseite mit Sidebar-Team-Filter."""
     teams = _resolve_team_choices(session, user)
-    selected_team_id = team_id
-    if selected_team_id is None and teams:
+    if team_id is not None:
+        # Per URL übergebene team_id muss aktiv sein — sonst 404 statt
+        # heimlich softdeleted Inhalte zeigen.
+        _get_active_team_or_404(team_id)
+        selected_team_id = team_id
+    elif teams:
+        # Default-Auswahl beim Erstaufruf: erstes aktives Team aus der Sidebar.
+        # _resolve_team_choices filtert bereits soft-deleted aus, also kein
+        # zusätzlicher 404-Check nötig.
         selected_team_id = teams[0].id
+    else:
+        selected_team_id = None
     if selected_team_id:
-        # Schutz gegen URL-Manipulation: ein soft-deletes Team darf nicht
-        # über die Periodenliste sichtbar sein, auch wenn jemand die ID kennt.
-        _get_active_team_or_404(selected_team_id)
         # include_deleted=True, weil _filter_periods('papierkorb') die soft-deleted
         # PPs anzeigen können muss; aktive Filter werden Python-seitig gemacht.
         periods = db_services.PlanPeriod.get_all_from__team_minimal(

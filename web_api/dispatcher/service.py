@@ -56,10 +56,15 @@ def get_teams_for_dispatcher(
     session: Session,
     person_id: uuid.UUID,
 ) -> list[TeamInfo]:
-    """Alle Teams, für die die Person als Dispatcher eingetragen ist."""
+    """Alle aktiven Teams, für die die Person als Dispatcher eingetragen ist.
+
+    Soft-deletete Teams werden ausgefiltert, damit sie nicht in der Disponenten-
+    Sidebar als auswählbares Team auftauchen.
+    """
     rows = session.execute(
         sa_select(Team.id, Team.name, Team.project_id)
         .where(Team.dispatcher_id == person_id)
+        .where(Team.prep_delete.is_(None))
         .order_by(Team.name)
     ).mappings().all()
     return [

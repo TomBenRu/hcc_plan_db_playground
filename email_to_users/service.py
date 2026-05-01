@@ -10,6 +10,8 @@ DB lädt. Damit gibt es nur noch eine SMTP-Konfigurationsquelle im System.
 import logging
 from typing import Any, Dict, List, Optional
 
+from jinja2.sandbox import SandboxedEnvironment
+
 from database import schemas
 from database.database import get_session
 from database.models import Person, Plan, PlanPeriod
@@ -18,6 +20,30 @@ from web_api.email.service import EmailPayload, _send_one_smtp
 from web_api.templating import templates as jinja_templates
 
 logger = logging.getLogger(__name__)
+
+# SandboxedEnvironment blockiert Attribut-Zugriffe wie {{ x.__class__ }}
+# — Defense-in-Depth gegen versehentliche Code-Injection in User-Templates.
+# undefined=Undefined (Default): unbekannte Variablen werden zu leeren Strings
+# beim Stringify, statt Exception zu werfen.
+_personalization_env = SandboxedEnvironment(autoescape=False)
+
+
+def _personalize(template_str: str, person: Person) -> str:
+    """Rendert einen Custom-Email-Template-String mit Person-Werten.
+
+    Verfügbare Platzhalter (deutsch, konsistent mit den UI-Buttons):
+        {{ vorname }}    — Person.f_name
+        {{ nachname }}   — Person.l_name
+        {{ name }}       — Person.full_name
+        {{ email }}      — Person.email
+    """
+    ctx = {
+        "vorname": person.f_name or "",
+        "nachname": person.l_name or "",
+        "name": person.full_name or "",
+        "email": str(person.email) if person.email else "",
+    }
+    return _personalization_env.from_string(template_str).render(**ctx)
 
 
 class EmailService:
@@ -159,20 +185,35 @@ class EmailService:
         html_content: Optional[str] = None,
         recipients: Optional[List[schemas.Person]] = None,
     ) -> Dict[str, Any]:
-        """Custom-Mail an eine Personen-Liste, eine Mail pro Empfänger."""
+        """Custom-Mail an eine Personen-Liste, eine Mail pro Empfänger.
+
+        Subject und Body werden pro Empfänger via Jinja2 personalisiert.
+        Verfügbare Platzhalter: {{ vorname }}, {{ nachname }}, {{ name }},
+        {{ email }}. Unbekannte Platzhalter werden zu leeren Strings.
+        """
         if not recipients:
             return {"success": 0, "failed": 0}
 
-        body = html_content or _text_to_html(text_content)
+        body_template = html_content or _text_to_html(text_content)
         stats = {"success": 0, "failed": 0}
         for person in recipients:
             if not person.email:
                 stats["failed"] += 1
                 continue
+            try:
+                personalized_subject = _personalize(subject, person)
+                personalized_body = _personalize(body_template, person)
+            except Exception:
+                logger.exception(
+                    "Personalisierung fehlgeschlagen für %s — Mail wird übersprungen",
+                    person.email,
+                )
+                stats["failed"] += 1
+                continue
             payload = EmailPayload(
                 to=[str(person.email)],
-                subject=subject,
-                html_body=body,
+                subject=personalized_subject,
+                html_body=personalized_body,
             )
             if self._send_one(payload):
                 stats["success"] += 1

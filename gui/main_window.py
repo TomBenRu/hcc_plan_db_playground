@@ -221,9 +221,6 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                               self.tr('Send Availability Requests...'),
                               self.tr('Send availability requests.'),
                               self.send_availability_requests),
-            MenuToolbarAction(self, None, self.tr('Email Configuration...'),
-                              self.tr('Configure email settings.'),
-                              self.show_email_config_dialog),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'calendar--arrow.png'),
                               self.tr('Transfer Appointments'),
                               self.tr('Transfer appointments from active plan to Google Calendar'),
@@ -313,7 +310,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                                  self.actions['send_bulk_email'],
                                  # self.actions['send_plan_notifications'],
                                  # self.actions['send_availability_requests'],
-                                 None, self.actions['show_email_config_dialog']],
+                                 ],
             self.tr('&Google Calendar'): [self.actions['plan_events_to_google_calendar'],
                                           self.actions['sync_employee_events_to_google_calendar'],
                                           None,
@@ -1238,10 +1235,6 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             QMessageBox.critical(self, 'Verfügbarkeiten anfragen', 'Sie müssen zuerst einen Plan öffnen.')
             return
         plan_period = curr_plan_widget.plan.plan_period
-
-    def show_email_config_dialog(self):
-        from gui.email_to_users.gui_integration_main import show_config_dialog
-        show_config_dialog(self)
 
     def plan_events_to_google_calendar(self):
         """Minimal angepasst: Nutzt TabManager Properties"""

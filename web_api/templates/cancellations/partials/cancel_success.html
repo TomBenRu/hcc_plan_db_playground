@@ -5,7 +5,7 @@
     <p class="text-sm font-semibold text-green-700 mb-1">Absage eingereicht</p>
     <p class="text-xs text-slate-500">
         Termin am {{ detail.event_date.day }}. {{ months_de[detail.event_date.month - 1] }} {{ detail.event_date.year }}
-        abgesagt. Dispatcher und {{ detail.notification_recipients | length }} Personen wurden benachrichtigt.
+        abgesagt. Die Einsatzplanung und {{ detail.notification_recipients | length }} weitere Personen wurden benachrichtigt.
     </p>
     {% else %}
     <p class="text-sm font-semibold text-green-700 mb-1">Absage zurückgezogen</p>

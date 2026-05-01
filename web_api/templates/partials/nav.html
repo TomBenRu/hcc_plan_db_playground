@@ -19,10 +19,13 @@
         'employee':   'bg-orange-500/15 text-orange-300 ring-orange-500/20',
         'accountant': 'bg-teal-500/15 text-teal-300 ring-teal-500/20'
     } %}
+    {% set role_labels = {
+        'dispatcher': 'Einsatzplanung'
+    } %}
     <div class="hidden md:flex items-center gap-1.5 mr-4">
         {% for link in user.role_links %}
         <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 {{ role_styles.get(link.role.value, 'bg-slate-500/15 text-slate-300') }}">
-            {{ link.role.value }}
+            {{ role_labels.get(link.role.value, link.role.value) }}
         </span>
         {% endfor %}
     </div>

@@ -32,26 +32,31 @@ def validate_period_dates(
     team_id: uuid.UUID,
     start: datetime.date,
     end: datetime.date,
-    deadline: datetime.date,
+    deadline: datetime.date | None = None,
     exclude_id: uuid.UUID | None = None,
 ) -> str | None:
-    """Prueft die vier Datumsregeln einer Plan-Periode. Gibt eine deutsche
+    """Prueft die Datumsregeln einer Plan-Periode. Gibt eine deutsche
     Fehlermeldung zurueck oder None, wenn alle Regeln erfuellt sind.
+
+    Phase A der NG-Verwaltung: `deadline` ist optional. Web-Pfad sendet
+    `None` (Reminder-Setup laeuft separat in der NG-View); Desktop-Pfad
+    sendet weiter konkrete Werte.
 
     Regeln:
         1. start < end
-        2. today < deadline
-        3. deadline < start
+        2. (nur wenn deadline gesetzt) today < deadline
+        3. (nur wenn deadline gesetzt) deadline < start
         4. keine Ueberlappung mit anderen non-deleted PPs des Teams
            (eigene Periode optional via `exclude_id` ausgenommen)
     """
     if start >= end:
         return "Das Ende der Periode muss nach dem Start liegen."
-    today = datetime.date.today()
-    if deadline <= today:
-        return "Die Deadline muss nach dem heutigen Tag liegen."
-    if deadline >= start:
-        return "Die Deadline muss vor dem Start der Periode liegen."
+    if deadline is not None:
+        today = datetime.date.today()
+        if deadline <= today:
+            return "Die Deadline muss nach dem heutigen Tag liegen."
+        if deadline >= start:
+            return "Die Deadline muss vor dem Start der Periode liegen."
     overlap = db_services.PlanPeriod.find_overlapping_period(
         team_id, start, end, exclude_id=exclude_id
     )

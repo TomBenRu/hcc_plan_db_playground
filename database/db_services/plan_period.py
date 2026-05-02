@@ -291,20 +291,28 @@ def find_overlapping_period(
 def create(plan_period: schemas.PlanPeriodCreate) -> schemas.PlanPeriodShow:
     """Legacy: Anlage einer leeren PlanPeriod ohne Kinder. Bleibt für
     bestehende API-Konsumenten (POST /plan-periods). Neue Aufrufer sollten
-    `create_with_children` verwenden."""
+    `create_with_children` verwenden.
+
+    Phase A der NG-Verwaltung: Auto-1er-Group entsteht nur, wenn der Caller
+    eine Deadline mitschickt. Web-Pfad sendet seit Phase C `deadline=None`
+    und uebernimmt die Group-Anlage in der NG-View; Desktop-Pfad sendet
+    weiter konkrete Werte (Backwards-Compat).
+    """
     log_function_info()
     with get_session() as session:
         team = session.get(models.Team, plan_period.team.id)
-        # Phase 0.9+: Deadline lebt auf der Gruppe, nicht auf der PP.
-        group = models.NotificationGroup(team=team, deadline=plan_period.deadline)
-        session.add(group)
-        session.flush()
+        group: models.NotificationGroup | None = None
+        if plan_period.deadline is not None:
+            group = models.NotificationGroup(team=team, deadline=plan_period.deadline)
+            session.add(group)
+            session.flush()
         pp = models.PlanPeriod(start=plan_period.start, end=plan_period.end,
                                notes=plan_period.notes, notes_for_employees=plan_period.notes_for_employees,
                                team=team, notification_group=group)
         session.add(pp)
         session.flush()
-        _register_reminder_jobs(group)
+        if group is not None:
+            _register_reminder_jobs(group)
         return schemas.PlanPeriodShow.model_validate(pp)
 
 
@@ -325,11 +333,16 @@ def create_with_children(plan_period: schemas.PlanPeriodCreate) -> schemas.PlanP
     log_function_info()
     with get_session() as session:
         team = session.get(models.Team, plan_period.team.id)
-        # Auto-Gruppe (1er) in derselben Transaktion. Wenn der PP-Insert
-        # weiter unten failt, rollbackt die Group automatisch mit.
-        group = models.NotificationGroup(team=team, deadline=plan_period.deadline)
-        session.add(group)
-        session.flush()
+        # Phase A der NG-Verwaltung: Group nur wenn Deadline mitgegeben.
+        # Web-Pfad sendet seit Phase C `deadline=None`; der Dispatcher
+        # ordnet die PP in der NG-View einer Group zu. Desktop-Pfad sendet
+        # weiter Werte (Backwards-Compat). Rollback der Group passiert
+        # automatisch, wenn der PP-Insert unten failt.
+        group: models.NotificationGroup | None = None
+        if plan_period.deadline is not None:
+            group = models.NotificationGroup(team=team, deadline=plan_period.deadline)
+            session.add(group)
+            session.flush()
         pp = models.PlanPeriod(
             start=plan_period.start, end=plan_period.end,
             notes=plan_period.notes, notes_for_employees=plan_period.notes_for_employees,
@@ -337,7 +350,8 @@ def create_with_children(plan_period: schemas.PlanPeriodCreate) -> schemas.PlanP
         )
         session.add(pp)
         session.flush()
-        _register_reminder_jobs(group)
+        if group is not None:
+            _register_reminder_jobs(group)
 
         person_ids = _team_member_person_ids_in_range(
             session, team.id, plan_period.start, plan_period.end)
@@ -379,10 +393,17 @@ def update(plan_period: schemas.PlanPeriod) -> schemas.PlanPeriodShow:
     with get_session() as session:
         pp = session.get(models.PlanPeriod, plan_period.id)
 
+        # Phase A der NG-Verwaltung: deadline=None vom Web bedeutet "Group
+        # nicht aendern" — und ist damit KEINE Strukturaenderung. Nur ein
+        # konkreter, abweichender Wert zaehlt als Deadline-Change.
+        deadline_change_attempted = (
+            plan_period.deadline is not None
+            and pp.effective_deadline != plan_period.deadline
+        )
         structure_changed = (
             pp.start != plan_period.start
             or pp.end != plan_period.end
-            or pp.effective_deadline != plan_period.deadline
+            or deadline_change_attempted
             or pp.remainder != plan_period.remainder
         )
         if pp.closed and structure_changed:
@@ -396,9 +417,26 @@ def update(plan_period: schemas.PlanPeriod) -> schemas.PlanPeriodShow:
 
         pp.start = plan_period.start
         pp.end = plan_period.end
-        # Phase 0.9+: Deadline lebt nur noch auf der Gruppe.
-        deadline_changed = pp.notification_group.deadline != plan_period.deadline
-        pp.notification_group.deadline = plan_period.deadline
+        # Phase A der NG-Verwaltung: dreischichtige Deadline-Behandlung.
+        #   1. plan_period.deadline is None  → Group nicht touchen (Default fuer
+        #      Web-Update; Group-Verwaltung laeuft separat in der NG-View).
+        #   2. deadline gesetzt + Group existiert → heutiges Verhalten:
+        #      Group-Deadline aktualisieren, Reminder-Jobs ggf. neu registrieren.
+        #   3. deadline gesetzt + keine Group  → neue Group anlegen, FK setzen,
+        #      Reminder-Jobs registrieren (Desktop-Update auf groupless PP).
+        deadline_changed = False
+        if plan_period.deadline is not None:
+            if pp.notification_group is not None:
+                deadline_changed = pp.notification_group.deadline != plan_period.deadline
+                pp.notification_group.deadline = plan_period.deadline
+            else:
+                new_group = models.NotificationGroup(
+                    team=pp.team, deadline=plan_period.deadline,
+                )
+                session.add(new_group)
+                session.flush()
+                pp.notification_group = new_group
+                deadline_changed = True  # frische Group → Jobs registrieren
         pp.notes = plan_period.notes
         pp.notes_for_employees = plan_period.notes_for_employees
         pp.remainder = plan_period.remainder
@@ -448,7 +486,7 @@ def update(plan_period: schemas.PlanPeriod) -> schemas.PlanPeriodShow:
                 session.add(models.EventGroup(location_plan_period=lpp))
 
         session.flush()
-        if deadline_changed:
+        if deadline_changed and pp.notification_group is not None:
             _register_reminder_jobs(pp.notification_group)
         return schemas.PlanPeriodShow.model_validate(pp)
 
@@ -462,23 +500,85 @@ def update_notes(plan_period_id: UUID, notes: str) -> schemas.PlanPeriodShow:
         return schemas.PlanPeriodShow.model_validate(pp)
 
 
+def _cleanup_source_group_if_empty(session, source_group: "models.NotificationGroup | None") -> None:
+    """Loescht die Quell-Group, wenn sie nach einem Move/Unassign leer ist,
+    und deregistriert ihre Reminder-Jobs. No-op bei `source_group is None`
+    (PP war vorher groupless)."""
+    if source_group is None:
+        return
+    source_group_id = source_group.id
+    session.refresh(source_group)
+    if not source_group.plan_periods:
+        session.delete(source_group)
+        session.flush()
+        _unregister_reminder_jobs(source_group_id)
+
+
 def move_to_group(
     plan_period_id: UUID,
-    target_group_id: UUID | None,
+    target_group_id: UUID,
+    *,
+    trigger_catchup: bool = False,
 ) -> schemas.PlanPeriodMinimal:
-    """Verschiebt eine PlanPeriod in eine andere NotificationGroup.
+    """Verschiebt eine PlanPeriod in eine konkrete andere NotificationGroup.
 
-    `target_group_id=None` ist Sentinel fuer "neue 1er-Gruppe": legt eine
-    leere Gruppe mit gleicher Deadline an und verschiebt die PP dorthin.
+    Phase A der NG-Verwaltung: `target_group_id` ist STRICT eine UUID. Der
+    frueher uebliche `None`-Sentinel fuer "neue 1er-Gruppe" wandert in die
+    dedizierte Funktion `split_to_new_group()`; "raus aus jeder Group"
+    in `unassign_group()`. Damit ist die Aufruf-Semantik unmissverstaendlich.
 
     Side-Effects:
-      - Quell-Gruppe wird geloescht, wenn sie nach Wegnahme leer ist
-        (Reminder-Jobs der Quell-Gruppe werden mit-deregistriert).
-      - Reminder-Jobs der Ziel-Gruppe werden re-registriert (Empfaengerkreis
-        kann sich durch die neue PP veraendern).
-      - Catch-Up-Mail an alle Empfaenger der Ziel-Gruppe.
+      - Quell-Group wird geloescht, wenn sie nach Wegnahme leer ist.
+      - Reminder-Jobs der Ziel-Group werden re-registriert.
+      - Catch-Up-Mail nur, wenn `trigger_catchup=True` explizit gesetzt
+        (Default: False — der NG-View-Mover triggert keinen Catchup, der
+        Dispatcher entscheidet das per dediziertem Catchup-Button).
 
-    No-op, wenn `target_group_id` schon die aktuelle Gruppe ist.
+    No-op, wenn die PP bereits in der Ziel-Group ist.
+    """
+    log_function_info()
+    with get_session() as session:
+        pp = session.get(models.PlanPeriod, plan_period_id)
+        if pp is None:
+            raise ValueError(f"PlanPeriod {plan_period_id} nicht gefunden.")
+
+        target = session.get(models.NotificationGroup, target_group_id)
+        if target is None:
+            raise ValueError(
+                f"NotificationGroup {target_group_id} nicht gefunden."
+            )
+        if target.team_id != pp.team_id:
+            raise ValueError(
+                "NotificationGroup gehoert nicht zum selben Team."
+            )
+
+        source_group = pp.notification_group
+        if source_group is not None and source_group.id == target.id:
+            return schemas.PlanPeriodMinimal.model_validate(pp)  # No-op
+
+        pp.notification_group_id = target.id
+        session.flush()
+
+        _cleanup_source_group_if_empty(session, source_group)
+        _register_reminder_jobs(target)
+
+        if trigger_catchup:
+            _trigger_catchup(target)
+
+        return schemas.PlanPeriodMinimal.model_validate(pp)
+
+
+def split_to_new_group(plan_period_id: UUID) -> schemas.PlanPeriodMinimal:
+    """Loest eine PP aus ihrer aktuellen NotificationGroup heraus und gibt
+    ihr eine eigene neue 1er-Group mit derselben Deadline.
+
+    Voraussetzung: PP ist aktuell einer Group zugeordnet (sonst gibt es
+    keine Deadline, von der die neue Group erben koennte). Wirft sonst
+    ValueError.
+
+    Side-Effects analog zu `move_to_group`, aber ohne Catchup. Wird vor
+    allem fuer den "Auflösen"-Modus der NG-View und beim manuellen Splitten
+    genutzt.
     """
     log_function_info()
     with get_session() as session:
@@ -487,44 +587,56 @@ def move_to_group(
             raise ValueError(f"PlanPeriod {plan_period_id} nicht gefunden.")
 
         source_group = pp.notification_group
-        if target_group_id is None:
-            # Sentinel "neue 1er-Gruppe": Deadline aus aktueller Gruppe uebernehmen.
-            target = models.NotificationGroup(
-                team=pp.team, deadline=source_group.deadline,
+        if source_group is None:
+            raise ValueError(
+                f"PlanPeriod {plan_period_id} hat keine Reminder-Group; "
+                "kann nicht in eine 1er-Group gesplittet werden (keine Deadline-Quelle)."
             )
-            session.add(target)
-            session.flush()
-        else:
-            target = session.get(models.NotificationGroup, target_group_id)
-            if target is None:
-                raise ValueError(
-                    f"NotificationGroup {target_group_id} nicht gefunden."
-                )
-            if target.team_id != pp.team_id:
-                raise ValueError(
-                    "NotificationGroup gehoert nicht zum selben Team."
-                )
 
-        if source_group.id == target.id:
-            return schemas.PlanPeriodMinimal.model_validate(pp)  # No-op
+        # Wenn PP einzige in der Quell-Gruppe ist, waere ein Split sinnlos —
+        # das Ergebnis waere identisch mit dem Ausgangszustand.
+        if len(source_group.plan_periods) == 1:
+            return schemas.PlanPeriodMinimal.model_validate(pp)
 
-        source_group_id = source_group.id
+        target = models.NotificationGroup(
+            team=pp.team, deadline=source_group.deadline,
+        )
+        session.add(target)
+        session.flush()
+
         pp.notification_group_id = target.id
         session.flush()
 
-        # Quell-Gruppe leer? → loeschen + Jobs deregistrieren.
-        session.refresh(source_group)
-        if not source_group.plan_periods:
-            session.delete(source_group)
-            session.flush()
-            _unregister_reminder_jobs(source_group_id)
-
         _register_reminder_jobs(target)
+        # Quell-Group bleibt bestehen, weil sie noch andere PPs hat (s.o.).
+        return schemas.PlanPeriodMinimal.model_validate(pp)
 
-        # Catch-Up-Mail laeuft sync. Bei vielen Empfaengern ggf. spaeter
-        # in einen Background-Task auslagern (TODO Phase 2).
-        _trigger_catchup(target)
 
+def unassign_group(plan_period_id: UUID) -> schemas.PlanPeriodMinimal:
+    """Entfernt die PlanPeriod aus ihrer NotificationGroup — danach ohne
+    Reminder. Phase A der NG-Verwaltung.
+
+    Side-Effects:
+      - PP.notification_group_id = NULL.
+      - Quell-Group wird geloescht, wenn sie dadurch leer wird (Jobs werden
+        mit-deregistriert).
+
+    No-op, wenn PP bereits groupless ist.
+    """
+    log_function_info()
+    with get_session() as session:
+        pp = session.get(models.PlanPeriod, plan_period_id)
+        if pp is None:
+            raise ValueError(f"PlanPeriod {plan_period_id} nicht gefunden.")
+
+        source_group = pp.notification_group
+        if source_group is None:
+            return schemas.PlanPeriodMinimal.model_validate(pp)  # No-op
+
+        pp.notification_group_id = None
+        session.flush()
+
+        _cleanup_source_group_if_empty(session, source_group)
         return schemas.PlanPeriodMinimal.model_validate(pp)
 
 

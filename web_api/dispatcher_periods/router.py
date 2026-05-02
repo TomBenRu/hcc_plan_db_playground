@@ -432,27 +432,26 @@ def move_to_group(
     user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
     target_group_id: str = Form(...),
 ):
-    """Verschiebt eine PP in eine andere NotificationGroup.
-
-    `target_group_id="new"` ist Sentinel: legt eine neue 1er-Gruppe an und
-    verschiebt die PP dorthin. Ansonsten muss es eine UUID einer Gruppe des
-    selben Teams sein. Triggert bei erfolgreicher Move-Operation eine
-    Catch-Up-Mail an alle Empfaenger der Ziel-Gruppe.
+    """Legacy-Endpoint, wandert in Phase C der NG-Verwaltung in die neue
+    Notification-Groups-View um. Bis dahin: Sentinel "new" → neue 1er-Group
+    via `split_to_new_group`, sonst strict-UUID an `move_to_group`.
+    Catch-Up wird hier nicht mehr automatisch getriggert — der Dispatcher
+    nutzt dafuer den dedizierten Catchup-Button in der NG-View.
     """
-    parsed_target: uuid.UUID | None
-    if target_group_id == "new":
-        parsed_target = None
-    else:
-        try:
-            parsed_target = uuid.UUID(target_group_id)
-        except ValueError:
-            raise HTTPException(
-                status.HTTP_400_BAD_REQUEST,
-                detail=f"Ungültige target_group_id: {target_group_id!r}",
-            )
-
     try:
-        result = db_services.PlanPeriod.move_to_group(plan_period_id, parsed_target)
+        if target_group_id == "new":
+            result = db_services.PlanPeriod.split_to_new_group(plan_period_id)
+        else:
+            try:
+                parsed_target = uuid.UUID(target_group_id)
+            except ValueError:
+                raise HTTPException(
+                    status.HTTP_400_BAD_REQUEST,
+                    detail=f"Ungültige target_group_id: {target_group_id!r}",
+                )
+            result = db_services.PlanPeriod.move_to_group(
+                plan_period_id, parsed_target,
+            )
     except ValueError as e:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(e))
 

@@ -25,7 +25,7 @@ from web_api.notification_groups.service import (
     list_orphan_pps,
 )
 from web_api.scheduler.setup import get_scheduler
-from web_api.scheduler.jobs import register_jobs_for_group
+from web_api.scheduler.jobs import register_jobs_for_group, trigger_catchup
 from web_api.templating import templates
 
 
@@ -285,6 +285,28 @@ def dissolve(
         db_services.PlanPeriod.dissolve_group(group_id)
     except ValueError as e:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(e))
+    return _redirect_to_ng_list(team_id)
+
+
+@router.post("/{group_id}/trigger-catchup", response_class=HTMLResponse)
+def trigger_catchup_endpoint(
+    request: Request,
+    group_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+):
+    """Manueller Catchup-Versand an alle Empfaenger der Gruppe.
+
+    Nutzt den selben Mailer wie die Auto-Reminder, mit `kind="catchup"` —
+    daher greift der Idempotenz-Schutz NICHT (Catchup ist explizit gewuenschter
+    Re-Versand). Wenn die Gruppe geleert ist (kein PP zugeordnet), liefert
+    der Mailer 0 Empfaenger und macht nichts.
+    """
+    group = session.get(models.NotificationGroup, group_id)
+    if group is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Gruppe nicht gefunden.")
+    team_id = group.team_id
+    trigger_catchup(group)
     return _redirect_to_ng_list(team_id)
 
 

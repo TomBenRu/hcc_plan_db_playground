@@ -39,6 +39,16 @@
                                hover:bg-slate-50 dark:hover:bg-slate-700/50">
                     Bearbeiten
                 </button>
+                {% if group.plan_periods %}
+                <button hx-post="/dispatcher/notification-groups/{{ group.id }}/trigger-catchup"
+                        hx-confirm="Catchup-Mail jetzt an alle Empfänger der Gruppe versenden?"
+                        hx-swap="none"
+                        class="text-xs px-3 py-1.5 rounded-md border border-violet-200 dark:border-violet-700/50
+                               text-violet-700 dark:text-violet-400
+                               hover:bg-violet-50 dark:hover:bg-violet-900/20">
+                    Catchup
+                </button>
+                {% endif %}
                 <button hx-get="/dispatcher/notification-groups/{{ group.id }}/dissolve-confirm"
                         hx-target="#modal-root" hx-swap="innerHTML"
                         class="text-xs px-3 py-1.5 rounded-md border border-rose-200 dark:border-rose-800/50

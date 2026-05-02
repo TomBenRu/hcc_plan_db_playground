@@ -648,10 +648,18 @@ def dissolve_group(group_id: UUID) -> int:
             new_group = models.NotificationGroup(team=team, deadline=deadline)
             session.add(new_group)
             session.flush()
-            pp.notification_group_id = new_group.id
+            # WICHTIG: Relation-Assignment (nicht FK direkt). Sonst behaelt
+            # SQLAlchemy die in-memory `original.plan_periods`-Liste und
+            # nullt beim folgenden delete(original) die FKs wieder aus
+            # ("passive delete with nullable FK"-Cascade-Default).
+            pp.notification_group = new_group
             new_groups.append(new_group)
 
         session.flush()
+
+        # Defensive: Identity-Map-Sicht der Original-Group auffrischen,
+        # damit `plan_periods` als leer erkannt wird.
+        session.refresh(original)
 
         # Original ist jetzt leer — loeschen + alte Jobs deregistrieren.
         session.delete(original)

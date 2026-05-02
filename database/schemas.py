@@ -307,7 +307,10 @@ class TeamDeletionResult(BaseModel):
 class PlanPeriodCreate(BaseModel):
     start: datetime.date
     end: datetime.date
-    deadline: datetime.date
+    # Optional seit Phase A der NG-Verwaltung: Web-Pfad sendet immer None
+    # (Reminder-Setup laeuft separat in der NG-View), Desktop-Pfad sendet
+    # weiter konkrete Werte. Service erstellt Auto-1er-Group nur wenn gesetzt.
+    deadline: Optional[datetime.date] = None
     notes: Optional[str]
     notes_for_employees: Optional[str] = None
     remainder: bool
@@ -317,14 +320,14 @@ class PlanPeriodCreate(BaseModel):
 class PlanPeriodMinimal(BaseModel):
     # `populate_by_name` erlaubt, das Feld weiterhin per `deadline=...` zu
     # konstruieren (Tests, Manual-Init); from_attributes liest es per
-    # `validation_alias='effective_deadline'` aus der ORM-Property — damit
-    # ist Phase 0.9 (Spalten-Drop) ohne Schema-Bruch moeglich.
+    # `validation_alias='effective_deadline'` aus der ORM-Property — die
+    # seit Phase A None liefern kann (PP ohne Reminder-Group).
     model_config = ConfigDict(from_attributes=True, populate_by_name=True)
 
     id: UUID
     start: datetime.date
     end: datetime.date
-    deadline: datetime.date = Field(validation_alias='effective_deadline')
+    deadline: Optional[datetime.date] = Field(default=None, validation_alias='effective_deadline')
     closed: bool = False
     prep_delete: Optional[datetime.datetime] = None
     remainder: bool = True
@@ -341,8 +344,8 @@ class PlanPeriod(PlanPeriodCreate):
     prep_delete: Optional[datetime.datetime] = None
     # Override: liest beim from_attributes-Loading aus pp.effective_deadline.
     # populate_by_name=True (s.o.) laesst manuelle `PlanPeriod(deadline=...)`-
-    # Konstruktion weiterhin zu.
-    deadline: datetime.date = Field(validation_alias='effective_deadline')
+    # Konstruktion weiterhin zu. Seit Phase A optional — PPs ohne Group geben None.
+    deadline: Optional[datetime.date] = Field(default=None, validation_alias='effective_deadline')
 
 
 class TakeoverCandidate(BaseModel):

@@ -51,7 +51,7 @@ class OpenPlanPeriodInfo:
     plan_period_id: uuid.UUID
     start: date
     end: date
-    deadline: date
+    deadline: date | None
     notes_for_employees: str | None
     notes: str | None                    # ActorPlanPeriod.notes
     requested_assignments: int
@@ -61,6 +61,8 @@ class OpenPlanPeriodInfo:
 
     @property
     def days_until_deadline(self) -> int | None:
+        if self.deadline is None:
+            return None
         delta = (self.deadline - date.today()).days
         return delta
 
@@ -80,14 +82,17 @@ class OpenPlanPeriodInfo:
         return self.closed
 
     @property
-    def deadline_severity(self) -> Literal["normal", "warning", "overdue", "closed"]:
-        # Vier Zustaende fuers UI:
+    def deadline_severity(self) -> Literal["normal", "warning", "overdue", "closed", "none"]:
+        # Fuenf Zustaende fuers UI:
         #   closed   → Periode geschlossen (read-only)
+        #   none     → PP ist keiner Reminder-Group zugeordnet (Phase A)
         #   overdue  → Deadline ueberschritten, aber noch editierbar
         #   warning  → ≤3 Tage bis Deadline
         #   normal   → reine Datums-Anzeige
         if self.closed:
             return "closed"
+        if self.deadline is None:
+            return "none"
         if date.today() > self.deadline:
             return "overdue"
         if self.days_until_deadline is not None and self.days_until_deadline <= 3:
@@ -304,8 +309,9 @@ def get_open_plan_periods_for_person(
     `closed` ist KEIN Sichtbarkeits-Filter mehr — eine geschlossene PP wird
     angezeigt, aber im UI als read-only markiert (siehe `is_locked`).
     """
-    # JOIN auf NotificationGroup, weil die Deadline nicht mehr von der PP-
-    # Spalte gelesen wird sondern aus der zugehoerigen Gruppe (Phase 0.5+).
+    # LEFT JOIN auf NotificationGroup: PPs ohne Reminder-Group (Phase A) sollen
+    # weiterhin in der Verfuegbarkeitsmaske erscheinen — pp_deadline ist dann
+    # NULL und das UI rendert "keine Deadline" via deadline_severity="none".
     stmt = (
         sa_select(
             ActorPlanPeriod.id.label("app_id"),
@@ -322,7 +328,11 @@ def get_open_plan_periods_for_person(
         )
         .select_from(ActorPlanPeriod)
         .join(PlanPeriod, PlanPeriod.id == ActorPlanPeriod.plan_period_id)
-        .join(NotificationGroup, NotificationGroup.id == PlanPeriod.notification_group_id)
+        .join(
+            NotificationGroup,
+            NotificationGroup.id == PlanPeriod.notification_group_id,
+            isouter=True,
+        )
         .join(Team, Team.id == PlanPeriod.team_id)
         .where(ActorPlanPeriod.person_id == person_id)
         .where(PlanPeriod.prep_delete.is_(None))

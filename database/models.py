@@ -864,11 +864,13 @@ class PlanPeriod(SQLModel, table=True):
 
     # FK
     team_id: uuid.UUID = Field(foreign_key="team.id", ondelete="CASCADE")
-    notification_group_id: uuid.UUID = Field(foreign_key="notification_group.id")
+    notification_group_id: uuid.UUID | None = Field(
+        default=None, foreign_key="notification_group.id"
+    )
 
     # Relationships
     team: Team = Relationship(back_populates="plan_periods")
-    notification_group: NotificationGroup = Relationship(back_populates="plan_periods")
+    notification_group: NotificationGroup | None = Relationship(back_populates="plan_periods")
 
     @property
     def project(self) -> "Project":
@@ -876,15 +878,14 @@ class PlanPeriod(SQLModel, table=True):
         return self.team.project
 
     @property
-    def effective_deadline(self) -> date:
-        """Authoritative Deadline der zugehoerigen NotificationGroup.
+    def effective_deadline(self) -> date | None:
+        """Authoritative Deadline der zugehoerigen NotificationGroup, oder None.
 
-        Phase 0.5+: Caller sollten diese Property statt der `deadline`-Spalte
-        lesen. In Phase 0.9 wird die Spalte gedroppt; die Property bleibt und
-        liefert weiterhin den Group-Wert. Bei einer 1er-Auto-Gruppe ist das
-        identisch mit der frueheren PP-Spalte.
+        Seit Phase A der NG-Verwaltung kann eine PP ohne Reminder-Group sein
+        (`notification_group_id IS NULL`). In dem Fall liefert die Property
+        None — Konsumenten muessen das defensiv behandeln.
         """
-        return self.notification_group.deadline
+        return self.notification_group.deadline if self.notification_group else None
 
     # 1:N reverse
     actor_plan_periods: list["ActorPlanPeriod"] = Relationship(back_populates="plan_period", cascade_delete=True)

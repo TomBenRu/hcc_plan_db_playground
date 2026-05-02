@@ -174,6 +174,16 @@ class EmailService:
             if not recipients:
                 return {"success": 0, "failed": 0}
 
+            # Verfuegbarkeits-Anfrage braucht eine Deadline; PPs ohne
+            # Notification-Group (Phase A der NG-Verwaltung) haben keine.
+            # Caller muss erst per NG-View eine Group zuordnen.
+            if plan_period.effective_deadline is None:
+                return {
+                    "success": 0,
+                    "failed": 0,
+                    "error": "PlanPeriod hat keine Reminder-Group — Deadline fehlt.",
+                }
+
             month_names = [
                 "Januar", "Februar", "März", "April", "Mai", "Juni",
                 "Juli", "August", "September", "Oktober", "November", "Dezember",

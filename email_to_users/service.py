@@ -464,6 +464,10 @@ class EmailService:
         Eine PP ist relevant, wenn die Person dort eine ActorPlanPeriod hat
         (was beim PP-Insert nur passiert, wenn ihr TeamActorAssign mit der PP
         ueberlappt). Status `submitted` ↔ ≥1 aktiver AvailDay; sonst `open`.
+
+        URL-Format: `<url_base>/availability?plan_period_id=<pp_id>` — die
+        Web-Verfuegbarkeitsmaske ist Login-gated und identifiziert die Person
+        ueber das Auth-Token, nicht ueber URL-Parameter.
         """
         items: list[dict] = []
         for pp in group.plan_periods:
@@ -476,7 +480,7 @@ class EmailService:
             active_avail_days = [ad for ad in person_app.avail_days if ad.prep_delete is None]
             status = "submitted" if active_avail_days else "open"
             url = (
-                f"{url_base.rstrip('/')}/{pp.id}/{person.id}"
+                f"{url_base.rstrip('/')}/availability?plan_period_id={pp.id}"
                 if url_base
                 else None
             )

@@ -55,12 +55,17 @@ def reminder_job(group_id: uuid.UUID | str, kind: str) -> None:
     """Top-Level-Job-Funktion — wird von APScheduler aus dem JobStore aufgerufen.
 
     Laedt die SMTP-Config aus der DB, instantiiert den `EmailService` und
-    delegiert an `send_availability_reminder(group_id, kind)`. Beim Aufruf
-    aus dem JobStore kommt `group_id` als String zurueck (UUID wird
+    delegiert an `send_availability_reminder(group_id, kind, url_base)`. Beim
+    Aufruf aus dem JobStore kommt `group_id` als String zurueck (UUID wird
     re-serialisiert) — wir konvertieren explizit zu UUID.
+
+    `url_base` wird *innerhalb* des Jobs aus den Settings gelesen, nicht als
+    Parameter durchgereicht — die persistierte Job-Signatur muss stabil
+    bleiben (siehe Modul-Docstring).
     """
     from database.database import get_session
     from email_to_users.service import EmailService
+    from web_api.config import get_settings
     from web_api.email.config_loader import load_smtp_config
 
     if isinstance(group_id, str):
@@ -73,8 +78,10 @@ def reminder_job(group_id: uuid.UUID | str, kind: str) -> None:
         logger.exception("Reminder-Job: SMTP-Config konnte nicht geladen werden, skip")
         return
 
+    url_base = get_settings().BASE_URL or None
+
     service = EmailService(smtp_config)
-    stats = service.send_availability_reminder(group_id, kind)
+    stats = service.send_availability_reminder(group_id, kind, url_base=url_base)
     logger.info(
         "Reminder-Job %s/%s versendet: success=%d failed=%d skipped=%d",
         group_id, kind, stats.get("success", 0), stats.get("failed", 0),

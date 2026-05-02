@@ -2,13 +2,25 @@
 
 import uuid
 
-from fastapi import APIRouter, Response, status
+from fastapi import APIRouter, HTTPException, Response, status
 from pydantic import BaseModel
 
 from database import db_services, schemas
 from web_api.desktop_api.auth import DesktopUser
+from web_api.email.validation import EmailDomainInvalid, validate_deliverable_email
 
 router = APIRouter(prefix="/persons", tags=["desktop-persons"])
+
+
+def _assert_email_deliverable(email: str) -> str:
+    """Wirft 422 bei nicht-zustellbarer Domain. Returns normalisierte Adresse."""
+    try:
+        return validate_deliverable_email(email)
+    except EmailDomainInvalid as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=f"E-Mail-Adresse ist nicht zustellbar: {exc}",
+        ) from exc
 
 
 class PersonCreateBody(BaseModel):
@@ -61,11 +73,13 @@ class PersonNotesBody(BaseModel):
 
 @router.post("", response_model=schemas.Person, status_code=status.HTTP_201_CREATED)
 def create_person(body: PersonCreateBody, _: DesktopUser):
+    body.person.email = _assert_email_deliverable(body.person.email)
     return db_services.Person.create(body.person, body.project_id, body.person_id)
 
 
 @router.put("/{person_id}", response_model=schemas.Person)
 def update_person(person_id: uuid.UUID, body: schemas.PersonShow, _: DesktopUser):
+    body.email = _assert_email_deliverable(body.email)
     return db_services.Person.update(body)
 
 

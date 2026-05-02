@@ -96,11 +96,17 @@ def _aggregate_logs(logs: Sequence[NotificationLog]) -> dict[str, ReminderKindSt
 
 
 def list_groups_for_team(
-    session: Session, team_id: uuid.UUID,
+    session: Session, team_id: uuid.UUID, *,
+    only_current: bool = False,
 ) -> list[NotificationGroupView]:
     """Alle NotificationGroups eines Teams + zugeordnete (non-deleted) PPs
     + aggregierte NotificationLog-Statistik. Sortierung: Deadline absteigend
-    (juengste zuerst — relevant fuer den Dispatcher)."""
+    (juengste zuerst — relevant fuer den Dispatcher).
+
+    `only_current=True` blendet Groups mit `deadline < today()` aus —
+    Reminder-Jobs sind dort alle in der Vergangenheit, der Dispatcher
+    braucht sie im Tagesgeschaeft nicht mehr.
+    """
     stmt = (
         sa_select(NotificationGroup)
         .where(NotificationGroup.team_id == team_id)
@@ -110,6 +116,8 @@ def list_groups_for_team(
         )
         .order_by(NotificationGroup.deadline.desc())
     )
+    if only_current:
+        stmt = stmt.where(NotificationGroup.deadline >= datetime.date.today())
     groups = session.execute(stmt).scalars().all()
 
     views: list[NotificationGroupView] = []
@@ -137,12 +145,19 @@ def list_groups_for_team(
     return views
 
 
-def list_orphan_pps(session: Session, team_id: uuid.UUID) -> list[PlanPeriodInGroup]:
+def list_orphan_pps(
+    session: Session, team_id: uuid.UUID, *,
+    only_current: bool = False,
+) -> list[PlanPeriodInGroup]:
     """PPs des Teams ohne Reminder-Group ("Ohne Reminder"-Sektion).
 
     Filtert soft-deleted PPs aus — die haben in dieser View nichts verloren.
     Sortierung: Start aufsteigend (chronologisch, weil das die natuerliche
     Lese-Reihenfolge fuer "kommende Perioden" ist).
+
+    `only_current=True` blendet PPs aus, deren Ende vor heute liegt — eine
+    Verfuegbarkeits-Anfrage fuer eine vergangene Periode macht keinen Sinn.
+    Heuristik mangels Deadline (PP ist groupless): `pp.end >= today()`.
     """
     stmt = (
         sa_select(PlanPeriod)
@@ -151,6 +166,8 @@ def list_orphan_pps(session: Session, team_id: uuid.UUID) -> list[PlanPeriodInGr
         .where(PlanPeriod.prep_delete.is_(None))
         .order_by(PlanPeriod.start.asc())
     )
+    if only_current:
+        stmt = stmt.where(PlanPeriod.end >= datetime.date.today())
     pps = session.execute(stmt).scalars().all()
     return [
         PlanPeriodInGroup(

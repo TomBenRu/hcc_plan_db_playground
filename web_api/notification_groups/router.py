@@ -37,7 +37,12 @@ router = APIRouter(
 
 def _redirect_to_ng_list(team_id: uuid.UUID) -> Response:
     """HTMX-Trigger fuer Liste-Reload + Modal-Close. Spiegelt das Pattern
-    aus dispatcher_periods.router._redirect_to_list."""
+    aus dispatcher_periods.router._redirect_to_list.
+
+    Der `current_filter`-State steht im hx-get der Liste (URL-Param), nicht
+    im Trigger — der Trigger feuert nur das Refresh-Signal, die hx-get-URL
+    bringt den Filter-Param wieder mit (analog zu `status_filter` in Periods).
+    """
     return Response(
         content="",
         media_type="text/html",
@@ -73,8 +78,14 @@ def _build_view_context(
     user: WebUser,
     session: Session,
     team_id: uuid.UUID | None,
+    current_filter: str,
 ) -> dict:
-    """Bündelt die Daten fuer index.html und list-partial — eine Quelle."""
+    """Bündelt die Daten fuer index.html und list-partial — eine Quelle.
+
+    `current_filter` ∈ {"current", "all"}. "current" ist der Default —
+    blendet Groups mit Deadline<today und Orphan-PPs mit end<today aus.
+    """
+    only_current = current_filter == "current"
     teams = _resolve_team_choices(session, user)
     if team_id is not None:
         _get_active_team_or_404(team_id)
@@ -85,8 +96,8 @@ def _build_view_context(
         selected_team_id = None
 
     if selected_team_id:
-        groups = list_groups_for_team(session, selected_team_id)
-        orphans = list_orphan_pps(session, selected_team_id)
+        groups = list_groups_for_team(session, selected_team_id, only_current=only_current)
+        orphans = list_orphan_pps(session, selected_team_id, only_current=only_current)
     else:
         groups = []
         orphans = []
@@ -96,9 +107,15 @@ def _build_view_context(
         "user": user,
         "teams": teams,
         "selected_team_id": selected_team_id,
+        "current_filter": current_filter,
         "groups": groups,
         "orphans": orphans,
     }
+
+
+def _normalize_filter(value: str | None) -> str:
+    """Default 'current' wenn nicht oder unbekannt — defensiv gegen URL-Manipulation."""
+    return "all" if value == "all" else "current"
 
 
 @router.get("", response_class=HTMLResponse)
@@ -107,9 +124,12 @@ def index(
     user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
     session: Session = Depends(get_db_session),
     team_id: uuid.UUID | None = None,
+    current_filter: str | None = None,
 ):
-    """Hauptseite: Sidebar (Team-Filter) + Main mit Group-Cards + Orphan-Sektion."""
-    ctx = _build_view_context(request, user, session, team_id)
+    """Hauptseite: Sidebar (Team-Filter + Aktuelle/Alle) + Main mit Group-Cards + Orphan-Sektion."""
+    ctx = _build_view_context(
+        request, user, session, team_id, _normalize_filter(current_filter),
+    )
     return templates.TemplateResponse(
         "notification_groups/index.html", ctx,
     )
@@ -121,10 +141,14 @@ def list_partial(
     user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
     session: Session = Depends(get_db_session),
     team_id: uuid.UUID | None = None,
+    current_filter: str | None = None,
 ):
     """HTMX-Partial — wird nach Mutationen via `notification-groups-changed`
-    Event re-fetched."""
-    ctx = _build_view_context(request, user, session, team_id)
+    Event re-fetched. Filter-State kommt ueber URL-Param mit (das hx-get
+    im Listen-Container reicht ihn weiter)."""
+    ctx = _build_view_context(
+        request, user, session, team_id, _normalize_filter(current_filter),
+    )
     return templates.TemplateResponse(
         "notification_groups/_list.html", ctx,
     )

@@ -58,7 +58,7 @@
             <p class="text-[10px] uppercase tracking-widest text-slate-500 mb-2 px-3">Team</p>
             <div class="sidebar-filters flex flex-col gap-1">
                 {% for team in teams %}
-                <a href="?team_id={{ team.id }}"
+                <a href="?team_id={{ team.id }}{% if current_filter == 'all' %}&current_filter=all{% endif %}"
                    class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
                           border-transparent text-sm font-sans text-slate-400
                           {% if team.id == selected_team_id %}active{% endif %}">
@@ -69,6 +69,27 @@
                 {% if not teams %}
                 <p class="text-xs text-slate-500 px-3">Keine Teams als Disponent zugeordnet.</p>
                 {% endif %}
+            </div>
+        </div>
+
+        <div class="sidebar-divider border-t border-white/5 mt-4 mb-4"></div>
+
+        {# Sichtbarkeits-Filter: Aktuelle vs. Alle. Default = aktuelle. #}
+        <div class="mb-3">
+            <p class="text-[10px] uppercase tracking-widest text-slate-500 mb-2 px-3">Sichtbarkeit</p>
+            <div class="sidebar-filters flex flex-col gap-1">
+                {% for value, label, color in [
+                    ('current', 'Nur aktuelle', 'bg-emerald-400'),
+                    ('all', 'Alle (inkl. abgelaufene)', 'bg-slate-400'),
+                ] %}
+                <a href="?team_id={{ selected_team_id }}{% if value == 'all' %}&current_filter=all{% endif %}"
+                   class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                          border-transparent text-sm font-sans text-slate-400
+                          {% if value == current_filter %}active{% endif %}">
+                    <span class="w-2 h-2 rounded-full flex-shrink-0 {{ color }}"></span>
+                    {{ label }}
+                </a>
+                {% endfor %}
             </div>
         </div>
 
@@ -115,9 +136,9 @@
                 {% endif %}
             </div>
 
-            {# Listen-Container — wird in Phase E via HTMX-Event refreshed #}
+            {# Listen-Container — Refresh via HTMX-Event, Filter-State per URL #}
             <div id="ng-list"
-                 hx-get="/dispatcher/notification-groups/list?team_id={{ selected_team_id }}"
+                 hx-get="/dispatcher/notification-groups/list?team_id={{ selected_team_id }}{% if current_filter == 'all' %}&current_filter=all{% endif %}"
                  hx-trigger="notification-groups-changed from:body"
                  hx-swap="innerHTML">
                 {% include "notification_groups/_list.html" %}

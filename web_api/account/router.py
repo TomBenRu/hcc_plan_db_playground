@@ -23,6 +23,7 @@ from web_api.auth.service import create_access_token, create_refresh_token, deco
 from web_api.config import Settings, get_settings
 from web_api.dependencies import get_db_session
 from web_api.email.service import schedule_emails
+from web_api.email.validation import EmailDomainInvalid, validate_deliverable_email
 from web_api.rate_limit import limiter
 from web_api.templating import templates
 
@@ -71,10 +72,15 @@ def profile_update(
         errors.append("Mit diesem Konto ist kein Personenprofil verknüpft.")
 
     email_clean = email.strip()
-    if not email_clean or "@" not in email_clean:
+    if not email_clean:
         errors.append("Bitte gib eine gültige E-Mail-Adresse an.")
-    if len(email_clean) > 50:
+    elif len(email_clean) > 50:
         errors.append("Die E-Mail-Adresse darf höchstens 50 Zeichen haben.")
+    else:
+        try:
+            email_clean = validate_deliverable_email(email_clean)
+        except EmailDomainInvalid as exc:
+            errors.append(f"E-Mail-Adresse ist nicht zustellbar: {exc}")
     if len(phone_nr.strip()) > 50:
         errors.append("Die Telefonnummer darf höchstens 50 Zeichen haben.")
 
@@ -212,10 +218,15 @@ def request_email_change(
     target = normalize_email(new_email)
     errors: list[str] = []
 
-    if not target or "@" not in target:
+    if not target:
         errors.append("Bitte gib eine gültige E-Mail-Adresse an.")
     elif len(target) > 254:
         errors.append("Die E-Mail-Adresse ist zu lang (max. 254 Zeichen).")
+    else:
+        try:
+            target = validate_deliverable_email(target)
+        except EmailDomainInvalid as exc:
+            errors.append(f"E-Mail-Adresse ist nicht zustellbar: {exc}")
 
     if errors:
         return templates.TemplateResponse(

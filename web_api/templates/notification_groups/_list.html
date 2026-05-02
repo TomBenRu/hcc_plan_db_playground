@@ -1,0 +1,25 @@
+{# Erwartet: groups (list[NotificationGroupView]), orphans (list[PlanPeriodInGroup]),
+   selected_team_id (UUID | None) #}
+
+{% if not selected_team_id %}
+    {# Kein Team ausgewaehlt — leere Main-Area #}
+{% elif not groups and not orphans %}
+    <div class="text-center py-16 anim" style="animation-delay: 0.1s;">
+        <p class="text-sm text-slate-500 dark:text-slate-400">
+            Keine Reminder-Gruppen und keine Perioden in diesem Team.
+        </p>
+        <p class="text-xs text-slate-400 dark:text-slate-500 mt-2">
+            Lege zuerst eine Planungsperiode an, dann kannst du hier Reminder einrichten.
+        </p>
+    </div>
+{% else %}
+    <div class="space-y-4">
+        {% for group in groups %}
+            {% include "notification_groups/_group_card.html" %}
+        {% endfor %}
+
+        {% if orphans %}
+            {% include "notification_groups/_orphan_section.html" %}
+        {% endif %}
+    </div>
+{% endif %}

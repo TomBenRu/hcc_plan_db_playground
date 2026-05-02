@@ -1,0 +1,40 @@
+{# Erwartet: orphans (list[PlanPeriodInGroup]) — PPs ohne Reminder-Group #}
+<div class="mt-6 rounded-xl border border-dashed border-slate-200 dark:border-slate-700 p-4 anim"
+     style="animation-delay: 0.15s;">
+    <div class="mb-3">
+        <p class="text-sm font-medium text-slate-700 dark:text-slate-300">
+            Ohne Reminder ({{ orphans|length }})
+        </p>
+        <p class="text-[11px] text-slate-500 dark:text-slate-400 mt-0.5">
+            Diese Perioden bekommen keine Erinnerungs-Mails.
+            Ziehe sie auf eine Gruppe oben, um Reminder einzurichten.
+        </p>
+    </div>
+
+    <ul data-sortable-pp-list
+        data-group-id="orphan"
+        class="space-y-1.5">
+        {% for pp in orphans %}
+        <li data-pp-id="{{ pp.id }}"
+            class="flex items-center gap-2 px-3 py-2 rounded-lg
+                   bg-slate-50/50 dark:bg-slate-900/30
+                   border border-slate-100 dark:border-slate-700/40
+                   text-sm text-slate-600 dark:text-slate-400">
+            <svg class="w-3.5 h-3.5 flex-shrink-0 text-slate-300 dark:text-slate-600"
+                 fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                <path d="M7 2a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm0 6a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm0 6a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm6-12a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm0 6a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm0 6a1.5 1.5 0 100 3 1.5 1.5 0 000-3z"/>
+            </svg>
+            <span class="flex-1">
+                {{ pp.start.strftime("%d.%m.%Y") }} – {{ pp.end.strftime("%d.%m.%Y") }}
+            </span>
+            {% if pp.closed %}
+            <span class="text-[10px] font-medium px-1.5 py-0.5 rounded
+                         bg-amber-50 dark:bg-amber-900/30
+                         text-amber-700 dark:text-amber-400">
+                geschlossen
+            </span>
+            {% endif %}
+        </li>
+        {% endfor %}
+    </ul>
+</div>

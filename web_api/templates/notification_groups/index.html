@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Reminder-Gruppen – hcc plan{% endblock %}
+
+{% block head %}
+<style>
+    .sidebar-scroll::-webkit-scrollbar { width: 3px; }
+    .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+    .content-scroll::-webkit-scrollbar { width: 4px; }
+    .content-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 2px; }
+
+    @media (max-width: 1023px) {
+        .page-wrapper { grid-template-columns: 1fr !important; grid-template-rows: auto 1fr; }
+        .page-sidebar {
+            flex-direction: row !important; flex-wrap: wrap;
+            gap: 0.5rem; padding: 0.75rem 1rem !important;
+            align-items: center; min-height: unset !important;
+            overflow: visible !important;
+        }
+        .page-sidebar .sidebar-header { margin-bottom: 0 !important; flex-shrink: 0; }
+        .page-sidebar .sidebar-divider, .page-sidebar .sidebar-spacer, .sidebar-back { display: none !important; }
+    }
+
+    .filter-btn         { transition: background 0.15s, color 0.15s, border-color 0.15s; }
+    .filter-btn.active  { background: rgba(255,255,255,0.12); color: #fff; border-color: rgba(255,255,255,0.2); }
+    .filter-btn:not(.active):hover { background: rgba(255,255,255,0.06); color: #cbd5e1; }
+
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .anim { animation: fadeUp 0.35s ease-out both; }
+</style>
+{% endblock %}
+
+{% block nav %}{% include "partials/nav.html" %}{% endblock %}
+
+{% block content %}
+<div class="h-[calc(100vh-56px)] flex flex-col overflow-hidden">
+<div class="page-wrapper flex-1 grid overflow-hidden" style="grid-template-columns: 240px 1fr;">
+
+    {# ── Sidebar ─────────────────────────────────────────────────────── #}
+    <aside class="page-sidebar bg-navy grid-bg flex flex-col overflow-y-auto sidebar-scroll
+                  p-6 animate-fade-up border-r border-white/5">
+
+        <div class="sidebar-header mb-6">
+            <div class="flex items-center gap-1.5 mb-2">
+                <span class="inline-block w-1.5 h-1.5 rounded-full" style="background-color:#A78BFA;"></span>
+                <span class="text-xs font-semibold tracking-widest uppercase font-sans text-violet-300/80">
+                    Disposition
+                </span>
+            </div>
+            <h1 class="font-display text-2xl font-semibold text-white">Reminder</h1>
+            <p class="text-xs text-slate-400 mt-1">Erinnerungs-Gruppen verwalten</p>
+        </div>
+
+        <div class="sidebar-divider border-t border-white/5 mb-4"></div>
+
+        {# Team-Auswahl #}
+        <div class="mb-3">
+            <p class="text-[10px] uppercase tracking-widest text-slate-500 mb-2 px-3">Team</p>
+            <div class="sidebar-filters flex flex-col gap-1">
+                {% for team in teams %}
+                <a href="?team_id={{ team.id }}"
+                   class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                          border-transparent text-sm font-sans text-slate-400
+                          {% if team.id == selected_team_id %}active{% endif %}">
+                    <span class="w-2 h-2 rounded-full flex-shrink-0 bg-violet-400"></span>
+                    {{ team.name }}
+                </a>
+                {% endfor %}
+                {% if not teams %}
+                <p class="text-xs text-slate-500 px-3">Keine Teams als Disponent zugeordnet.</p>
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="sidebar-spacer flex-1"></div>
+
+        <a href="/dispatcher/periods{% if selected_team_id %}?team_id={{ selected_team_id }}{% endif %}"
+           class="sidebar-back text-xs text-slate-500 hover:text-slate-300 transition-colors px-3 mb-2">
+            ← Planungsperioden
+        </a>
+        <a href="/dashboard"
+           class="sidebar-back text-xs text-slate-500 hover:text-slate-300 transition-colors px-3">
+            ← Dashboard
+        </a>
+    </aside>
+
+    {# ── Main ────────────────────────────────────────────────────────── #}
+    <main class="flex-1 overflow-y-auto content-scroll bg-slate-50 dark:bg-slate-900 px-6 py-8">
+        <div class="max-w-3xl mx-auto">
+
+            <div class="flex items-center justify-between mb-6 anim" style="animation-delay: 0.05s;">
+                <div>
+                    <h2 class="font-display text-2xl font-semibold text-slate-800 dark:text-slate-100">
+                        Reminder-Gruppen
+                    </h2>
+                    <p class="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                        {% if selected_team_id %}
+                            Gruppen anlegen, Perioden zuordnen und Erinnerungen verwalten.
+                        {% else %}
+                            Wählen Sie links ein Team.
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+
+            {# Listen-Container — wird in Phase E via HTMX-Event refreshed #}
+            <div id="ng-list"
+                 hx-get="/dispatcher/notification-groups/list?team_id={{ selected_team_id }}"
+                 hx-trigger="notification-groups-changed from:body"
+                 hx-swap="innerHTML">
+                {% include "notification_groups/_list.html" %}
+            </div>
+        </div>
+    </main>
+
+</div>
+</div>
+
+{# Modal-Root für HTMX (Phase E) #}
+<div id="modal-root"></div>
+
+<script>
+    window.hccModal = {
+        close: function() {
+            document.getElementById('modal-root').innerHTML = '';
+        }
+    };
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape') window.hccModal.close();
+    });
+    document.addEventListener('click', function(e) {
+        if (e.target && e.target.dataset && 'modalBackdrop' in e.target.dataset) {
+            window.hccModal.close();
+        }
+    });
+</script>
+{% endblock %}

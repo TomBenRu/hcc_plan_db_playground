@@ -1,0 +1,94 @@
+{# Erwartet: group (NotificationGroupView) #}
+{% set days = group.days_until_deadline %}
+{% if days < 0 %}
+    {% set deadline_color = '#94a3b8' %}
+    {% set deadline_label = 'überfällig' %}
+{% elif days <= 3 %}
+    {% set deadline_color = '#f59e0b' %}
+    {% set deadline_label = days|string + ' Tag' + ('e' if days != 1 else '') %}
+{% else %}
+    {% set deadline_color = '#10b981' %}
+    {% set deadline_label = 'in ' + days|string + ' Tagen' %}
+{% endif %}
+
+<div class="flex bg-white dark:bg-slate-800 rounded-xl border
+            border-slate-100 dark:border-slate-700/50 shadow-sm
+            hover:shadow-md hover:border-slate-200 dark:hover:border-slate-600
+            transition-all duration-200 overflow-hidden anim"
+     data-group-id="{{ group.id }}">
+
+    <div class="w-1 flex-shrink-0" style="background-color: {{ deadline_color }};"></div>
+
+    <div class="flex-1 p-4">
+        {# ── Header ─────────────────────────────────────────────────────── #}
+        <div class="flex items-start justify-between gap-4 mb-3">
+            <div class="min-w-0">
+                <p class="font-display text-lg font-semibold text-slate-800 dark:text-slate-100 truncate">
+                    {{ group.display_name }}
+                </p>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    Deadline {{ group.deadline.strftime("%d.%m.%Y") }}
+                    · <span style="color: {{ deadline_color }};">{{ deadline_label }}</span>
+                </p>
+            </div>
+            <div class="flex flex-col gap-1 flex-shrink-0">
+                {# Phase E: Action-Buttons (Rename, Catchup, Aufloesen) — vorerst Platzhalter #}
+                <span class="text-[10px] text-slate-400 dark:text-slate-500 italic">
+                    Aktionen ab Phase E
+                </span>
+            </div>
+        </div>
+
+        {# ── PP-Liste (Phase E: Drag-Source) ───────────────────────────── #}
+        <ul data-sortable-pp-list
+            data-group-id="{{ group.id }}"
+            class="space-y-1.5 mb-3">
+            {% for pp in group.plan_periods %}
+            <li data-pp-id="{{ pp.id }}"
+                class="flex items-center gap-2 px-3 py-2 rounded-lg
+                       bg-slate-50 dark:bg-slate-900/40
+                       border border-slate-100 dark:border-slate-700/50
+                       text-sm text-slate-700 dark:text-slate-300">
+                <svg class="w-3.5 h-3.5 flex-shrink-0 text-slate-300 dark:text-slate-600"
+                     fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
+                    <path d="M7 2a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm0 6a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm0 6a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm6-12a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm0 6a1.5 1.5 0 100 3 1.5 1.5 0 000-3zm0 6a1.5 1.5 0 100 3 1.5 1.5 0 000-3z"/>
+                </svg>
+                <span class="flex-1">
+                    {{ pp.start.strftime("%d.%m.%Y") }} – {{ pp.end.strftime("%d.%m.%Y") }}
+                </span>
+                {% if pp.closed %}
+                <span class="text-[10px] font-medium px-1.5 py-0.5 rounded
+                             bg-amber-50 dark:bg-amber-900/30
+                             text-amber-700 dark:text-amber-400">
+                    geschlossen
+                </span>
+                {% endif %}
+            </li>
+            {% else %}
+            <li class="text-xs text-slate-400 dark:text-slate-500 italic px-3 py-2">
+                Keine Perioden zugeordnet.
+            </li>
+            {% endfor %}
+        </ul>
+
+        {# ── Inline-Versand-Historie (kompakt) ────────────────────────── #}
+        <div class="flex items-center gap-3 text-[11px] text-slate-500 dark:text-slate-400 flex-wrap">
+            {% for kind, label in [("t7", "T-7"), ("t3", "T-3"), ("t1", "T-1"), ("catchup", "Catchup")] %}
+                {% set stat = group.stats.get(kind) %}
+                {% if stat and (stat.success_count or stat.failed_count) %}
+                    <span class="inline-flex items-center gap-1">
+                        {% if stat.failed_count %}
+                        <span class="text-rose-500 dark:text-rose-400">⚠</span>
+                        {% else %}
+                        <span class="text-emerald-500 dark:text-emerald-400">✓</span>
+                        {% endif %}
+                        {{ label }}
+                        ({{ stat.success_count }}{% if stat.failed_count %} / {{ stat.failed_count }} fail{% endif %})
+                    </span>
+                {% else %}
+                    <span class="opacity-50">{{ label }} —</span>
+                {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</div>

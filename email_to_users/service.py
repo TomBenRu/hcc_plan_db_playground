@@ -79,14 +79,20 @@ class EmailService:
     def __init__(self, smtp_config: SmtpConfig):
         self.smtp_config = smtp_config
 
-    def _send_one(self, payload: EmailPayload) -> bool:
-        """Sendet eine einzelne Mail. True bei Erfolg, False bei Fehler."""
+    def _send_one(self, payload: EmailPayload) -> tuple[bool, str | None]:
+        """Sendet eine einzelne Mail.
+
+        Returns: `(True, None)` bei Erfolg, `(False, "<ExcType>: <message>")`
+        bei Fehler. Der Fehlertext ist gedacht fuer das Audit-Feld
+        `notification_log.error_detail`; das Application-Log bekommt parallel
+        einen vollen Stacktrace via `logger.exception`.
+        """
         try:
             _send_one_smtp(payload, self.smtp_config)
-            return True
-        except Exception:
+            return True, None
+        except Exception as exc:
             logger.exception("E-Mail-Versand fehlgeschlagen (to=%s)", payload.to)
-            return False
+            return False, f"{type(exc).__name__}: {exc}"
 
     def _render(self, template_name: str, ctx: Dict[str, Any]) -> str:
         """Rendert ein Jinja2-Template aus web_api/templates/emails/."""
@@ -143,7 +149,7 @@ class EmailService:
                     subject=f"Neuer Einsatzplan verfügbar: {plan.name}",
                     html_body=self._render("plan_notification.html", ctx),
                 )
-                if self._send_one(payload):
+                if self._send_one(payload)[0]:
                     stats["success"] += 1
                 else:
                     stats["failed"] += 1
@@ -198,7 +204,7 @@ class EmailService:
                     subject=f"Verfügbarkeitsabfrage: {period_name}",
                     html_body=self._render("availability_request.html", ctx),
                 )
-                if self._send_one(payload):
+                if self._send_one(payload)[0]:
                     stats["success"] += 1
                 else:
                     stats["failed"] += 1
@@ -277,8 +283,11 @@ class EmailService:
                     subject=subject,
                     html_body=self._render(template_name, ctx),
                 )
-                success = self._send_one(payload)
-                self._log_reminder(session, group.id, person.id, kind, success)
+                success, error_detail = self._send_one(payload)
+                self._log_reminder(
+                    session, group.id, person.id, kind, success,
+                    error_detail=error_detail,
+                )
                 # Pro Mail commit, damit der Idempotenz-Schutz auch bei
                 # Crash/Restart mitten im Loop greift.
                 session.commit()
@@ -326,7 +335,7 @@ class EmailService:
                 subject=personalized_subject,
                 html_body=personalized_body,
             )
-            if self._send_one(payload):
+            if self._send_one(payload)[0]:
                 stats["success"] += 1
             else:
                 stats["failed"] += 1
@@ -358,7 +367,7 @@ class EmailService:
             html_body=body,
         )
         recipient_count = len(to_emails) + len(cc_emails) + len(bcc_emails)
-        if self._send_one(payload):
+        if self._send_one(payload)[0]:
             return {"success": recipient_count, "failed": 0}
         return {"success": 0, "failed": recipient_count}
 

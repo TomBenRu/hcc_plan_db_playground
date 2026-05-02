@@ -101,6 +101,18 @@
                         {% endif %}
                     </p>
                 </div>
+                {% if selected_team_id %}
+                <button hx-get="/dispatcher/notification-groups/new?team_id={{ selected_team_id }}"
+                        hx-target="#modal-root" hx-swap="innerHTML"
+                        class="inline-flex items-center gap-2 px-4 py-2 rounded-lg
+                               bg-violet-600 hover:bg-violet-700 text-white text-sm font-medium
+                               shadow-sm transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/>
+                    </svg>
+                    Neue Gruppe
+                </button>
+                {% endif %}
             </div>
 
             {# Listen-Container — wird in Phase E via HTMX-Event refreshed #}
@@ -133,5 +145,41 @@
             window.hccModal.close();
         }
     });
+
+    // ── SortableJS-Drag+Drop fuer PP-Listen ────────────────────────────
+    // Jede [data-sortable-pp-list] (Group-Card oder Orphan-Sektion) wird zur
+    // Drop-Zone. Beim onEnd schickt der Browser ein PATCH an den move-pp-
+    // Endpoint mit der Ziel-Group-ID (oder leer fuer "Ohne Reminder").
+    // HX-Trigger "notification-groups-changed" loest das List-Refresh aus,
+    // wodurch die DOM-Knoten ersetzt werden — danach muessen wir Sortable
+    // re-initialisieren (htmx:afterSwap-Hook).
+    function initNgSortables() {
+        if (typeof Sortable === 'undefined') return;
+        document.querySelectorAll('[data-sortable-pp-list]').forEach(function(list) {
+            if (list.dataset.sortableInit === '1') return;
+            list.dataset.sortableInit = '1';
+            new Sortable(list, {
+                group: 'ng-pp-groups',
+                animation: 150,
+                ghostClass: 'opacity-40',
+                onEnd: function(evt) {
+                    var ppId = evt.item.dataset.ppId;
+                    var targetGroupId = evt.to.dataset.groupId;
+                    if (!ppId || targetGroupId === undefined) return;
+                    if (evt.from === evt.to) return;  // Reorder innerhalb derselben Liste — kein Server-Call
+                    var body = (targetGroupId === 'orphan') ? {group_id: ''} : {group_id: targetGroupId};
+                    htmx.ajax('PATCH', '/dispatcher/notification-groups/pp/' + ppId + '/group', {
+                        values: body,
+                        swap: 'none',
+                    });
+                },
+            });
+        });
+    }
+    document.addEventListener('DOMContentLoaded', initNgSortables);
+    document.body.addEventListener('htmx:afterSwap', initNgSortables);
+    // Sortable wird via defer geladen — falls DOMContentLoaded schon vorbei
+    // war als Sortable verfuegbar wurde, init nochmal beim load-Event.
+    window.addEventListener('load', initNgSortables);
 </script>
 {% endblock %}

@@ -31,11 +31,21 @@
                     · <span style="color: {{ deadline_color }};">{{ deadline_label }}</span>
                 </p>
             </div>
-            <div class="flex flex-col gap-1 flex-shrink-0">
-                {# Phase E: Action-Buttons (Rename, Catchup, Aufloesen) — vorerst Platzhalter #}
-                <span class="text-[10px] text-slate-400 dark:text-slate-500 italic">
-                    Aktionen ab Phase E
-                </span>
+            <div class="flex flex-col gap-1.5 flex-shrink-0">
+                <button hx-get="/dispatcher/notification-groups/{{ group.id }}/edit"
+                        hx-target="#modal-root" hx-swap="innerHTML"
+                        class="text-xs px-3 py-1.5 rounded-md border border-slate-200 dark:border-slate-700
+                               text-slate-600 dark:text-slate-300
+                               hover:bg-slate-50 dark:hover:bg-slate-700/50">
+                    Bearbeiten
+                </button>
+                <button hx-get="/dispatcher/notification-groups/{{ group.id }}/dissolve-confirm"
+                        hx-target="#modal-root" hx-swap="innerHTML"
+                        class="text-xs px-3 py-1.5 rounded-md border border-rose-200 dark:border-rose-800/50
+                               text-rose-700 dark:text-rose-400
+                               hover:bg-rose-50 dark:hover:bg-rose-900/20">
+                    Auflösen
+                </button>
             </div>
         </div>
 

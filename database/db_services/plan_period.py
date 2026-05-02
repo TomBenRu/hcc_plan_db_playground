@@ -612,6 +612,59 @@ def split_to_new_group(plan_period_id: UUID) -> schemas.PlanPeriodMinimal:
         return schemas.PlanPeriodMinimal.model_validate(pp)
 
 
+def dissolve_group(group_id: UUID) -> int:
+    """Loest eine NotificationGroup auf — fuer jede ihrer PPs entsteht eine
+    eigene neue 1er-Group mit derselben Deadline (Mode "individual"). Die
+    Original-Group wird am Ende geloescht (sie ist dann leer).
+
+    Phase E der NG-Verwaltung. Konservatives Verhalten: keine PP verliert
+    versehentlich ihre Reminder. Keine Catchup-Mails (Empfaengerkreis aendert
+    sich pro PP nicht).
+
+    Returns: Anzahl neu angelegter 1er-Groups (= Anzahl PPs der Original-Group).
+    """
+    log_function_info()
+    with get_session() as session:
+        original = session.get(models.NotificationGroup, group_id)
+        if original is None:
+            raise ValueError(f"NotificationGroup {group_id} nicht gefunden.")
+
+        # Snapshot der PPs und der Deadline, BEVOR wir mutieren — die
+        # Relation 'plan_periods' wird durch die FK-Updates unten leer.
+        deadline = original.deadline
+        team = original.team
+        pp_ids = [pp.id for pp in original.plan_periods]
+
+        if not pp_ids:
+            # Leere Group → einfach loeschen.
+            session.delete(original)
+            session.flush()
+            _unregister_reminder_jobs(group_id)
+            return 0
+
+        new_groups: list[models.NotificationGroup] = []
+        for pp_id in pp_ids:
+            pp = session.get(models.PlanPeriod, pp_id)
+            new_group = models.NotificationGroup(team=team, deadline=deadline)
+            session.add(new_group)
+            session.flush()
+            pp.notification_group_id = new_group.id
+            new_groups.append(new_group)
+
+        session.flush()
+
+        # Original ist jetzt leer — loeschen + alte Jobs deregistrieren.
+        session.delete(original)
+        session.flush()
+        _unregister_reminder_jobs(group_id)
+
+        # Reminder-Jobs fuer die neuen 1er-Groups registrieren.
+        for ng in new_groups:
+            _register_reminder_jobs(ng)
+
+        return len(new_groups)
+
+
 def unassign_group(plan_period_id: UUID) -> schemas.PlanPeriodMinimal:
     """Entfernt die PlanPeriod aus ihrer NotificationGroup — danach ohne
     Reminder. Phase A der NG-Verwaltung.

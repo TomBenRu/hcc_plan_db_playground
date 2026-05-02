@@ -1,0 +1,51 @@
+{% extends "partials/modal_shell.html" %}
+{% block modal_kicker %}Neue Reminder-Gruppe{% endblock %}
+{% block modal_title %}Gruppe anlegen{% endblock %}
+{% block modal_body %}
+<form id="ng-create-form"
+      hx-post="/dispatcher/notification-groups"
+      hx-target="#modal-root"
+      hx-swap="innerHTML"
+      class="flex flex-col gap-4">
+
+    <input type="hidden" name="team_id" value="{{ team_id }}">
+
+    <label class="flex flex-col gap-1">
+        <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Deadline</span>
+        <input type="date" name="deadline" required
+               value="{{ default_deadline.isoformat() }}"
+               min="{{ min_deadline.isoformat() }}"
+               class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
+                      bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">
+        <span class="text-[11px] text-slate-400 dark:text-slate-500">
+            Zu diesem Datum sollen die Verfügbarkeiten abgegeben sein.
+        </span>
+    </label>
+
+    <label class="flex flex-col gap-1">
+        <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Name (optional)</span>
+        <input type="text" name="name"
+               placeholder="z.B. Sommer-Block, Herbstferien"
+               class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
+                      bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">
+    </label>
+
+    <p class="text-[11px] text-slate-500 dark:text-slate-400">
+        Die Gruppe ist zunächst leer. Periodien werden per Drag &amp; Drop aus „Ohne Reminder" zugeordnet.
+    </p>
+</form>
+{% endblock %}
+{% block modal_footer %}
+<div class="flex justify-end gap-2 px-6 py-4 border-t border-slate-100 dark:border-slate-700/50">
+    <button type="button" onclick="window.hccModal.close()"
+            class="px-4 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700
+                   text-slate-600 dark:text-slate-300
+                   hover:bg-slate-50 dark:hover:bg-slate-700/50">
+        Abbrechen
+    </button>
+    <button type="submit" form="ng-create-form"
+            class="px-4 py-2 text-sm rounded-lg bg-violet-600 hover:bg-violet-700 text-white">
+        Anlegen
+    </button>
+</div>
+{% endblock %}

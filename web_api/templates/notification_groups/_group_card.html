@@ -31,6 +31,16 @@
                     · <span style="color: {{ deadline_color }};">{{ deadline_label }}</span>
                 </p>
             </div>
+            {# Aktion-Buttons mit kontextueller Disabled-Logik:
+               - Auflösen: nur sinnvoll bei ≥2 PPs (1er-Group ware no-op).
+               - Catchup: lifetime-Idempotenz im Mailer (s. notification_log).
+                 Sobald 1 erfolgreicher Catchup existiert → Button aus, weil
+                 ein Re-Klick fuer alle Empfaenger geskipped wuerde. #}
+            {% set pp_count = group.plan_periods|length %}
+            {% set catchup_stat = group.stats.get("catchup") %}
+            {% set catchup_already = catchup_stat and catchup_stat.success_count > 0 %}
+            {% set can_dissolve = pp_count >= 2 %}
+            {% set can_catchup = pp_count > 0 and not catchup_already %}
             <div class="flex flex-col gap-1.5 flex-shrink-0">
                 <button hx-get="/dispatcher/notification-groups/{{ group.id }}/edit"
                         hx-target="#modal-root" hx-swap="innerHTML"
@@ -39,21 +49,37 @@
                                hover:bg-slate-50 dark:hover:bg-slate-700/50">
                     Bearbeiten
                 </button>
-                {% if group.plan_periods %}
-                <button hx-post="/dispatcher/notification-groups/{{ group.id }}/trigger-catchup"
+                {% if pp_count > 0 %}
+                <button {% if can_catchup %}
+                        hx-post="/dispatcher/notification-groups/{{ group.id }}/trigger-catchup"
                         hx-confirm="Catchup-Mail jetzt an alle Empfänger der Gruppe versenden?"
                         hx-swap="none"
+                        title="Catchup an alle Empfänger der Gruppe"
                         class="text-xs px-3 py-1.5 rounded-md border border-violet-200 dark:border-violet-700/50
                                text-violet-700 dark:text-violet-400
-                               hover:bg-violet-50 dark:hover:bg-violet-900/20">
+                               hover:bg-violet-50 dark:hover:bg-violet-900/20"
+                        {% else %}
+                        type="button" disabled
+                        title="Catchup wurde bereits versendet"
+                        class="text-xs px-3 py-1.5 rounded-md border border-slate-100 dark:border-slate-700/40
+                               text-slate-400 dark:text-slate-600 cursor-not-allowed"
+                        {% endif %}>
                     Catchup
                 </button>
                 {% endif %}
-                <button hx-get="/dispatcher/notification-groups/{{ group.id }}/dissolve-confirm"
+                <button {% if can_dissolve %}
+                        hx-get="/dispatcher/notification-groups/{{ group.id }}/dissolve-confirm"
                         hx-target="#modal-root" hx-swap="innerHTML"
+                        title="Gruppe in einzelne 1er-Gruppen aufteilen"
                         class="text-xs px-3 py-1.5 rounded-md border border-rose-200 dark:border-rose-800/50
                                text-rose-700 dark:text-rose-400
-                               hover:bg-rose-50 dark:hover:bg-rose-900/20">
+                               hover:bg-rose-50 dark:hover:bg-rose-900/20"
+                        {% else %}
+                        type="button" disabled
+                        title="{% if pp_count == 0 %}Leere Gruppe — nichts aufzulösen{% else %}1er-Gruppe — Auflösen wäre wirkungslos{% endif %}"
+                        class="text-xs px-3 py-1.5 rounded-md border border-slate-100 dark:border-slate-700/40
+                               text-slate-400 dark:text-slate-600 cursor-not-allowed"
+                        {% endif %}>
                     Auflösen
                 </button>
             </div>

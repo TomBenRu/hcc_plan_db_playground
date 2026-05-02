@@ -38,18 +38,6 @@
     </div>
 
     <label class="flex flex-col gap-1">
-        <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Deadline für Verfügbarkeiten</span>
-        <input type="date" name="deadline" required
-               value="{{ default_deadline.isoformat() }}"
-               min="{{ min_deadline.isoformat() }}"
-               class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
-                      bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">
-        <span class="text-[11px] text-slate-400 dark:text-slate-500">
-            Muss nach heute und vor dem Start der Periode liegen.
-        </span>
-    </label>
-
-    <label class="flex flex-col gap-1">
         <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Notizen (intern)</span>
         <textarea name="notes" rows="2"
                   class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
@@ -63,12 +51,9 @@
                          bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">{{ default_notes_for_employees }}</textarea>
     </label>
 
-    <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-        <input type="checkbox" name="remainder" value="true"
-               {% if default_remainder %}checked{% endif %}
-               class="rounded border-slate-300 dark:border-slate-600">
-        Reminder aktivieren
-    </label>
+    <p class="text-[11px] text-slate-500 dark:text-slate-400 italic">
+        Reminder (Deadline + Erinnerungs-Mails) werden separat in der Reminder-View eingerichtet.
+    </p>
 </form>
 {% endblock %}
 {% block modal_footer %}

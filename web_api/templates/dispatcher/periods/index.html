@@ -134,6 +134,33 @@
                 {% endif %}
             </div>
 
+            {# Reminder-Banner — wird via pp-just-created Event eingeblendet
+               und enthaelt einen Link auf die NG-View mit dem aktuellen Team. #}
+            <div id="reminder-banner"
+                 class="hidden mb-4 px-4 py-3 rounded-xl
+                        bg-violet-50 dark:bg-violet-900/20
+                        border border-violet-200 dark:border-violet-800/40
+                        text-sm text-violet-800 dark:text-violet-200
+                        flex items-center justify-between gap-3 anim">
+                <div class="flex items-center gap-2 min-w-0">
+                    <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor"
+                         stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                        <path stroke-linecap="round" stroke-linejoin="round"
+                              d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                    </svg>
+                    <span class="truncate">
+                        Periode angelegt — Reminder ist noch nicht eingerichtet.
+                    </span>
+                </div>
+                <a id="reminder-banner-link"
+                   href="/dispatcher/notification-groups{% if selected_team_id %}?team_id={{ selected_team_id }}{% endif %}"
+                   class="flex-shrink-0 inline-flex items-center gap-1
+                          px-3 py-1.5 rounded-md
+                          bg-violet-600 hover:bg-violet-700 text-white text-xs font-medium">
+                    Reminder öffnen →
+                </a>
+            </div>
+
             {# Listen-Container — HTMX-Reload via periods-changed Event #}
             <div id="periods-list"
                  hx-get="/dispatcher/periods/list?team_id={{ selected_team_id }}{% if status_filter %}&status_filter={{ status_filter }}{% endif %}"
@@ -166,5 +193,26 @@
             window.hccModal.close();
         }
     });
+
+    // Reminder-Banner: erscheint nach erfolgreichem PP-Create (inkl. Take-Over),
+    // verschwindet beim Klick auf den Link. HX-Trigger uebergibt team_id und
+    // pp_id; wir verlinken auf die NG-View des passenden Teams.
+    document.body.addEventListener('pp-just-created', function(e) {
+        var banner = document.getElementById('reminder-banner');
+        var link = document.getElementById('reminder-banner-link');
+        if (!banner || !link) return;
+        var teamId = e.detail && e.detail.team_id;
+        if (teamId) {
+            link.href = '/dispatcher/notification-groups?team_id=' + teamId;
+        }
+        banner.classList.remove('hidden');
+    });
+    var bannerLink = document.getElementById('reminder-banner-link');
+    if (bannerLink) {
+        bannerLink.addEventListener('click', function() {
+            var banner = document.getElementById('reminder-banner');
+            if (banner) banner.classList.add('hidden');
+        });
+    }
 </script>
 {% endblock %}

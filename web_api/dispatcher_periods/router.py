@@ -9,14 +9,15 @@ nur für Admins. Layout-Vorbild: `web_api/templates/cancellations/index.html`.
 """
 
 import datetime
+import json
 import uuid
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse, Response
 from sqlalchemy.exc import NoResultFound
-from sqlmodel import Session, select
+from sqlmodel import Session
 
-from database import db_services, models, schemas
+from database import db_services, schemas
 from database.db_services.plan_period import (
     PlanPeriodClosedError,
     PlanPeriodPermissionError,
@@ -148,31 +149,29 @@ def _create_form_context(
     *,
     start: datetime.date,
     end: datetime.date,
-    deadline: datetime.date,
     notes: str,
     notes_for_employees: str,
-    remainder: bool,
     earliest_start: datetime.date,
     latest_end: datetime.date | None,
     error_message: str | None = None,
 ) -> dict:
     """Bündelt alle Werte für `create_form.html` — sowohl Initial-Render
     (smart Defaults) als auch Re-Render bei Validierungsfehler (übermittelte
-    User-Werte werden zurück ins Formular gespiegelt)."""
-    today = _today()
+    User-Werte werden zurück ins Formular gespiegelt).
+
+    Phase C der NG-Verwaltung: Deadline + Reminder-Toggle wandern in die
+    Notification-Groups-View; PP-Form fragt nur noch Datum + Notizen ab.
+    """
     return {
         "request": request,
         "team_id": team_id,
-        "today": today,
-        "min_deadline": today + datetime.timedelta(days=1),
+        "today": _today(),
         "earliest_start": earliest_start,
         "latest_end": latest_end,
         "default_start": start,
         "default_end": end,
-        "default_deadline": deadline,
         "default_notes": notes,
         "default_notes_for_employees": notes_for_employees,
-        "default_remainder": remainder,
         "error_message": error_message,
     }
 
@@ -195,20 +194,13 @@ def new_form(
     )
     default_start = earliest_start
     default_end = default_start + datetime.timedelta(days=29)
-    default_deadline = max(
-        today + datetime.timedelta(days=1),
-        default_start - datetime.timedelta(days=14),
-    )
-    if default_deadline >= default_start:
-        default_deadline = default_start - datetime.timedelta(days=1)
     return templates.TemplateResponse(
         "dispatcher/periods/partials/create_form.html",
         _create_form_context(
             request, team_id,
-            start=default_start, end=default_end, deadline=default_deadline,
+            start=default_start, end=default_end,
             notes=team.notes or "",
             notes_for_employees="",
-            remainder=False,
             earliest_start=earliest_start,
             latest_end=latest_end,
         ),
@@ -223,14 +215,18 @@ def create_with_children(
     team_id: uuid.UUID = Form(...),
     start: datetime.date = Form(...),
     end: datetime.date = Form(...),
-    deadline: datetime.date = Form(...),
     notes: str = Form(default=""),
     notes_for_employees: str = Form(default=""),
-    remainder: bool = Form(default=False),
 ):
-    """Atomarer Create-Submit. Bei Erfolg: Take-Over-Modal oder Liste-Refresh.
-    Bei Validierungsfehler: Form mit Banner re-rendern, Eingaben bleiben."""
-    error = validate_period_dates(team_id, start, end, deadline)
+    """Atomarer Create-Submit. Bei Erfolg: Take-Over-Modal oder Liste-Refresh
+    mit Reminder-Banner. Bei Validierungsfehler: Form mit Banner re-rendern,
+    Eingaben bleiben.
+
+    Phase C: PP entsteht ohne Reminder-Group; der Dispatcher richtet
+    Reminder anschliessend in der NG-View ein. `remainder=False` ist hardcoded
+    bis zum spaeteren Removal des Feldes (siehe TODO).
+    """
+    error = validate_period_dates(team_id, start, end)
     if error:
         latest_end = db_services.PlanPeriod.get_latest_end_for_team(team_id)
         earliest_start = max(
@@ -241,9 +237,8 @@ def create_with_children(
             "dispatcher/periods/partials/create_form.html",
             _create_form_context(
                 request, team_id,
-                start=start, end=end, deadline=deadline,
+                start=start, end=end,
                 notes=notes, notes_for_employees=notes_for_employees,
-                remainder=remainder,
                 earliest_start=earliest_start,
                 latest_end=latest_end,
                 error_message=error,
@@ -252,13 +247,15 @@ def create_with_children(
 
     team = _get_active_team_or_404(team_id)
     create_schema = schemas.PlanPeriodCreate(
-        start=start, end=end, deadline=deadline,
+        start=start, end=end, deadline=None,
         notes=notes or None, notes_for_employees=notes_for_employees or None,
-        remainder=remainder, team=team,
+        remainder=False, team=team,
     )
     new_pp = db_services.PlanPeriod.create_with_children(create_schema)
 
-    # Take-Over-Vorschau prüfen — falls Kandidaten existieren, Modal zeigen
+    # Take-Over-Vorschau prüfen — falls Kandidaten existieren, Modal zeigen.
+    # Sobald der Dispatcher die Vorschau bestaetigt/abbricht, fliesst er auch
+    # in den Banner-Pfad (`execute_takeover` ruft ebenfalls `_redirect_to_list`).
     preview = db_services.PlanPeriod.find_takeover_candidates(new_pp.id)
     if preview.total_avail_days > 0 or preview.total_events > 0:
         return templates.TemplateResponse(
@@ -271,35 +268,8 @@ def create_with_children(
             headers={"HX-Retarget": "#modal-root", "HX-Reswap": "innerHTML"},
         )
 
-    # Sonst direkt: Liste neu laden
-    return _redirect_to_list(team_id)
-
-
-def _list_groups_for_team(session: Session, team_id: uuid.UUID) -> list[dict]:
-    """Liste aller NotificationGroups eines Teams fuer das Edit-Form-Dropdown.
-
-    Zurueckgegeben als Plain-Dicts (id/deadline/name/pp_count), damit das
-    Template keine ORM-Relationen lazy-loaden muss.
-    """
-    groups = session.exec(
-        select(models.NotificationGroup)
-        .where(models.NotificationGroup.team_id == team_id)
-        .order_by(models.NotificationGroup.deadline.desc())
-    ).all()
-    return [
-        {
-            "id": g.id,
-            "deadline": g.deadline,
-            "name": g.name,
-            "pp_count": len(g.plan_periods),
-        }
-        for g in groups
-    ]
-
-
-def _get_pp_group_id(session: Session, plan_period_id: uuid.UUID) -> uuid.UUID | None:
-    pp = session.get(models.PlanPeriod, plan_period_id)
-    return pp.notification_group_id if pp is not None else None
+    # Direkt: Liste neu laden + Reminder-Banner einblenden.
+    return _redirect_to_list(team_id, just_created_pp_id=new_pp.id)
 
 
 def _edit_form_context(
@@ -308,21 +278,20 @@ def _edit_form_context(
     *,
     start: datetime.date,
     end: datetime.date,
-    deadline: datetime.date,
     notes: str,
     notes_for_employees: str,
-    remainder: bool,
     is_admin: bool,
-    available_groups: list[dict] | None = None,
-    current_group_id: uuid.UUID | None = None,
     error_message: str | None = None,
 ) -> dict:
     """Bündelt alle Werte für `edit_form.html`.
 
     `min_start` ist None, wenn es keine andere non-deleted PP im Team gibt —
     das Template lässt das `min`-Attribut dann weg, damit ältere Perioden
-    (die vor allen anderen liegen) editierbar bleiben."""
-    today = _today()
+    (die vor allen anderen liegen) editierbar bleiben.
+
+    Phase C: Deadline + Group-Verwaltung sind raus, PP-Edit fokussiert auf
+    Datum + Notizen + Status.
+    """
     latest_end_other = db_services.PlanPeriod.get_latest_end_for_team(
         pp.team.id, exclude_id=pp.id
     )
@@ -331,17 +300,12 @@ def _edit_form_context(
         "request": request,
         "pp": pp,
         "is_admin": is_admin,
-        "today": today,
-        "min_deadline": today + datetime.timedelta(days=1),
+        "today": _today(),
         "min_start": min_start,
         "default_start": start,
         "default_end": end,
-        "default_deadline": deadline,
         "default_notes": notes,
         "default_notes_for_employees": notes_for_employees,
-        "default_remainder": remainder,
-        "available_groups": available_groups or [],
-        "current_group_id": current_group_id,
         "error_message": error_message,
     }
 
@@ -354,19 +318,14 @@ def edit_form(
     session: Session = Depends(get_db_session),
 ):
     pp = db_services.PlanPeriod.get(plan_period_id)
-    available_groups = _list_groups_for_team(session, pp.team.id)
-    current_group_id = _get_pp_group_id(session, plan_period_id)
     return templates.TemplateResponse(
         "dispatcher/periods/partials/edit_form.html",
         _edit_form_context(
             request, pp,
-            start=pp.start, end=pp.end, deadline=pp.deadline,
+            start=pp.start, end=pp.end,
             notes=pp.notes or "",
             notes_for_employees=pp.notes_for_employees or "",
-            remainder=pp.remainder,
             is_admin=_is_admin(user),
-            available_groups=available_groups,
-            current_group_id=current_group_id,
         ),
     )
 
@@ -379,38 +338,34 @@ def patch_period(
     session: Session = Depends(get_db_session),
     start: datetime.date = Form(...),
     end: datetime.date = Form(...),
-    deadline: datetime.date = Form(...),
     notes: str = Form(default=""),
     notes_for_employees: str = Form(default=""),
-    remainder: bool = Form(default=False),
 ):
     current = db_services.PlanPeriod.get(plan_period_id)
 
     error = validate_period_dates(
-        current.team.id, start, end, deadline, exclude_id=plan_period_id
+        current.team.id, start, end, exclude_id=plan_period_id
     )
     if error:
-        available_groups = _list_groups_for_team(session, current.team.id)
-        current_group_id = _get_pp_group_id(session, plan_period_id)
         return templates.TemplateResponse(
             "dispatcher/periods/partials/edit_form.html",
             _edit_form_context(
                 request, current,
-                start=start, end=end, deadline=deadline,
+                start=start, end=end,
                 notes=notes, notes_for_employees=notes_for_employees,
-                remainder=remainder,
                 is_admin=_is_admin(user),
-                available_groups=available_groups,
-                current_group_id=current_group_id,
                 error_message=error,
             ),
         )
 
+    # deadline=None signalisiert dem Service "Group nicht touchen" (Phase B
+    # update-Branch 1) — Reminder-Verwaltung laeuft ausschliesslich in der
+    # NG-View. remainder bleibt aus dem ORM-Stand erhalten.
     update_schema = schemas.PlanPeriod(
         id=plan_period_id,
-        start=start, end=end, deadline=deadline,
+        start=start, end=end, deadline=None,
         notes=notes or None, notes_for_employees=notes_for_employees or None,
-        remainder=remainder, team=current.team,
+        remainder=current.remainder, team=current.team,
         closed=current.closed,
         prep_delete=current.prep_delete,
     )
@@ -423,39 +378,6 @@ def patch_period(
             status_code=status.HTTP_409_CONFLICT,
         )
     return _redirect_to_list(current.team.id)
-
-
-@router.post("/{plan_period_id}/move-group", response_class=HTMLResponse)
-def move_to_group(
-    request: Request,
-    plan_period_id: uuid.UUID,
-    user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
-    target_group_id: str = Form(...),
-):
-    """Legacy-Endpoint, wandert in Phase C der NG-Verwaltung in die neue
-    Notification-Groups-View um. Bis dahin: Sentinel "new" → neue 1er-Group
-    via `split_to_new_group`, sonst strict-UUID an `move_to_group`.
-    Catch-Up wird hier nicht mehr automatisch getriggert — der Dispatcher
-    nutzt dafuer den dedizierten Catchup-Button in der NG-View.
-    """
-    try:
-        if target_group_id == "new":
-            result = db_services.PlanPeriod.split_to_new_group(plan_period_id)
-        else:
-            try:
-                parsed_target = uuid.UUID(target_group_id)
-            except ValueError:
-                raise HTTPException(
-                    status.HTTP_400_BAD_REQUEST,
-                    detail=f"Ungültige target_group_id: {target_group_id!r}",
-                )
-            result = db_services.PlanPeriod.move_to_group(
-                plan_period_id, parsed_target,
-            )
-    except ValueError as e:
-        raise HTTPException(status.HTTP_400_BAD_REQUEST, detail=str(e))
-
-    return _redirect_to_list(result.team_id)
 
 
 @router.get("/{plan_period_id}/notes-display", response_class=HTMLResponse)
@@ -540,7 +462,9 @@ def execute_takeover(
     pp_min = db_services.PlanPeriod.get(plan_period_id, minimal=True)
     if accepted == "yes":
         db_services.PlanPeriod.execute_takeover(plan_period_id)
-    return _redirect_to_list(pp_min.team.id)
+    # Take-Over haengt immer am frisch erstellten PP — also auch hier den
+    # Reminder-Banner triggern, sonst ginge er bei Take-Over-PPs verloren.
+    return _redirect_to_list(pp_min.team.id, just_created_pp_id=plan_period_id)
 
 
 @router.delete("/{plan_period_id}", response_class=HTMLResponse)
@@ -560,7 +484,11 @@ def delete_period(
     return _redirect_to_list(deleted.team_id)
 
 
-def _redirect_to_list(team_id: uuid.UUID) -> Response:
+def _redirect_to_list(
+    team_id: uuid.UUID,
+    *,
+    just_created_pp_id: uuid.UUID | None = None,
+) -> Response:
     """HTMX-Trigger zum Liste-Reload + Modal-Close.
 
     Status 200 mit leerem Body (NICHT 204): bei `hx-target="#modal-root"
@@ -568,12 +496,22 @@ def _redirect_to_list(team_id: uuid.UUID) -> Response:
     Bei `hx-swap="none"` (Card-Buttons) bleibt der Swap aus, nur der Trigger
     feuert. Bei 204 würde HTMX laut Spec *gar keinen* Swap ausführen, das
     Modal bliebe stehen.
+
+    Optionaler `just_created_pp_id` triggert zusaetzlich `pp-just-created`
+    fuer den Reminder-Banner in `index.html` — Phase C der NG-Verwaltung.
     """
+    triggers: dict[str, dict[str, str]] = {
+        "periods-changed": {"team_id": str(team_id)},
+    }
+    if just_created_pp_id is not None:
+        triggers["pp-just-created"] = {
+            "pp_id": str(just_created_pp_id),
+            "team_id": str(team_id),
+        }
+    payload = json.dumps(triggers)
     return Response(
         content="",
         media_type="text/html",
         status_code=status.HTTP_200_OK,
-        headers={
-            "HX-Trigger": f'{{"periods-changed": {{"team_id": "{team_id}"}} }}',
-        },
+        headers={"HX-Trigger": payload},
     )

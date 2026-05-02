@@ -36,18 +36,6 @@
     </div>
 
     <label class="flex flex-col gap-1">
-        <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Deadline</span>
-        <input type="date" name="deadline" required
-               value="{{ default_deadline.isoformat() }}"
-               min="{{ min_deadline.isoformat() }}"
-               class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
-                      bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">
-        <span class="text-[11px] text-slate-400 dark:text-slate-500">
-            Muss nach heute und vor dem Start der Periode liegen.
-        </span>
-    </label>
-
-    <label class="flex flex-col gap-1">
         <span class="text-xs font-medium text-slate-700 dark:text-slate-300">Notizen (intern)</span>
         <textarea name="notes" rows="2"
                   class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
@@ -60,47 +48,18 @@
                   class="px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
                          bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">{{ default_notes_for_employees }}</textarea>
     </label>
-
-    <label class="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
-        <input type="checkbox" name="remainder" value="true"
-               {% if default_remainder %}checked{% endif %}
-               class="rounded border-slate-300 dark:border-slate-600">
-        Reminder aktiv
-    </label>
 </form>
 
-<form id="move-pp-group-form"
-      hx-post="/dispatcher/periods/{{ pp.id }}/move-group"
-      hx-target="#modal-root"
-      hx-swap="innerHTML"
-      class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-700/50 flex flex-col gap-2">
-    <span class="text-xs font-medium text-slate-700 dark:text-slate-300">
-        Notification-Gruppe
-    </span>
-    <div class="flex gap-2 items-center">
-        <select name="target_group_id"
-                class="flex-1 px-3 py-2 rounded-md border border-slate-200 dark:border-slate-700
-                       bg-white dark:bg-slate-900 text-sm text-slate-700 dark:text-slate-200">
-            <option value="new">— Neue 1er-Gruppe —</option>
-            {% for g in available_groups %}
-            <option value="{{ g.id }}" {% if g.id == current_group_id %}selected{% endif %}>
-                {{ g.deadline.strftime("%d.%m.%Y") }} ·
-                {% if g.name %}{{ g.name }}{% else %}{{ g.pp_count }} Periode{% if g.pp_count != 1 %}n{% endif %}{% endif %}
-            </option>
-            {% endfor %}
-        </select>
-        <button type="submit"
-                class="px-3 py-2 text-sm rounded-md border border-slate-200 dark:border-slate-700
-                       text-slate-600 dark:text-slate-300
-                       hover:bg-slate-50 dark:hover:bg-slate-700/50">
-            Übernehmen
-        </button>
-    </div>
-    <span class="text-[11px] text-slate-400 dark:text-slate-500">
-        Reminder (T-7 / T-3 / T-1) werden je Gruppe gebündelt versendet.
-        Beim Wechsel in eine bestehende Gruppe geht eine Catch-Up-Mail an deren Empfänger.
-    </span>
-</form>
+<div class="mt-6 pt-4 border-t border-slate-100 dark:border-slate-700/50">
+    <p class="text-xs text-slate-500 dark:text-slate-400">
+        Reminder (Deadline + Erinnerungs-Mails) werden in der Reminder-View verwaltet.
+    </p>
+    <a href="/dispatcher/notification-groups{% if pp.team %}?team_id={{ pp.team.id }}{% endif %}"
+       class="inline-flex items-center gap-1 mt-1 text-xs font-medium
+              text-violet-600 dark:text-violet-400 hover:underline">
+        Reminder verwalten →
+    </a>
+</div>
 {% endblock %}
 {% block modal_footer %}
 <div class="flex justify-end gap-2 px-6 py-4 border-t border-slate-100 dark:border-slate-700/50">

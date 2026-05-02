@@ -39,6 +39,7 @@ from sqlmodel import Session, select
 
 from database.database import engine
 from web_api.auth.service import hash_password
+from web_api.email.validation import EmailDomainInvalid, validate_deliverable_email
 from web_api.models.web_models import WebUser, WebUserRole, WebUserRoleLink
 
 
@@ -46,6 +47,7 @@ EXIT_OK = 0
 EXIT_USER_EXISTS = 2
 EXIT_WEAK_PASSWORD = 3
 EXIT_ABORTED = 4
+EXIT_INVALID_EMAIL = 5
 
 MIN_PASSWORD_LENGTH = 8
 
@@ -68,6 +70,12 @@ def _prompt_password() -> str:
 
 def create_admin(email: str, role: WebUserRole, password: str | None, force: bool) -> int:
     email = email.strip().lower()
+
+    try:
+        email = validate_deliverable_email(email)
+    except EmailDomainInvalid as exc:
+        print(f"Fehler: E-Mail-Adresse ist nicht zustellbar: {exc}", file=sys.stderr)
+        return EXIT_INVALID_EMAIL
 
     with Session(engine) as session:
         existing = session.exec(select(WebUser).where(WebUser.email == email)).first()

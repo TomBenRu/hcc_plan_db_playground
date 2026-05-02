@@ -138,6 +138,11 @@ def root():
     return RedirectResponse(url="/auth/login")
 
 
+@app.head("/", include_in_schema=False)
+def root_head() -> Response:
+    return Response(status_code=status.HTTP_200_OK)
+
+
 @app.get("/health")
 def health_check(session: Session = Depends(get_db_session)):
     try:
@@ -146,3 +151,10 @@ def health_check(session: Session = Depends(get_db_session)):
     except Exception as e:
         db_status = f"error: {e}"
     return {"status": "ok", "database": db_status}
+
+
+@app.head("/health", include_in_schema=False)
+def health_check_head() -> Response:
+    """Lightweight Health-Probe ohne DB-Touch — fuer Render/Uptime-Monitore,
+    die haeufig pingen und keine Body-Antwort brauchen."""
+    return Response(status_code=status.HTTP_200_OK)

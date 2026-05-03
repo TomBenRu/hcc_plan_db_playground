@@ -12,6 +12,9 @@ from web_api.cancellations.service import (
     count_open_cancellations_for_dispatcher,
     count_open_cancellations_for_user,
 )
+from web_api.dispatcher.notification_circles.service import (
+    count_restricted_locations_for_dispatcher,
+)
 from web_api.models.web_models import WebUser
 from web_api.offers.service import (
     count_pending_offers_for_dispatcher,
@@ -27,13 +30,14 @@ from web_api.swap_requests.service import (
 
 _COUNT_FNS: dict[str, Callable[[Session, WebUser], int]] = {
     # Mitarbeiter
-    "/cancellations/":             lambda s, u: count_open_cancellations_for_user(s, u.id),
-    "/swap-requests":              lambda s, u: count_active_swap_requests_for_user(s, u.id),
-    "/offers/mine":                lambda s, u: count_pending_offers_for_user(s, u.id),
+    "/cancellations/":                  lambda s, u: count_open_cancellations_for_user(s, u.id),
+    "/swap-requests":                   lambda s, u: count_active_swap_requests_for_user(s, u.id),
+    "/offers/mine":                     lambda s, u: count_pending_offers_for_user(s, u.id),
     # Dispatcher
-    "/dispatcher/cancellations":   lambda s, u: count_open_cancellations_for_dispatcher(s, u),
-    "/dispatcher/swap-requests":   lambda s, u: count_swap_requests_pending_confirm_for_dispatcher(s, u),
-    "/offers/dispatcher":          lambda s, u: count_pending_offers_for_dispatcher(s, u),
+    "/dispatcher/cancellations":        lambda s, u: count_open_cancellations_for_dispatcher(s, u),
+    "/dispatcher/swap-requests":        lambda s, u: count_swap_requests_pending_confirm_for_dispatcher(s, u),
+    "/dispatcher/notification-circles": lambda s, u: count_restricted_locations_for_dispatcher(s, u),
+    "/offers/dispatcher":               lambda s, u: count_pending_offers_for_dispatcher(s, u),
 }
 
 

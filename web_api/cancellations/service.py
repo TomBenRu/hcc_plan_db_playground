@@ -931,12 +931,25 @@ def get_cancellation_detail(
 def count_open_cancellations_for_user(
     session: Session, web_user_id: uuid.UUID
 ) -> int:
-    """Badge-Count: eigene Absagen im Status `pending`."""
-    from sqlalchemy import func
+    """Badge-Count: eigene Absagen + Kreis-Absagen mit Übernahme-Möglichkeit
+    (jeweils Status `pending`, DISTINCT).
+    """
+    from sqlalchemy import distinct, func, or_
+
     result = session.execute(
-        sa_select(func.count(CancellationRequest.id))
-        .where(CancellationRequest.web_user_id == web_user_id)
+        sa_select(func.count(distinct(CancellationRequest.id)))
+        .select_from(CancellationRequest)
+        .outerjoin(
+            CancellationNotificationRecipient,
+            CancellationNotificationRecipient.cancellation_request_id == CancellationRequest.id,
+        )
         .where(CancellationRequest.status == CancellationStatus.pending)
+        .where(
+            or_(
+                CancellationRequest.web_user_id == web_user_id,
+                CancellationNotificationRecipient.web_user_id == web_user_id,
+            )
+        )
     ).scalar()
     return result or 0
 

@@ -17,6 +17,10 @@
     "availability_offer_rejected":  {"label": "Angebot abgelehnt",       "color": "#94A3B8"},
     "availability_offer_withdrawn": {"label": "Angebot zurückgezogen",   "color": "#94A3B8"},
     "dispatcher_added_to_cast":     {"label": "In Cast aufgenommen",     "color": "#22C55E"},
+    "availability_reminder_t7":     {"label": "Erinnerung · 7 Tage",     "color": "#3B82F6"},
+    "availability_reminder_t3":     {"label": "Erinnerung · 3 Tage",     "color": "#F59E0B"},
+    "availability_reminder_t1":     {"label": "Letzte Erinnerung",       "color": "#EF4444"},
+    "availability_reminder_catchup":{"label": "Neu hinzugekommen",       "color": "#06B6D4"},
 } %}
 
 {# Differenzierte Labels für dispatcher_removed_from_cast — Key ist request_type|recipient_role aus snapshot_data. Farbe einheitlich purple-400. #}
@@ -131,6 +135,20 @@
                  onclick="event.stopPropagation();"
                  class="flex-shrink-0 text-[11px] font-medium text-slate-400 hover:text-navy transition-colors whitespace-nowrap">
                   Details
+              </a>
+              {% endif %}
+            {% elif group.reference_type == "notification_group" %}
+              {# Reminder-Group: Link zur ersten offenen Period des juengsten Reminders. #}
+              {% set _ng_periods = (group.messages[0].snapshot_data or {}).get("periods") or [] %}
+              {% set _ng_open = none %}
+              {% for _p in _ng_periods %}{% if not _ng_open and _p.get("status") == "open" and _p.get("url") %}{% set _ng_open = _p %}{% endif %}{% endfor %}
+              {% if _ng_open %}
+              <a href="{{ _ng_open.url }}"
+                 onclick="event.stopPropagation();"
+                 class="flex-shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-lg
+                        bg-orange-50 text-orange-600 border border-orange-200
+                        hover:bg-orange-100 transition-colors whitespace-nowrap">
+                  Verfügbarkeit eingeben
               </a>
               {% endif %}
             {% elif group.reference_id %}

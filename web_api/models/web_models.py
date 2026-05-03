@@ -155,6 +155,10 @@ class InboxMessageType(str, enum.Enum):
     availability_offer_accepted = "availability_offer_accepted"
     availability_offer_rejected = "availability_offer_rejected"
     availability_offer_withdrawn = "availability_offer_withdrawn"
+    availability_reminder_t7 = "availability_reminder_t7"
+    availability_reminder_t3 = "availability_reminder_t3"
+    availability_reminder_t1 = "availability_reminder_t1"
+    availability_reminder_catchup = "availability_reminder_catchup"
 
 
 # ── Absage-Workflow — Modelle ─────────────────────────────────────────────────

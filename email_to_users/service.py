@@ -51,6 +51,16 @@ _REMINDER_SUBJECT = {
 }
 _REMINDER_DAYS_LEFT = {"t7": 7, "t3": 3, "t1": 1, "catchup": 0}
 
+# Mapping Reminder-Kind → InboxMessageType. Lazy-Lookup ueber Strings, damit
+# das Modul ohne InboxMessageType-Import ladbar bleibt; die Aufloesung
+# passiert erst beim Versand (siehe `_create_reminder_inbox_message`).
+_REMINDER_INBOX_TYPE = {
+    "t7": "availability_reminder_t7",
+    "t3": "availability_reminder_t3",
+    "t1": "availability_reminder_t1",
+    "catchup": "availability_reminder_catchup",
+}
+
 # SandboxedEnvironment blockiert Attribut-Zugriffe wie {{ x.__class__ }}
 # — Defense-in-Depth gegen versehentliche Code-Injection in User-Templates.
 # undefined=Undefined (Default): unbekannte Variablen werden zu leeren Strings
@@ -270,6 +280,13 @@ class EmailService:
                 team_name=team.name, deadline=deadline_str,
             )
 
+            # Batch-Lookup Person → WebUser, damit der Inbox-Hook unten ohne
+            # N+1 auskommt. Personen ohne Account sind im Mapping nicht enthalten
+            # und bekommen entsprechend keinen Inbox-Eintrag (Best-Effort).
+            person_to_web_user_id = self._resolve_web_user_ids(
+                session, [p.id for p in recipients]
+            )
+
             for person in recipients:
                 if not person.email:
                     stats["failed"] += 1
@@ -303,6 +320,12 @@ class EmailService:
                     session, group.id, person.id, kind, success,
                     error_detail=error_detail,
                 )
+                if success:
+                    self._create_reminder_inbox_message(
+                        session, person, group, team, kind,
+                        periods_ctx, deadline_str,
+                        person_to_web_user_id,
+                    )
                 # Pro Mail commit, damit der Idempotenz-Schutz auch bei
                 # Crash/Restart mitten im Loop greift.
                 session.commit()
@@ -554,6 +577,78 @@ class EmailService:
         )
         session.add(log)
         session.flush()
+
+    @staticmethod
+    def _resolve_web_user_ids(
+        session,
+        person_ids: List[uuid.UUID],
+    ) -> Dict[uuid.UUID, uuid.UUID]:
+        """Mapping `person_id → web_user_id` fuer aktive Accounts.
+
+        Personen ohne WebUser-Account oder mit `is_active=False` sind im
+        Resultat nicht enthalten — der Caller skipped dann den Inbox-Insert
+        (Best-Effort: Mail bleibt der kanonische Kanal, Inbox ist Bonus).
+        """
+        if not person_ids:
+            return {}
+        # Lazy-Import: web_models gehoert zur Web-API, wird aber von dieser
+        # Service-Klasse nur fuer den Inbox-Hook gebraucht.
+        from web_api.models.web_models import WebUser
+
+        rows = session.execute(
+            sa_select(WebUser.person_id, WebUser.id).where(
+                WebUser.person_id.in_(person_ids),
+                WebUser.is_active.is_(True),
+            )
+        ).all()
+        return {row[0]: row[1] for row in rows}
+
+    @staticmethod
+    def _create_reminder_inbox_message(
+        session,
+        person: Person,
+        group: NotificationGroup,
+        team,
+        kind: str,
+        periods_ctx: List[Dict[str, Any]],
+        deadline_str: str,
+        person_to_web_user_id: Dict[uuid.UUID, uuid.UUID],
+    ) -> None:
+        """Schreibt eine InboxMessage fuer den Reminder, falls die Person einen
+        aktiven WebUser-Account hat. Best-Effort: Failures werden geloggt,
+        aber nicht gepropagiert — der Mail-Versand bleibt die Wahrheit.
+        """
+        web_user_id = person_to_web_user_id.get(person.id)
+        if web_user_id is None:
+            return
+        try:
+            # Lazy-Import: vermeidet Zirkular bei Modul-Laden.
+            from web_api.inbox.service import create_inbox_message
+            from web_api.models.web_models import InboxMessageType
+
+            msg_type = InboxMessageType(_REMINDER_INBOX_TYPE[kind])
+            snapshot = {
+                "team_name": team.name,
+                "location_name": f"Team {team.name}",
+                "event_date": f"Deadline: {deadline_str}",
+                "deadline": deadline_str,
+                "kind": kind,
+                "days_left": _REMINDER_DAYS_LEFT[kind],
+                "periods": periods_ctx,
+            }
+            create_inbox_message(
+                session,
+                recipient_id=web_user_id,
+                msg_type=msg_type,
+                reference_id=group.id,
+                reference_type="notification_group",
+                snapshot_data=snapshot,
+            )
+        except Exception:
+            logger.exception(
+                "Inbox-Insert fuer Reminder fehlgeschlagen (group=%s person=%s kind=%s) — Mail-Versand unberuehrt",
+                group.id, person.id, kind,
+            )
 
 
 def _text_to_html(text: str) -> str:

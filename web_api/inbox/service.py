@@ -45,6 +45,10 @@ _ROLE_TYPES: dict[str, set[str]] = {
         "swap_withdrawn",
         "availability_offer_accepted",
         "availability_offer_rejected",
+        "availability_reminder_t7",
+        "availability_reminder_t3",
+        "availability_reminder_t1",
+        "availability_reminder_catchup",
     },
 }
 

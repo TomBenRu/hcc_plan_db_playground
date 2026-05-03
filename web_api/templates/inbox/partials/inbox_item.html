@@ -18,6 +18,10 @@
     "availability_offer_withdrawn": {"label": "Angebot zurückgezogen",   "color": "#94A3B8", "icon": "M10 19l-7-7m0 0l7-7m-7 7h18"},
     "dispatcher_removed_from_cast": {"label": "Aus Besetzung entfernt",  "color": "#A78BFA", "icon": "M6 18L18 6M6 6l12 12"},
     "dispatcher_added_to_cast":     {"label": "In Cast aufgenommen",     "color": "#22C55E", "icon": "M12 6v6m0 0v6m0-6h6m-6 0H6"},
+    "availability_reminder_t7":     {"label": "Erinnerung · 7 Tage",     "color": "#3B82F6", "icon": "M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"},
+    "availability_reminder_t3":     {"label": "Erinnerung · 3 Tage",     "color": "#F59E0B", "icon": "M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"},
+    "availability_reminder_t1":     {"label": "Letzte Erinnerung",       "color": "#EF4444", "icon": "M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"},
+    "availability_reminder_catchup":{"label": "Neu hinzugekommen",       "color": "#06B6D4", "icon": "M12 9v3m0 0v3m0-3h3m-3 0H9m12 0a9 9 0 11-18 0 9 9 0 0118 0z"},
 } %}
 {% set cfg = type_config.get(item.type.value, {"label": item.type.value, "color": "#94A3B8", "icon": "M13 16h-1v-4h-1m1-4h.01"}) %}
 
@@ -86,6 +90,19 @@
                class="text-[11px] font-medium text-slate-400 hover:text-navy transition-colors whitespace-nowrap">
                 Details
             </a>
+            {% elif item.reference_type == "notification_group" %}
+              {# Reminder-Notification: Link zur ersten offenen Period (Verfuegbarkeitsmaske). #}
+              {% set _periods = (item.snapshot_data or {}).get("periods") or [] %}
+              {% set _open_period = none %}
+              {% for _p in _periods %}{% if not _open_period and _p.get("status") == "open" and _p.get("url") %}{% set _open_period = _p %}{% endif %}{% endfor %}
+              {% if _open_period %}
+              <a href="{{ _open_period.url }}"
+                 class="text-[11px] font-semibold px-2.5 py-1 rounded-lg
+                        bg-orange-50 text-orange-600 border border-orange-200
+                        hover:bg-orange-100 transition-colors whitespace-nowrap">
+                  Verfügbarkeit eingeben
+              </a>
+              {% endif %}
             {% elif item.reference_id %}
             <a href="/cancellations/{{ item.reference_id }}"
                class="text-[11px] font-medium text-slate-400 hover:text-navy transition-colors whitespace-nowrap">

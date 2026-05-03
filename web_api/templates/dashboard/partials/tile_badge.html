@@ -1,0 +1,9 @@
+{# HTMX-pollbarer Tile-Badge. Kontext: tile_url, count #}
+{# Wrapper rendert IMMER, damit HTMX den Anker behaelt — auch wenn count=0. #}
+<span hx-get="/dashboard/tile-badge?url={{ tile_url|urlencode }}"
+      hx-trigger="every 30s"
+      hx-swap="outerHTML">
+    {% if count and count > 0 %}
+    <span class="tile-badge">{{ count }}</span>
+    {% endif %}
+</span>

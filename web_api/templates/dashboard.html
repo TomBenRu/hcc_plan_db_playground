@@ -158,8 +158,10 @@
                         </svg>
                     </div>
                     <div class="flex items-center gap-2 ml-auto">
-                        {% if tile.count and tile.count > 0 %}
-                        <span class="tile-badge">{{ tile.count }}</span>
+                        {% if tile.count is not none %}
+                        {% with tile_url=tile.url, count=tile.count %}
+                        {% include "dashboard/partials/tile_badge.html" %}
+                        {% endwith %}
                         {% endif %}
                         <div class="tile-arrow mt-0.5">
                             <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">

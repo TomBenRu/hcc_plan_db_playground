@@ -2,7 +2,7 @@
 
 from datetime import datetime, timezone
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, Query
 from fastapi.requests import Request
 from fastapi.responses import HTMLResponse
 from sqlmodel import Session
@@ -11,7 +11,7 @@ from database.models import Person
 from web_api.auth.dependencies import LoggedInUser
 from web_api.dashboard.service import resolve_tile_count
 from web_api.dependencies import get_db_session
-from web_api.models.web_models import WebUserRole
+from web_api.models.web_models import WebUser, WebUserRole
 from web_api.templating import templates
 
 router = APIRouter(tags=["dashboard"])
@@ -224,4 +224,43 @@ def dashboard(request: Request, user: LoggedInUser, session: Session = Depends(g
             "display_name": display_name,
             "today": _today_formatted(),
         },
+    )
+
+
+def _user_can_see_tile_url(user: WebUser, tile_url: str) -> bool:
+    """True, wenn die URL in einer fuer diesen User aktiven Rolle als Tile registriert ist.
+
+    Schutz gegen Information-Leak via `/dashboard/tile-badge?url=…`: ein
+    Employee soll nicht den Dispatcher-Counter abfragen koennen.
+    """
+    for role, section in _ROLE_SECTIONS.items():
+        if role not in user.roles:
+            continue
+        for tile in section["tiles"]:
+            if tile["url"] == tile_url:
+                return True
+    return False
+
+
+@router.get("/dashboard/tile-badge", response_class=HTMLResponse)
+def tile_badge(
+    request: Request,
+    user: LoggedInUser,
+    url: str = Query(..., min_length=1),
+    session: Session = Depends(get_db_session),
+):
+    """HTMX-Polling-Endpoint fuer Tile-Counts. Liefert nur das Badge-Span-Wrapper.
+
+    Wenn der User die URL nicht sehen darf (nicht in seinen Rollen-Tiles) oder
+    wenn die URL gar nicht registriert ist, wird ein leerer Wrapper geliefert
+    — HTMX-Polling laeuft trotzdem weiter, weil der Wrapper die hx-Attribute
+    behaelt.
+    """
+    if _user_can_see_tile_url(user, url):
+        count = resolve_tile_count(url, session, user)
+    else:
+        count = None
+    return templates.TemplateResponse(
+        "dashboard/partials/tile_badge.html",
+        {"request": request, "tile_url": url, "count": count},
     )

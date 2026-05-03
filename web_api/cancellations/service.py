@@ -42,6 +42,7 @@ from web_api.models.web_models import (
     TakeoverOffer,
     TakeoverOfferStatus,
     WebUser,
+    WebUserRole,
 )
 from web_api.settings.service import get_effective_deadline
 from web_api.templating import templates
@@ -527,6 +528,20 @@ def create_cancellation(
 
     snapshot = _build_snapshot(ctx, employee_name)
     dispatcher_user = _get_dispatcher_web_user(session, ctx["team_id"])
+
+    # Dispatcher mit Employee-Rolle, der ueber den Auto-Kreis nicht
+    # erfasst wurde (z. B. weil keine ActorPlanPeriod fuer ihn existiert),
+    # explizit als Kreis-Empfaenger eintragen — sonst sieht er die Absage
+    # zwar in der Inbox, aber nicht in der „Uebernahme moeglich"-Sektion
+    # auf /cancellations/.
+    if dispatcher_user is not None:
+        in_auto_circle = any(r.web_user_id == dispatcher_user.id for r in recipients)
+        if not in_auto_circle and dispatcher_user.has_any_role(WebUserRole.employee):
+            session.add(CancellationNotificationRecipient(
+                cancellation_request_id=cr.id,
+                web_user_id=dispatcher_user.id,
+                source=NotificationSource.auto_computed,
+            ))
 
     emails, _ = _notify_recipients(
         session, cr.id, recipients, dispatcher_user, snapshot, InboxMessageType.cancellation_new

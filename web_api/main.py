@@ -25,6 +25,10 @@ from web_api.exceptions import LoginRequired
 from web_api.inbox.router import router as inbox_router
 from web_api.notification_groups.router import router as notification_groups_router
 from web_api.offers.router import router as offers_router
+from web_api.scheduler.advisory_lock import (
+    acquire_scheduler_lock,
+    release_scheduler_lock,
+)
 from web_api.scheduler.setup import create_scheduler
 from web_api.settings.router import router as settings_router
 from web_api.swap_requests.router import router as swap_requests_router
@@ -32,15 +36,26 @@ from web_api.user_settings.router import router as user_settings_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startet den APScheduler beim App-Start; `create_scheduler` setzt zudem
-    die Modul-Globale in `web_api.scheduler.setup`, ueber die `db_services`-
-    Hooks die Scheduler-Instanz erreichen (siehe `setup.get_scheduler`).
+    """Startet den APScheduler beim App-Start, aber nur in einem einzigen
+    Worker pro DB. Die Singleton-Garantie kommt von einem PG-Advisory-Lock
+    (siehe `web_api.scheduler.advisory_lock`).
+
+    Workers ohne Lock laufen als reine HTTP-Worker — `create_scheduler` wird
+    dort nicht aufgerufen, sodass `setup.get_scheduler()` `None` liefert
+    und db_services-Hooks Reminder-Job-Registration sauber skippen.
     """
     settings = get_settings()
-    scheduler = create_scheduler(settings.DATABASE_URL)
-    scheduler.start()
-    yield
-    scheduler.shutdown(wait=False)
+    lock_handle = acquire_scheduler_lock(settings.DATABASE_URL)
+    scheduler = None
+    if lock_handle.acquired:
+        scheduler = create_scheduler(settings.DATABASE_URL)
+        scheduler.start()
+    try:
+        yield
+    finally:
+        if scheduler is not None:
+            scheduler.shutdown(wait=False)
+        release_scheduler_lock(lock_handle)
 
 
 app = FastAPI(

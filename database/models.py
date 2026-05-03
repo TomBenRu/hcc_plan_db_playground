@@ -580,6 +580,7 @@ class LocationOfWork(SQLModel, table=True):
     nr_actors: int = Field(default=2, ge=0, le=255)
     fixed_cast: str | None = Field(default=None)
     fixed_cast_only_if_available: bool = Field(default=False)
+    notification_circle_restricted: bool = Field(default=False)
     created_at: datetime = Field(default_factory=_utcnow, sa_column=_created_at_col())
     last_modified: datetime = Field(default_factory=_utcnow, sa_column=_last_modified_col())
     prep_delete: datetime | None = Field(default=None, sa_column=_optional_dt_col())

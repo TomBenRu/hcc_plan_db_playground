@@ -1,15 +1,20 @@
 {% extends "emails/_base.html" %}
 
-{% block title %}Weiterer Zeitraum hinzugefügt{% endblock %}
+{% block title %}Neue Planungs-Runde für Team {{ team_name }}{% endblock %}
 
-{% block badge %}<p style="margin:0 0 16px"><span class="badge badge-info">Aktualisierung</span></p>{% endblock %}
+{% block badge %}<p style="margin:0 0 16px"><span class="badge badge-info">Neu hinzugekommen</span></p>{% endblock %}
 
 {% block heading %}Hallo {{ recipient_name }}{% endblock %}
 
 {% block lead %}
 <p class="lead">
-  Eine weitere Periode wurde der Verfügbarkeitsanfrage hinzugefügt. Die
-  gemeinsame Deadline für alle Perioden ist <strong>{{ deadline }}</strong>.
+  {% if periods|length == 1 %}
+  Es ist ein neuer Einsatzplan in Vorbereitung. Die Deadline für die Abgabe
+  deiner Verfügbarkeiten ist <strong>{{ deadline }}</strong>.
+  {% else %}
+  Es sind neue Einsatzpläne in Vorbereitung. Die gemeinsame Deadline für die
+  Abgabe der Verfügbarkeiten ist <strong>{{ deadline }}</strong>.
+  {% endif %}
 </p>
 {% endblock %}
 
@@ -22,16 +27,12 @@
   <div class="period-row">
     <div class="value">
       <strong>{{ period.label }}</strong>
-      {% if period.status == 'submitted' %}
-        <span class="period-status-submitted" style="margin-left:8px;">✓ erledigt</span>
-      {% elif period.status == 'open' %}
-        <span class="period-status-open" style="margin-left:8px;">✗ offen</span>
-      {% endif %}
+      <span class="period-new" style="margin-left:8px;">Neu</span>
     </div>
     {% if period.notes_for_employees %}
     <div class="meta">{{ period.notes_for_employees }}</div>
     {% endif %}
-    {% if period.status == 'open' and period.url %}
+    {% if period.url %}
     <p style="margin:8px 0 0;">
       <a href="{{ period.url }}" class="button-secondary">Verfügbarkeit eingeben</a>
     </p>

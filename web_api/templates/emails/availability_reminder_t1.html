@@ -31,6 +31,7 @@
       {% else %}
         <span class="period-status-open" style="margin-left:8px;">✗ offen</span>
       {% endif %}
+      <span class="period-count" style="margin-left:8px;">Abgegebene Verfügbarkeiten: {{ period.submitted_count }}</span>
     </div>
     {% if period.notes_for_employees %}
     <div class="meta">{{ period.notes_for_employees }}</div>

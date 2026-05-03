@@ -44,7 +44,10 @@ _REMINDER_SUBJECT = {
     "t7": "Erinnerung: Verfügbarkeitseingabe — Deadline in 7 Tagen",
     "t3": "Erinnerung: Verfügbarkeitseingabe — Deadline in 3 Tagen",
     "t1": "Letzte Erinnerung: Deadline morgen",
-    "catchup": "Verfügbarkeitsanfrage aktualisiert",
+    # Subjects duerfen Platzhalter ({team_name}, {deadline}) enthalten — werden
+    # beim Versand mit .format(...) aufgeloest. Subjects ohne Platzhalter
+    # bleiben unveraendert, weil .format() nur ersetzt was vorhanden ist.
+    "catchup": "Neue Planungs-Runde für Team {team_name}",
 }
 _REMINDER_DAYS_LEFT = {"t7": 7, "t3": 3, "t1": 1, "catchup": 0}
 
@@ -261,9 +264,11 @@ class EmailService:
 
             stats = {"success": 0, "failed": 0, "skipped": 0}
             template_name = _REMINDER_TEMPLATE[kind]
-            subject = _REMINDER_SUBJECT[kind]
             days_left = _REMINDER_DAYS_LEFT[kind]
             deadline_str = group.deadline.strftime("%d.%m.%Y")
+            subject = _REMINDER_SUBJECT[kind].format(
+                team_name=team.name, deadline=deadline_str,
+            )
 
             for person in recipients:
                 if not person.email:
@@ -510,6 +515,7 @@ class EmailService:
                 ),
                 "url": url,
                 "status": status,
+                "submitted_count": len(active_avail_days),
                 "notes_for_employees": pp.notes_for_employees,
             })
         return items

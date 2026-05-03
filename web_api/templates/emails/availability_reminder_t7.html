@@ -20,7 +20,10 @@
   <div class="label" style="margin-top:20px;">Zeiträume</div>
   {% for period in periods %}
   <div class="period-row">
-    <div class="value"><strong>{{ period.label }}</strong></div>
+    <div class="value">
+      <strong>{{ period.label }}</strong>
+      <span class="period-count" style="margin-left:8px;">Abgegebene Verfügbarkeiten: {{ period.submitted_count }}</span>
+    </div>
     {% if period.notes_for_employees %}
     <div class="meta">{{ period.notes_for_employees }}</div>
     {% endif %}

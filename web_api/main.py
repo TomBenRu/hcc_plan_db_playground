@@ -1,7 +1,17 @@
+import logging
 from contextlib import asynccontextmanager
 from urllib.parse import quote
 
 from fastapi import Depends, FastAPI, Request, Response, status
+
+# Root-Logger auf INFO setzen, damit Application-Logger (Scheduler-Lock,
+# Reminder-Job-Stats, Mail-Versand) in den Render-/Uvicorn-Logs sichtbar
+# sind. Pythons Default ist WARNING, was alle `logger.info(...)`-Calls
+# unsichtbar macht.
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+)
 from fastapi.responses import JSONResponse, RedirectResponse
 from slowapi.errors import RateLimitExceeded
 from sqlalchemy.exc import IntegrityError, NoResultFound

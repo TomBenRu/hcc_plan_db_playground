@@ -1,0 +1,87 @@
+{% extends "partials/modal_shell.html" %}
+
+{% block modal_size %}max-w-xl{% endblock %}
+{% block modal_kicker %}Whitelist · {{ loc.name }}{% endblock %}
+{% block modal_title %}Personen hinzufügen{% endblock %}
+
+{% block modal_body %}
+<form id="add-member-form"
+      hx-post="/dispatcher/notification-circles/{{ loc.id }}/members"
+      hx-target="#detail-pane"
+      hx-swap="innerHTML"
+      hx-on::after-request="if (event.detail.successful) window.hccModal.close()">
+
+    {# Suche (server-side) #}
+    <input type="search"
+           name="q"
+           value="{{ q | default('') }}"
+           hx-get="/dispatcher/notification-circles/{{ loc.id }}/add-member"
+           hx-trigger="keyup changed delay:300ms, search"
+           hx-target="#add-member-form-list"
+           hx-select="#add-member-form-list"
+           hx-swap="outerHTML"
+           placeholder="Name oder E-Mail suchen…"
+           class="w-full px-3 py-2 mb-3 rounded-md text-sm
+                  bg-slate-50 dark:bg-slate-900/40
+                  border border-slate-200 dark:border-slate-700
+                  text-slate-800 dark:text-slate-100
+                  placeholder-slate-400 dark:placeholder-slate-500
+                  focus:outline-none focus:ring-2 focus:ring-indigo-300/50">
+
+    {# Pool-Liste #}
+    <div id="add-member-form-list"
+         class="max-h-[50vh] overflow-y-auto border border-slate-100 dark:border-slate-700/50 rounded-lg">
+        {% if eligible %}
+        <ul class="divide-y divide-slate-100 dark:divide-slate-700/50">
+            {% for u in eligible %}
+            <li class="flex items-center gap-3 px-3 py-2.5
+                       hover:bg-slate-50 dark:hover:bg-slate-700/30">
+                <input type="checkbox"
+                       name="web_user_ids"
+                       value="{{ u.web_user_id }}"
+                       id="pool-{{ u.web_user_id }}"
+                       {% if u.web_user_id in current_member_ids %}checked disabled{% endif %}
+                       class="flex-shrink-0 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500">
+                <label for="pool-{{ u.web_user_id }}" class="flex-1 min-w-0 cursor-pointer">
+                    <p class="text-sm text-slate-800 dark:text-slate-100 truncate">{{ u.person_name }}</p>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">{{ u.email }}</p>
+                </label>
+                {% if u.web_user_id in current_member_ids %}
+                <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1
+                             bg-slate-50 text-slate-500 ring-slate-200
+                             dark:bg-slate-700/40 dark:text-slate-400 dark:ring-slate-600">
+                    bereits aktiv
+                </span>
+                {% endif %}
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="p-4 text-xs text-slate-400 dark:text-slate-500 italic">
+            {% if q %}Keine Treffer für „{{ q }}".{% else %}Pool ist leer.{% endif %}
+        </p>
+        {% endif %}
+    </div>
+</form>
+{% endblock %}
+
+{% block modal_footer %}
+<div class="flex items-center justify-end gap-2 px-6 py-4 border-t border-slate-100 dark:border-slate-700/50">
+    <button type="button"
+            onclick="window.hccModal.close()"
+            class="text-sm px-4 py-2 rounded-md
+                   text-slate-600 dark:text-slate-300
+                   hover:bg-slate-50 dark:hover:bg-slate-700/50
+                   transition-colors">
+        Abbrechen
+    </button>
+    <button type="submit"
+            form="add-member-form"
+            class="text-sm px-4 py-2 rounded-md
+                   bg-indigo-600 text-white
+                   hover:bg-indigo-700
+                   transition-colors">
+        Hinzufügen
+    </button>
+</div>
+{% endblock %}

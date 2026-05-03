@@ -1,0 +1,94 @@
+{# Inneres Pane der Detail-Seite. Wird sowohl beim initialen Render als
+   auch nach Toggle/Add/Remove als HX-Swap auf #detail-pane zurueckgegeben.
+   Erwartet: loc, members, eligible_count. #}
+
+{# ── Mode-Karte ───────────────────────────────────────────────────────── #}
+<div id="mode-card"
+     class="bg-white dark:bg-slate-800 rounded-xl border
+            border-slate-100 dark:border-slate-700/50 shadow-sm p-5 mb-6">
+    <div class="flex items-center justify-between gap-4">
+        <div>
+            <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">Modus</p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {% if loc.notification_circle_restricted %}
+                    Eingeschränkt: nur Personen aus der Whitelist.
+                {% else %}
+                    Alle: jede Person mit aktiver Team-Zuordnung am Arbeitsort kann benachrichtigt werden.
+                {% endif %}
+            </p>
+        </div>
+        <button hx-post="/dispatcher/notification-circles/{{ loc.id }}/toggle-mode"
+                hx-target="#detail-pane"
+                hx-swap="innerHTML"
+                class="text-xs px-4 py-2 rounded-md border transition-colors
+                       {% if loc.notification_circle_restricted %}
+                       border-amber-200 dark:border-amber-700/50
+                       text-amber-700 dark:text-amber-400
+                       hover:bg-amber-50 dark:hover:bg-amber-900/20
+                       {% else %}
+                       border-green-200 dark:border-green-700/50
+                       text-green-700 dark:text-green-400
+                       hover:bg-green-50 dark:hover:bg-green-900/20
+                       {% endif %}">
+            {% if loc.notification_circle_restricted %}
+                Auf „Alle" umstellen
+            {% else %}
+                Eingrenzen
+            {% endif %}
+        </button>
+    </div>
+</div>
+
+{# ── Member-Liste ───────────────────────────────────────────────────── #}
+<div id="members-card"
+     class="bg-white dark:bg-slate-800 rounded-xl border
+            border-slate-100 dark:border-slate-700/50 shadow-sm p-5
+            {% if not loc.notification_circle_restricted %}opacity-60{% endif %}">
+    <div class="flex items-start justify-between gap-3 mb-4">
+        <div>
+            <h2 class="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                Whitelist
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                {% if loc.notification_circle_restricted %}
+                    Nur diese Personen werden benachrichtigt (zusätzlich zum Dispatcher).
+                {% else %}
+                    Whitelist ist deaktiviert — alle qualifizierten Personen werden benachrichtigt.
+                {% endif %}
+            </p>
+        </div>
+        {% if loc.notification_circle_restricted %}
+        <button hx-get="/dispatcher/notification-circles/{{ loc.id }}/add-member"
+                hx-target="#modal-root"
+                hx-swap="innerHTML"
+                class="flex-shrink-0 text-xs px-3 py-1.5 rounded-md
+                       border border-slate-200 dark:border-slate-700
+                       text-slate-700 dark:text-slate-200
+                       hover:bg-slate-50 dark:hover:bg-slate-700/50
+                       transition-colors">
+            + Person hinzufügen
+        </button>
+        {% endif %}
+    </div>
+
+    {% if members %}
+    <ul id="members-list" class="space-y-1.5">
+        {% for m in members %}
+        {% include "notification_circles/partials/member_row.html" %}
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-xs text-slate-400 dark:text-slate-500 italic">
+        {% if loc.notification_circle_restricted %}
+            Keine Mitglieder. Im Eingeschränkt-Modus geht eine Absage nur an den Dispatcher.
+        {% else %}
+            Keine Mitglieder konfiguriert.
+        {% endif %}
+    </p>
+    {% endif %}
+
+    <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-4">
+        Pool: {{ eligible_count }} Person{% if eligible_count != 1 %}en{% endif %} verfügbar
+        (aktive Team-Zuordnung am Arbeitsort).
+    </p>
+</div>

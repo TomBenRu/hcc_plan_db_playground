@@ -233,31 +233,31 @@ def compute_notification_circle(
     cancelled_time_start: time | None,
     cancelled_time_end: time | None,
 ) -> list[NotificationRecipient]:
-    """Berechnet den Benachrichtigungs-Kreis (vorab-konfiguriert + auto-berechnet)."""
+    """Berechnet den Benachrichtigungs-Kreis.
 
-    # ── Schritt A: vorab-konfiguriert ─────────────────────────────────────────
-    preconfigured_rows = session.execute(
-        sa_select(
-            LocationNotificationCircle.web_user_id,
-            WebUser.email,
-            Person.f_name,
-            Person.l_name,
-        )
-        .join(WebUser, WebUser.id == LocationNotificationCircle.web_user_id)
-        .join(Person, Person.id == WebUser.person_id)
-        .where(LocationNotificationCircle.location_of_work_id == location_id)
-        .where(LocationNotificationCircle.web_user_id != exclude_web_user_id)
-    ).mappings().all()
+    Default (`location_of_work.notification_circle_restricted = False`):
+    nur Auto-Kreis (Schritt B).
 
-    preconfigured: dict[uuid.UUID, NotificationRecipient] = {
-        r["web_user_id"]: NotificationRecipient(
-            web_user_id=r["web_user_id"],
-            email=r["email"],
-            person_name=f"{r['f_name']} {r['l_name']}",
-            source=NotificationSource.preconfigured,
-        )
-        for r in preconfigured_rows
-    }
+    Restricted-Modus (`= True`): Endergebnis = Auto-Kreis ∩ Whitelist
+    aus `location_notification_circle`.
+    """
+
+    # ── Schritt A: Whitelist-Modus pruefen ───────────────────────────────────
+    restricted: bool = session.execute(
+        sa_select(LocationOfWork.notification_circle_restricted)
+        .where(LocationOfWork.id == location_id)
+    ).scalar_one()
+
+    whitelist_ids: set[uuid.UUID] | None = None
+    if restricted:
+        whitelist_ids = {
+            row[0]
+            for row in session.execute(
+                sa_select(LocationNotificationCircle.web_user_id)
+                .where(LocationNotificationCircle.location_of_work_id == location_id)
+                .where(LocationNotificationCircle.web_user_id != exclude_web_user_id)
+            ).all()
+        }
 
     # ── Schritt B: auto-berechnet ─────────────────────────────────────────────
     candidates_rows = session.execute(
@@ -425,17 +425,11 @@ def compute_notification_circle(
                     )
                     break
 
-    # ── Schritt C: Merge ──────────────────────────────────────────────────────
-    result: dict[uuid.UUID, NotificationRecipient] = {}
-    for uid, rec in preconfigured.items():
-        result[uid] = rec
-    for uid, rec in auto_computed.items():
-        if uid in result:
-            result[uid].source = NotificationSource.both
-        else:
-            result[uid] = rec
+    # ── Schritt C: Whitelist-Filter (nur im Restricted-Modus) ────────────────
+    if whitelist_ids is None:
+        return list(auto_computed.values())
 
-    return list(result.values())
+    return [rec for uid, rec in auto_computed.items() if uid in whitelist_ids]
 
 
 # ── Haupt-Aktionen ────────────────────────────────────────────────────────────

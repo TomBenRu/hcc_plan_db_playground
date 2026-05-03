@@ -27,6 +27,7 @@ from database.models import (
     TimeOfDay,
 )
 from web_api.common import location_display_name
+from web_api.email.recipient import recipient_email_for_web_user, sql_recipient_email
 from web_api.email.service import EmailPayload
 from web_api.inbox.service import create_inbox_message
 from web_api.models.web_models import (
@@ -207,7 +208,7 @@ def _notify_recipients(
         )
 
     if dispatcher_user and dispatcher_user.id not in notify_ids:
-        emails.insert(0, dispatcher_user.email)
+        emails.insert(0, recipient_email_for_web_user(session, dispatcher_user))
         create_inbox_message(
             session,
             recipient_id=dispatcher_user.id,
@@ -265,7 +266,7 @@ def compute_notification_circle(
             ActorPlanPeriod.id.label("app_id"),
             ActorPlanPeriod.person_id,
             WebUser.id.label("web_user_id"),
-            WebUser.email,
+            sql_recipient_email().label("email"),
             Person.f_name,
             Person.l_name,
         )
@@ -598,8 +599,10 @@ def withdraw_cancellation(
 
     for rec in saved_recipients:
         ru = session.get(WebUser, rec.web_user_id)
+        p = session.get(Person, ru.person_id) if ru and ru.person_id else None
+        recipient_addr = (p.email if p and p.email else (ru.email if ru else ""))
         if ru:
-            recipient_emails.append(ru.email)
+            recipient_emails.append(recipient_addr)
             create_inbox_message(
                 session,
                 recipient_id=rec.web_user_id,
@@ -608,17 +611,16 @@ def withdraw_cancellation(
                 reference_type="cancellation_request",
                 snapshot_data={**snapshot, "sent_as": "employee"},
             )
-        p = session.get(Person, ru.person_id) if ru and ru.person_id else None
         recipients_dc.append(NotificationRecipient(
             web_user_id=rec.web_user_id,
-            email=ru.email if ru else "",
+            email=recipient_addr,
             person_name=f"{p.f_name} {p.l_name}" if p else (ru.email if ru else ""),
             source=rec.source,
         ))
 
     dispatcher_user = _get_dispatcher_web_user(session, ctx["team_id"])
     if dispatcher_user and dispatcher_user.id not in saved_ids:
-        recipient_emails.insert(0, dispatcher_user.email)
+        recipient_emails.insert(0, recipient_email_for_web_user(session, dispatcher_user))
         create_inbox_message(
             session,
             recipient_id=dispatcher_user.id,

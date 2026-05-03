@@ -28,6 +28,7 @@ from web_api.cancellations.service import (
     _render_email,
 )
 from web_api.common import location_display_name
+from web_api.email.recipient import recipient_email_for_web_user
 from web_api.dispatcher.service import (
     get_cast_status_for_appointment,
     replace_cast_for_appointment,
@@ -233,7 +234,7 @@ def create_offer(
             message=message,
         )
         email_payloads.append(EmailPayload(
-            to=[dispatcher_user.email],
+            to=[recipient_email_for_web_user(session, dispatcher_user)],
             subject=f"Angebot: {offerer_name} möchte einspringen",
             html_body=html,
         ))
@@ -306,7 +307,7 @@ def accept_offer(
     )
     html = _render_email("availability_offer_accepted.html", snapshot=snapshot)
     email_payloads.append(EmailPayload(
-        to=[offerer_user.email],
+        to=[recipient_email_for_web_user(session, offerer_user)],
         subject="Dein Angebot wurde angenommen",
         html_body=html,
     ))
@@ -371,7 +372,7 @@ def reject_offer(
             rejection_reason=cleaned_reason,
         )
         email_payloads.append(EmailPayload(
-            to=[offerer_user.email],
+            to=[recipient_email_for_web_user(session, offerer_user)],
             subject="Dein Angebot wurde abgelehnt",
             html_body=html,
         ))
@@ -415,7 +416,7 @@ def withdraw_offer(
         )
         html = _render_email("availability_offer_withdrawn.html", snapshot=snapshot)
         email_payloads.append(EmailPayload(
-            to=[dispatcher_user.email],
+            to=[recipient_email_for_web_user(session, dispatcher_user)],
             subject=f"{offerer_name} hat das Angebot zurückgezogen",
             html_body=html,
         ))

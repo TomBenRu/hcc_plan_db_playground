@@ -31,6 +31,7 @@ from database.models import (
 from web_api.availability.service import create_avail_day, find_avail_day, reset_location_prefs_to_normal
 from database.slot_arithmetic import TimeSlot, slots_overlap
 from web_api.common import location_display_name
+from web_api.email.recipient import recipient_email_for_web_user
 from web_api.email.service import EmailPayload
 from web_api.inbox.service import create_inbox_message
 from web_api.models.web_models import (
@@ -252,7 +253,7 @@ def _cancel_open_requests_for_removed_persons(
             notified_user_ids.add(user.id)
             if user.email:
                 payloads.append(EmailPayload(
-                    to=[user.email],
+                    to=[recipient_email_for_web_user(session, user)],
                     subject="Cast-Änderung: Deine Absage-Anfrage ist obsolet",
                     html_body=_render_cast_removal_email(snapshot),
                 ))
@@ -279,7 +280,7 @@ def _cancel_open_requests_for_removed_persons(
             notified_user_ids.add(offerer.id)
             if offerer.email:
                 payloads.append(EmailPayload(
-                    to=[offerer.email],
+                    to=[recipient_email_for_web_user(session, offerer)],
                     subject="Cast-Änderung: Dein Übernahme-Angebot ist obsolet",
                     html_body=_render_cast_removal_email(offerer_snapshot),
                 ))
@@ -330,7 +331,7 @@ def _cancel_open_requests_for_removed_persons(
                     else "Cast-Änderung: Dein Tausch-Partner wurde entfernt"
                 )
                 payloads.append(EmailPayload(
-                    to=[user.email],
+                    to=[recipient_email_for_web_user(session, user)],
                     subject=subject,
                     html_body=_render_cast_removal_email(snapshot),
                 ))
@@ -396,7 +397,7 @@ def _notify_direct_cast_changes(
             )
             if user.email:
                 payloads.append(EmailPayload(
-                    to=[user.email],
+                    to=[recipient_email_for_web_user(session, user)],
                     subject="In Besetzung aufgenommen",
                     html_body=_render_cast_addition_email(snapshot),
                 ))
@@ -416,7 +417,7 @@ def _notify_direct_cast_changes(
             )
             if user.email:
                 payloads.append(EmailPayload(
-                    to=[user.email],
+                    to=[recipient_email_for_web_user(session, user)],
                     subject="Aus Besetzung entfernt",
                     html_body=_render_cast_removal_email(snapshot),
                 ))
@@ -1031,7 +1032,7 @@ def cancel_open_requests_for_unbound_plan(
             )
             if user.email:
                 payloads.append(EmailPayload(
-                    to=[user.email],
+                    to=[recipient_email_for_web_user(session, user)],
                     subject="Plan nicht mehr aktuell: Deine Absage-Anfrage ist obsolet",
                     html_body=_render_plan_unbound_email(snapshot),
                 ))
@@ -1052,7 +1053,7 @@ def cancel_open_requests_for_unbound_plan(
             )
             if offerer.email:
                 payloads.append(EmailPayload(
-                    to=[offerer.email],
+                    to=[recipient_email_for_web_user(session, offerer)],
                     subject="Plan nicht mehr aktuell: Dein Übernahme-Angebot ist obsolet",
                     html_body=_render_plan_unbound_email(offerer_snapshot),
                 ))
@@ -1080,7 +1081,7 @@ def cancel_open_requests_for_unbound_plan(
             )
             if user.email:
                 payloads.append(EmailPayload(
-                    to=[user.email],
+                    to=[recipient_email_for_web_user(session, user)],
                     subject="Plan nicht mehr aktuell: Deine Tausch-Anfrage ist obsolet",
                     html_body=_render_plan_unbound_email(snapshot),
                 ))

@@ -24,6 +24,7 @@ from database.models import (
     TeamActorAssign,
     TeamLocationAssign,
 )
+from web_api.email.recipient import sql_recipient_email
 from web_api.models.web_models import LocationNotificationCircle, WebUser
 
 
@@ -93,7 +94,7 @@ def get_eligible_users_for_location(
     rows = session.execute(
         sa_select(
             distinct(WebUser.id).label("web_user_id"),
-            WebUser.email,
+            sql_recipient_email().label("email"),
             Person.f_name,
             Person.l_name,
         )
@@ -133,7 +134,7 @@ def get_circle_members(
     rows = session.execute(
         sa_select(
             distinct(WebUser.id).label("web_user_id"),
-            WebUser.email,
+            sql_recipient_email().label("email"),
             Person.f_name,
             Person.l_name,
             LocationNotificationCircle.created_at,

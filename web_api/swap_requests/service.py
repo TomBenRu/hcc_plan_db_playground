@@ -23,6 +23,7 @@ from database.models import (
     Team,
     TimeOfDay,
 )
+from web_api.email.recipient import recipient_email_for_web_user
 from web_api.cancellations.service import (
     _build_snapshot,
     _get_dispatcher_web_user,
@@ -221,7 +222,7 @@ def create_swap_request(
         )
         email_payloads.append(
             EmailPayload(
-                to=[target_user.email],
+                to=[recipient_email_for_web_user(session, target_user)],
                 subject="Tausch-Anfrage erhalten",
                 html_body=html,
             )
@@ -298,7 +299,7 @@ def accept_swap_request(
         )
         email_payloads.append(
             EmailPayload(
-                to=[dispatcher_user.email],
+                to=[recipient_email_for_web_user(session, dispatcher_user)],
                 subject=f"{target_name} hat dem Tausch zugestimmt",
                 html_body=html,
             )
@@ -346,7 +347,7 @@ def reject_swap_request(
         html = _render_email("swap_rejected.html", snapshot=snapshot)
         email_payloads.append(
             EmailPayload(
-                to=[requester_user.email],
+                to=[recipient_email_for_web_user(session, requester_user)],
                 subject="Tausch-Anfrage abgelehnt",
                 html_body=html,
             )
@@ -419,7 +420,7 @@ def confirm_swap_request(
     for u in notify_users:
         if u.id not in notified_ids:
             notified_ids.add(u.id)
-            notify_emails.append(u.email)
+            notify_emails.append(recipient_email_for_web_user(session, u))
             create_inbox_message(
                 session,
                 recipient_id=u.id,
@@ -481,7 +482,7 @@ def withdraw_swap_request(
         html = _render_email("swap_withdrawn.html", snapshot=snapshot)
         email_payloads.append(
             EmailPayload(
-                to=[target_user.email],
+                to=[recipient_email_for_web_user(session, target_user)],
                 subject="Tausch-Anfrage zurückgezogen",
                 html_body=html,
             )

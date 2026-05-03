@@ -102,6 +102,18 @@ curl -X POST -H "Cookie: <session>" \
 - Hook-Log enthält `alembic upgrade … a4b5c6d7e8f9`.
 - Web-Service startet ohne ImportError.
 
+### 11. Privat-Email statt Login-Email
+
+- Bei einem Whitelist-Mitglied auf der Detail-View prüfen: angezeigte
+  E-Mail = `Person.email` (Account-Profil), nicht `WebUser.email`
+  (Login-Identifier).
+- Wenn beide Adressen unterschiedlich sind (User hat im Account-Profil
+  eine andere Adresse hinterlegt): Test-Absage feuern → Mail landet im
+  Postfach der **Privat-Adresse**, nicht der Login-Adresse.
+- Sonderfall Service-Account ohne Person-Verknüpfung
+  (`web_user.person_id IS NULL`): Mail geht weiterhin an `WebUser.email`
+  als Fallback.
+
 ## Bekannte Spec-Abweichungen
 
 - Im additiven Original-PRD-Modell wurde `NotificationSource.preconfigured`

@@ -16,6 +16,7 @@ from web_api.cancellations.service import (
     _notify_recipients,
     _render_email,
 )
+from web_api.email.recipient import recipient_email_for_web_user
 from web_api.email.service import EmailPayload
 from web_api.inbox.service import create_inbox_message
 from web_api.models.web_models import (
@@ -116,7 +117,7 @@ def create_takeover_offer(
         )
         email_payloads.append(
             EmailPayload(
-                to=[dispatcher_user.email],
+                to=[recipient_email_for_web_user(session, dispatcher_user)],
                 subject="Übernahme-Angebot eingegangen",
                 html_body=html,
             )
@@ -235,7 +236,7 @@ def accept_takeover_offer(
         ru = session.get(WebUser, rec.web_user_id)
         if ru:
             notified_ids.add(ru.id)
-            notify_emails.append(ru.email)
+            notify_emails.append(recipient_email_for_web_user(session, ru))
             create_inbox_message(
                 session,
                 recipient_id=ru.id,
@@ -249,7 +250,7 @@ def accept_takeover_offer(
     for extra_user in [offerer_user, requester_user]:
         if extra_user.id not in notified_ids:
             notified_ids.add(extra_user.id)
-            notify_emails.append(extra_user.email)
+            notify_emails.append(recipient_email_for_web_user(session, extra_user))
             create_inbox_message(
                 session,
                 recipient_id=extra_user.id,

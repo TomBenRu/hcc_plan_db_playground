@@ -1,5 +1,16 @@
-{# HTMX-Partial: Unread-Badge für Navigation. Kontext: unread_count #}
-<span id="inbox-badge">
+{# HTMX-Partial: Unread-Badge fuer Navigation. Kontext: unread_count.
+
+   WICHTIG: Die HTMX-Polling-Attribute MUESSEN am Wurzel-Span dieses
+   Partials sitzen — bei `hx-swap="outerHTML"` ersetzt jeder Tausch das
+   gesamte Element. Wenn die Attribute nur im initialen Nav-Template
+   stehen, gehen sie nach dem ersten Tausch verloren und das Polling
+   bleibt stehen. Kein `load`-Trigger hier (das wuerde nach jedem
+   Replacement sofort einen weiteren Fetch ausloesen → endless Loop).
+   Der initiale `load` kommt aus partials/nav.html. #}
+<span id="inbox-badge"
+      hx-get="/inbox/badge"
+      hx-trigger="every 30s"
+      hx-swap="outerHTML">
     {% if unread_count > 0 %}
     <span class="absolute -top-1 -right-1 w-4 h-4 rounded-full bg-rose-500 text-white text-[9px] font-bold flex items-center justify-center">
         {{ unread_count if unread_count < 100 else "99+" }}

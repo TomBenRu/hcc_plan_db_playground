@@ -1,0 +1,36 @@
+{# Erwartet: s (LocationCircleSummary) #}
+{% if s.restricted %}
+    {% set strip_color = '#F59E0B' %}
+    {% set chip_classes = 'bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:ring-amber-700/50' %}
+    {% set chip_label = 'Whitelist · ' + s.member_count|string %}
+{% else %}
+    {% set strip_color = '#22C55E' %}
+    {% set chip_classes = 'bg-green-50 text-green-700 ring-green-200 dark:bg-green-900/30 dark:text-green-400 dark:ring-green-700/50' %}
+    {% set chip_label = 'Alle' %}
+{% endif %}
+
+<a href="/dispatcher/notification-circles/{{ s.location_id }}"
+   class="group block bg-white dark:bg-slate-800 rounded-xl border
+          border-slate-100 dark:border-slate-700/50 shadow-sm
+          hover:shadow-md hover:border-slate-200 dark:hover:border-slate-600
+          transition-all duration-200 overflow-hidden flex">
+
+    <div class="w-1 flex-shrink-0 transition-colors duration-200"
+         style="background-color: {{ strip_color }};"></div>
+
+    <div class="flex-1 min-w-0 p-4">
+        <div class="flex items-start justify-between gap-3">
+            <div class="min-w-0 flex-1">
+                <p class="text-sm font-semibold text-slate-800 dark:text-slate-100 truncate">
+                    {{ s.location_name }}
+                </p>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 truncate">
+                    {{ s.team_name }}
+                </p>
+            </div>
+            <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 {{ chip_classes }}">
+                {{ chip_label }}
+            </span>
+        </div>
+    </div>
+</a>

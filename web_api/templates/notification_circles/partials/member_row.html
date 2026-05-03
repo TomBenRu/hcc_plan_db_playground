@@ -1,0 +1,13 @@
+{# Erwartet: m (CircleMember), loc (LocationOfWork) #}
+<li id="member-{{ m.web_user_id }}"
+    class="flex items-center gap-3 px-3 py-2 rounded-lg
+           bg-slate-50 dark:bg-slate-900/40
+           border border-slate-100 dark:border-slate-700/50">
+    <div class="flex-1 min-w-0">
+        <p class="text-sm text-slate-800 dark:text-slate-100 truncate">{{ m.person_name }}</p>
+        <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate">{{ m.email }}</p>
+    </div>
+    <span class="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
+        {{ m.added_at.strftime("%d.%m.%Y") }}
+    </span>
+</li>

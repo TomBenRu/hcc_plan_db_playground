@@ -1,0 +1,155 @@
+{% extends "base.html" %}
+
+{% block title %}Benachrichtigungskreise – hcc plan{% endblock %}
+
+{% block head %}
+<style>
+    .sidebar-scroll::-webkit-scrollbar { width: 3px; }
+    .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+    .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+
+    .content-scroll::-webkit-scrollbar { width: 4px; }
+    .content-scroll::-webkit-scrollbar-track { background: transparent; }
+    .content-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 2px; }
+
+    @media (max-width: 1023px) {
+        .page-wrapper { grid-template-columns: 1fr !important; grid-template-rows: auto 1fr; }
+        .page-sidebar {
+            flex-direction: row !important; flex-wrap: wrap;
+            gap: 0.5rem; padding: 0.75rem 1rem !important;
+            align-items: center; min-height: unset !important;
+            overflow: visible !important;
+        }
+        .page-sidebar .sidebar-header { margin-bottom: 0 !important; flex-shrink: 0; }
+        .page-sidebar .sidebar-header h1 { font-size: 1rem !important; }
+        .page-sidebar .sidebar-header p  { display: none !important; }
+        .page-sidebar .sidebar-divider   { display: none !important; }
+        .page-sidebar .sidebar-spacer    { display: none !important; }
+        .sidebar-back { display: none !important; }
+    }
+
+    .filter-btn         { transition: background 0.15s, color 0.15s, border-color 0.15s; }
+    .filter-btn.active  { background: rgba(255,255,255,0.12); color: #fff; border-color: rgba(255,255,255,0.2); }
+    .filter-btn:not(.active):hover { background: rgba(255,255,255,0.06); color: #cbd5e1; }
+
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .anim { animation: fadeUp 0.35s ease-out both; }
+</style>
+{% endblock %}
+
+{% block nav %}{% include "partials/nav.html" %}{% endblock %}
+
+{% block content %}
+<div class="h-[calc(100vh-56px)] flex flex-col overflow-hidden">
+<div class="page-wrapper flex-1 grid overflow-hidden" style="grid-template-columns: 240px 1fr;">
+
+    {# ── Sidebar ─────────────────────────────────────────────────────────── #}
+    <aside class="page-sidebar bg-navy grid-bg flex flex-col overflow-y-auto sidebar-scroll
+                  p-6 animate-fade-up border-r border-white/5">
+        <div class="sidebar-header mb-6">
+            <div class="flex items-center gap-1.5 mb-2">
+                <span class="inline-block w-1.5 h-1.5 rounded-full" style="background-color:#6366F1;"></span>
+                <span class="text-xs font-semibold tracking-widest uppercase font-sans text-indigo-300/80">
+                    Dispatcher
+                </span>
+            </div>
+            <h1 class="font-display text-white text-2xl font-semibold leading-tight tracking-tight">
+                Benachrichtigungskreise
+            </h1>
+            <p class="font-sans text-xs text-slate-500 mt-1.5">
+                Empfängerkreis pro Arbeitsort eingrenzen.
+            </p>
+        </div>
+
+        <div class="sidebar-divider border-t border-white/5 mb-5"></div>
+
+        <div class="sidebar-filters flex flex-col gap-1.5 mb-6">
+            <p class="hidden lg:block text-xs font-semibold tracking-widest uppercase text-slate-500 mb-2 font-sans">
+                Modus
+            </p>
+
+            <a href="?filter="
+               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                      border-transparent text-sm font-sans text-slate-400
+                      {% if not filter %}active{% endif %}">
+                <span class="w-2 h-2 rounded-full flex-shrink-0 bg-slate-500"></span>
+                Alle
+            </a>
+
+            <a href="?filter=open"
+               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                      border-transparent text-sm font-sans text-slate-400
+                      {% if filter == 'open' %}active{% endif %}">
+                <span class="w-2 h-2 rounded-full flex-shrink-0 bg-green-400"></span>
+                Offen
+            </a>
+
+            <a href="?filter=restricted"
+               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                      border-transparent text-sm font-sans text-slate-400
+                      {% if filter == 'restricted' %}active{% endif %}">
+                <span class="w-2 h-2 rounded-full flex-shrink-0 bg-amber-400"></span>
+                Eingeschränkt
+            </a>
+        </div>
+
+        <div class="sidebar-spacer flex-1"></div>
+
+        <a href="/dashboard"
+           class="sidebar-back flex items-center gap-2 text-xs text-slate-600 hover:text-slate-300
+                  transition-colors font-sans mt-4 pt-4 border-t border-white/5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Zurück zum Dashboard
+        </a>
+    </aside>
+
+    {# ── Main ───────────────────────────────────────────────────────────── #}
+    <main class="flex-1 overflow-y-auto content-scroll bg-slate-50 dark:bg-slate-900 px-6 py-8">
+        <div class="max-w-2xl mx-auto">
+
+            <div class="mb-6 anim" style="animation-delay: 0.05s;">
+                <h2 class="font-display text-xl font-semibold text-slate-800 dark:text-white">
+                    {{ filter_labels.get(filter, filter) }}
+                </h2>
+                {% if summaries %}
+                <p class="text-xs text-slate-400 mt-0.5 font-sans">
+                    {% set n = summaries | length %}
+                    {{ n }} {{ "Arbeitsort" if n == 1 else "Arbeitsorte" }}
+                </p>
+                {% endif %}
+            </div>
+
+            {% if summaries %}
+            <div class="space-y-2 anim" style="animation-delay: 0.1s;">
+                {% for s in summaries %}
+                {% include "notification_circles/partials/location_card.html" %}
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="anim flex flex-col items-center justify-center py-16 text-slate-400"
+                 style="animation-delay: 0.1s;">
+                <div class="w-14 h-14 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/50 shadow-sm
+                            flex items-center justify-center mb-4">
+                    <svg class="w-7 h-7 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                              d="M3 4h18M6 9h12M9 14h6M11 19h2"/>
+                    </svg>
+                </div>
+                <p class="text-sm font-medium text-slate-500">Keine Arbeitsorte</p>
+                <p class="text-xs mt-1 text-slate-400">
+                    {% if filter %}Kein Eintrag mit diesem Modus.{% else %}Keine Arbeitsorte in deinen Dispatcher-Teams.{% endif %}
+                </p>
+            </div>
+            {% endif %}
+
+        </div>
+    </main>
+
+</div>
+</div>
+{% endblock %}

@@ -19,18 +19,18 @@
   <p style="margin:0 0 16px"><span class="badge">Tausch bestätigt</span></p>
   {% if recipient_first_name %}<p style="font-size:14px; color:#1e293b; margin:0 0 16px;">Hallo {{ recipient_first_name }},</p>{% endif %}
   <h1>Tausch zwischen {{ snapshot.requester_name }} und {{ snapshot.target_name }} wurde bestätigt</h1>
-  <p style="font-size:13px; color:#64748b; margin:4px 0 20px;">Der Plan wurde automatisch angepasst.</p>
+  <p style="font-size:13px; color:#64748b; margin:4px 0 20px;">Der Plan wurde automatisch angepasst. Die neuen Termine sind:</p>
 
   <div class="row">
     <div class="col">
       <div class="label">{{ snapshot.requester_name }}</div>
-      <div class="value">{{ snapshot.requester_location }}</div>
-      <div class="value" style="color:#64748b; font-size:12px;">{{ snapshot.requester_event_date }}</div>
+      <div class="value">{{ snapshot.target_location }}</div>
+      <div class="value" style="color:#64748b; font-size:12px;">{{ snapshot.target_event_date }}</div>
     </div>
     <div class="col">
       <div class="label">{{ snapshot.target_name }}</div>
-      <div class="value">{{ snapshot.target_location }}</div>
-      <div class="value" style="color:#64748b; font-size:12px;">{{ snapshot.target_event_date }}</div>
+      <div class="value">{{ snapshot.requester_location }}</div>
+      <div class="value" style="color:#64748b; font-size:12px;">{{ snapshot.requester_event_date }}</div>
     </div>
   </div>
 

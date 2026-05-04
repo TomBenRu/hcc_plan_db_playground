@@ -6,3 +6,19 @@
         <a href="/swap-requests" class="text-brand underline">Alle Anfragen ansehen</a>
     </p>
 </div>
+{% if submitted_target_ids %}
+<script>
+(function() {
+    const targets = {{ submitted_target_ids | tojson }};
+    targets.forEach(function(id) {
+        const btn = document.querySelector('.swap-offer-btn[data-target-appt-id="' + id + '"]');
+        if (btn) {
+            btn.classList.remove('is-selected');
+            btn.classList.add('is-submitted');
+            btn.setAttribute('disabled', 'disabled');
+            btn.textContent = 'Anfrage gestellt';
+        }
+    });
+})();
+</script>
+{% endif %}

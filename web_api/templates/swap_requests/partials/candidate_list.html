@@ -48,16 +48,26 @@
                 </div>
 
                 {# CTA: Tausch anbieten → lädt Formular in Modal-Bereich #}
+                {% if c.already_requested %}
+                <button disabled
+                        data-target-appt-id="{{ c.appointment_id }}"
+                        class="swap-offer-btn is-submitted flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg
+                               bg-brand/10 text-brand border border-brand/30 whitespace-nowrap">
+                    Anfrage gestellt
+                </button>
+                {% else %}
                 <button
                     hx-get="/swap-requests/form?target_appointment_id={{ c.appointment_id }}&target_web_user_id={{ c.holder_web_user_id }}{% if requester_appointment_id %}&requester_appointment_id={{ requester_appointment_id }}{% endif %}"
                     hx-target="#swap-modal-area"
                     hx-swap="innerHTML"
+                    data-target-appt-id="{{ c.appointment_id }}"
                     onclick="document.querySelectorAll('.swap-offer-btn.is-selected').forEach(b => b.classList.remove('is-selected')); this.classList.add('is-selected'); document.getElementById('swap-modal-area').scrollIntoView({behavior:'smooth'});"
                     class="swap-offer-btn flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg
                            bg-brand/10 text-brand border border-brand/30
                            hover:bg-brand/20 whitespace-nowrap">
                     Tausch anbieten
                 </button>
+                {% endif %}
             </div>
         </div>
     </div>

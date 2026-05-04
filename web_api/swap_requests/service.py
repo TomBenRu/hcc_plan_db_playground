@@ -637,6 +637,7 @@ class SwapCandidate:
     time_of_day_name: str | None
     holder_web_user_id: uuid.UUID
     holder_name: str
+    already_requested: bool = False
 
 
 def _get_requester_team_ids(session: Session, web_user: WebUser) -> list[uuid.UUID]:
@@ -757,6 +758,18 @@ def get_swap_candidate_appointments(
 
     rows = session.execute(query).mappings().all()
 
+    # Termine, für die der Anfrager bereits eine offene SwapRequest hat → in der Liste als "Anfrage gestellt" anzeigen
+    already_requested_query = (
+        sa_select(SwapRequest.target_appointment_id)
+        .where(SwapRequest.requester_web_user_id == requester_user.id)
+        .where(SwapRequest.status.in_([SwapRequestStatus.pending, SwapRequestStatus.accepted_by_target]))
+    )
+    if requester_appointment_id is not None:
+        already_requested_query = already_requested_query.where(
+            SwapRequest.requester_appointment_id == requester_appointment_id
+        )
+    already_requested_ids = set(session.execute(already_requested_query).scalars().all())
+
     return [
         SwapCandidate(
             appointment_id=row["appointment_id"],
@@ -765,6 +778,7 @@ def get_swap_candidate_appointments(
             time_of_day_name=row["time_of_day_name"],
             holder_web_user_id=row["holder_web_user_id"],
             holder_name=f"{row['f_name']} {row['l_name']}",
+            already_requested=row["appointment_id"] in already_requested_ids,
         )
         for row in rows
     ]

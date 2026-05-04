@@ -726,6 +726,26 @@ def get_swap_candidate_appointments(
     if requester_user.person_id is not None:
         query = query.where(Person.id != requester_user.person_id)
 
+    # Doppelbuchung: Personen, die im Anfrager-Termin bereits besetzt sind, ausschließen
+    if requester_appointment_id is not None:
+        query = query.where(Person.id.notin_(
+            sa_select(ActorPlanPeriod.person_id)
+            .select_from(AvailDayAppointmentLink)
+            .join(AvailDay, AvailDay.id == AvailDayAppointmentLink.avail_day_id)
+            .join(ActorPlanPeriod, ActorPlanPeriod.id == AvailDay.actor_plan_period_id)
+            .where(AvailDayAppointmentLink.appointment_id == requester_appointment_id)
+        ))
+
+    # Doppelbuchung: Termine, in denen der Anfrager bereits besetzt ist, ausschließen
+    if requester_user.person_id is not None:
+        query = query.where(Appointment.id.notin_(
+            sa_select(AvailDayAppointmentLink.appointment_id)
+            .select_from(AvailDayAppointmentLink)
+            .join(AvailDay, AvailDay.id == AvailDayAppointmentLink.avail_day_id)
+            .join(ActorPlanPeriod, ActorPlanPeriod.id == AvailDay.actor_plan_period_id)
+            .where(ActorPlanPeriod.person_id == requester_user.person_id)
+        ))
+
     if location_ids:
         query = query.where(LocationOfWork.id.in_(location_ids))
     if person_ids:

@@ -71,6 +71,27 @@
         color-scheme: dark;
     }
     .date-input:focus { border-color: rgba(255,255,255,0.25); }
+
+    /* ── "Tausch anbieten"-Button: Selected-State ──────────────────────────── */
+    .swap-offer-btn {
+        transition: background-color 0.15s, color 0.15s, border-color 0.15s,
+                    box-shadow 0.15s, transform 0.1s ease-out;
+    }
+    .swap-offer-btn.is-selected,
+    .swap-offer-btn.is-selected:hover {
+        background-color: rgb(220 252 231);   /* green-100  */
+        color: rgb(21 128 61);                /* green-700  */
+        border-color: rgb(134 239 172);       /* green-300  */
+        box-shadow: inset 0 1px 3px 0 rgb(0 0 0 / 0.12);
+        transform: translateY(1px);
+    }
+    [data-theme="dark"] .swap-offer-btn.is-selected,
+    [data-theme="dark"] .swap-offer-btn.is-selected:hover {
+        background-color: rgb(20 83 45 / 0.35);   /* green-900/35 */
+        color: rgb(74 222 128);                   /* green-400    */
+        border-color: rgb(21 128 61 / 0.55);      /* green-700/55 */
+        box-shadow: inset 0 1px 3px 0 rgb(0 0 0 / 0.4);
+    }
 </style>
 {% endblock %}
 

@@ -89,7 +89,7 @@
                 Tausch anfragen
             </button>
             <button type="button"
-                    onclick="document.getElementById('swap-action-area').remove();"
+                    onclick="document.querySelectorAll('.swap-offer-btn.is-selected').forEach(b => b.classList.remove('is-selected')); document.getElementById('swap-action-area').remove();"
                     class="px-4 py-2.5 rounded-xl text-sm font-medium border border-slate-200 dark:border-slate-700
                            text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50
                            transition-colors">

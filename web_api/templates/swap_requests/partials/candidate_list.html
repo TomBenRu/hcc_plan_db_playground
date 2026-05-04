@@ -52,10 +52,10 @@
                     hx-get="/swap-requests/form?target_appointment_id={{ c.appointment_id }}&target_web_user_id={{ c.holder_web_user_id }}{% if requester_appointment_id %}&requester_appointment_id={{ requester_appointment_id }}{% endif %}"
                     hx-target="#swap-modal-area"
                     hx-swap="innerHTML"
-                    onclick="document.getElementById('swap-modal-area').scrollIntoView({behavior:'smooth'});"
-                    class="flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg
+                    onclick="document.querySelectorAll('.swap-offer-btn.is-selected').forEach(b => b.classList.remove('is-selected')); this.classList.add('is-selected'); document.getElementById('swap-modal-area').scrollIntoView({behavior:'smooth'});"
+                    class="swap-offer-btn flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg
                            bg-brand/10 text-brand border border-brand/30
-                           hover:bg-brand/20 transition-colors whitespace-nowrap">
+                           hover:bg-brand/20 whitespace-nowrap">
                     Tausch anbieten
                 </button>
             </div>

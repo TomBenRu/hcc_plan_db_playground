@@ -16,7 +16,7 @@ from web_api.cancellations.service import (
     _notify_recipients,
     _render_email,
 )
-from web_api.email.recipient import recipient_email_for_web_user
+from web_api.email.recipient import first_name_for_web_user, recipient_email_for_web_user
 from web_api.email.service import EmailPayload
 from web_api.inbox.service import create_inbox_message
 from web_api.models.web_models import (
@@ -114,6 +114,7 @@ def create_takeover_offer(
             offerer_name=offerer_name,
             snapshot=snapshot,
             message=message,
+            recipient_first_name=first_name_for_web_user(session, dispatcher_user),
         )
         email_payloads.append(
             EmailPayload(
@@ -227,7 +228,7 @@ def accept_takeover_offer(
         .where(CancellationNotificationRecipient.cancellation_request_id == cancellation_id)
     ).scalars().all()
 
-    notify_emails: list[str] = []
+    recipient_infos: list[tuple[str, str]] = []  # (email, first_name) pro Empfänger
     notified_ids: set[uuid.UUID] = set()
 
     tagged_snapshot = {**full_snapshot, "sent_as": "employee"}
@@ -236,7 +237,10 @@ def accept_takeover_offer(
         ru = session.get(WebUser, rec.web_user_id)
         if ru:
             notified_ids.add(ru.id)
-            notify_emails.append(recipient_email_for_web_user(session, ru))
+            recipient_infos.append((
+                recipient_email_for_web_user(session, ru),
+                first_name_for_web_user(session, ru),
+            ))
             create_inbox_message(
                 session,
                 recipient_id=ru.id,
@@ -250,7 +254,10 @@ def accept_takeover_offer(
     for extra_user in [offerer_user, requester_user]:
         if extra_user.id not in notified_ids:
             notified_ids.add(extra_user.id)
-            notify_emails.append(recipient_email_for_web_user(session, extra_user))
+            recipient_infos.append((
+                recipient_email_for_web_user(session, extra_user),
+                first_name_for_web_user(session, extra_user),
+            ))
             create_inbox_message(
                 session,
                 recipient_id=extra_user.id,
@@ -261,16 +268,17 @@ def accept_takeover_offer(
             )
 
     email_payloads: list[EmailPayload] = list(cast_removal_payloads)
-    if notify_emails:
+    for email, first_name in recipient_infos:
         html = _render_email(
             "takeover_accepted.html",
             offerer_name=offerer_name,
             employee_name=employee_name,
             snapshot=snapshot,
+            recipient_first_name=first_name,
         )
         email_payloads.append(
             EmailPayload(
-                to=notify_emails,
+                to=[email],
                 subject="Übernahme akzeptiert",
                 html_body=html,
             )

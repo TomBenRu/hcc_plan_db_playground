@@ -15,6 +15,7 @@
 <body>
 <div class="card">
   <p style="margin:0 0 16px"><span class="badge">Termin abgesagt</span></p>
+  {% if recipient_first_name %}<p style="font-size:14px; color:#1e293b; margin:0 0 16px;">Hallo {{ recipient_first_name }},</p>{% endif %}
   <h1>{{ employee_name }} hat einen Termin abgesagt</h1>
   <p style="font-size:13px; color:#64748b; margin:4px 0 20px;">Diese E-Mail wurde automatisch versendet.</p>
 

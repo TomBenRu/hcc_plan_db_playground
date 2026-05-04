@@ -50,12 +50,16 @@ from web_api.templating import templates
 # ── Notification-Helfer ───────────────────────────────────────────────
 
 
-def _render_cast_removal_email(snapshot: dict) -> str:
-    return templates.get_template("emails/cast_member_removed.html").render(snapshot=snapshot)
+def _render_cast_removal_email(snapshot: dict, recipient_first_name: str = "") -> str:
+    return templates.get_template("emails/cast_member_removed.html").render(
+        snapshot=snapshot, recipient_first_name=recipient_first_name,
+    )
 
 
-def _render_plan_unbound_email(snapshot: dict) -> str:
-    return templates.get_template("emails/plan_unbound.html").render(snapshot=snapshot)
+def _render_plan_unbound_email(snapshot: dict, recipient_first_name: str = "") -> str:
+    return templates.get_template("emails/plan_unbound.html").render(
+        snapshot=snapshot, recipient_first_name=recipient_first_name,
+    )
 
 
 def _load_cast_removal_context(session: Session, appointment_id: uuid.UUID) -> dict:
@@ -227,6 +231,15 @@ def _cancel_open_requests_for_removed_persons(
                 return f"{p.f_name} {p.l_name}"
         return user.email or "?"
 
+    def _first_name(wu_id: uuid.UUID | None) -> str:
+        if wu_id is None:
+            return ""
+        user = users_by_id.get(wu_id)
+        if user is None or not user.person_id:
+            return ""
+        p = persons_by_id.get(user.person_id)
+        return p.f_name or "" if p is not None else ""
+
     ctx = _load_cast_removal_context(session, appointment_id)
 
     # ── 1. CancellationRequests + Takeover-Kaskade ────────────────────
@@ -255,7 +268,7 @@ def _cancel_open_requests_for_removed_persons(
                 payloads.append(EmailPayload(
                     to=[recipient_email_for_web_user(session, user)],
                     subject="Cast-Änderung: Deine Absage-Anfrage ist obsolet",
-                    html_body=_render_cast_removal_email(snapshot),
+                    html_body=_render_cast_removal_email(snapshot, _first_name(user.id)),
                 ))
 
         for offer in offers_by_cr.get(cr.id, []):
@@ -282,7 +295,7 @@ def _cancel_open_requests_for_removed_persons(
                 payloads.append(EmailPayload(
                     to=[recipient_email_for_web_user(session, offerer)],
                     subject="Cast-Änderung: Dein Übernahme-Angebot ist obsolet",
-                    html_body=_render_cast_removal_email(offerer_snapshot),
+                    html_body=_render_cast_removal_email(offerer_snapshot, _first_name(offerer.id)),
                 ))
 
     # ── 2. SwapRequests: beide Seiten benachrichtigen ─────────────────
@@ -333,15 +346,17 @@ def _cancel_open_requests_for_removed_persons(
                 payloads.append(EmailPayload(
                     to=[recipient_email_for_web_user(session, user)],
                     subject=subject,
-                    html_body=_render_cast_removal_email(snapshot),
+                    html_body=_render_cast_removal_email(snapshot, _first_name(user.id)),
                 ))
 
     session.flush()
     return payloads, notified_user_ids
 
 
-def _render_cast_addition_email(snapshot: dict) -> str:
-    return templates.get_template("emails/cast_member_added.html").render(snapshot=snapshot)
+def _render_cast_addition_email(snapshot: dict, recipient_first_name: str = "") -> str:
+    return templates.get_template("emails/cast_member_added.html").render(
+        snapshot=snapshot, recipient_first_name=recipient_first_name,
+    )
 
 
 def _notify_direct_cast_changes(
@@ -378,9 +393,14 @@ def _notify_direct_cast_changes(
     if not web_users:
         return payloads
 
+    f_name_by_person_id: dict[uuid.UUID, str] = dict(session.execute(
+        sa_select(Person.id, Person.f_name).where(Person.id.in_(relevant_person_ids))
+    ).all())
+
     ctx = _load_cast_removal_context(session, appointment_id)
 
     for user in web_users:
+        first_name = f_name_by_person_id.get(user.person_id, "") or ""
         if user.person_id in added_person_ids:
             snapshot = {
                 **_base_snapshot(ctx),
@@ -399,7 +419,7 @@ def _notify_direct_cast_changes(
                 payloads.append(EmailPayload(
                     to=[recipient_email_for_web_user(session, user)],
                     subject="In Besetzung aufgenommen",
-                    html_body=_render_cast_addition_email(snapshot),
+                    html_body=_render_cast_addition_email(snapshot, first_name),
                 ))
         elif user.person_id in removed_person_ids and user.id not in exclude_user_ids:
             snapshot = {
@@ -419,7 +439,7 @@ def _notify_direct_cast_changes(
                 payloads.append(EmailPayload(
                     to=[recipient_email_for_web_user(session, user)],
                     subject="Aus Besetzung entfernt",
-                    html_body=_render_cast_removal_email(snapshot),
+                    html_body=_render_cast_removal_email(snapshot, first_name),
                 ))
 
     session.flush()
@@ -1003,6 +1023,20 @@ def cancel_open_requests_for_unbound_plan(
     ).scalars().all())
     users_by_id = {u.id: u for u in all_users}
 
+    person_ids_for_users = {u.person_id for u in all_users if u.person_id}
+    f_name_by_person_id: dict[uuid.UUID, str] = (
+        dict(session.execute(
+            sa_select(Person.id, Person.f_name).where(Person.id.in_(person_ids_for_users))
+        ).all())
+        if person_ids_for_users else {}
+    )
+
+    def _first_name_for(wu_id: uuid.UUID) -> str:
+        u = users_by_id.get(wu_id)
+        if u is None or not u.person_id:
+            return ""
+        return f_name_by_person_id.get(u.person_id, "") or ""
+
     # Termin-Kontext pro unique appointment_id vorladen (über Cancel-, Swap- und
     # beide Swap-Seiten, auch Cross-Plan)
     unique_appt_ids: set[uuid.UUID] = set()
@@ -1034,7 +1068,7 @@ def cancel_open_requests_for_unbound_plan(
                 payloads.append(EmailPayload(
                     to=[recipient_email_for_web_user(session, user)],
                     subject="Plan nicht mehr aktuell: Deine Absage-Anfrage ist obsolet",
-                    html_body=_render_plan_unbound_email(snapshot),
+                    html_body=_render_plan_unbound_email(snapshot, _first_name_for(user.id)),
                 ))
 
         for offer in offers_by_cr.get(cr.id, []):
@@ -1055,7 +1089,7 @@ def cancel_open_requests_for_unbound_plan(
                 payloads.append(EmailPayload(
                     to=[recipient_email_for_web_user(session, offerer)],
                     subject="Plan nicht mehr aktuell: Dein Übernahme-Angebot ist obsolet",
-                    html_body=_render_plan_unbound_email(offerer_snapshot),
+                    html_body=_render_plan_unbound_email(offerer_snapshot, _first_name_for(offerer.id)),
                 ))
 
     # 2. SwapRequests — beide Seiten benachrichtigen (jede Seite mit ihrem
@@ -1083,7 +1117,7 @@ def cancel_open_requests_for_unbound_plan(
                 payloads.append(EmailPayload(
                     to=[recipient_email_for_web_user(session, user)],
                     subject="Plan nicht mehr aktuell: Deine Tausch-Anfrage ist obsolet",
-                    html_body=_render_plan_unbound_email(snapshot),
+                    html_body=_render_plan_unbound_email(snapshot, _first_name_for(user.id)),
                 ))
 
     session.flush()

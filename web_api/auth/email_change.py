@@ -172,7 +172,13 @@ def cancel_pending_change(session: Session, user: WebUser) -> None:
     session.flush()
 
 
-def build_verify_email(target_email: str, token: str, settings: Settings) -> EmailPayload:
+def build_verify_email(
+    target_email: str,
+    token: str,
+    settings: Settings,
+    *,
+    recipient_first_name: str | None = None,
+) -> EmailPayload:
     """Verifikations-Mail an die NEUE Adresse."""
     base_url = getattr(settings, "BASE_URL", "").rstrip("/") or "http://localhost:8000"
     confirm_link = f"{base_url}/account/email-change/confirm?token={token}"
@@ -180,6 +186,7 @@ def build_verify_email(target_email: str, token: str, settings: Settings) -> Ema
         target_email=target_email,
         confirm_link=confirm_link,
         ttl_minutes=EMAIL_CHANGE_TOKEN_TTL_MINUTES,
+        recipient_first_name=recipient_first_name or "",
     )
     return EmailPayload(
         to=[target_email],
@@ -188,11 +195,18 @@ def build_verify_email(target_email: str, token: str, settings: Settings) -> Ema
     )
 
 
-def build_notice_email(old_email: str, target_email: str, settings: Settings) -> EmailPayload:
+def build_notice_email(
+    old_email: str,
+    target_email: str,
+    settings: Settings,
+    *,
+    recipient_first_name: str | None = None,
+) -> EmailPayload:
     """Hinweis-Mail an die ALTE Adresse — passive Information, kein Stop-Link."""
     html = templates.get_template("emails/email_change_notice.html").render(
         old_email=old_email,
         target_email=target_email,
+        recipient_first_name=recipient_first_name or "",
     )
     return EmailPayload(
         to=[old_email],

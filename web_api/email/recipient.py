@@ -51,6 +51,21 @@ def recipient_email_for_web_user(session: Session, web_user: WebUser) -> str:
     return person_email or web_user.email
 
 
+def first_name_for_web_user(session: Session, web_user: WebUser) -> str:
+    """Liefert Person.f_name fuer die Anrede in Mails, sonst leeren String.
+
+    Service-Accounts ohne Person-Verknuepfung oder Personen mit leerem
+    f_name liefern "" zurueck — die Templates lassen die Anrede dann
+    ueber `{% if recipient_first_name %}` weg.
+    """
+    if web_user.person_id is None:
+        return ""
+    f_name: Optional[str] = session.execute(
+        sa_select(Person.f_name).where(Person.id == web_user.person_id)
+    ).scalar_one_or_none()
+    return f_name or ""
+
+
 def sql_recipient_email():
     """SQLAlchemy-Expression fuer COALESCE(Person.email, WebUser.email).
 

@@ -39,6 +39,7 @@ from web_api.auth.service import (
 )
 from web_api.config import Settings, get_settings
 from web_api.dependencies import get_db_session
+from web_api.email.recipient import first_name_for_web_user
 from web_api.email.service import schedule_emails
 from web_api.models.web_models import WebUser
 from web_api.rate_limit import limiter
@@ -294,7 +295,10 @@ def forgot_password(
     if user is not None and user.is_active and not has_recent_token(session, user.id):
         token = create_reset_token(session, user)
         session.commit()
-        payload = build_reset_email(user, token, settings)
+        payload = build_reset_email(
+            user, token, settings,
+            recipient_first_name=first_name_for_web_user(session, user),
+        )
         schedule_emails(background_tasks, [payload], session)
 
     info = (

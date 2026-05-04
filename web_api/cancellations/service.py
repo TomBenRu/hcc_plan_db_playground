@@ -27,7 +27,11 @@ from database.models import (
     TimeOfDay,
 )
 from web_api.common import location_display_name
-from web_api.email.recipient import recipient_email_for_web_user, sql_recipient_email
+from web_api.email.recipient import (
+    first_name_for_web_user,
+    recipient_email_for_web_user,
+    sql_recipient_email,
+)
 from web_api.email.service import EmailPayload
 from web_api.inbox.service import create_inbox_message
 from web_api.models.web_models import (
@@ -62,6 +66,7 @@ class NotificationRecipient:
     email: str
     person_name: str
     source: NotificationSource
+    first_name: str = ""
 
 
 @dataclass
@@ -191,14 +196,19 @@ def _notify_recipients(
     dispatcher_user: WebUser | None,
     snapshot: dict,
     msg_type: InboxMessageType,
-) -> tuple[list[str], set[uuid.UUID]]:
-    """Erstellt Inbox-Messages für recipients + dispatcher. Gibt Email-Liste + recipient-IDs zurück."""
+) -> tuple[list[tuple[str, str]], set[uuid.UUID]]:
+    """Erstellt Inbox-Messages für recipients + dispatcher.
+
+    Gibt eine Liste `(email, first_name)`-Tupel + die Menge der recipient-IDs
+    zurück. Aufrufer rendern und versenden die Mail pro Empfänger einzeln,
+    damit die Anrede personalisiert werden kann.
+    """
     notify_ids: set[uuid.UUID] = set()
-    emails: list[str] = []
+    recipient_infos: list[tuple[str, str]] = []
 
     for rec in recipients:
         notify_ids.add(rec.web_user_id)
-        emails.append(rec.email)
+        recipient_infos.append((rec.email, getattr(rec, "first_name", "") or ""))
         create_inbox_message(
             session,
             recipient_id=rec.web_user_id,
@@ -209,7 +219,10 @@ def _notify_recipients(
         )
 
     if dispatcher_user and dispatcher_user.id not in notify_ids:
-        emails.insert(0, recipient_email_for_web_user(session, dispatcher_user))
+        recipient_infos.insert(0, (
+            recipient_email_for_web_user(session, dispatcher_user),
+            first_name_for_web_user(session, dispatcher_user),
+        ))
         create_inbox_message(
             session,
             recipient_id=dispatcher_user.id,
@@ -219,7 +232,7 @@ def _notify_recipients(
             snapshot_data={**snapshot, "sent_as": "dispatcher"},
         )
 
-    return emails, notify_ids
+    return recipient_infos, notify_ids
 
 
 # ── Benachrichtigungs-Kreis ───────────────────────────────────────────────────
@@ -391,6 +404,7 @@ def compute_notification_circle(
                     email=cand["email"],
                     person_name=f"{cand['f_name']} {cand['l_name']}",
                     source=NotificationSource.auto_computed,
+                    first_name=cand["f_name"] or "",
                 )
                 continue
 
@@ -424,6 +438,7 @@ def compute_notification_circle(
                         email=cand["email"],
                         person_name=f"{cand['f_name']} {cand['l_name']}",
                         source=NotificationSource.auto_computed,
+                        first_name=cand["f_name"] or "",
                     )
                     break
 
@@ -543,15 +558,20 @@ def create_cancellation(
                 source=NotificationSource.auto_computed,
             ))
 
-    emails, _ = _notify_recipients(
+    recipient_infos, _ = _notify_recipients(
         session, cr.id, recipients, dispatcher_user, snapshot, InboxMessageType.cancellation_new
     )
 
     email_payloads: list[EmailPayload] = []
-    if emails:
-        html = _render_email("cancellation_new.html",
-                             employee_name=employee_name, snapshot=snapshot, reason=reason)
-        email_payloads.append(EmailPayload(to=emails, subject="Termin abgesagt", html_body=html))
+    for email, first_name in recipient_infos:
+        html = _render_email(
+            "cancellation_new.html",
+            employee_name=employee_name,
+            snapshot=snapshot,
+            reason=reason,
+            recipient_first_name=first_name,
+        )
+        email_payloads.append(EmailPayload(to=[email], subject="Termin abgesagt", html_body=html))
 
     return CancellationDetail(
         id=cr.id,
@@ -610,14 +630,15 @@ def withdraw_cancellation(
 
     saved_ids = {r.web_user_id for r in saved_recipients}
     recipients_dc: list[NotificationRecipient] = []
-    recipient_emails: list[str] = []
+    recipient_infos: list[tuple[str, str]] = []  # (email, first_name) pro Empfänger
 
     for rec in saved_recipients:
         ru = session.get(WebUser, rec.web_user_id)
         p = session.get(Person, ru.person_id) if ru and ru.person_id else None
         recipient_addr = (p.email if p and p.email else (ru.email if ru else ""))
+        first_name = (p.f_name or "") if p else ""
         if ru:
-            recipient_emails.append(recipient_addr)
+            recipient_infos.append((recipient_addr, first_name))
             create_inbox_message(
                 session,
                 recipient_id=rec.web_user_id,
@@ -631,11 +652,15 @@ def withdraw_cancellation(
             email=recipient_addr,
             person_name=f"{p.f_name} {p.l_name}" if p else (ru.email if ru else ""),
             source=rec.source,
+            first_name=first_name,
         ))
 
     dispatcher_user = _get_dispatcher_web_user(session, ctx["team_id"])
     if dispatcher_user and dispatcher_user.id not in saved_ids:
-        recipient_emails.insert(0, recipient_email_for_web_user(session, dispatcher_user))
+        recipient_infos.insert(0, (
+            recipient_email_for_web_user(session, dispatcher_user),
+            first_name_for_web_user(session, dispatcher_user),
+        ))
         create_inbox_message(
             session,
             recipient_id=dispatcher_user.id,
@@ -646,11 +671,15 @@ def withdraw_cancellation(
         )
 
     email_payloads: list[EmailPayload] = []
-    if recipient_emails:
-        html = _render_email("cancellation_withdrawn.html",
-                             employee_name=employee_name, snapshot=snapshot)
+    for email, first_name in recipient_infos:
+        html = _render_email(
+            "cancellation_withdrawn.html",
+            employee_name=employee_name,
+            snapshot=snapshot,
+            recipient_first_name=first_name,
+        )
         email_payloads.append(EmailPayload(
-            to=recipient_emails, subject="Absage zurückgezogen", html_body=html
+            to=[email], subject="Absage zurückgezogen", html_body=html,
         ))
 
     return CancellationDetail(

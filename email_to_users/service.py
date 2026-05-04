@@ -151,6 +151,7 @@ class EmailService:
                     continue
                 ctx = {
                     "recipient_name": person.full_name,
+                    "recipient_first_name": person.f_name or "",
                     "plan_name": plan.name,
                     "plan_period": period_str,
                     "team_name": team.name,
@@ -214,6 +215,7 @@ class EmailService:
                 )
                 ctx = {
                     "recipient_name": person.full_name,
+                    "recipient_first_name": person.f_name or "",
                     "plan_period": period_name,
                     "team_name": team.name,
                     "deadline": plan_period.effective_deadline.strftime("%d.%m.%Y"),
@@ -305,6 +307,7 @@ class EmailService:
 
                 ctx = {
                     "recipient_name": person.full_name,
+                    "recipient_first_name": person.f_name or "",
                     "team_name": team.name,
                     "deadline": deadline_str,
                     "days_left": days_left,

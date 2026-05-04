@@ -120,13 +120,20 @@ def consume_token_and_set_password(
     return user
 
 
-def build_reset_email(user: WebUser, token: str, settings: Settings) -> EmailPayload:
+def build_reset_email(
+    user: WebUser,
+    token: str,
+    settings: Settings,
+    *,
+    recipient_first_name: str | None = None,
+) -> EmailPayload:
     base_url = getattr(settings, "BASE_URL", "").rstrip("/") or "http://localhost:8000"
     reset_link = f"{base_url}/auth/reset-password?token={token}"
     html = templates.get_template("emails/password_reset.html").render(
         user_email=user.email,
         reset_link=reset_link,
         ttl_minutes=RESET_TOKEN_TTL_MINUTES,
+        recipient_first_name=recipient_first_name or "",
     )
     return EmailPayload(
         to=[user.email],

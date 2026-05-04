@@ -23,7 +23,7 @@ from database.models import (
     Team,
     TimeOfDay,
 )
-from web_api.email.recipient import recipient_email_for_web_user
+from web_api.email.recipient import first_name_for_web_user, recipient_email_for_web_user
 from web_api.cancellations.service import (
     _build_snapshot,
     _get_dispatcher_web_user,
@@ -219,6 +219,7 @@ def create_swap_request(
             requester_name=requester_name,
             snapshot=snapshot,
             message=message,
+            recipient_first_name=first_name_for_web_user(session, target_user),
         )
         email_payloads.append(
             EmailPayload(
@@ -296,6 +297,7 @@ def accept_swap_request(
             requester_name=requester_name,
             target_name=target_name,
             snapshot=snapshot,
+            recipient_first_name=first_name_for_web_user(session, dispatcher_user),
         )
         email_payloads.append(
             EmailPayload(
@@ -344,7 +346,11 @@ def reject_swap_request(
             reference_type="swap_request",
             snapshot_data=snapshot,
         )
-        html = _render_email("swap_rejected.html", snapshot=snapshot)
+        html = _render_email(
+            "swap_rejected.html",
+            snapshot=snapshot,
+            recipient_first_name=first_name_for_web_user(session, requester_user),
+        )
         email_payloads.append(
             EmailPayload(
                 to=[recipient_email_for_web_user(session, requester_user)],
@@ -414,13 +420,16 @@ def confirm_swap_request(
 
     # Beide Partner + Dispatcher benachrichtigen
     notify_users = [requester_user, target_user, dispatcher_user]
-    notify_emails: list[str] = []
+    recipient_infos: list[tuple[str, str]] = []  # (email, first_name) pro Empfänger
     notified_ids: set[uuid.UUID] = set()
 
     for u in notify_users:
         if u.id not in notified_ids:
             notified_ids.add(u.id)
-            notify_emails.append(recipient_email_for_web_user(session, u))
+            recipient_infos.append((
+                recipient_email_for_web_user(session, u),
+                first_name_for_web_user(session, u),
+            ))
             create_inbox_message(
                 session,
                 recipient_id=u.id,
@@ -431,11 +440,15 @@ def confirm_swap_request(
             )
 
     email_payloads: list[EmailPayload] = list(cast_removal_payloads)
-    if notify_emails:
-        html = _render_email("swap_confirmed.html", snapshot=snapshot)
+    for email, first_name in recipient_infos:
+        html = _render_email(
+            "swap_confirmed.html",
+            snapshot=snapshot,
+            recipient_first_name=first_name,
+        )
         email_payloads.append(
             EmailPayload(
-                to=notify_emails,
+                to=[email],
                 subject="Tausch bestätigt",
                 html_body=html,
             )
@@ -479,7 +492,11 @@ def withdraw_swap_request(
             reference_type="swap_request",
             snapshot_data=snapshot,
         )
-        html = _render_email("swap_withdrawn.html", snapshot=snapshot)
+        html = _render_email(
+            "swap_withdrawn.html",
+            snapshot=snapshot,
+            recipient_first_name=first_name_for_web_user(session, target_user),
+        )
         email_payloads.append(
             EmailPayload(
                 to=[recipient_email_for_web_user(session, target_user)],

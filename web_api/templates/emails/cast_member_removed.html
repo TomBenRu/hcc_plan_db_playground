@@ -17,6 +17,7 @@
 <div class="card">
   {% if snapshot.request_type == "direct_remove" %}
     <p style="margin:0 0 16px"><span class="badge">Aus Besetzung entfernt</span></p>
+    {% if recipient_first_name %}<p style="font-size:14px; color:#1e293b; margin:0 0 16px;">Hallo {{ recipient_first_name }},</p>{% endif %}
     <h1>Du wurdest aus der Besetzung entfernt</h1>
     <p class="lead">
       Die Einsatzplanung hat dich aus der Besetzung dieses Termins entfernt.
@@ -24,6 +25,8 @@
     </p>
   {% else %}
     <p style="margin:0 0 16px"><span class="badge">Anfrage obsolet durch Cast-Änderung</span></p>
+
+  {% if recipient_first_name %}<p style="font-size:14px; color:#1e293b; margin:0 0 16px;">Hallo {{ recipient_first_name }},</p>{% endif %}
 
   {% if snapshot.request_type == "cancellation" %}
     <h1>Deine Absage-Anfrage wurde zurückgezogen</h1>

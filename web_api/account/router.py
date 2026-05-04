@@ -22,6 +22,7 @@ from web_api.auth.email_change import (
 from web_api.auth.service import create_access_token, create_refresh_token, decode_token
 from web_api.config import Settings, get_settings
 from web_api.dependencies import get_db_session
+from web_api.email.recipient import first_name_for_web_user
 from web_api.email.service import schedule_emails
 from web_api.email.validation import EmailDomainInvalid, validate_deliverable_email
 from web_api.rate_limit import limiter
@@ -245,11 +246,12 @@ def request_email_change(
         old_email = user.email
         token = create_email_change_token(session, user, target)
         session.commit()
+        first_name = first_name_for_web_user(session, user)
         schedule_emails(
             background_tasks,
             [
-                build_verify_email(target, token, settings),
-                build_notice_email(old_email, target, settings),
+                build_verify_email(target, token, settings, recipient_first_name=first_name),
+                build_notice_email(old_email, target, settings, recipient_first_name=first_name),
             ],
             session,
         )

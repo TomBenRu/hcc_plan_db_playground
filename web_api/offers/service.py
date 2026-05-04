@@ -28,7 +28,7 @@ from web_api.cancellations.service import (
     _render_email,
 )
 from web_api.common import location_display_name
-from web_api.email.recipient import recipient_email_for_web_user
+from web_api.email.recipient import first_name_for_web_user, recipient_email_for_web_user
 from web_api.dispatcher.service import (
     get_cast_status_for_appointment,
     replace_cast_for_appointment,
@@ -232,6 +232,7 @@ def create_offer(
             offerer_name=offerer_name,
             snapshot=snapshot,
             message=message,
+            recipient_first_name=first_name_for_web_user(session, dispatcher_user),
         )
         email_payloads.append(EmailPayload(
             to=[recipient_email_for_web_user(session, dispatcher_user)],
@@ -305,7 +306,11 @@ def accept_offer(
         reference_type="availability_offer",
         snapshot_data=snapshot,
     )
-    html = _render_email("availability_offer_accepted.html", snapshot=snapshot)
+    html = _render_email(
+        "availability_offer_accepted.html",
+        snapshot=snapshot,
+        recipient_first_name=first_name_for_web_user(session, offerer_user),
+    )
     email_payloads.append(EmailPayload(
         to=[recipient_email_for_web_user(session, offerer_user)],
         subject="Dein Angebot wurde angenommen",
@@ -370,6 +375,7 @@ def reject_offer(
             "availability_offer_rejected.html",
             snapshot=snapshot,
             rejection_reason=cleaned_reason,
+            recipient_first_name=first_name_for_web_user(session, offerer_user),
         )
         email_payloads.append(EmailPayload(
             to=[recipient_email_for_web_user(session, offerer_user)],
@@ -414,7 +420,11 @@ def withdraw_offer(
             reference_type="availability_offer",
             snapshot_data=snapshot,
         )
-        html = _render_email("availability_offer_withdrawn.html", snapshot=snapshot)
+        html = _render_email(
+            "availability_offer_withdrawn.html",
+            snapshot=snapshot,
+            recipient_first_name=first_name_for_web_user(session, dispatcher_user),
+        )
         email_payloads.append(EmailPayload(
             to=[recipient_email_for_web_user(session, dispatcher_user)],
             subject=f"{offerer_name} hat das Angebot zurückgezogen",

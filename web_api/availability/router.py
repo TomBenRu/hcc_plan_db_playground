@@ -51,6 +51,7 @@ def availability_page(
     session: Session = Depends(get_db_session),
     plan_period_id: uuid.UUID | None = Query(default=None),
     team_id: uuid.UUID | None = Query(default=None),
+    at: str | None = Query(default=None),
 ):
     person_id = _require_person(user)
     teams = service.get_teams_for_person(session, person_id)
@@ -76,8 +77,23 @@ def availability_page(
         open_periods[0],
     )
     view_model = service.build_availability_view(
-        session, person_id, active, teams=teams, selected_team_id=selected_team_id
+        session,
+        person_id,
+        active,
+        teams=teams,
+        selected_team_id=selected_team_id,
+        open_periods=open_periods,
+        position=at,
     )
+
+    nav = view_model.period_nav
+    period_nav_json = {
+        "prev":  str(nav.prev_plan_period_id)  if nav.prev_plan_period_id  else None,
+        "next":  str(nav.next_plan_period_id)  if nav.next_plan_period_id  else None,
+        "today": str(nav.today_plan_period_id) if nav.today_plan_period_id else None,
+        "todayInActive": nav.today_in_active,
+    }
+    selected_team_id_json = str(selected_team_id) if selected_team_id else None
 
     return templates.TemplateResponse(
         "availability/index.html",
@@ -86,6 +102,9 @@ def availability_page(
             "user": user,
             "view_model": view_model,
             "open_periods": open_periods,
+            "initial_position": at or "",
+            "period_nav_json": period_nav_json,
+            "selected_team_id_json": selected_team_id_json,
         },
     )
 

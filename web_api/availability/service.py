@@ -165,6 +165,20 @@ class SidebarStats:
 
 
 @dataclass
+class PeriodNavigation:
+    """Navigations-Hints fuer Cross-PP-Spruenge in der Verfuegbarkeitsmaske.
+
+    `prev`/`next`: angrenzende sichtbare PP des aktuellen Teams (chronologisch).
+    `today`: PP, die heute enthaelt — None wenn heute bereits in der aktiven
+    PP liegt oder keine sichtbare PP heute abdeckt.
+    """
+    prev_plan_period_id: uuid.UUID | None
+    next_plan_period_id: uuid.UUID | None
+    today_plan_period_id: uuid.UUID | None
+    today_in_active: bool
+
+
+@dataclass
 class AvailabilityViewModel:
     active_period: OpenPlanPeriodInfo
     markers: list[AvailDayMarker]
@@ -174,6 +188,7 @@ class AvailabilityViewModel:
     teams: list[TeamInfo]                             # Teams des Users (für Dropdown)
     selected_team_id: uuid.UUID | None               # aktives Team
     is_simple_mode: bool                              # Project.use_simple_time_slots
+    period_nav: PeriodNavigation                      # Cross-PP-Navigation
 
 
 # ── Simple-Mode-Helfer ────────────────────────────────────────────────────────
@@ -969,14 +984,59 @@ def get_sidebar_stats(
     )
 
 
+def get_period_navigation(
+    open_periods: list[OpenPlanPeriodInfo],
+    active: OpenPlanPeriodInfo,
+) -> PeriodNavigation:
+    """Berechnet prev/next/today-Hints fuer Cross-PP-Navigation.
+
+    `open_periods` ist `start.desc()` sortiert (siehe get_open_plan_periods_for_person).
+    Fuer die Navigations-Logik sortieren wir chronologisch ASC.
+    """
+    periods_asc = sorted(open_periods, key=lambda p: p.start)
+    try:
+        idx = next(
+            i for i, p in enumerate(periods_asc)
+            if p.plan_period_id == active.plan_period_id
+        )
+    except StopIteration:
+        # active nicht in open_periods — sollte nicht vorkommen, aber defensiv
+        return PeriodNavigation(None, None, None, False)
+
+    prev_pp = periods_asc[idx - 1] if idx > 0 else None
+    next_pp = periods_asc[idx + 1] if idx + 1 < len(periods_asc) else None
+
+    today = date.today()
+    today_in_active = active.start <= today <= active.end
+    today_pp = next(
+        (p for p in periods_asc if p.start <= today <= p.end and p.plan_period_id != active.plan_period_id),
+        None,
+    )
+
+    return PeriodNavigation(
+        prev_plan_period_id=prev_pp.plan_period_id if prev_pp else None,
+        next_plan_period_id=next_pp.plan_period_id if next_pp else None,
+        today_plan_period_id=today_pp.plan_period_id if today_pp else None,
+        today_in_active=today_in_active,
+    )
+
+
 def build_availability_view(
     session: Session,
     person_id: uuid.UUID,
     active_period: OpenPlanPeriodInfo,
     teams: list[TeamInfo],
     selected_team_id: uuid.UUID | None,
+    open_periods: list[OpenPlanPeriodInfo],
+    position: str | None = None,
 ) -> AvailabilityViewModel:
-    """Zentrale Aggregation für die index.html-Seite."""
+    """Zentrale Aggregation für die index.html-Seite.
+
+    `position` steuert das initial_date nach Cross-PP-Sprung:
+    - "end"   → initial_date = active_period.end (Sprung zur vorigen PP via "<")
+    - "start" → initial_date = active_period.start (explizit Anfang)
+    - sonst   → heute (innerhalb PP geclamped) — Default-Verhalten
+    """
     is_simple = is_simple_mode_for_person(session, person_id)
     if is_simple:
         markers = get_markers_for_range_simple(
@@ -998,14 +1058,22 @@ def build_availability_view(
         active_period.actor_plan_period_id,
         active_period.requested_assignments,
     )
-    # Initial-Datum: innerhalb der Periode bleiben
-    today = date.today()
-    if today < active_period.start:
-        initial_date = active_period.start.isoformat()
-    elif today > active_period.end:
+    # Initial-Datum: innerhalb der Periode bleiben.
+    # Cross-PP-Sprung steuert die Position via `position`-Param.
+    if position == "end":
         initial_date = active_period.end.isoformat()
+    elif position == "start":
+        initial_date = active_period.start.isoformat()
     else:
-        initial_date = today.isoformat()
+        today = date.today()
+        if today < active_period.start:
+            initial_date = active_period.start.isoformat()
+        elif today > active_period.end:
+            initial_date = active_period.end.isoformat()
+        else:
+            initial_date = today.isoformat()
+
+    period_nav = get_period_navigation(open_periods, active_period)
 
     return AvailabilityViewModel(
         active_period=active_period,
@@ -1016,6 +1084,7 @@ def build_availability_view(
         teams=teams,
         selected_team_id=selected_team_id,
         is_simple_mode=is_simple,
+        period_nav=period_nav,
     )
 
 

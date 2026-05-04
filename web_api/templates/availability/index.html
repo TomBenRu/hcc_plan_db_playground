@@ -657,23 +657,24 @@
                 </div>
                 <!-- Woche Navigation (nur in Wochenansicht sichtbar) -->
                 <div id="week-nav" style="display:none;" class="flex items-center gap-1.5">
-                    <button onclick="prevWeek()"
-                            class="p-1 rounded-md text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">
+                    <button id="week-prev" onclick="prevWeek()"
+                            class="p-1 rounded-md text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
                         </svg>
                     </button>
                     <span id="week-label"
                           class="text-xs font-medium text-slate-600 font-sans min-w-[10rem] text-center select-none"></span>
-                    <button onclick="nextWeek()"
-                            class="p-1 rounded-md text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors">
+                    <button id="week-next" onclick="nextWeek()"
+                            class="p-1 rounded-md text-slate-500 hover:text-slate-800 hover:bg-slate-100 transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent">
                         <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
                         </svg>
                     </button>
-                    <button onclick="gotoToday()"
+                    <button id="week-today" onclick="gotoToday()"
                             class="text-xs font-medium px-2.5 py-1 rounded-md border border-slate-200
-                                   text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors font-sans">
+                                   text-slate-500 hover:text-slate-700 hover:bg-slate-50 transition-colors font-sans
+                                   disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent">
                         Heute
                     </button>
                 </div>
@@ -776,6 +777,25 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
+    // ── Cross-PP-Navigation: prev/next/today-Hints aus dem ViewModel ─────────
+    // tojson rendert JS-sicher und umgeht das Jinja-Autoescape (`"` würde sonst
+    // zu &#34; werden und JavaScript bekäme einen SyntaxError).
+    const PERIOD_NAV       = {{ period_nav_json       | tojson }};
+    const SELECTED_TEAM_ID = {{ selected_team_id_json | tojson }};
+
+    // Page-Reload mit anderer Plan-Periode. `at` steuert, wo der Kalender startet:
+    // "end" → vorige PP an deren Ende; "start" → nächste PP an deren Anfang;
+    // null → Default (heute innerhalb PP geclamped).
+    function jumpToPeriod(planPeriodId, at) {
+        if (!planPeriodId) return;
+        const url = new URL(window.location.href);
+        url.searchParams.set('plan_period_id', planPeriodId);
+        if (SELECTED_TEAM_ID) url.searchParams.set('team_id', SELECTED_TEAM_ID);
+        if (at) url.searchParams.set('at', at);
+        else    url.searchParams.delete('at');
+        window.location.href = url.toString();
+    }
+
     // ── FullCalendar Init ────────────────────────────────────────────────────
     const calendarEl = document.getElementById('calendar');
     const actorPlanPeriodId = '{{ view_model.active_period.actor_plan_period_id }}';
@@ -790,6 +810,42 @@ document.addEventListener('DOMContentLoaded', function () {
         d.setDate(d.getDate() + 1);
         return toISODate(d);
     })();
+
+    // PP-Datumsgrenzen als Date-Objekte. Vorgezogen, weil das datesSet-Event
+    // bereits beim ersten calendar.render() feuert und updateMonthNavButtonStates()
+    // diese Konstanten braucht.
+    const _periodStartDate = new Date(periodStart + 'T00:00:00');
+    const _periodEndDate   = new Date(periodEnd   + 'T00:00:00');
+
+    // Disabled-State der Custom-Buttons in der Monatsansicht pflegen.
+    // - myPrev: nur disabled wenn am PP-Anfang UND keine vorige PP existiert.
+    // - myNext: nur disabled wenn am PP-Ende UND keine nächste PP existiert.
+    // - myToday: disabled wenn heute weder in der aktiven noch in einer anderen PP liegt.
+    function updateMonthNavButtonStates() {
+        const view = calendar.view;
+        const atStart = view.activeStart <= _periodStartDate;
+        const atEnd   = view.activeEnd   >  _periodEndDate;
+
+        const prevBtn  = document.querySelector('.fc-myPrev-button');
+        const nextBtn  = document.querySelector('.fc-myNext-button');
+        const todayBtn = document.querySelector('.fc-myToday-button');
+
+        if (prevBtn) {
+            const disabled = atStart && !PERIOD_NAV.prev;
+            prevBtn.classList.toggle('fc-button-disabled', disabled);
+            prevBtn.disabled = disabled;
+        }
+        if (nextBtn) {
+            const disabled = atEnd && !PERIOD_NAV.next;
+            nextBtn.classList.toggle('fc-button-disabled', disabled);
+            nextBtn.disabled = disabled;
+        }
+        if (todayBtn) {
+            const disabled = !PERIOD_NAV.todayInActive && !PERIOD_NAV.today;
+            todayBtn.classList.toggle('fc-button-disabled', disabled);
+            todayBtn.disabled = disabled;
+        }
+    }
 
     const calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
@@ -808,12 +864,61 @@ document.addEventListener('DOMContentLoaded', function () {
             if (sa !== sb) return sa < sb ? -1 : 1;
             return (a.title || '').localeCompare(b.title || '');
         },
+        // Custom-Buttons ersetzen prev/next/today, damit wir an der PP-Grenze
+        // zur vorherigen/naechsten PP springen koennen statt zu blockieren.
+        customButtons: {
+            myPrev: {
+                icon: 'chevron-left',
+                click: function () {
+                    const view = calendar.view;
+                    // activeStart ist inklusiv. Wenn der sichtbare Bereich bereits
+                    // den PP-Anfang umfasst, wuerde calendar.prev() vor die PP rutschen
+                    // — stattdessen Cross-PP-Sprung.
+                    if (view.activeStart <= _periodStartDate) {
+                        if (PERIOD_NAV.prev) jumpToPeriod(PERIOD_NAV.prev, 'end');
+                        // sonst: kein Effekt (Button sollte disabled sein)
+                    } else {
+                        calendar.prev();
+                    }
+                },
+            },
+            myNext: {
+                icon: 'chevron-right',
+                click: function () {
+                    const view = calendar.view;
+                    // activeEnd ist exklusiv. Wenn activeEnd > _periodEndDate (also
+                    // der sichtbare Bereich enthaelt mindestens einen Tag nach PP-Ende
+                    // bzw. das PP-Ende selbst), sind wir am Ende der PP.
+                    if (view.activeEnd > _periodEndDate) {
+                        if (PERIOD_NAV.next) jumpToPeriod(PERIOD_NAV.next, 'start');
+                    } else {
+                        calendar.next();
+                    }
+                },
+            },
+            myToday: {
+                text: 'Heute',
+                click: function () {
+                    if (PERIOD_NAV.todayInActive) {
+                        calendar.today();
+                    } else if (PERIOD_NAV.today) {
+                        jumpToPeriod(PERIOD_NAV.today, null);
+                    }
+                },
+            },
+        },
         headerToolbar: {
-            left:   'prev,next today',
+            left:   'myPrev,myNext myToday',
             center: 'title',
             right:  'dayGridMonth',
         },
-        buttonText: { today: 'Heute', month: 'Monat' },
+        buttonText: { month: 'Monat' },
+        // Disabled-State der Custom-Buttons nach jedem View-Wechsel pflegen.
+        // FC managed das nur fuer Built-in-Buttons (via validRange) — fuer
+        // customButtons muessen wir die `fc-button-disabled` Klasse selbst setzen.
+        datesSet: function () {
+            updateMonthNavButtonStates();
+        },
 
         // Events: Verfügbarkeitstage aus dem Backend
         eventSources: [{
@@ -897,12 +1002,16 @@ document.addEventListener('DOMContentLoaded', function () {
             + String(d.getDate()).padStart(2, '0');
     }
 
-    // Startwoche: heute, aber innerhalb der Planperiode
-    const _periodStartDate = new Date(periodStart + 'T00:00:00');
-    const _periodEndDate   = new Date(periodEnd   + 'T00:00:00');
+    // Startwoche: heute, aber innerhalb der Planperiode.
+    // Falls per ?at=end angesprungen → Woche am PP-Ende; bei ?at=start → PP-Anfang.
     const _today = new Date();
+    const _initialPosition = '{{ initial_position }}';
     let currentWeekStart;
-    if (_today < _periodStartDate) {
+    if (_initialPosition === 'end') {
+        currentWeekStart = getMondayOf(_periodEndDate);
+    } else if (_initialPosition === 'start') {
+        currentWeekStart = getMondayOf(_periodStartDate);
+    } else if (_today < _periodStartDate) {
         currentWeekStart = getMondayOf(_periodStartDate);
     } else if (_today > _periodEndDate) {
         currentWeekStart = getMondayOf(_periodEndDate);
@@ -915,6 +1024,24 @@ document.addEventListener('DOMContentLoaded', function () {
         const s = `${currentWeekStart.getDate()}. ${DE_MONTHS_SHORT[currentWeekStart.getMonth()]}`;
         const e = `${end.getDate()}. ${DE_MONTHS_SHORT[end.getMonth()]} ${end.getFullYear()}`;
         document.getElementById('week-label').textContent = `${s} – ${e}`;
+        updateWeekNavButtonStates();
+    }
+    // Disabled-State der Wochen-Navigations-Buttons. Spiegelt die Logik der
+    // Custom-Buttons in der Monatsansicht: prev/next sind nur disabled, wenn
+    // bereits an der PP-Grenze UND keine angrenzende PP existiert.
+    function updateWeekNavButtonStates() {
+        const candPrev = new Date(currentWeekStart);
+        candPrev.setDate(candPrev.getDate() - 1); // letzter Tag der Vorwoche
+        const candNext = new Date(currentWeekStart);
+        candNext.setDate(candNext.getDate() + 7); // erster Tag der Folgewoche
+        const atStart = candPrev < _periodStartDate;
+        const atEnd   = candNext > _periodEndDate;
+        const prevBtn  = document.getElementById('week-prev');
+        const nextBtn  = document.getElementById('week-next');
+        const todayBtn = document.getElementById('week-today');
+        if (prevBtn)  prevBtn.disabled  = atStart && !PERIOD_NAV.prev;
+        if (nextBtn)  nextBtn.disabled  = atEnd   && !PERIOD_NAV.next;
+        if (todayBtn) todayBtn.disabled = !PERIOD_NAV.todayInActive && !PERIOD_NAV.today;
     }
     function loadWeekGrid() {
         htmx.ajax('GET',
@@ -953,36 +1080,43 @@ document.addEventListener('DOMContentLoaded', function () {
     window.prevWeek = function () {
         const candidate = new Date(currentWeekStart);
         candidate.setDate(candidate.getDate() - 7);
-        // Nur navigieren, wenn die Woche noch innerhalb der Periode endet
         const candEnd = new Date(candidate);
         candEnd.setDate(candEnd.getDate() + 6);
         if (candEnd >= _periodStartDate) {
+            // Innerhalb PP: normale Navigation
             currentWeekStart = candidate;
             updateWeekLabel();
             loadWeekGrid();
+        } else if (PERIOD_NAV.prev) {
+            // Vor PP-Anfang: Sprung zur vorigen PP an deren Ende
+            jumpToPeriod(PERIOD_NAV.prev, 'end');
         }
     };
     window.nextWeek = function () {
         const candidate = new Date(currentWeekStart);
         candidate.setDate(candidate.getDate() + 7);
-        // Nur navigieren, wenn die Woche noch innerhalb der Periode beginnt
         if (candidate <= _periodEndDate) {
+            // Innerhalb PP: normale Navigation
             currentWeekStart = candidate;
             updateWeekLabel();
             loadWeekGrid();
+        } else if (PERIOD_NAV.next) {
+            // Nach PP-Ende: Sprung zur naechsten PP an deren Anfang
+            jumpToPeriod(PERIOD_NAV.next, 'start');
         }
     };
     window.gotoToday = function () {
         const today = new Date();
-        if (today < _periodStartDate) {
-            currentWeekStart = getMondayOf(_periodStartDate);
-        } else if (today > _periodEndDate) {
-            currentWeekStart = getMondayOf(_periodEndDate);
-        } else {
+        if (today >= _periodStartDate && today <= _periodEndDate) {
+            // Heute liegt in der aktiven PP: normale Navigation
             currentWeekStart = getMondayOf(today);
+            updateWeekLabel();
+            loadWeekGrid();
+        } else if (PERIOD_NAV.today) {
+            // Heute liegt in einer anderen sichtbaren PP: dorthin springen
+            jumpToPeriod(PERIOD_NAV.today, null);
         }
-        updateWeekLabel();
-        loadWeekGrid();
+        // sonst: heute liegt in keiner sichtbaren PP — kein Effekt
     };
 
     // ── Day-Panel öffnen/schließen ───────────────────────────────────────────

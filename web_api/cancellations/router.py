@@ -73,7 +73,7 @@ def list_cancellations(
     request: Request,
     user: LoggedInUser,
     session: Session = Depends(get_db_session),
-    status_filter: str | None = None,
+    status_filter: str | None = "pending",
 ):
     cancellations = get_my_cancellations(session, user.id, status_filter)
     circle_cancellations = get_circle_cancellations(session, user.id, status_filter)

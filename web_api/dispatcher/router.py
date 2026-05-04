@@ -59,7 +59,7 @@ def dispatcher_swap_requests(
     request: Request,
     user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
     session: Session = Depends(get_db_session),
-    status_filter: str | None = Query(default=None),
+    status_filter: str | None = Query(default="pending"),
 ):
     from web_api.swap_requests.service import get_swap_requests_for_dispatcher
     swaps = get_swap_requests_for_dispatcher(session, user)
@@ -83,7 +83,7 @@ def dispatcher_cancellations(
     request: Request,
     user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
     session: Session = Depends(get_db_session),
-    status_filter: str | None = None,
+    status_filter: str | None = "pending",
 ):
     cancellations = get_cancellations_for_dispatcher(session, user, status_filter)
     return templates.TemplateResponse(

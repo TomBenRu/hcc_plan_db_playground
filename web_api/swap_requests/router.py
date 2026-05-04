@@ -47,7 +47,7 @@ router = APIRouter(prefix="/swap-requests", tags=["swap-requests"])
 def list_swap_requests(
     request: Request,
     user: LoggedInUser,
-    status_filter: str | None = Query(default=None),
+    status_filter: str | None = Query(default="pending"),
     session: Session = Depends(get_db_session),
 ):
     swaps = get_swap_requests_for_user(session, user.id)

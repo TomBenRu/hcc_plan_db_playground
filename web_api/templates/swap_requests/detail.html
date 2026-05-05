@@ -149,8 +149,8 @@
             </form>
             {% endif %}
 
-            {# Dispatcher: accepted_by_target → Bestätigen #}
-            {% if sval == "accepted_by_target" and is_dispatcher %}
+            {# Dispatcher: accepted_by_target → Bestätigen (nur im Dispatcher-Kontext) #}
+            {% if sval == "accepted_by_target" and is_dispatcher and from_dispatcher %}
             <form hx-post="/swap-requests/{{ swap.id }}/confirm"
                   hx-swap="none"
                   hx-on::after-request="if(event.detail.successful) window.location.reload()"

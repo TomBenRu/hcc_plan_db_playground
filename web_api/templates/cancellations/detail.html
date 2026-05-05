@@ -111,7 +111,7 @@
                         {% elif offer.status.value == "superseded_by_plan_unbind" %}
                         <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 bg-purple-50 text-purple-700 ring-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:ring-purple-700/50">Plan nicht mehr aktuell</span>
                         {% endif %}
-                        {% if is_dispatcher and offer.status.value == "pending" and detail.status.value == "pending" %}
+                        {% if is_dispatcher and from_dispatcher and offer.status.value == "pending" and detail.status.value == "pending" %}
                         <form hx-post="/cancellations/{{ detail.id }}/takeover-offers/{{ offer.id }}/accept"
                               hx-target="closest .space-y-3"
                               hx-swap="outerHTML">

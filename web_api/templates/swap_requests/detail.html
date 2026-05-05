@@ -96,6 +96,16 @@
         </div>
         {% endif %}
 
+        {# ── Dispatcher-Begründung bei Ablehnung ─────────────────────────────── #}
+        {% if sval == "rejected_by_dispatcher" and swap.rejection_reason %}
+        <div class="bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-100 dark:border-red-700/30 p-4">
+            <p class="text-xs font-semibold tracking-widest uppercase text-red-600 dark:text-red-400 mb-1">
+                Begründung Einsatzplanung
+            </p>
+            <p class="text-sm text-slate-700 dark:text-slate-200 italic">&bdquo;{{ swap.rejection_reason }}&ldquo;</p>
+        </div>
+        {% endif %}
+
         {# ── Zeitstempel ────────────────────────────────────────────────────── #}
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm p-4">
             <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 dark:text-slate-500 mb-1">
@@ -160,6 +170,41 @@
                     Tausch bestätigen
                 </button>
             </form>
+            {% endif %}
+
+            {# Dispatcher: pending oder accepted_by_target → Ablehnen mit Begründung #}
+            {% if sval in ("pending", "accepted_by_target") and is_dispatcher and from_dispatcher %}
+            <details class="pt-2 group">
+                <summary class="cursor-pointer list-none">
+                    <span class="block w-full text-center py-2.5 rounded-xl text-sm font-medium border border-red-200 dark:border-red-700/50
+                                 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                        Ablehnen mit Begründung
+                    </span>
+                </summary>
+                <form hx-post="/swap-requests/{{ swap.id }}/dispatcher-reject"
+                      hx-swap="none"
+                      hx-on::after-request="if(event.detail.successful) window.location.reload()"
+                      class="mt-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-3">
+                    <label class="block">
+                        <span class="text-xs font-semibold tracking-widest uppercase text-slate-400 dark:text-slate-500">
+                            Begründung (Pflicht)
+                        </span>
+                        <textarea name="rejection_reason"
+                                  required
+                                  minlength="1"
+                                  rows="3"
+                                  placeholder="Warum wird der Tausch abgelehnt?"
+                                  class="mt-1 w-full text-sm rounded-lg border border-slate-200 dark:border-slate-700
+                                         bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100
+                                         placeholder-slate-400 px-3 py-2 resize-none
+                                         focus:outline-none focus:ring-2 focus:ring-red-500/40"></textarea>
+                    </label>
+                    <button type="submit"
+                            class="w-full py-2.5 rounded-xl text-sm font-medium bg-red-600 text-white hover:bg-red-700 transition-colors">
+                        Tausch ablehnen
+                    </button>
+                </form>
+            </details>
             {% endif %}
 
         </div>

@@ -11,6 +11,7 @@ from web_api.models.web_models import WebUser
 from web_api.cancellations.takeover_service import (
     accept_takeover_offer,
     create_takeover_offer,
+    reject_takeover_offer,
     withdraw_takeover_offer,
 )
 from web_api.cancellations.service import (
@@ -240,6 +241,37 @@ def post_accept_takeover_offer(
     return Response(
         status_code=200,
         headers={"HX-Redirect": f"/cancellations/{cancellation_id}"},
+    )
+
+
+@router.post(
+    "/{cancellation_id}/takeover-offers/{offer_id}/reject",
+    response_class=HTMLResponse,
+)
+def post_reject_takeover_offer(
+    request: Request,
+    cancellation_id: uuid.UUID,
+    offer_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    rejection_reason: str = Form(...),
+    user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+):
+    try:
+        email_payloads = reject_takeover_offer(
+            session, cancellation_id, offer_id, user, rejection_reason
+        )
+    except HTTPException as exc:
+        return templates.TemplateResponse(
+            "cancellations/partials/cancel_error.html",
+            {"request": request, "message": exc.detail},
+        )
+    session.commit()
+    schedule_emails(background_tasks, email_payloads, session)
+
+    return Response(
+        status_code=200,
+        headers={"HX-Redirect": f"/cancellations/{cancellation_id}?from_dispatcher=1"},
     )
 
 

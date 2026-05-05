@@ -39,6 +39,7 @@ class TakeoverOfferSummary:
     message: str | None
     status: TakeoverOfferStatus
     created_at: datetime
+    rejection_reason: str | None = None
 
 
 def create_takeover_offer(
@@ -189,7 +190,7 @@ def accept_takeover_offer(
     session.add(offer)
     session.flush()
 
-    # BR-09: alle anderen pending Offers ablehnen
+    # BR-09: alle anderen pending Offers werden durch die Annahme obsolet.
     other_pending = session.execute(
         sa_select(TakeoverOffer)
         .where(TakeoverOffer.cancellation_request_id == cancellation_id)
@@ -197,7 +198,7 @@ def accept_takeover_offer(
         .where(TakeoverOffer.status == TakeoverOfferStatus.pending)
     ).scalars().all()
     for other in other_pending:
-        other.status = TakeoverOfferStatus.rejected
+        other.status = TakeoverOfferStatus.superseded
         session.add(other)
     session.flush()
 
@@ -297,6 +298,7 @@ def get_takeover_offers_for_cancellation(
             TakeoverOffer.id,
             TakeoverOffer.web_user_id,
             TakeoverOffer.message,
+            TakeoverOffer.rejection_reason,
             TakeoverOffer.status,
             TakeoverOffer.created_at,
             Person.f_name,
@@ -320,6 +322,7 @@ def get_takeover_offers_for_cancellation(
             message=r["message"],
             status=r["status"],
             created_at=r["created_at"],
+            rejection_reason=r["rejection_reason"],
         )
         for r in rows
     ]
@@ -343,9 +346,92 @@ def withdraw_takeover_offer(
             detail="Dieses Übernahme-Angebot kann nicht mehr zurückgezogen werden.",
         )
 
-    offer.status = TakeoverOfferStatus.rejected
+    offer.status = TakeoverOfferStatus.withdrawn
     session.add(offer)
     session.flush()
+
+
+def reject_takeover_offer(
+    session: Session,
+    cancellation_id: uuid.UUID,
+    offer_id: uuid.UUID,
+    dispatcher_user: WebUser,
+    rejection_reason: str,
+) -> list[EmailPayload]:
+    """Dispatcher lehnt Übernahme-Angebot mit Pflicht-Begründung ab.
+
+    Die Begründung wird persistent am Offer gespeichert, in den Inbox-Snapshot
+    des Anbieters übernommen und in die Rejection-Email eingebettet.
+    """
+    cleaned_reason = (rejection_reason or "").strip()
+    if not cleaned_reason:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Eine Begründung ist erforderlich.",
+        )
+
+    cr = session.get(CancellationRequest, cancellation_id)
+    if cr is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Absage nicht gefunden.")
+
+    offer = session.get(TakeoverOffer, offer_id)
+    if offer is None or offer.cancellation_request_id != cancellation_id:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Übernahme-Angebot nicht gefunden.")
+    if offer.status != TakeoverOfferStatus.pending:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            detail="Dieses Übernahme-Angebot kann nicht mehr abgelehnt werden.",
+        )
+
+    ctx = _load_appointment_context(session, cr.appointment_id)
+    expected_dispatcher = _get_dispatcher_web_user(session, ctx["team_id"])
+    if expected_dispatcher is None or expected_dispatcher.id != dispatcher_user.id:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            detail="Nur der zuständige Dispatcher kann Übernahmen ablehnen.",
+        )
+
+    offer.rejection_reason = cleaned_reason
+    offer.status = TakeoverOfferStatus.rejected_by_dispatcher
+    session.add(offer)
+    session.flush()
+
+    offerer_user = session.get(WebUser, offer.web_user_id)
+    email_payloads: list[EmailPayload] = []
+    if offerer_user is not None:
+        offerer_person = (
+            session.get(Person, offerer_user.person_id) if offerer_user.person_id else None
+        )
+        offerer_name = (
+            f"{offerer_person.f_name} {offerer_person.l_name}"
+            if offerer_person else offerer_user.email
+        )
+        snapshot = _build_snapshot(ctx, offerer_name)
+        snapshot["offerer_name"] = offerer_name
+        snapshot["rejection_reason"] = cleaned_reason
+        create_inbox_message(
+            session,
+            recipient_id=offerer_user.id,
+            msg_type=InboxMessageType.takeover_offer_rejected,
+            reference_id=cancellation_id,
+            reference_type="cancellation_request",
+            snapshot_data=snapshot,
+        )
+        html = _render_email(
+            "takeover_offer_rejected.html",
+            offerer_name=offerer_name,
+            snapshot=snapshot,
+            rejection_reason=cleaned_reason,
+            recipient_first_name=first_name_for_web_user(session, offerer_user),
+        )
+        email_payloads.append(
+            EmailPayload(
+                to=[recipient_email_for_web_user(session, offerer_user)],
+                subject="Übernahme-Angebot abgelehnt",
+                html_body=html,
+            )
+        )
+    return email_payloads
 
 
 def _utcnow():

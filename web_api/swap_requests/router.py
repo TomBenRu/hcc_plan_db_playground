@@ -31,6 +31,7 @@ from web_api.swap_requests.service import (
     accept_swap_request,
     confirm_swap_request,
     create_swap_request,
+    dispatcher_reject_swap_request,
     get_filter_options_for_user,
     get_own_upcoming_appointments,
     get_swap_candidate_appointments,
@@ -355,6 +356,34 @@ def post_confirm_swap(
     return templates.TemplateResponse(
         _SWAP_LIST_TEMPLATE,
         {"request": request, "user": user, "swaps": swaps, "is_dispatcher": True, "from_dispatcher": True},
+    )
+
+
+@router.post("/{swap_id}/dispatcher-reject", response_class=HTMLResponse)
+def post_dispatcher_reject_swap(
+    request: Request,
+    swap_id: uuid.UUID,
+    background_tasks: BackgroundTasks,
+    rejection_reason: str = Form(...),
+    user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+):
+    try:
+        email_payloads = dispatcher_reject_swap_request(
+            session, swap_id, user, rejection_reason
+        )
+    except HTTPException as exc:
+        return templates.TemplateResponse(
+            "swap_requests/partials/error.html",
+            {"request": request, "message": exc.detail},
+            headers=_ERROR_HEADERS,
+        )
+    session.commit()
+    schedule_emails(background_tasks, email_payloads, session)
+
+    return Response(
+        status_code=200,
+        headers={"HX-Redirect": f"/swap-requests/{swap_id}?from_dispatcher=1"},
     )
 
 

@@ -615,7 +615,7 @@ def withdraw_cancellation(
         sa_update(TakeoverOffer)
         .where(TakeoverOffer.cancellation_request_id == cancellation_id)
         .where(TakeoverOffer.status == TakeoverOfferStatus.pending)
-        .values(status=TakeoverOfferStatus.rejected)
+        .values(status=TakeoverOfferStatus.superseded)
     )
 
     ctx = _load_appointment_context(session, cr.appointment_id)

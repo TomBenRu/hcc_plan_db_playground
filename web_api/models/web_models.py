@@ -143,6 +143,7 @@ class InboxMessageType(str, enum.Enum):
     cancellation_resolved = "cancellation_resolved"
     takeover_offer_received = "takeover_offer_received"
     takeover_accepted = "takeover_accepted"
+    takeover_offer_rejected = "takeover_offer_rejected"
     swap_request_received = "swap_request_received"
     swap_accepted_by_target = "swap_accepted_by_target"
     swap_confirmed = "swap_confirmed"
@@ -286,7 +287,9 @@ class CancellationNotificationRecipient(SQLModel, table=True):
 class TakeoverOfferStatus(str, enum.Enum):
     pending = "pending"
     accepted = "accepted"
-    rejected = "rejected"
+    withdrawn = "withdrawn"
+    rejected_by_dispatcher = "rejected_by_dispatcher"
+    superseded = "superseded"
     superseded_by_cast_change = "superseded_by_cast_change"
     superseded_by_plan_unbind = "superseded_by_plan_unbind"
 
@@ -311,6 +314,7 @@ class TakeoverOffer(SQLModel, table=True):
     )
     web_user_id: uuid.UUID = Field(foreign_key="web_user.id", ondelete="CASCADE")
     message: Optional[str] = Field(default=None)
+    rejection_reason: Optional[str] = Field(default=None)
     status: TakeoverOfferStatus = Field(
         sa_column=Column(
             SAEnum(TakeoverOfferStatus, name="takeoverofferstatus"),
@@ -337,6 +341,7 @@ class SwapRequest(SQLModel, table=True):
         foreign_key="appointment.id", ondelete="CASCADE"
     )
     message: Optional[str] = Field(default=None)
+    rejection_reason: Optional[str] = Field(default=None)
     status: SwapRequestStatus = Field(
         sa_column=Column(
             SAEnum(SwapRequestStatus, name="swaprequeststatus"),

@@ -362,6 +362,82 @@ def reject_swap_request(
     return email_payloads
 
 
+def dispatcher_reject_swap_request(
+    session: Session,
+    swap_id: uuid.UUID,
+    dispatcher_user: WebUser,
+    rejection_reason: str,
+) -> list[EmailPayload]:
+    """Dispatcher lehnt Tausch-Anfrage mit Pflicht-Begründung ab.
+
+    Erlaubt im Status `pending` oder `accepted_by_target` — der Dispatcher hat
+    operatives Vetorecht unabhängig davon, ob das Target bereits zugestimmt hat.
+    Setzt `rejected_by_dispatcher` und benachrichtigt Anfragenden + Ziel.
+    """
+    cleaned_reason = (rejection_reason or "").strip()
+    if not cleaned_reason:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Eine Begründung ist erforderlich.",
+        )
+
+    swap = session.get(SwapRequest, swap_id)
+    if swap is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Tausch-Anfrage nicht gefunden.")
+    if swap.status not in (SwapRequestStatus.pending, SwapRequestStatus.accepted_by_target):
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            detail="Diese Tausch-Anfrage kann nicht mehr abgelehnt werden.",
+        )
+
+    req_ctx = _load_appointment_context(session, swap.requester_appointment_id)
+    expected_dispatcher = _get_dispatcher_web_user(session, req_ctx["team_id"])
+    if expected_dispatcher is None or expected_dispatcher.id != dispatcher_user.id:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            detail="Nur der zuständige Dispatcher kann Tausche ablehnen.",
+        )
+
+    swap.rejection_reason = cleaned_reason
+    swap.status = SwapRequestStatus.rejected_by_dispatcher
+    session.add(swap)
+    session.flush()
+
+    requester_user = session.get(WebUser, swap.requester_web_user_id)
+    target_user = session.get(WebUser, swap.target_web_user_id)
+    snapshot = _build_swap_snapshot(session, swap, req_ctx)
+    snapshot["rejection_reason"] = cleaned_reason
+
+    email_payloads: list[EmailPayload] = []
+    notified_ids: set[uuid.UUID] = set()
+    for u in (requester_user, target_user):
+        if u is None or u.id in notified_ids:
+            continue
+        notified_ids.add(u.id)
+        create_inbox_message(
+            session,
+            recipient_id=u.id,
+            msg_type=InboxMessageType.swap_rejected,
+            reference_id=swap.id,
+            reference_type="swap_request",
+            snapshot_data=snapshot,
+        )
+        html = _render_email(
+            "swap_rejected_by_dispatcher.html",
+            snapshot=snapshot,
+            rejection_reason=cleaned_reason,
+            recipient_first_name=first_name_for_web_user(session, u),
+        )
+        email_payloads.append(
+            EmailPayload(
+                to=[recipient_email_for_web_user(session, u)],
+                subject="Tausch-Anfrage von Einsatzplanung abgelehnt",
+                html_body=html,
+            )
+        )
+    return email_payloads
+
+
 def confirm_swap_request(
     session: Session,
     swap_id: uuid.UUID,

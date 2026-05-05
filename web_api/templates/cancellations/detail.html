@@ -92,36 +92,81 @@
             </p>
             <ul class="space-y-3">
                 {% for offer in detail.takeover_offers %}
-                <li class="flex items-start justify-between gap-3">
-                    <div>
-                        <p class="text-sm font-medium text-slate-800 dark:text-slate-100">{{ offer.offerer_name }}</p>
-                        {% if offer.message %}
-                        <p class="text-xs text-slate-500 dark:text-slate-400 italic mt-0.5">&bdquo;{{ offer.message }}&ldquo;</p>
-                        {% endif %}
+                <li class="space-y-2">
+                    <div class="flex items-start justify-between gap-3">
+                        <div>
+                            <p class="text-sm font-medium text-slate-800 dark:text-slate-100">{{ offer.offerer_name }}</p>
+                            {% if offer.message %}
+                            <p class="text-xs text-slate-500 dark:text-slate-400 italic mt-0.5">&bdquo;{{ offer.message }}&ldquo;</p>
+                            {% endif %}
+                        </div>
+                        <div class="flex items-center gap-2 flex-shrink-0">
+                            {% if offer.status.value == "pending" %}
+                            <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:ring-amber-700/50">Offen</span>
+                            {% elif offer.status.value == "accepted" %}
+                            <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 bg-green-50 text-green-700 ring-green-200 dark:bg-green-900/30 dark:text-green-400 dark:ring-green-700/50">Akzeptiert</span>
+                            {% elif offer.status.value == "withdrawn" %}
+                            <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 bg-slate-50 text-slate-500 ring-slate-200 dark:bg-slate-700/30 dark:text-slate-400 dark:ring-slate-600/50">Zurückgezogen</span>
+                            {% elif offer.status.value == "rejected_by_dispatcher" %}
+                            <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 bg-red-50 text-red-700 ring-red-200 dark:bg-red-900/30 dark:text-red-400 dark:ring-red-700/50">Abgelehnt</span>
+                            {% elif offer.status.value == "superseded" %}
+                            <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 bg-slate-50 text-slate-500 ring-slate-200 dark:bg-slate-700/30 dark:text-slate-400 dark:ring-slate-600/50">Übergangen</span>
+                            {% elif offer.status.value == "superseded_by_cast_change" %}
+                            <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 bg-purple-50 text-purple-700 ring-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:ring-purple-700/50">Besetzung geändert</span>
+                            {% elif offer.status.value == "superseded_by_plan_unbind" %}
+                            <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 bg-purple-50 text-purple-700 ring-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:ring-purple-700/50">Plan nicht mehr aktuell</span>
+                            {% endif %}
+                            {% if is_dispatcher and from_dispatcher and offer.status.value == "pending" and detail.status.value == "pending" %}
+                            <form hx-post="/cancellations/{{ detail.id }}/takeover-offers/{{ offer.id }}/accept"
+                                  hx-target="closest .space-y-3"
+                                  hx-swap="outerHTML">
+                                <button type="submit"
+                                        class="text-xs font-medium px-3 py-1 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors">
+                                    Akzeptieren
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
                     </div>
-                    <div class="flex items-center gap-2 flex-shrink-0">
-                        {% if offer.status.value == "pending" %}
-                        <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 bg-amber-50 text-amber-700 ring-amber-200 dark:bg-amber-900/30 dark:text-amber-400 dark:ring-amber-700/50">Offen</span>
-                        {% elif offer.status.value == "accepted" %}
-                        <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 bg-green-50 text-green-700 ring-green-200 dark:bg-green-900/30 dark:text-green-400 dark:ring-green-700/50">Akzeptiert</span>
-                        {% elif offer.status.value == "rejected" %}
-                        <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 bg-slate-50 text-slate-500 ring-slate-200 dark:bg-slate-700/30 dark:text-slate-400 dark:ring-slate-600/50">Abgelehnt</span>
-                        {% elif offer.status.value == "superseded_by_cast_change" %}
-                        <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 bg-purple-50 text-purple-700 ring-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:ring-purple-700/50">Besetzung geändert</span>
-                        {% elif offer.status.value == "superseded_by_plan_unbind" %}
-                        <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 bg-purple-50 text-purple-700 ring-purple-200 dark:bg-purple-900/30 dark:text-purple-400 dark:ring-purple-700/50">Plan nicht mehr aktuell</span>
-                        {% endif %}
-                        {% if is_dispatcher and from_dispatcher and offer.status.value == "pending" and detail.status.value == "pending" %}
-                        <form hx-post="/cancellations/{{ detail.id }}/takeover-offers/{{ offer.id }}/accept"
-                              hx-target="closest .space-y-3"
-                              hx-swap="outerHTML">
+
+                    {# Begründung bei Dispatcher-Reject anzeigen #}
+                    {% if offer.status.value == "rejected_by_dispatcher" and offer.rejection_reason %}
+                    <div class="bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-700/30 px-3 py-2">
+                        <p class="text-[10px] font-semibold tracking-widest uppercase text-red-600 dark:text-red-400 mb-0.5">
+                            Begründung Einsatzplanung
+                        </p>
+                        <p class="text-xs text-slate-700 dark:text-slate-200 italic">&bdquo;{{ offer.rejection_reason }}&ldquo;</p>
+                    </div>
+                    {% endif %}
+
+                    {# Dispatcher-Reject-Form (nur bei pending Offer + pending Cancellation) #}
+                    {% if is_dispatcher and from_dispatcher and offer.status.value == "pending" and detail.status.value == "pending" %}
+                    <details class="group">
+                        <summary class="cursor-pointer list-none">
+                            <span class="text-xs font-medium text-red-700 dark:text-red-400 hover:underline">
+                                Mit Begründung ablehnen
+                            </span>
+                        </summary>
+                        <form hx-post="/cancellations/{{ detail.id }}/takeover-offers/{{ offer.id }}/reject"
+                              hx-swap="none"
+                              hx-on::after-request="if(event.detail.successful) window.location.reload()"
+                              class="mt-2 bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-3 space-y-2">
+                            <textarea name="rejection_reason"
+                                      required
+                                      minlength="1"
+                                      rows="2"
+                                      placeholder="Warum wird das Angebot abgelehnt?"
+                                      class="w-full text-sm rounded-lg border border-slate-200 dark:border-slate-700
+                                             bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100
+                                             placeholder-slate-400 px-3 py-2 resize-none
+                                             focus:outline-none focus:ring-2 focus:ring-red-500/40"></textarea>
                             <button type="submit"
-                                    class="text-xs font-medium px-3 py-1 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors">
-                                Akzeptieren
+                                    class="w-full py-2 rounded-lg text-xs font-medium bg-red-600 text-white hover:bg-red-700 transition-colors">
+                                Angebot ablehnen
                             </button>
                         </form>
-                        {% endif %}
-                    </div>
+                    </details>
+                    {% endif %}
                 </li>
                 {% endfor %}
             </ul>

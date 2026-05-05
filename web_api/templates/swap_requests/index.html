@@ -77,6 +77,7 @@
     "pending":                    "Ausstehend",
     "accepted_by_target":         "Zugestimmt",
     "rejected_by_target":         "Abgelehnt",
+    "rejected_by_dispatcher":     "Abgelehnt (Einsatzplanung)",
     "confirmed_by_dispatcher":    "Bestätigt",
     "withdrawn":                  "Zurückgezogen",
     "superseded_by_cast_change":  "Besetzung geändert",
@@ -177,6 +178,14 @@
                       {% if filter_val == 'rejected_by_target' %}active{% endif %}">
                 <span class="w-2 h-2 rounded-full flex-shrink-0 bg-red-400"></span>
                 Abgelehnt
+            </a>
+
+            <a href="?status_filter=rejected_by_dispatcher"
+               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                      border-transparent text-sm font-sans text-slate-400
+                      {% if filter_val == 'rejected_by_dispatcher' %}active{% endif %}">
+                <span class="w-2 h-2 rounded-full flex-shrink-0 bg-red-400"></span>
+                Abgelehnt (Einsatzplanung)
             </a>
 
             <a href="?status_filter=superseded_by_cast_change"

@@ -51,6 +51,7 @@
                 {% if c.already_requested %}
                 <button disabled
                         data-target-appt-id="{{ c.appointment_id }}"
+                        data-target-user-id="{{ c.holder_web_user_id }}"
                         class="swap-offer-btn is-submitted flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg
                                bg-brand/10 text-brand border border-brand/30 whitespace-nowrap">
                     Anfrage gestellt
@@ -61,6 +62,7 @@
                     hx-target="#swap-modal-area"
                     hx-swap="innerHTML"
                     data-target-appt-id="{{ c.appointment_id }}"
+                    data-target-user-id="{{ c.holder_web_user_id }}"
                     onclick="document.querySelectorAll('.swap-offer-btn.is-selected').forEach(b => b.classList.remove('is-selected')); this.classList.add('is-selected'); document.getElementById('swap-modal-area').scrollIntoView({behavior:'smooth'});"
                     class="swap-offer-btn flex-shrink-0 text-xs font-semibold px-3 py-1.5 rounded-lg
                            bg-brand/10 text-brand border border-brand/30

@@ -272,7 +272,10 @@ def post_swap_request(
             "user": user,
             "swap_count": len(swaps),
             "swap_id": swaps[0].id if swaps else None,
-            "submitted_target_ids": [str(t) for t in target_appointment_ids],
+            "submitted_targets": [
+                {"appt_id": str(s.target_appointment_id), "user_id": str(s.target_web_user_id)}
+                for s in swaps
+            ],
         },
     )
 

@@ -880,9 +880,12 @@ def get_swap_candidate_appointments(
 
     rows = session.execute(query).mappings().all()
 
-    # Termine, für die der Anfrager bereits eine offene SwapRequest hat → in der Liste als "Anfrage gestellt" anzeigen
+    # (Termin, Person)-Paare, für die der Anfrager bereits eine offene SwapRequest hat
+    # → in der Liste als "Anfrage gestellt" anzeigen. Person-Achse ist wichtig, weil
+    # ein Group-Appointment mehrere Kandidaten-Zeilen erzeugt (eine pro Mit-Besetztem),
+    # die Anfrage aber an genau eine Person geht.
     already_requested_query = (
-        sa_select(SwapRequest.target_appointment_id)
+        sa_select(SwapRequest.target_appointment_id, SwapRequest.target_web_user_id)
         .where(SwapRequest.requester_web_user_id == requester_user.id)
         .where(SwapRequest.status.in_([SwapRequestStatus.pending, SwapRequestStatus.accepted_by_target]))
     )
@@ -890,7 +893,9 @@ def get_swap_candidate_appointments(
         already_requested_query = already_requested_query.where(
             SwapRequest.requester_appointment_id == requester_appointment_id
         )
-    already_requested_ids = set(session.execute(already_requested_query).scalars().all())
+    already_requested_pairs = {
+        (row[0], row[1]) for row in session.execute(already_requested_query).all()
+    }
 
     return [
         SwapCandidate(
@@ -900,7 +905,7 @@ def get_swap_candidate_appointments(
             time_of_day_name=row["time_of_day_name"],
             holder_web_user_id=row["holder_web_user_id"],
             holder_name=f"{row['f_name']} {row['l_name']}",
-            already_requested=row["appointment_id"] in already_requested_ids,
+            already_requested=(row["appointment_id"], row["holder_web_user_id"]) in already_requested_pairs,
         )
         for row in rows
     ]

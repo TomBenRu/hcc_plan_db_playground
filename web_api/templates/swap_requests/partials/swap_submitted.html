@@ -6,12 +6,14 @@
         <a href="/swap-requests" class="text-brand underline">Alle Anfragen ansehen</a>
     </p>
 </div>
-{% if submitted_target_ids %}
+{% if submitted_targets %}
 <script>
 (function() {
-    const targets = {{ submitted_target_ids | tojson }};
-    targets.forEach(function(id) {
-        const btn = document.querySelector('.swap-offer-btn[data-target-appt-id="' + id + '"]');
+    const targets = {{ submitted_targets | tojson }};
+    targets.forEach(function(t) {
+        const sel = '.swap-offer-btn[data-target-appt-id="' + t.appt_id + '"]'
+                  + '[data-target-user-id="' + t.user_id + '"]';
+        const btn = document.querySelector(sel);
         if (btn) {
             btn.classList.remove('is-selected');
             btn.classList.add('is-submitted');

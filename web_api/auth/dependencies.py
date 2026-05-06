@@ -68,29 +68,36 @@ def get_current_user(
 def _build_next_url(request: Request) -> str:
     """Berechnet das `next`-Ziel für Login-Redirects.
 
+    HTMX-Requests sind oft Partial-/Polling-Endpoints (z.B. tile-badge), die als
+    Vollseite leer wären → `HX-Current-URL` (die tatsächliche Browser-URL) bevorzugen.
     GET-Routen sind selbst ein gültiges Redirect-Target → Path+Query nehmen.
     Mutations-Routen (POST/PATCH/PUT/DELETE) sind kein gültiges GET-Target →
     Referer-Header heranziehen, sonst Dashboard. Loop-Guard gegen `/auth/`-
     Pfade verhindert Login→Login-Schleifen.
     """
-    if request.method == "GET":
+    if request.headers.get("HX-Request") == "true":
+        candidate = _path_and_query(request.headers.get("HX-Current-URL", ""))
+    elif request.method == "GET":
         path = request.url.path
         query = request.url.query
         candidate = f"{path}?{query}" if query else path
     else:
-        referer = request.headers.get("referer", "")
-        try:
-            parsed = urlparse(referer)
-        except ValueError:
-            parsed = None
-        if parsed and parsed.path and parsed.path.startswith("/"):
-            candidate = f"{parsed.path}?{parsed.query}" if parsed.query else parsed.path
-        else:
-            return "/dashboard"
+        candidate = _path_and_query(request.headers.get("referer", ""))
 
-    if candidate.startswith("/auth/"):
+    if not candidate or candidate.startswith("/auth/"):
         return "/dashboard"
     return candidate
+
+
+def _path_and_query(absolute_or_relative_url: str) -> str:
+    """Extrahiert `path[?query]` aus einer URL; leerer String wenn nicht parsebar."""
+    try:
+        parsed = urlparse(absolute_or_relative_url)
+    except ValueError:
+        return ""
+    if not parsed.path or not parsed.path.startswith("/"):
+        return ""
+    return f"{parsed.path}?{parsed.query}" if parsed.query else parsed.path
 
 
 def require_login(

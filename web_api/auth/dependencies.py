@@ -4,12 +4,13 @@ from typing import Annotated
 from urllib.parse import urlparse
 
 import jwt
-from fastapi import Cookie, Depends, HTTPException, Request, status
+from fastapi import Cookie, Depends, HTTPException, Request, Response, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
-from web_api.auth.service import decode_token
+from web_api.auth.cookies import set_auth_cookies
+from web_api.auth.service import decode_token, silent_refresh
 from web_api.config import Settings, get_settings
 from web_api.dependencies import get_db_session
 from web_api.exceptions import LoginRequired
@@ -102,19 +103,40 @@ def _path_and_query(absolute_or_relative_url: str) -> str:
 
 def require_login(
     request: Request,
+    response: Response,
     session: Session = Depends(get_db_session),
     settings: Settings = Depends(get_settings),
     bearer_token: str | None = Depends(_oauth2_scheme),
     access_token: str | None = Cookie(default=None),
+    refresh_token: str | None = Cookie(default=None),
 ) -> WebUser:
-    """Für Browser-Routen: leitet bei fehlendem Token zu /auth/login?next=... weiter."""
+    """Für Browser-Routen: leitet bei fehlendem Token zu /auth/login?next=... weiter.
+
+    Silent-Refresh-Pfad: Wenn der Access-Cookie fehlt oder abgelaufen ist, der
+    Refresh-Cookie aber noch gültig ist, stellt diese Dependency intern ein
+    neues Token-Paar aus, setzt die neuen Cookies auf der ausgehenden Response
+    und gibt den User normal zurück — der eigentliche Endpoint merkt nichts.
+
+    Bearer-Tokens werden NICHT silent gerefresht: API-Caller (Desktop) managen
+    Tokens explizit über `/auth/refresh` und einen Refresh-Interceptor.
+    """
     token = bearer_token or access_token
-    if not token:
-        raise LoginRequired(next_url=_build_next_url(request))
-    try:
-        return _load_user_from_token(token, session, settings)
-    except HTTPException:
-        raise LoginRequired(next_url=_build_next_url(request))
+    if token:
+        try:
+            return _load_user_from_token(token, session, settings)
+        except HTTPException:
+            if bearer_token:
+                # Desktop-API-Pfad: Refresh ist Sache des Clients.
+                raise LoginRequired(next_url=_build_next_url(request))
+
+    if refresh_token:
+        result = silent_refresh(refresh_token, session, settings)
+        if result is not None:
+            user, new_access, new_refresh = result
+            set_auth_cookies(response, new_access, new_refresh, settings)
+            return user
+
+    raise LoginRequired(next_url=_build_next_url(request))
 
 
 CurrentUser = Annotated[WebUser, Depends(get_current_user)]

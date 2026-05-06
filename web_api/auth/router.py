@@ -1,7 +1,5 @@
 """Auth-Router: /auth/login, /auth/refresh, /auth/logout, /auth/me."""
 
-from datetime import datetime, timezone
-
 import jwt
 from fastapi import (
     APIRouter,
@@ -17,8 +15,7 @@ from fastapi import (
 )
 from fastapi.responses import HTMLResponse, RedirectResponse
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.orm import selectinload
-from sqlmodel import Session, select
+from sqlmodel import Session
 
 from web_api.auth.cookies import ACCESS_COOKIE, REFRESH_COOKIE, clear_auth_cookies, set_auth_cookies
 from web_api.auth.dependencies import CurrentUser
@@ -35,6 +32,7 @@ from web_api.auth.service import (
     create_refresh_token,
     decode_token,
     load_user_with_roles,
+    silent_refresh,
     verify_password,
 )
 from web_api.config import Settings, get_settings
@@ -198,51 +196,25 @@ def refresh(
     session: Session = Depends(get_db_session),
     settings: Settings = Depends(get_settings),
 ):
-    """Erneuert den Access-Token anhand des Refresh-Tokens (httpOnly-Cookie)."""
+    """Erneuert den Access-Token anhand des Refresh-Tokens (httpOnly-Cookie).
+
+    Wird vom Desktop-Client expliziet aufgerufen (Refresh-Interceptor). Browser
+    nutzen daneben den `silent_refresh`-Pfad in `require_login`, der dieselbe
+    Helper-Funktion verwendet.
+    """
     if not refresh_token:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Kein Refresh-Token")
 
-    try:
-        payload = decode_token(refresh_token, settings)
-    except jwt.ExpiredSignatureError:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Refresh-Token abgelaufen")
-    except jwt.PyJWTError:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Ungültiger Refresh-Token")
-
-    if payload.get("type") != "refresh":
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED, detail="Falscher Token-Typ")
-
-    user = session.exec(
-        select(WebUser)
-        .where(WebUser.id == payload["sub"])
-        .options(selectinload(WebUser.role_links))  # type: ignore[arg-type]
-    ).first()
-    if not user or not user.is_active:
+    result = silent_refresh(refresh_token, session, settings)
+    if result is None:
         raise HTTPException(
             status.HTTP_401_UNAUTHORIZED,
-            detail="Benutzer nicht gefunden oder inaktiv",
+            detail="Refresh-Token ungültig, abgelaufen oder Sitzung beendet",
         )
 
-    # Refresh-Tokens, die VOR der letzten Passwort-Änderung ausgestellt wurden,
-    # sind ungültig (Reset oder Self-Change hat alle Sessions revoziert).
-    token_iat = payload.get("iat")
-    if token_iat is not None:
-        pwd_changed = user.password_changed_at
-        if pwd_changed.tzinfo is None:
-            pwd_changed = pwd_changed.replace(tzinfo=timezone.utc)
-        # 5s Toleranz gegen Uhren-Drift beim Ausstellen direkt nach einer Änderung
-        if token_iat + 5 < int(pwd_changed.timestamp()):
-            raise HTTPException(
-                status.HTTP_401_UNAUTHORIZED,
-                detail="Sitzung durch Passwort-Änderung beendet — bitte neu anmelden",
-            )
-
-    role_values = [r.value for r in user.roles]
-    access = create_access_token(str(user.id), user.email, role_values, settings)
-    new_refresh = create_refresh_token(str(user.id), settings)
-    set_auth_cookies(response, access, new_refresh, settings)
-
-    return {"access_token": access, "token_type": "bearer"}
+    _, new_access, new_refresh = result
+    set_auth_cookies(response, new_access, new_refresh, settings)
+    return {"access_token": new_access, "token_type": "bearer"}
 
 
 @router.post("/logout")

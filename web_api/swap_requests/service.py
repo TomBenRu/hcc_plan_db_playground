@@ -550,6 +550,7 @@ def withdraw_swap_request(
             detail="Diese Tausch-Anfrage kann nicht mehr zurückgezogen werden.",
         )
 
+    prev_status = swap.status
     swap.status = SwapRequestStatus.withdrawn
     session.add(swap)
     session.flush()
@@ -580,6 +581,34 @@ def withdraw_swap_request(
                 html_body=html,
             )
         )
+
+    # Wenn das Ziel bereits zugestimmt hatte, hat der Dispatcher eine offene
+    # "Bitte bestätigen"-Aufgabe. Withdraw macht diese hinfällig — informieren.
+    if prev_status == SwapRequestStatus.accepted_by_target:
+        dispatcher_user = _get_dispatcher_web_user(session, req_ctx["team_id"])
+        if dispatcher_user is not None and (
+            target_user is None or dispatcher_user.id != target_user.id
+        ):
+            create_inbox_message(
+                session,
+                recipient_id=dispatcher_user.id,
+                msg_type=InboxMessageType.swap_withdrawn_after_accept,
+                reference_id=swap.id,
+                reference_type="swap_request",
+                snapshot_data=snapshot,
+            )
+            html = _render_email(
+                "swap_withdrawn_after_accept.html",
+                snapshot=snapshot,
+                recipient_first_name=first_name_for_web_user(session, dispatcher_user),
+            )
+            email_payloads.append(
+                EmailPayload(
+                    to=[recipient_email_for_web_user(session, dispatcher_user)],
+                    subject="Tausch zurückgezogen — keine Bestätigung mehr nötig",
+                    html_body=html,
+                )
+            )
 
     return email_payloads
 

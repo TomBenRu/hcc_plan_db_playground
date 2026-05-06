@@ -32,6 +32,10 @@ _ROLE_TYPES: dict[str, set[str]] = {
         "takeover_accepted",
         "availability_offer_received",
         "availability_offer_withdrawn",
+        "swap_request_received",
+        "swap_accepted_by_target",
+        "swap_confirmed",
+        "swap_withdrawn_after_accept",
     },
     "employee": {
         "cancellation_new",
@@ -39,7 +43,6 @@ _ROLE_TYPES: dict[str, set[str]] = {
         "cancellation_resolved",
         "takeover_accepted",
         "swap_request_received",
-        "swap_accepted_by_target",
         "swap_confirmed",
         "swap_rejected",
         "swap_withdrawn",

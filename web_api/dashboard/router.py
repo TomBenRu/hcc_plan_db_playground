@@ -169,6 +169,23 @@ _PERSONAL_SECTION = {
 }
 
 
+# ── Hilfe-Sektion (rollen-unabhängig, Onboarding-Anker für neue User) ───────
+
+_HELP_SECTION = {
+    "label": "Hilfe & Support",
+    "color": "#8B5CF6",        # violet-500 — bewusst eigenständig, kein Konflikt mit Rollen-Farben
+    "color_light": "#F5F3FF",  # violet-50
+    "tiles": [
+        {
+            "title": "Hilfe & Anleitungen",
+            "desc": "Schritt-für-Schritt-Erklärungen zu allen Funktionen",
+            "url": "/help",
+            "icon": "M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093M12 17h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z",
+        },
+    ],
+}
+
+
 _MONTHS_DE = [
     "Januar", "Februar", "März", "April", "Mai", "Juni",
     "Juli", "August", "September", "Oktober", "November", "Dezember",
@@ -213,6 +230,18 @@ def dashboard(request: Request, user: LoggedInUser, session: Session = Depends(g
         for tile in _PERSONAL_SECTION["tiles"]
     ]
     sections.append({**_PERSONAL_SECTION, "tiles": personal_tiles})
+
+    # Hilfe-Sektion ganz am Ende — Onboarding-Anker für neue User.
+    help_tiles = [
+        {
+            **tile,
+            "color": _HELP_SECTION["color"],
+            "color_light": _HELP_SECTION["color_light"],
+            "count": None,
+        }
+        for tile in _HELP_SECTION["tiles"]
+    ]
+    sections.append({**_HELP_SECTION, "tiles": help_tiles})
 
     # Anzeigename: Vor- und Zuname aus Person-Eintrag, Fallback auf E-Mail-Prefix
     display_name = user.email.split("@")[0].replace(".", " ").replace("_", " ").title()

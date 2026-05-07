@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+
+{% block title %}Hilfe — hcc plan{% endblock %}
+
+{% block head %}
+<style>
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(14px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .anim { animation: fadeUp 0.4s ease-out both; }
+
+    .help-card {
+        display: block;
+        padding: 1rem 1.25rem;
+        background: #fff;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        text-decoration: none;
+        color: inherit;
+        transition: transform 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease;
+    }
+    .help-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 18px rgba(0,0,0,0.05);
+        border-color: var(--brand);
+    }
+    [data-theme="dark"] .help-card {
+        background: #1E293B;
+        border-color: #334155;
+    }
+    [data-theme="dark"] .help-card:hover {
+        box-shadow: 0 8px 22px rgba(0,0,0,0.3);
+    }
+</style>
+{% endblock %}
+
+{% block nav %}
+    {% include "partials/nav.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 dark:bg-slate-900">
+<div class="max-w-4xl mx-auto px-5 sm:px-8 py-10 sm:py-14">
+
+    {# ── Kopf ─────────────────────────────────────────────────────────── #}
+    <div class="mb-10 anim" style="animation-delay: 0.05s">
+        <p class="text-slate-400 dark:text-slate-500 text-xs uppercase tracking-widest font-medium mb-2">Hilfe & Anleitung</p>
+        <h1 class="font-display text-3xl sm:text-4xl font-light text-slate-900 dark:text-slate-100 leading-tight">
+            Wie kann ich helfen?
+        </h1>
+        {% if total > 0 %}
+        <p class="mt-2 text-slate-500 dark:text-slate-400 text-sm">
+            {{ total }} {{ "Thema" if total == 1 else "Themen" }} verfügbar — gewählt nach deinen Rollen.
+        </p>
+        {% else %}
+        <p class="mt-2 text-slate-500 dark:text-slate-400 text-sm">
+            Hier sind noch keine Hilfe-Themen für deine Rolle hinterlegt.
+        </p>
+        {% endif %}
+    </div>
+
+    {# ── TOC: Inhaltsverzeichnis (Sprungmarken zu den Sektionen unten) ── #}
+    {% if categories %}
+    <div class="mb-10 anim" style="animation-delay: 0.1s">
+        <div class="flex flex-wrap gap-2">
+            {% for category, _ in categories %}
+            <a href="#cat-{{ loop.index }}"
+               class="text-xs font-medium px-3 py-1.5 rounded-full ring-1 ring-slate-200 dark:ring-slate-700
+                      bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300
+                      hover:ring-brand hover:text-brand transition-colors">
+                {{ category }}
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    {# ── Themen, gruppiert nach Kategorie ─────────────────────────────── #}
+    {% for category, topics in categories %}
+    <section id="cat-{{ loop.index }}" class="mb-10 anim"
+             style="animation-delay: {{ 0.15 + loop.index0 * 0.06 }}s">
+
+        <div class="flex items-center gap-2 mb-4">
+            <div class="w-2 h-2 rounded-full bg-brand"></div>
+            <h2 class="text-xs uppercase tracking-widest font-semibold text-slate-400 dark:text-slate-500">
+                {{ category }}
+            </h2>
+        </div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            {% for topic in topics %}
+            <a href="/help/{{ topic.slug }}" class="help-card">
+                <p class="font-medium text-slate-800 dark:text-slate-100 text-[15px] leading-snug">
+                    {{ topic.title }}
+                </p>
+                {% if topic.updated %}
+                <p class="text-slate-400 dark:text-slate-500 text-xs mt-1">
+                    Aktualisiert {{ topic.updated.strftime("%d.%m.%Y") }}
+                </p>
+                {% endif %}
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endfor %}
+
+</div>
+</div>
+{% endblock %}

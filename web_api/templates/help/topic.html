@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+
+{% block title %}{{ topic.title }} — Hilfe — hcc plan{% endblock %}
+
+{% block head %}
+<style>
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(14px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .anim { animation: fadeUp 0.4s ease-out both; }
+
+    /* ── Markdown-Body: Typografie fuer Help-Content ─────────────────── */
+    .help-body {
+        color: #1f2937;
+        line-height: 1.7;
+        font-size: 15px;
+    }
+    .help-body h1 { font-size: 1.875rem; font-weight: 600; margin: 2rem 0 0.75rem; line-height: 1.2; }
+    .help-body h2 { font-size: 1.375rem; font-weight: 600; margin: 1.75rem 0 0.5rem; line-height: 1.3; }
+    .help-body h3 { font-size: 1.125rem; font-weight: 600; margin: 1.25rem 0 0.5rem; }
+    .help-body p { margin: 0.75rem 0; }
+    .help-body ul, .help-body ol { margin: 0.75rem 0 0.75rem 1.5rem; }
+    .help-body ul { list-style: disc; }
+    .help-body ol { list-style: decimal; }
+    .help-body li { margin: 0.25rem 0; }
+    .help-body a {
+        color: var(--brand);
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        text-decoration-color: rgba(249,115,22,0.4);
+    }
+    .help-body a:hover { text-decoration-color: var(--brand); }
+    .help-body code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.875em;
+        background: #f1f5f9;
+        padding: 0.125rem 0.375rem;
+        border-radius: 4px;
+        color: #0f172a;
+    }
+    .help-body pre {
+        background: #0F172A;
+        color: #E2E8F0;
+        padding: 1rem 1.25rem;
+        border-radius: 8px;
+        overflow-x: auto;
+        margin: 1rem 0;
+        font-size: 0.875rem;
+        line-height: 1.6;
+    }
+    .help-body pre code {
+        background: transparent;
+        padding: 0;
+        color: inherit;
+        font-size: inherit;
+    }
+    .help-body blockquote {
+        border-left: 3px solid var(--brand);
+        background: #FFF7ED;
+        padding: 0.75rem 1rem;
+        margin: 1rem 0;
+        border-radius: 0 6px 6px 0;
+        color: #1f2937;
+    }
+    .help-body table {
+        width: 100%;
+        border-collapse: collapse;
+        margin: 1rem 0;
+        font-size: 0.875rem;
+    }
+    .help-body th, .help-body td {
+        border: 1px solid #e2e8f0;
+        padding: 0.5rem 0.75rem;
+        text-align: left;
+    }
+    .help-body th { background: #f8fafc; font-weight: 600; }
+    .help-body img { max-width: 100%; border-radius: 8px; margin: 1rem 0; }
+
+    /* ── Dark Mode ───────────────────────────────────────────────────── */
+    [data-theme="dark"] .help-body { color: #E2E8F0; }
+    [data-theme="dark"] .help-body code { background: #1E293B; color: #F1F5F9; }
+    [data-theme="dark"] .help-body blockquote {
+        background: rgba(249,115,22,0.08);
+        color: #E2E8F0;
+    }
+    [data-theme="dark"] .help-body th { background: #1E293B; }
+    [data-theme="dark"] .help-body th, [data-theme="dark"] .help-body td { border-color: #334155; }
+</style>
+{% endblock %}
+
+{% block nav %}
+    {% include "partials/nav.html" %}
+{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 dark:bg-slate-900">
+<div class="max-w-3xl mx-auto px-5 sm:px-8 py-10 sm:py-14">
+
+    {# ── Breadcrumb ───────────────────────────────────────────────────── #}
+    <nav class="mb-6 anim text-xs text-slate-400 dark:text-slate-500" style="animation-delay: 0.05s">
+        <a href="/help" class="hover:text-brand transition-colors">Hilfe</a>
+        <span class="mx-1">›</span>
+        <span>{{ topic.category }}</span>
+    </nav>
+
+    {# ── Titel + Meta ─────────────────────────────────────────────────── #}
+    <header class="mb-8 anim" style="animation-delay: 0.1s">
+        <h1 class="font-display text-3xl sm:text-4xl font-light text-slate-900 dark:text-slate-100 leading-tight">
+            {{ topic.title }}
+        </h1>
+        {% if topic.updated %}
+        <p class="mt-3 text-slate-400 dark:text-slate-500 text-xs">
+            Zuletzt aktualisiert am {{ topic.updated.strftime("%d.%m.%Y") }}
+        </p>
+        {% endif %}
+    </header>
+
+    {# ── Markdown-Body ────────────────────────────────────────────────── #}
+    <article class="help-body anim bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700/50
+                    rounded-xl px-6 sm:px-8 py-6 sm:py-8 shadow-sm"
+             style="animation-delay: 0.15s">
+        {{ topic.body_html|safe }}
+    </article>
+
+    {# ── Verwandte Themen ─────────────────────────────────────────────── #}
+    {% if related %}
+    <section class="mt-8 anim" style="animation-delay: 0.2s">
+        <h2 class="text-xs uppercase tracking-widest font-semibold text-slate-400 dark:text-slate-500 mb-3">
+            Auch interessant
+        </h2>
+        <div class="flex flex-wrap gap-2">
+            {% for r in related %}
+            <a href="/help/{{ r.slug }}"
+               class="text-sm px-3 py-1.5 rounded-full ring-1 ring-slate-200 dark:ring-slate-700
+                      bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-300
+                      hover:ring-brand hover:text-brand transition-colors">
+                {{ r.title }}
+            </a>
+            {% endfor %}
+        </div>
+    </section>
+    {% endif %}
+
+    {# ── Zurueck-Link ─────────────────────────────────────────────────── #}
+    <div class="mt-10 anim" style="animation-delay: 0.25s">
+        <a href="/help"
+           class="inline-flex items-center gap-1.5 text-sm text-slate-500 dark:text-slate-400
+                  hover:text-brand transition-colors">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Zurück zur Übersicht
+        </a>
+    </div>
+
+</div>
+</div>
+{% endblock %}

@@ -3,19 +3,92 @@ title: Mein Kalender
 roles: [employee]
 category: Mitarbeiter
 order: 20
+updated: 2026-05-07
+anchors:
+  - was-zeigt-der-kalender
+  - eigene-vs-team-ansicht
+  - termin-details
+  - aktionen-am-termin
+  - haeufige-fragen
+related:
+  - employee/availability
+  - employee/cancellation
+  - employee/swap-request
 ---
 
-Im Kalender siehst du alle Termine und Schichten, für die du eingeplant bist.
+**Mein Kalender** zeigt dir alle Termine und Schichten, für die du eingeplant bist — und auf Wunsch
+auch die deiner Kolleg:innen, sodass du das Team-Geschehen rund um deine Einsätze siehst. Du erreichst
+die Seite über die Dashboard-Kachel **„Mein Kalender"** oder direkt unter `/employees/calendar`.
 
-> Diese Hilfeseite ist noch in Arbeit. Eine ausführliche Anleitung folgt demnächst.
+## Was zeigt der Kalender? {#was-zeigt-der-kalender}
 
-## Wechsel zwischen eigenen Terminen und Team-Ansicht
+- **Eigene Termine** — alle Schichten, für die du fest eingeteilt bist (oder durch ein angenommenes
+  Einsprung-Angebot zusätzlich gebucht wurdest).
+- **Team-Termine** — Termine deiner Kolleg:innen (per Toggle einblendbar).
+- **Farbcodierung** — jeder Einsatzort hat eine eigene Farbe; identische Farben in deiner Eigen- und
+  Team-Ansicht ermöglichen schnelles Erkennen.
+- **Legende** — unten/seitlich findest du die Farb-Zuordnung der Standorte.
 
-Über den Schalter **„Alle anzeigen"** oben kannst du zwischen deinen eigenen Terminen und allen
-Terminen deines Teams umschalten. So siehst du, wer noch in deinem Einsatzort arbeitet — nützlich,
-wenn du z. B. eine Tauschanfrage stellen möchtest.
+> **Tipp:** Die Farben kannst du in deinen **Einstellungen** (Persönlich → Einstellungen) selbst
+> anpassen, falls die System-Farben für dich schwer zu unterscheiden sind.
 
-## Termin-Details öffnen
+## Eigene Termine vs. Team-Ansicht {#eigene-vs-team-ansicht}
 
-Klicke auf einen Termin, um Detail-Informationen zu sehen: Einsatzort, Uhrzeit, Kolleg:innen
-sowie Aktionen (Absagen, Tausch anfragen, Notiz lesen).
+Über den **„Alle anzeigen"-Toggle** oben wechselst du zwischen zwei Modi:
+
+| Modus | Zeigt |
+|---|---|
+| **Aus** (Standard) | Nur deine eigenen Termine |
+| **Ein** | Eigene Termine + alle Termine deines Teams |
+
+Die Team-Ansicht ist nützlich, wenn du z. B. eine Tauschanfrage stellen möchtest — du siehst direkt,
+wer an welchem Tag verfügbar ist, und kannst gezielt jemanden ansprechen.
+
+## Termin-Details öffnen {#termin-details}
+
+Klicke auf einen Termin im Kalender, um Details zu sehen:
+
+- **Datum, Uhrzeit, Einsatzort**
+- **Eingeteilte Personen** (mit dir markiert)
+- **Notizen** der Disposition (z. B. „Sondertermin", „Anfahrtszeit beachten")
+- **Aktionen** — je nach Termin und Status: Absagen, Tausch anbieten, Einsprung anbieten
+
+Bei vergangenen Terminen sind die Aktionen ausgeblendet — du kannst dir aber die Details als
+Nachweis ansehen.
+
+## Aktionen am Termin {#aktionen-am-termin}
+
+Im Detail-Panel rechts findest du je nach Kontext einen oder mehrere Aktions-Buttons:
+
+| Button | Wann sichtbar | Was passiert |
+|---|---|---|
+| **Absagen** | Eigener, künftiger Termin | Öffnet das Absage-Formular |
+| **Tausch anbieten** | Eigener, künftiger Termin | Öffnet die Tauschbörse mit Vorbelegung |
+| **Übernahme anbieten** | Fremder Termin mit offener Absage und du im Benachrichtigungskreis | Öffnet das Übernahme-Vorschlags-Formular |
+| **Einsprung anbieten** | Unterbesetzter Termin im Team | Öffnet das Einsprung-Formular |
+
+Für jede Aktion gibt es ein eigenes Hilfe-Thema (siehe „Auch interessant" am Ende dieser Seite).
+
+## Häufige Fragen {#haeufige-fragen}
+
+**Warum sehe ich keine Termine, obwohl ich eingeplant sein sollte?**
+Mögliche Ursachen: (1) du hast den Zeitraum nicht eingestellt — der Kalender springt initial auf die
+nächste oder aktuelle Planungsperiode; (2) deine Disposition hat den Plan noch nicht veröffentlicht;
+(3) dein Konto ist (noch) keiner Person verknüpft — wende dich in diesem Fall an deine Disposition.
+
+**Warum erscheinen Termine, an denen ich gar nicht arbeiten kann?**
+Im **„Alle anzeigen"-Modus** zeigt der Kalender auch Termine deines Teams, an denen andere eingeteilt
+sind. Schalte den Toggle aus, um nur deine eigenen zu sehen.
+
+**Kann ich den Kalender exportieren (z. B. iCal für Google/Apple Kalender)?**
+Aktuell nicht. Eine Export-Funktion ist denkbar — falls du das brauchst, sprich mit der Disposition,
+damit sie das Feature priorisieren kann.
+
+**Was ist der Unterschied zur Verfügbarkeitsmaske?**
+Die **Verfügbarkeitsmaske** ist deine Eingabe — wann du arbeiten **könntest**. Der **Kalender** zeigt,
+wann du tatsächlich arbeiten **wirst** — also die Termine, für die deine Disposition dich konkret
+eingeteilt hat.
+
+**Sehen Kolleg:innen, dass ich ihren Kalender betrachte?**
+Nein, das System protokolliert keine Lese-Zugriffe. Wer ein Detail-Panel öffnet, ist für andere nicht
+sichtbar.

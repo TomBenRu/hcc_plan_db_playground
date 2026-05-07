@@ -58,6 +58,38 @@ def help_index(request: Request, user: LoggedInUser):
     )
 
 
+@router.get("/popover/{slug:path}", response_class=HTMLResponse)
+def help_popover(
+    request: Request,
+    user: LoggedInUser,
+    slug: str,
+    anchor: str | None = None,
+):
+    """HTMX-Popover-Endpoint: liefert ein Modal-Shell-Fragment fuer ``#modal-root``.
+
+    Muss VOR der ``/{slug:path}``-Catch-All-Route stehen — sonst wuerde FastAPI
+    ``popover/employee/availability`` als Topic-Slug interpretieren und 404
+    liefern, weil ``popover/employee/availability`` kein registriertes Topic
+    ist.
+    """
+    topic = get_topic(slug)
+    if topic is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Hilfe-Thema nicht gefunden")
+    if topic.roles:
+        user_roles = {r.value for r in user.roles}
+        if not user_roles.intersection(topic.roles):
+            raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Hilfe-Thema nicht gefunden")
+    return templates.TemplateResponse(
+        "help/_popover.html",
+        {
+            "request": request,
+            "user": user,
+            "topic": topic,
+            "anchor": anchor or None,
+        },
+    )
+
+
 @router.get("/{slug:path}", response_class=HTMLResponse)
 def help_topic(request: Request, user: LoggedInUser, slug: str):
     """Volltext-View eines einzelnen Topics.

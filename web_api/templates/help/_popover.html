@@ -1,0 +1,110 @@
+{#
+    Hilfe-Popover — laeuft ueber den bestehenden Modal-Mechanismus
+    (#modal-root, hccModal, ESC + Backdrop-Click + Outside-Click). Daher
+    extending der Modal-Shell statt eigener Container.
+
+    Erwartet:
+        topic    — HelpTopic
+        anchor   — str | None; Sprungmarke innerhalb des Popovers (Auto-Scroll)
+#}
+{% extends "partials/modal_shell.html" %}
+
+{% block modal_size %}max-w-2xl{% endblock %}
+
+{% block modal_kicker %}Hilfe{% endblock %}
+
+{% block modal_title %}{{ topic.title }}{% endblock %}
+
+{% block modal_body %}
+<style scoped>
+    /* ── Popover-Markdown-Body: dieselben Regeln wie auf der Topic-Detail-Seite,
+         aber leicht straffer (kleinere Headings, weniger Vertikal-Abstand). ── */
+    .help-popover-body { color: #1f2937; line-height: 1.65; font-size: 14px; }
+    .help-popover-body h1,
+    .help-popover-body h2,
+    .help-popover-body h3 { font-weight: 600; line-height: 1.3; }
+    .help-popover-body h2 { font-size: 1.125rem; margin: 1.25rem 0 0.5rem; }
+    .help-popover-body h3 { font-size: 1rem; margin: 1rem 0 0.4rem; }
+    .help-popover-body p { margin: 0.5rem 0; }
+    .help-popover-body ul, .help-popover-body ol { margin: 0.5rem 0 0.5rem 1.5rem; }
+    .help-popover-body ul { list-style: disc; }
+    .help-popover-body ol { list-style: decimal; }
+    .help-popover-body li { margin: 0.2rem 0; }
+    .help-popover-body a {
+        color: var(--brand); text-decoration: underline;
+        text-underline-offset: 2px; text-decoration-color: rgba(249,115,22,0.4);
+    }
+    .help-popover-body a:hover { text-decoration-color: var(--brand); }
+    .help-popover-body code {
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 0.85em; background: #f1f5f9;
+        padding: 0.1rem 0.35rem; border-radius: 4px; color: #0f172a;
+    }
+    .help-popover-body pre {
+        background: #0F172A; color: #E2E8F0;
+        padding: 0.75rem 1rem; border-radius: 8px;
+        overflow-x: auto; margin: 0.75rem 0;
+        font-size: 0.825rem; line-height: 1.5;
+    }
+    .help-popover-body pre code { background: transparent; padding: 0; color: inherit; }
+    .help-popover-body blockquote {
+        border-left: 3px solid var(--brand);
+        background: #FFF7ED;
+        padding: 0.5rem 0.875rem;
+        margin: 0.75rem 0; border-radius: 0 6px 6px 0;
+        color: #1f2937;
+    }
+    .help-popover-body table { width: 100%; border-collapse: collapse; margin: 0.75rem 0; font-size: 0.85rem; }
+    .help-popover-body th, .help-popover-body td {
+        border: 1px solid #e2e8f0; padding: 0.4rem 0.625rem; text-align: left;
+    }
+    .help-popover-body th { background: #f8fafc; font-weight: 600; }
+
+    [data-theme="dark"] .help-popover-body { color: #E2E8F0; }
+    [data-theme="dark"] .help-popover-body code { background: #1E293B; color: #F1F5F9; }
+    [data-theme="dark"] .help-popover-body blockquote {
+        background: rgba(249,115,22,0.08); color: #E2E8F0;
+    }
+    [data-theme="dark"] .help-popover-body th { background: #1E293B; }
+    [data-theme="dark"] .help-popover-body th,
+    [data-theme="dark"] .help-popover-body td { border-color: #334155; }
+</style>
+
+<article class="help-popover-body">
+    {{ topic.body_html | safe }}
+</article>
+
+{% if anchor %}
+<script>
+    // Auto-Scroll zum Anker, sobald der Popover im DOM ist. Wir warten einen
+    // Tick, damit das innere Layout fertig ist (Bilder, Tables koennen noch
+    // ausstehen, fuer normalen Text reicht der Mikrotask).
+    (function () {
+        var target = document.getElementById({{ anchor | tojson }});
+        if (!target) return;
+        var scroller = target.closest('.flex-1.overflow-y-auto');
+        if (!scroller) return;
+        requestAnimationFrame(function () {
+            var top = target.offsetTop - scroller.offsetTop - 12;
+            scroller.scrollTop = Math.max(0, top);
+        });
+    }());
+</script>
+{% endif %}
+{% endblock %}
+
+{% block modal_footer %}
+<div class="px-6 py-3 border-t border-slate-100 dark:border-slate-700/50
+            bg-slate-50/50 dark:bg-slate-900/30 flex items-center justify-between">
+    <span class="text-xs text-slate-400 dark:text-slate-500">
+        Tipp: ESC schließt diesen Hinweis
+    </span>
+    <a href="/help/{{ topic.slug }}{% if anchor %}#{{ anchor }}{% endif %}"
+       class="inline-flex items-center gap-1 text-sm text-brand hover:underline font-medium">
+        Vollständige Hilfeseite öffnen
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/>
+        </svg>
+    </a>
+</div>
+{% endblock %}

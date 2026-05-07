@@ -17,6 +17,7 @@ from __future__ import annotations
 
 import logging
 import os
+import re
 from pathlib import Path
 
 import frontmatter
@@ -55,6 +56,23 @@ def _normalize_roles(raw) -> tuple[str, ...]:
     return tuple(str(r) for r in raw)
 
 
+_HEADING_ANCHOR_RE = re.compile(
+    r"(<h[1-6])>(.*?)\s*\{#([a-z0-9_-]+)\}\s*(</h[1-6]>)",
+    re.DOTALL,
+)
+
+
+def _apply_heading_anchors(html: str) -> str:
+    """``<h2>Foo {#bar}</h2>`` → ``<h2 id="bar">Foo</h2>``.
+
+    Mistune kennt die Pandoc-Syntax ``{#anchor}`` an Headings nicht; ohne diesen
+    Schritt landet der Anker als Literal-Text in der Ueberschrift. Wir machen
+    daraus serverseitig ein ``id``-Attribut, damit Topic-Anker (sowohl auf der
+    vollen Topic-Seite als auch im Popover) als Sprungmarken funktionieren.
+    """
+    return _HEADING_ANCHOR_RE.sub(r'\1 id="\3">\2\4', html)
+
+
 def _strip_to_text(html: str) -> str:
     """Sehr einfache Plaintext-Extraktion fuer FTS in Phase 3.
 
@@ -79,7 +97,7 @@ def _load_single(md_path: Path, lang_root: Path) -> HelpTopic | None:
         return None
 
     slug = _slug_from_path(md_path, lang_root)
-    body_html = _markdown_renderer(post.content) or ""
+    body_html = _apply_heading_anchors(_markdown_renderer(post.content) or "")
     body_text = _strip_to_text(body_html)
 
     title = post.metadata.get("title")

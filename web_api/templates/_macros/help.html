@@ -1,0 +1,39 @@
+{#
+    Inline-Hilfe-Button.
+
+    Erzeugt ein dezentes ?-Icon, das bei Klick einen Popover mit dem
+    Hilfe-Topic in #modal-root laedt. Reuses des bestehenden hccModal-
+    Mechanismus (ESC + Backdrop-Click + Click-Outside zum Schliessen).
+
+    Aufruf:
+        {% from "_macros/help.html" import help_button %}
+        {{ help_button("employee/availability") }}
+        {{ help_button("employee/availability", anchor="verfuegbarkeit-eintragen") }}
+        {{ help_button("employee/availability", label="Verfuegbarkeit", dark=True) }}
+
+    Parameter:
+        slug   — Topic-Slug (z.B. "employee/availability")
+        anchor — optionaler Section-Anker; wird im Popover als Scroll-Ziel genutzt
+        label  — optionaler Klartext fuers aria-label (fuer Screenreader-Kontext)
+        dark   — True wenn der Button auf dunklem Hintergrund (z.B. Sidebar) sitzt
+#}
+{% macro help_button(slug, anchor='', label='', dark=False) -%}
+{%- set qs = "?anchor=" ~ anchor if anchor else "" -%}
+<button type="button"
+        title="Hilfe"
+        aria-label="Hilfe{% if label %}: {{ label }}{% endif %} anzeigen"
+        hx-get="/help/popover/{{ slug }}{{ qs }}"
+        hx-target="#modal-root"
+        hx-swap="innerHTML"
+        class="inline-flex items-center justify-center w-5 h-5 rounded-full
+               align-middle transition-colors flex-shrink-0
+               {% if dark %}text-slate-500 hover:text-white hover:bg-white/10
+               {% else %}text-slate-300 hover:text-brand hover:bg-brand/5
+                         dark:text-slate-500 dark:hover:text-brand dark:hover:bg-brand/10{% endif %}
+               focus:outline-none focus:ring-2 focus:ring-brand/40">
+    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round"
+              d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093M12 17h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+    </svg>
+</button>
+{%- endmacro %}

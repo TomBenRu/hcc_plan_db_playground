@@ -7,6 +7,7 @@ updated: 2026-05-07
 anchors:
   - was-zeigt-der-kalender
   - eigene-vs-team-ansicht
+  - nur-unterbesetzte
   - termin-details
   - aktionen-am-termin
   - haeufige-fragen
@@ -25,6 +26,9 @@ die Seite über die Dashboard-Kachel **„Mein Kalender"** oder direkt unter `/e
 - **Eigene Termine** — alle Schichten, für die du fest eingeteilt bist (oder durch ein angenommenes
   Einsprung-Angebot zusätzlich gebucht wurdest).
 - **Team-Termine** — Termine deiner Kolleg:innen (per Toggle einblendbar).
+- **Unterbesetzungs-Marker** — Termine, die noch nicht ausreichend besetzt sind, tragen einen
+  kleinen roten Punkt oben rechts (in der Listen-Ansicht vor dem Titel). Über den Toggle
+  **„Nur unterbesetzte"** kannst du gezielt nach diesen Terminen filtern.
 - **Farbcodierung** — jeder Einsatzort hat eine eigene Farbe; identische Farben in deiner Eigen- und
   Team-Ansicht ermöglichen schnelles Erkennen.
 - **Legende** — unten/seitlich findest du die Farb-Zuordnung der Standorte.
@@ -43,6 +47,24 @@ die Seite über die Dashboard-Kachel **„Mein Kalender"** oder direkt unter `/e
 
 Die Team-Ansicht ist nützlich, wenn du z. B. eine Tauschanfrage stellen möchtest — du siehst direkt,
 wer an welchem Tag verfügbar ist, und kannst gezielt jemanden ansprechen.
+
+## Nur unterbesetzte Termine {#nur-unterbesetzte}
+
+Mit dem Toggle **„Nur unterbesetzte"** in der Sidebar blendest du alle Termine aus, die schon
+vollständig besetzt sind. Übrig bleiben nur jene mit dem **roten Markierungs-Punkt** — also
+Schichten, bei denen noch Personen fehlen.
+
+| Modus | Zeigt |
+|---|---|
+| **Aus** (Standard) | Alle Termine (gemäß „Alle Termine der Periode"-Einstellung) |
+| **Ein** | Nur Termine mit Unterbesetzungs-Marker |
+
+Beide Toggles lassen sich **kombinieren**: „Alle Termine der Periode" + „Nur unterbesetzte" zeigt
+team-weit jeden Termin, bei dem noch jemand fehlt — praktisch, um zu sehen, wo du **einspringen**
+könntest.
+
+> **Tipp:** Der Filter-Zustand wird in der URL gespeichert (`?only_understaffed=1`), sodass du dir
+> einen gefilterten Kalender als Lesezeichen ablegen oder den Link teilen kannst.
 
 ## Termin-Details öffnen {#termin-details}
 
@@ -72,23 +94,28 @@ Für jede Aktion gibt es ein eigenes Hilfe-Thema (siehe „Auch interessant" am 
 ## Häufige Fragen {#haeufige-fragen}
 
 **Warum sehe ich keine Termine, obwohl ich eingeplant sein sollte?**
+
 Mögliche Ursachen: (1) du hast den Zeitraum nicht eingestellt — der Kalender springt initial auf die
 nächste oder aktuelle Planungsperiode; (2) deine Disposition hat den Plan noch nicht veröffentlicht;
 (3) dein Konto ist (noch) keiner Person verknüpft — wende dich in diesem Fall an deine Disposition.
 
 **Warum erscheinen Termine, an denen ich gar nicht arbeiten kann?**
+
 Im **„Alle anzeigen"-Modus** zeigt der Kalender auch Termine deines Teams, an denen andere eingeteilt
 sind. Schalte den Toggle aus, um nur deine eigenen zu sehen.
 
 **Kann ich den Kalender exportieren (z. B. iCal für Google/Apple Kalender)?**
+
 Aktuell nicht. Eine Export-Funktion ist denkbar — falls du das brauchst, sprich mit der Disposition,
 damit sie das Feature priorisieren kann.
 
 **Was ist der Unterschied zur Verfügbarkeitsmaske?**
+
 Die **Verfügbarkeitsmaske** ist deine Eingabe — wann du arbeiten **könntest**. Der **Kalender** zeigt,
 wann du tatsächlich arbeiten **wirst** — also die Termine, für die deine Disposition dich konkret
 eingeteilt hat.
 
 **Sehen Kolleg:innen, dass ich ihren Kalender betrachte?**
+
 Nein, das System protokolliert keine Lese-Zugriffe. Wer ein Detail-Panel öffnet, ist für andere nicht
 sichtbar.

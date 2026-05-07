@@ -72,17 +72,21 @@ Anfragen" einsehen — dort kannst du sie bei Bedarf zurückziehen.
 ## Häufige Fragen {#haeufige-fragen}
 
 **Warum sehe ich Termine, an denen ich gar nicht arbeiten kann (anderer Standort)?**
+
 Standardmäßig zeigt die Börse alle Termine des Teams. Filtere über die Sidebar auf deine Standorte
 oder die Standorte, die du gerade abdecken kannst.
 
 **Wie erfahre ich, wenn jemand meine Anfrage annimmt?**
+
 Du erhältst eine **E-Mail** sowie eine **Inbox-Nachricht** in hcc plan. In deiner Tauschbörse-Liste
 springt der Status der betroffenen Anfrage auf **„Zustimmung"** und wartet dann auf die Bestätigung
 durch die Disposition.
 
 **Kann ich einen Termin ohne Gegenangebot anbieten („Ich gebe ab, brauche nichts dafür")?**
+
 Nein — das ist konzeptionell eine Absage, kein Tausch. Nutze dafür den **Absage-Workflow**.
 
 **Wie unterscheidet sich die Tauschbörse von „Meine Angebote"?**
+
 Die Tauschbörse ist für **gegenseitigen Termin-Tausch**. „Meine Angebote" sind eigene **Einsprung-
 Angebote** für unterbesetzte Termine — also einseitige Hilfeleistung ohne Gegenleistung.

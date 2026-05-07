@@ -20,6 +20,11 @@
     .help-body h2 { font-size: 1.375rem; font-weight: 600; margin: 1.75rem 0 0.5rem; line-height: 1.3; }
     .help-body h3 { font-size: 1.125rem; font-weight: 600; margin: 1.25rem 0 0.5rem; }
     .help-body p { margin: 0.75rem 0; }
+    /* FAQ-Q/A-Paare enger zusammenhalten:
+       Ein Paragraph, der NUR ein <strong> enthaelt (= "**Frage?**" allein), und der
+       direkt darauf folgende Antwort-Paragraph werden visuell als Einheit gerendert. */
+    .help-body p:has(> strong:only-child) { margin-bottom: 0.25rem; }
+    .help-body p:has(> strong:only-child) + p { margin-top: 0; }
     .help-body ul, .help-body ol { margin: 0.75rem 0 0.75rem 1.5rem; }
     .help-body ul { list-style: disc; }
     .help-body ol { list-style: decimal; }

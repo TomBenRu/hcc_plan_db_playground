@@ -73,15 +73,19 @@ du bist dann fest eingeteilt und müsstest stattdessen über den **Absage-Workfl
 ## Häufige Fragen {#haeufige-fragen}
 
 **Bekomme ich eine Bestätigung, wenn mein Angebot angenommen wird?**
+
 Ja, per E-Mail und Inbox. Außerdem siehst du den Termin ab dann in deinem **Mein Kalender**.
 
 **Was, wenn ich nach Annahme doch nicht kann?**
+
 Nutze den **Absage-Workflow** für den jetzt gebuchten Termin. Es gilt dann derselbe Prozess wie bei
 allen regulär eingeteilten Terminen.
 
 **Kann ich an einem Tag, an dem ich schon eingeteilt bin, ein zusätzliches Angebot machen?**
+
 Technisch ja, aber inhaltlich selten sinnvoll — sprich vorher mit deiner Disposition, ob das passt.
 
 **Wie unterscheidet sich „Einspringen anbieten" von „Übernahme anbieten"?**
+
 **Einspringen** = du meldest dich auf einen **unterbesetzten** Termin.
 **Übernahme** = du übernimmst einen Termin, von dem jemand anderes per Absage **rausgeht**.

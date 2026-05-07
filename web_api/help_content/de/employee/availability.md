@@ -109,22 +109,27 @@ nutze den **Absage-Workflow** oder die **Tauschbörse**, statt die Verfügbarkei
 ## Häufige Fragen {#haeufige-fragen}
 
 **Warum sehe ich keine Planungsperiode?**
+
 Entweder gibt es für dein Team aktuell keine offene Periode, oder du bist (noch) keinem Team
 zugeordnet. Wende dich in beiden Fällen an deinen Disponenten.
 
 **Warum kann ich keine eigenen Tageszeiten anlegen?**
+
 Dann läuft das Projekt im Simple-Modus. Die Standard-Zeiten sind dort projektweit festgelegt —
 sprich deinen Administrator an, wenn du andere Zeiten brauchst.
 
 **Warum verschwindet eine Verfügbarkeit nicht beim Klick?**
+
 Höchstwahrscheinlich bist du bereits für diesen Tag eingeplant. Schau in **„Mein Kalender"**, ob
 dort ein Termin an diesem Tag und zu dieser Tageszeit liegt. Wenn ja: nutze den Absage- oder
 Tausch-Workflow.
 
 **Werden meine Eingaben sofort gespeichert?**
+
 Ja. Jeder Klick auf eine Tageszeit-Schaltfläche und jede Eingabe in den Anmerkungen ist sofort
 in der Datenbank — ein „Speichern"-Knopf existiert bewusst nicht.
 
 **Kann ich Verfügbarkeiten kopieren (z. B. von einer Woche in die nächste)?**
+
 Aktuell nicht direkt in der Web-Oberfläche. Wenn du regelmäßig wiederkehrende Muster hast, sprich
 mit deinem Disponenten — er kann das beim Anlegen einer neuen Periode für dich vorbelegen.

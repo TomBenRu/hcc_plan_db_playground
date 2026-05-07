@@ -97,18 +97,22 @@ Solange der Bestätigungs-Link **noch nicht angeklickt** wurde, kannst du den We
 ## Häufige Fragen {#haeufige-fragen}
 
 **Ich habe meine Login-E-Mail vergessen — was nun?**
+
 Sprich mit deiner Disposition oder dem hcc-plan-Administrator. Es gibt keinen
 Self-Service-Wiederherstellungsweg, weil das System sonst über die Antwort verraten würde, ob die
 Adresse existiert.
 
 **Werde ich nach einem Passwort-Wechsel auf allen Geräten ausgeloggt?**
+
 Ja, mit Ausnahme der **aktuellen Sitzung** im Browser, in dem du das Passwort gewechselt hast.
 Diese Sitzung bekommt frische Tokens.
 
 **Wenn ich beide Mails (alte + neue Adresse) nicht mehr empfangen kann, komm ich noch ans Konto?**
+
 Nein, in dem Fall musst du deine Disposition oder den Administrator bitten, die Login-Adresse manuell
 zurückzusetzen.
 
 **Was ist mit Multi-Faktor-Authentifizierung?**
+
 Aktuell bietet hcc plan keine MFA an. Sicheres Passwort-Hygiene und ein zugriffsgeschützter
 Mail-Account sind die wichtigsten Schutzmaßnahmen.

@@ -55,16 +55,20 @@ Beim Speichern prüft das System:
 ## Häufige Fragen {#haeufige-fragen}
 
 **Warum kann ich meinen Namen nicht ändern?**
+
 Vor- und Nachname sind in deinem **Personen-Datensatz** hinterlegt, der zentral von der Disposition
 verwaltet wird. Bitte sprich deine Disposition an, wenn ein Name geändert werden soll
 (z. B. nach Heirat, Schreibfehler).
 
 **Wofür wird meine Adresse verwendet?**
+
 Primär für die **Abrechnung** — falls dein Team z. B. Reisekosten oder Honorare abrechnet, brauchen
 sie eine zustellbare Anschrift. Für die operative Planung selbst ist die Adresse nicht nötig.
 
 **Was passiert, wenn ich meine Kontakt-E-Mail ändere — bekommt sofort die neue Adresse Mails?**
+
 Ja, ab dem nächsten gesendeten E-Mail-Trigger geht alles an die neue Adresse.
 
 **Wo finde ich meine bisher gespeicherten Daten?**
+
 Sie werden beim Öffnen der Seite automatisch geladen — vorausgefüllt, falls schon eingegeben, oder leer.

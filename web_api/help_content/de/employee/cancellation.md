@@ -82,19 +82,24 @@ Das ist nützlich, wenn du merkst, das du den Termin nun doch wahrnehmen kannst.
 ## Häufige Fragen {#haeufige-fragen}
 
 **Warum erscheint mein Absage-Button nicht?**
+
 Höchstwahrscheinlich existiert für den Termin bereits eine offene Absage oder Tauschanfrage von dir.
 Schau in den Listen **„Meine Absagen"** und **„Tauschbörse"** nach offenen Einträgen.
 
 **Wer sieht meine Absage-Begründung?**
+
 Deine Disposition und Kolleg:innen, die dir einen Übernahme-Vorschlag machen.
 
 **Bin ich verpflichtet, etwas einzutragen, wenn die Disposition meinen Termin neu besetzt hat?**
+
 Nein. Sobald der Status auf **Gelöst** springt, ist für dich nichts weiter zu tun.
 
 **Was passiert mit Übernahme-Vorschlägen, wenn ich meine Absage zurückziehe?**
+
 Sie werden automatisch storniert. Die anbietenden Kolleg:innen erhalten eine entsprechende
 Benachrichtigung.
 
 **Wie kurzfristig darf ich absagen?**
+
 Es gibt aktuell **keine technische Frist** — du kannst bis zum Termin-Beginn absagen. Inhaltlich
 hängt das aber von deinem Team ab; sprich im Zweifel mit deiner Disposition.

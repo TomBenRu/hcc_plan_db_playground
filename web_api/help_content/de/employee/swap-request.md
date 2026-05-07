@@ -84,14 +84,17 @@ Dispositions-Tool noch durchwinkt, obwohl du ihn zurücknehmen wolltest.
 ## Häufige Fragen {#haeufige-fragen}
 
 **Warum sehe ich keinen „Tausch anbieten"-Button bei einem Termin?**
+
 Möglich: der Termin liegt in der Vergangenheit; oder der Zieltermin hat bereits eine offene Absage;
 oder dein eigener Kalender hat in dieser Woche keinen Termin, den du als Gegenangebot hergeben
 kannst (du brauchst etwas zum Tauschen).
 
 **Kann ich einen Tausch ohne konkrete Zielperson stellen?**
+
 Nein. Eine Tauschanfrage ist immer **gegen eine konkrete Person und einen konkreten Termin** gerichtet.
 Wenn du nur abgeben willst, nutze die Absage.
 
 **Was passiert, wenn die Disposition den Tausch ablehnt?**
+
 Beide Seiten erhalten die Ablehnungs-Begründung per E-Mail, der Plan bleibt unverändert. Du kannst
 dann z. B. eine reguläre Absage stellen oder eine andere Tauschanfrage versuchen.

@@ -67,14 +67,17 @@ Wenn der Zähler steigt, lohnt ein kurzer Blick — meist erwartet jemand eine R
 ## Häufige Fragen {#haeufige-fragen}
 
 **Erhalte ich Benachrichtigungen über alles, oder kann ich Typen abbestellen?**
+
 Aktuell gehen alle relevanten Vorgänge sowohl als E-Mail als auch in die Inbox. Eine Abbestellung
 einzelner Typen ist nicht implementiert — sprich mit deiner Disposition, falls dich ein bestimmter
 Typ besonders stört.
 
 **Kann ich Nachrichten löschen?**
+
 Nein. Die Inbox ist als **chronologische Historie** gedacht — du kannst Vorgänge auch Wochen später
 nachvollziehen. Über den Filter „Nur ungelesene" wird die Liste optisch trotzdem aufgeräumt.
 
 **Warum bleibt der Badge-Zähler stehen, obwohl ich Nachrichten gelesen habe?**
+
 Der Zähler aktualisiert sich alle 30 Sekunden. Falls du sofort sehen willst, ob er sinkt, lade die
 Seite neu (oder klicke auf das Briefkasten-Symbol).

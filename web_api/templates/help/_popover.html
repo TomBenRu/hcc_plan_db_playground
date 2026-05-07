@@ -26,6 +26,9 @@
     .help-popover-body h2 { font-size: 1.125rem; margin: 1.25rem 0 0.5rem; }
     .help-popover-body h3 { font-size: 1rem; margin: 1rem 0 0.4rem; }
     .help-popover-body p { margin: 0.5rem 0; }
+    /* FAQ-Q/A-Paare enger zusammenhalten (siehe topic.html fuer Details). */
+    .help-popover-body p:has(> strong:only-child) { margin-bottom: 0.2rem; }
+    .help-popover-body p:has(> strong:only-child) + p { margin-top: 0; }
     .help-popover-body ul, .help-popover-body ol { margin: 0.5rem 0 0.5rem 1.5rem; }
     .help-popover-body ul { list-style: disc; }
     .help-popover-body ol { list-style: decimal; }

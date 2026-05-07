@@ -23,8 +23,7 @@ oben rechts oder direkt unter `/account/credentials`.
 
 Wichtige Unterscheidung:
 
-- **Login-E-Mail** (dieser Tab) — die Adresse, mit der du dich anmeldest. Wechsel ist
-  **token-verifiziert**, weil ein Tippfehler dich aus deinem Konto aussperren würde.
+- **Login-E-Mail** (dieser Tab) — die Adresse, mit der du dich anmeldest.
 - **Kontakt-E-Mail** (Tab „Profil") — die Adresse, an die hcc plan Benachrichtigungen schickt. Sie
   kann mit der Login-Adresse identisch sein oder davon abweichen (z. B. private vs. dienstliche Mail).
 
@@ -38,7 +37,7 @@ Wichtige Unterscheidung:
    - **Neues Passwort**
    - **Neues Passwort wiederholen** (Tippfehler-Schutz)
 2. **„Passwort speichern"** — bei Erfolg erscheint eine Bestätigung; deine aktuelle Sitzung bleibt
-   eingeloggt, frische Tokens werden im Hintergrund ausgestellt.
+   eingeloggt.
 
 > **Wichtig:** Beim Passwort-Wechsel werden **alle anderen Sitzungen** (anderes Gerät, anderer
 > Browser) automatisch ausgeloggt. Das ist Absicht — wenn jemand Unbefugtes Zugriff hatte, ist er
@@ -80,8 +79,7 @@ Solange der Bestätigungs-Link **noch nicht angeklickt** wurde, kannst du den We
 
 1. Im Bereich **„Login-Adresse ändern"** erscheint ein Hinweis mit der ausstehenden neuen Adresse
    und einem **„Anfrage zurückziehen"-Button**.
-2. Klick darauf — der Token wird invalidiert, der Bestätigungs-Link in der Mail funktioniert
-   anschließend nicht mehr.
+2. Klick darauf — der Bestätigungs-Link in der Mail funktioniert anschließend nicht mehr.
 
 > Das ist nützlich, wenn du z. B. einen Tippfehler in der neuen Adresse gemacht hast oder es dir
 > anders überlegt hast.
@@ -102,10 +100,6 @@ Solange der Bestätigungs-Link **noch nicht angeklickt** wurde, kannst du den We
 Sprich mit deiner Disposition oder dem hcc-plan-Administrator. Es gibt keinen
 Self-Service-Wiederherstellungsweg, weil das System sonst über die Antwort verraten würde, ob die
 Adresse existiert.
-
-**Kann ich denselben Login-E-Mail-Wechsel nach einer Woche wiederholen, ohne den Token verbrannt zu haben?**
-Ja. Tokens sind zeitlich begrenzt (typisch 24 h) und werden auch durch eine zweite Wechsel-Anfrage
-invalidiert.
 
 **Werde ich nach einem Passwort-Wechsel auf allen Geräten ausgeloggt?**
 Ja, mit Ausnahme der **aktuellen Sitzung** im Browser, in dem du das Passwort gewechselt hast.

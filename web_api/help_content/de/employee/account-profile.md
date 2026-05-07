@@ -64,8 +64,7 @@ Primär für die **Abrechnung** — falls dein Team z. B. Reisekosten oder Honor
 sie eine zustellbare Anschrift. Für die operative Planung selbst ist die Adresse nicht nötig.
 
 **Was passiert, wenn ich meine Kontakt-E-Mail ändere — bekommt sofort die neue Adresse Mails?**
-Ja, ab dem nächsten gesendeten E-Mail-Trigger geht alles an die neue Adresse. Es gibt **keinen**
-Token-Verifikations-Schritt für die Kontakt-Adresse — anders als für die Login-Adresse.
+Ja, ab dem nächsten gesendeten E-Mail-Trigger geht alles an die neue Adresse.
 
 **Wo finde ich meine bisher gespeicherten Daten?**
 Sie werden beim Öffnen der Seite automatisch geladen — vorausgefüllt, falls schon eingegeben, oder leer.

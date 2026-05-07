@@ -42,13 +42,7 @@ In der Sidebar links findest du drei Filtergruppen — sie sind kombinierbar:
   jemandem tauschen willst.
 - **Zeitraum** — Datum von / bis; standardmäßig sind alle kommenden Termine sichtbar.
 
-Die Liste rechts aktualisiert sich automatisch, sobald du einen Filter änderst — du musst nichts
-explizit anwenden.
-
-> **Tipp:** Wenn du mit dem Termin im Kopf in die Börse gehst, den du loswerden willst, klick im
-> Kalender auf **„Tausch anbieten"** beim eigenen Termin. Dann öffnet sich die Börse direkt im
-> Modus **„passende Tauschpartner finden"** — sie filtert automatisch auf Termine, die zeitlich
-> zu deinem passen würden.
+Die Liste rechts aktualisiert sich automatisch, sobald du einen Filter änderst.
 
 ## Tausch anbieten {#tausch-anbieten}
 
@@ -57,8 +51,10 @@ explizit anwenden.
 2. **Gegenangebot wählen** — oben erscheint ein Auswahlfenster, wenn du mehrere eigene Termine als
    Gegenangebot zur Verfügung stellen kannst. Wähle den, den du anbieten möchtest.
 3. **Optional Nachricht** hinzufügen.
-4. **„Anfragen senden"** — alle ausgewählten Termine werden in einem Schritt angefragt. Wer zuerst
-   zustimmt, gewinnt; die anderen Anfragen werden automatisch storniert.
+4. **„Anfragen senden"** — Du kannst in der Börse mehrere Anfragen nacheinander stellen und diese abschicken.
+
+> **Tipp:** Mehrfach-Anfragen sind fair, solange du in der Nachricht erwähnst, dass parallele
+> Anfragen laufen. So weiß jede:r, dass der Tausch eventuell nicht stattfindet.
 
 ## Button-Zustände verstehen {#selected-vs-submitted}
 

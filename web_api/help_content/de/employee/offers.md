@@ -28,13 +28,13 @@ ist das **Einsprung-Angebot eine einseitige Bereitschaft**:
 - Es gibt **kein Gegenangebot** — du tauschst nichts ab.
 - Die Disposition kann dein Angebot annehmen oder ablehnen.
 
-Typische Situation: dein Team hat einen Termin, an dem nur 2 von 3 nötigen Personen eingeteilt sind, und
-du erfährst zufällig, dass an dem Tag noch jemand gebraucht wird.
+Typische Situation: dein Team hat einen Termin, an dem nur 1 von 2 nötigen Personen eingeteilt sind, und
+du siehst im Kalender, dass an dem Tag noch jemand gebraucht wird.
 
 ## Wie sehe ich, wo ein Angebot Sinn ergibt? {#angebot-stellen}
 
-Die Disposition oder das System markiert Termine, die unterbesetzt sind. Wenn du einen solchen Termin
-im Kalender oder in der Tauschbörse siehst, erscheint dort ein zusätzlicher Button **„Einspringen anbieten"**.
+Die Disposition oder das System markiert Termine mit einem kleinen roten Punkt, die unterbesetzt sind. Wenn du einen solchen Termin
+im Kalender siehst, erscheint dort ein zusätzlicher Button **„Einspringen anbieten"**.
 
 1. Klick auf **„Einspringen anbieten"** beim betreffenden Termin.
 2. Optional kannst du eine kurze **Nachricht** für die Disposition hinzufügen
@@ -42,8 +42,7 @@ im Kalender oder in der Tauschbörse siehst, erscheint dort ein zusätzlicher Bu
 3. Mit **„Angebot senden"** ist es eingereicht. Die Disposition erhält eine E-Mail und sieht das
    Angebot in ihrer Übersicht.
 
-> **Hinweis:** Auch ohne expliziten Markierung kannst du im Zweifel kurz mit deiner Disposition Kontakt
-> aufnehmen, ob ein Angebot Sinn ergibt — oder ob ein Tausch eine bessere Lösung wäre.
+> **Hinweis:** In der linken Seitenleiste kannst du auswählen, dass nur unterbesetzte Termine im Kalender angezeigt werden.
 
 ## Status deiner Angebote verstehen {#status-lifecycle}
 
@@ -84,6 +83,5 @@ allen regulär eingeteilten Terminen.
 Technisch ja, aber inhaltlich selten sinnvoll — sprich vorher mit deiner Disposition, ob das passt.
 
 **Wie unterscheidet sich „Einspringen anbieten" von „Übernahme anbieten"?**
-**Einspringen** = du kommst **zusätzlich** zu einem unterbesetzten Termin dazu.
-**Übernahme** = du übernimmst einen Termin, von dem jemand anderes per Absage **rausgeht**. Beide
-Buttons können bei demselben Termin nicht gleichzeitig erscheinen.
+**Einspringen** = du meldest dich auf einen **unterbesetzten** Termin.
+**Übernahme** = du übernimmst einen Termin, von dem jemand anderes per Absage **rausgeht**.

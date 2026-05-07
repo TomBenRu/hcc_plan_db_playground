@@ -29,7 +29,7 @@ dir im Tausch gegen seinen/ihren an — die Disposition bestätigt am Ende den T
 | Auf Termine schauen, ob jemand passendes da ist | **Tauschbörse** (siehe eigenes Hilfe-Thema) |
 
 Die Tauschanfrage hat einen **wichtigen Unterschied**: dein abzugebender Termin und der zu
-übernehmende Termin werden **gemeinsam** durchgeschoben. Entweder beide tauschen oder gar nichts.
+übernehmende Termin werden **gemeinsam** bearbeitet. Entweder beide tauschen oder gar nichts.
 Bei der Absage gibst du nur ab, ein Ersatz wird unabhängig gesucht.
 
 ## Tauschanfrage stellen {#tausch-stellen}
@@ -47,14 +47,13 @@ Bei der Absage gibst du nur ab, ein Ersatz wird unabhängig gesucht.
 
 ## Mehrere Zielpersonen parallel anfragen {#mehrere-zielpersonen}
 
-Im Browse-Workflow (siehe „Tauschbörse durchstöbern") kannst du **mehrere passende Termine
-gleichzeitig** auswählen und in einem Schritt anfragen — z. B. weil du flexibel bist, wer übernimmt.
+Im Tausch-Formular (siehe „Tauschbörse durchstöbern") kannst du **mehrere passende Termine
+hintereinander** auswählen und jeweils anfragen — z. B. weil du flexibel bist, wer übernimmt.
 
-Sobald **eine** der angefragten Personen zustimmt, werden die anderen offenen Anfragen automatisch
-storniert. Wer zuerst annimmt, gewinnt — alle anderen bekommen eine Storno-Mitteilung.
+Wenn **mehrere** der angefragten Personen zustimmen, wählt die Disposition, welcher konkrete Tausch durchgeführt wird — alle anderen bekommen eine Storno-Mitteilung.
 
 > **Tipp:** Mehrfach-Anfragen sind fair, solange du in der Nachricht erwähnst, dass parallele
-> Anfragen laufen. So weiß jede:r, dass schnelles Antworten Vorteile bringt.
+> Anfragen laufen. So weiß jede:r, dass der Tausch eventuell nicht stattfindet.
 
 ## Status der Anfrage verstehen {#status-lifecycle}
 
@@ -96,7 +95,3 @@ Wenn du nur abgeben willst, nutze die Absage.
 **Was passiert, wenn die Disposition den Tausch ablehnt?**
 Beide Seiten erhalten die Ablehnungs-Begründung per E-Mail, der Plan bleibt unverändert. Du kannst
 dann z. B. eine reguläre Absage stellen oder eine andere Tauschanfrage versuchen.
-
-**Werden meine Verfügbarkeiten beim Tausch geprüft?**
-Ja, intern — die Disposition sieht beim Bestätigen, ob der zu übernehmende Termin in deinen
-hinterlegten Verfügbarkeiten liegt, und kann dich darauf hinweisen.

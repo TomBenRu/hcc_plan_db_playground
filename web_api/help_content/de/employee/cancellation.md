@@ -24,8 +24,7 @@ Benachrichtigungskreis, die einen **Übernahme-Vorschlag** unterbreiten können.
 
 - **Klassische Absage** — du weißt, dass du den Termin nicht wahrnehmen kannst (krank, anderer Termin etc.).
 - **Tauschanfrage statt Absage** — wenn du nur an einem konkreten Tag tauschen möchtest, ist die
-  **Tauschbörse** der bessere Weg, weil du dort gezielt eine Person ansprichst, statt deine Disposition
-  in die Suche zu zwingen. Siehe das Hilfe-Thema „Tauschanfrage stellen".
+  **Tauschbörse** der bessere Weg, weil du dort gezielt eine Person ansprichst. Siehe das Hilfe-Thema „Tauschanfrage stellen".
 
 > **Wichtig:** Es kann pro Termin **immer nur eine** offene Absage oder Tauschanfrage geben. Solange
 > für deinen Termin schon eine Absage oder Tauschanfrage offen ist, blockiert das System einen zweiten
@@ -78,9 +77,7 @@ Solange der Status **Offen** ist, kannst du den Antrag zurückziehen:
 2. Klicke auf **„Antrag zurückziehen"**.
 3. Der Status springt auf **Zurückgezogen**, du bleibst regulär für den Termin eingeteilt.
 
-Das ist nützlich, wenn sich z. B. spontan ein Tausch-Partner findet, du den Termin nun doch
-wahrnehmen kannst — oder wenn du erst eine Absage gestellt hast und merkst, dass eine Tauschanfrage
-besser passt.
+Das ist nützlich, wenn du merkst, das du den Termin nun doch wahrnehmen kannst.
 
 ## Häufige Fragen {#haeufige-fragen}
 
@@ -89,8 +86,7 @@ Höchstwahrscheinlich existiert für den Termin bereits eine offene Absage oder 
 Schau in den Listen **„Meine Absagen"** und **„Tauschbörse"** nach offenen Einträgen.
 
 **Wer sieht meine Absage-Begründung?**
-Nur deine Disposition (im Dispatcher-View). Kolleg:innen, die dir einen Übernahme-Vorschlag machen,
-sehen die Begründung **nicht**.
+Deine Disposition und Kolleg:innen, die dir einen Übernahme-Vorschlag machen.
 
 **Bin ich verpflichtet, etwas einzutragen, wenn die Disposition meinen Termin neu besetzt hat?**
 Nein. Sobald der Status auf **Gelöst** springt, ist für dich nichts weiter zu tun.

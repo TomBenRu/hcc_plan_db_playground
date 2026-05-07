@@ -90,8 +90,7 @@ Tageszeit-Kategorie.
 
 Über der Statistik in der Sidebar gibst du deinem Disponenten zwei zusätzliche Informationen:
 
-- **Anmerkungen** — Freitext, z. B. „Nur jeden zweiten Mittwoch verfügbar" oder „Ich kann gerne
-  einspringen, melde dich gern". Die Anmerkungen sind nur für deine Disposition sichtbar.
+- **Anmerkungen** — Freitext, z. B. „Nur notfalls in Einrichtung xyz besetzen" oder „Vom 03. bis 11.10 bitte nur 3 Einsätze". Die Anmerkungen sind nur für deine Disposition sichtbar.
 - **Wunscheinsätze** — die Anzahl von Einsätzen, die du in dieser Periode anstrebst. Dein
   Disponent versucht, diese Zahl bei der Einteilung zu treffen.
 

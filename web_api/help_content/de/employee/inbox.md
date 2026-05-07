@@ -40,7 +40,6 @@ Typische Nachrichten-Arten:
 - **Klick auf eine Nachricht** öffnet die zugehörige Detail-Seite (z. B. die Tauschanfrage, das Angebot,
   die Absage). Dort kannst du direkt reagieren.
 - **„Als gelesen markieren"** entfernt die Nachricht aus dem ungelesen-Filter und reduziert den Badge-Zähler.
-  Standardmäßig wird eine Nachricht beim Öffnen automatisch als gelesen markiert.
 
 > Eine bereits gelesene Nachricht bleibt sichtbar — sie verschwindet **nicht** aus der Liste, nur aus dem
 > Badge. So kannst du auch nachträglich Vorgänge nachschlagen.
@@ -71,10 +70,6 @@ Wenn der Zähler steigt, lohnt ein kurzer Blick — meist erwartet jemand eine R
 Aktuell gehen alle relevanten Vorgänge sowohl als E-Mail als auch in die Inbox. Eine Abbestellung
 einzelner Typen ist nicht implementiert — sprich mit deiner Disposition, falls dich ein bestimmter
 Typ besonders stört.
-
-**Was, wenn ich eine Nachricht aus Versehen gelesen habe und sie als ungelesen merken will?**
-Aktuell gibt es kein „als ungelesen markieren". Workaround: lass das Browser-Tab offen oder schreib
-dir den Vorgang in deine eigene Aufgabenliste.
 
 **Kann ich Nachrichten löschen?**
 Nein. Die Inbox ist als **chronologische Historie** gedacht — du kannst Vorgänge auch Wochen später

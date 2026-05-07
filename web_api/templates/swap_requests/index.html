@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros/help.html" import help_button %}
 
 {% block title %}Tausch-Anfragen – hcc plan{% endblock %}
 
@@ -100,8 +101,9 @@
                     {% if is_dispatcher %}Team{% else %}Mitarbeiter{% endif %}
                 </span>
             </div>
-            <h1 class="font-display text-white text-2xl font-semibold leading-tight tracking-tight">
-                Tausch&shy;anfragen
+            <h1 class="font-display text-white text-2xl font-semibold leading-tight tracking-tight flex items-center gap-2">
+                <span>Tausch&shy;anfragen</span>
+                {% if not is_dispatcher %}{{ help_button("employee/swap-request", label="Tauschanfragen", dark=True) }}{% endif %}
             </h1>
             <p class="font-sans text-xs text-slate-500 mt-1.5">
                 {% if is_dispatcher %}Tausch-Anfragen Ihres Teams.{% else %}Ihre Tausch-Anfragen.{% endif %}

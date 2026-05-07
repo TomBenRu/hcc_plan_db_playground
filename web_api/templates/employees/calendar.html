@@ -1,4 +1,5 @@
 {% extends "_calendar_base.html" %}
+{% from "_macros/help.html" import help_button %}
 
 {% block calendar_page_title %}Mein Kalender — hcc plan{% endblock %}
 
@@ -88,7 +89,7 @@
 
 {% block calendar_role_label %}Mitarbeiter{% endblock %}
 
-{% block calendar_title %}Mein Kalender{% endblock %}
+{% block calendar_title %}Mein Kalender {{ help_button("employee/calendar", label="Mein Kalender", dark=True) }}{% endblock %}
 
 {% block calendar_subtitle %}
     <span class="text-slate-300 font-medium">{{ total_appointments }}</span>

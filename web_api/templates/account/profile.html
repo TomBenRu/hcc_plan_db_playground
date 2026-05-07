@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros/help.html" import help_button %}
 
 {% block title %}Persönliche Daten — hcc plan{% endblock %}
 
@@ -86,8 +87,9 @@
             <p class="text-xs uppercase tracking-widest font-semibold text-slate-400 mb-2 font-sans">
                 Konto
             </p>
-            <h2 class="font-display text-2xl font-semibold text-slate-800 dark:text-slate-100 leading-tight mb-6">
+            <h2 class="font-display text-2xl font-semibold text-slate-800 dark:text-slate-100 leading-tight mb-6 flex items-center gap-2">
                 Persönliche Daten
+                {{ help_button("employee/account-profile", label="Persönliche Daten") }}
             </h2>
 
             {% if profile is none %}

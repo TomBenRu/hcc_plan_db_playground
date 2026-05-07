@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "availability/_macros.html" import time_of_day_range_input %}
+{% from "_macros/help.html" import help_button %}
 
 {% block title %}Meine Tageszeiten — hcc plan{% endblock %}
 
@@ -19,8 +20,9 @@
                 Verfügbarkeit
             </a>
             <span class="text-slate-300">/</span>
-            <h1 class="font-display text-2xl font-semibold text-slate-800 leading-tight">
+            <h1 class="font-display text-2xl font-semibold text-slate-800 leading-tight flex items-center gap-2">
                 Meine Tageszeiten
+                {{ help_button("employee/availability", anchor="eigene-tageszeiten", label="Meine Tageszeiten") }}
             </h1>
         </div>
 

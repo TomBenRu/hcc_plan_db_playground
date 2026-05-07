@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros/help.html" import help_button %}
 
 {% block title %}Absagen – hcc plan{% endblock %}
 
@@ -101,8 +102,9 @@
                     {% if is_dispatcher %}Team{% else %}Mitarbeiter{% endif %}
                 </span>
             </div>
-            <h1 class="font-display text-white text-2xl font-semibold leading-tight tracking-tight">
+            <h1 class="font-display text-white text-2xl font-semibold leading-tight tracking-tight flex items-center gap-2">
                 {% if is_dispatcher %}Absagen{% else %}Meine Absagen{% endif %}
+                {% if not is_dispatcher %}{{ help_button("employee/cancellation", label="Absagen", dark=True) }}{% endif %}
             </h1>
             <p class="font-sans text-xs text-slate-500 mt-1.5">
                 {% if is_dispatcher %}Absagen Ihres Teams verwalten.{% else %}Ihre gestellten Absagen.{% endif %}

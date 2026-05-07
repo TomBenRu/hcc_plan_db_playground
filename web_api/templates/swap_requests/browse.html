@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros/help.html" import help_button %}
 
 {% block title %}Termin tauschen – hcc plan{% endblock %}
 
@@ -130,8 +131,9 @@
                 <span class="inline-block w-1.5 h-1.5 rounded-full" style="background-color:#3B82F6;"></span>
                 <span class="text-xs font-semibold tracking-widest uppercase font-sans text-blue-400/80">Tausch</span>
             </div>
-            <h1 class="font-display text-white text-2xl font-semibold leading-tight tracking-tight">
+            <h1 class="font-display text-white text-2xl font-semibold leading-tight tracking-tight flex items-center gap-2">
                 Termin finden
+                {{ help_button("employee/swap-browse", label="Tauschbörse", dark=True) }}
             </h1>
             <p class="font-sans text-xs text-slate-500 mt-1.5">
                 Filter setzen und passende Termine entdecken.

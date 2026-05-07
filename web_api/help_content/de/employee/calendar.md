@@ -24,7 +24,7 @@ die Seite über die Dashboard-Kachel **„Mein Kalender"** oder direkt unter `/e
 ## Was zeigt der Kalender? {#was-zeigt-der-kalender}
 
 - **Eigene Termine** — alle Schichten, für die du fest eingeteilt bist (oder durch ein angenommenes
-  Einsprung-Angebot zusätzlich gebucht wurdest).
+  [Einsprung-Angebot](/help/employee/offers) zusätzlich gebucht wurdest).
 - **Team-Termine** — Termine deiner Kolleg:innen (per Toggle einblendbar).
 - **Unterbesetzungs-Marker** — Termine, die noch nicht ausreichend besetzt sind, tragen einen
   kleinen roten Punkt oben rechts (in der Listen-Ansicht vor dem Titel). Über den Toggle
@@ -45,8 +45,8 @@ die Seite über die Dashboard-Kachel **„Mein Kalender"** oder direkt unter `/e
 | **Aus** (Standard) | Nur deine eigenen Termine |
 | **Ein** | Eigene Termine + alle Termine deines Teams |
 
-Die Team-Ansicht ist nützlich, wenn du z. B. eine Tauschanfrage stellen möchtest — du siehst direkt,
-wer an welchem Tag verfügbar ist, und kannst gezielt jemanden ansprechen.
+Die Team-Ansicht ist nützlich, wenn du z. B. eine [Tauschanfrage stellen](/help/employee/swap-request)
+möchtest — du siehst direkt, wer an welchem Tag verfügbar ist, und kannst gezielt jemanden ansprechen.
 
 ## Nur unterbesetzte Termine {#nur-unterbesetzte}
 
@@ -84,8 +84,8 @@ Im Detail-Panel rechts findest du je nach Kontext einen oder mehrere Aktions-But
 
 | Button | Wann sichtbar | Was passiert |
 |---|---|---|
-| **Termin absagen** | Eigener, künftiger Termin | Öffnet das Absage-Formular |
-| **Termin tauschen** | Eigener, künftiger Termin | Öffnet die Tauschbörse mit Vorbelegung |
+| **Termin absagen** | Eigener, künftiger Termin | Öffnet das [Absage-Formular](/help/employee/cancellation) |
+| **Termin tauschen** | Eigener, künftiger Termin | Öffnet die [Tauschbörse](/help/employee/swap-browse) (vorbelegt) |
 | **Ich kann einspringen** | Fremder, unterbesetzter Termin | Sendet ein Einsprung-Angebot — optional mit Nachricht |
 
 Für jede Aktion gibt es ein eigenes Hilfe-Thema (siehe „Auch interessant" am Ende dieser Seite).
@@ -110,9 +110,9 @@ damit sie das Feature priorisieren kann.
 
 **Was ist der Unterschied zur Verfügbarkeitsmaske?**
 
-Die **Verfügbarkeitsmaske** ist deine Eingabe — wann du arbeiten **könntest**. Der **Kalender** zeigt,
-wann du tatsächlich arbeiten **wirst** — also die Termine, für die deine Disposition dich konkret
-eingeteilt hat.
+Die [Verfügbarkeitsmaske](/help/employee/availability) ist deine Eingabe — wann du arbeiten
+**könntest**. Der **Kalender** zeigt, wann du tatsächlich arbeiten **wirst** — also die Termine,
+für die deine Disposition dich konkret eingeteilt hat.
 
 **Sehen Kolleg:innen, dass ich ihren Kalender betrachte?**
 

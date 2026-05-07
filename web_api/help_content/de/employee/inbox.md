@@ -16,8 +16,9 @@ related:
   - employee/offers
 ---
 
-Die **Inbox** ist deine zentrale Sammelstelle für alle Benachrichtigungen aus hcc plan: Tauschanfragen,
-Übernahme-Vorschläge, Bestätigungen, Absage-Auswirkungen, Disposition-Hinweise. Du erreichst sie über
+Die **Inbox** ist deine zentrale Sammelstelle für alle Benachrichtigungen aus hcc plan:
+[Tauschanfragen](/help/employee/swap-request), Übernahme-Vorschläge, Bestätigungen,
+[Absage-Auswirkungen](/help/employee/cancellation), Disposition-Hinweise. Du erreichst sie über
 das **Briefkasten-Symbol** oben rechts in der Navigation oder direkt unter `/inbox`.
 
 ## Was landet in der Inbox? {#was-landet-in-der-inbox}
@@ -32,7 +33,7 @@ Typische Nachrichten-Arten:
 - **Übernahme-Vorschlag** — jemand möchte deinen abgesagten Termin übernehmen
 - **Absage gelöst** — deine Disposition hat den Termin neu besetzt
 - **Einsprung-Angebot angenommen / abgelehnt** — Antwort der Disposition
-- **Erinnerung an offene Verfügbarkeitsmaske** — Reminder vor Planungsfrist
+- **Erinnerung an offene [Verfügbarkeitsmaske](/help/employee/availability)** — Reminder vor Planungsfrist
 - **Disposition-Hinweise** — z. B. neue Planungsperiode geöffnet
 
 ## Nachrichten lesen und als gelesen markieren {#lesen-und-markieren}

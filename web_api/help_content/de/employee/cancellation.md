@@ -24,7 +24,8 @@ Benachrichtigungskreis, die einen **Übernahme-Vorschlag** unterbreiten können.
 
 - **Klassische Absage** — du weißt, dass du den Termin nicht wahrnehmen kannst (krank, anderer Termin etc.).
 - **Tauschanfrage statt Absage** — wenn du nur an einem konkreten Tag tauschen möchtest, ist die
-  **Tauschbörse** der bessere Weg, weil du dort gezielt eine Person ansprichst. Siehe das Hilfe-Thema „Tauschanfrage stellen".
+  [Tauschbörse](/help/employee/swap-browse) der bessere Weg, weil du dort gezielt eine Person
+  ansprichst. Siehe [Tauschanfrage stellen](/help/employee/swap-request).
 
 > **Wichtig:** Es kann pro Termin **immer nur eine** offene Absage oder Tauschanfrage geben. Solange
 > für deinen Termin schon eine Absage oder Tauschanfrage offen ist, blockiert das System einen zweiten
@@ -32,7 +33,7 @@ Benachrichtigungskreis, die einen **Übernahme-Vorschlag** unterbreiten können.
 
 ## Absage stellen {#absage-stellen}
 
-1. Öffne **Mein Kalender** und klicke auf den Termin, den du absagen möchtest.
+1. Öffne [Mein Kalender](/help/employee/calendar) und klicke auf den Termin, den du absagen möchtest.
 2. Im Detail-Panel rechts findest du den Button **„Absagen"**.
 3. Im Formular kannst du optional eine **Begründung** angeben — sie hilft deiner Disposition,
    Muster zu erkennen (z. B. wiederkehrende Konflikte mit anderen Verpflichtungen). Frei lassen ist erlaubt.

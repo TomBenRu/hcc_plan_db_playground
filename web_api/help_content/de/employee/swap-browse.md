@@ -84,9 +84,11 @@ durch die Disposition.
 
 **Kann ich einen Termin ohne Gegenangebot anbieten („Ich gebe ab, brauche nichts dafür")?**
 
-Nein — das ist konzeptionell eine Absage, kein Tausch. Nutze dafür den **Absage-Workflow**.
+Nein — das ist konzeptionell eine Absage, kein Tausch. Nutze dafür den
+[Absage-Workflow](/help/employee/cancellation).
 
 **Wie unterscheidet sich die Tauschbörse von „Meine Angebote"?**
 
-Die Tauschbörse ist für **gegenseitigen Termin-Tausch**. „Meine Angebote" sind eigene **Einsprung-
-Angebote** für unterbesetzte Termine — also einseitige Hilfeleistung ohne Gegenleistung.
+Die Tauschbörse ist für **gegenseitigen Termin-Tausch**. „Meine Angebote" sind eigene
+[Einsprung-Angebote](/help/employee/offers) für unterbesetzte Termine — also einseitige
+Hilfeleistung ohne Gegenleistung.

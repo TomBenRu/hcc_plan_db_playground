@@ -21,8 +21,9 @@ ob dein Angebot angenommen wird.
 
 ## Was sind Einsprung-Angebote? {#was-sind-angebote}
 
-Im Gegensatz zum **Tausch** (1-zu-1, gemeinsam) und der **Absage** (du steigst aus, jemand muss übernehmen)
-ist das **Einsprung-Angebot eine einseitige Bereitschaft**:
+Im Gegensatz zum [Tausch](/help/employee/swap-request) (1-zu-1, gemeinsam) und der
+[Absage](/help/employee/cancellation) (du steigst aus, jemand muss übernehmen) ist das
+**Einsprung-Angebot eine einseitige Bereitschaft**:
 
 - Du bist **zusätzlich** zum bestehenden Cast da.
 - Es gibt **kein Gegenangebot** — du tauschst nichts ab.
@@ -88,4 +89,4 @@ Technisch ja, aber inhaltlich selten sinnvoll — sprich vorher mit deiner Dispo
 **Wie unterscheidet sich „Einspringen anbieten" von „Übernahme anbieten"?**
 
 **Einspringen** = du meldest dich auf einen **unterbesetzten** Termin.
-**Übernahme** = du übernimmst einen Termin, von dem jemand anderes per Absage **rausgeht**.
+**[Übernahme](/help/employee/cancellation#uebernahme-anbieten)** = du übernimmst einen Termin, von dem jemand anderes per Absage **rausgeht**.

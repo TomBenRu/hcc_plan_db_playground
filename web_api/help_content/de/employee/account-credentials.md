@@ -24,8 +24,9 @@ oben rechts oder direkt unter `/account/credentials`.
 Wichtige Unterscheidung:
 
 - **Login-E-Mail** (dieser Tab) — die Adresse, mit der du dich anmeldest.
-- **Kontakt-E-Mail** (Tab „Profil") — die Adresse, an die hcc plan Benachrichtigungen schickt. Sie
-  kann mit der Login-Adresse identisch sein oder davon abweichen (z. B. private vs. dienstliche Mail).
+- **Kontakt-E-Mail** ([Tab „Profil"](/help/employee/account-profile)) — die Adresse, an die hcc plan
+  Benachrichtigungen schickt. Sie kann mit der Login-Adresse identisch sein oder davon abweichen
+  (z. B. private vs. dienstliche Mail).
 
 > **Tipp:** Viele Mitarbeiter:innen nutzen ihre dienstliche Adresse zum Login, aber die private
 > Adresse für Benachrichtigungen — so siehst du auch am Wochenende, wenn jemand mit dir tauschen will.

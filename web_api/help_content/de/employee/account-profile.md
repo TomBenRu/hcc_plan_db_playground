@@ -27,7 +27,7 @@ Du erreichst die Seite über das **Avatar-Symbol** oben rechts in der Navigation
 | **E-Mail (Kontakt)** | Ja | Wird für Benachrichtigungen genutzt |
 | **Telefonnummer** | Ja | Optional |
 | **Straße / PLZ / Ort** | Ja | Optional, für Abrechnung relevant |
-| Login-E-Mail | Nein, hier | Wechsel über **Anmelde­daten** (eigenes Hilfe-Thema) |
+| Login-E-Mail | Nein, hier | Wechsel über [Anmeldedaten](/help/employee/account-credentials) |
 
 > **Wichtig:** Die **E-Mail** auf dieser Seite ist deine **Kontakt-Adresse** für Benachrichtigungen.
 > Sie kann von deiner **Login-E-Mail** abweichen — die Login-Adresse änderst du im Tab

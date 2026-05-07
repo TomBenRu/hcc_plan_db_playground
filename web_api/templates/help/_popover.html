@@ -77,6 +77,29 @@
     {{ topic.body_html | safe }}
 </article>
 
+<script>
+    // Interne Hilfe-Links innerhalb des Popover-Bodys abfangen und das Ziel-Topic
+    // im selben Popover laden, statt die Seite zu verlassen. Footer-Link
+    // ("Vollstaendige Hilfeseite oeffnen") liegt ausserhalb von .help-popover-body
+    // und ist damit nicht betroffen.
+    (function () {
+        if (window.__helpPopoverHijackInstalled) return;
+        window.__helpPopoverHijackInstalled = true;
+        document.addEventListener('click', function (ev) {
+            var link = ev.target.closest('a[href^="/help/"]');
+            if (!link) return;
+            if (!link.closest('.help-popover-body')) return;
+            ev.preventDefault();
+            var url = new URL(link.href, window.location.origin);
+            // /help/<slug>[#anker] -> /help/popover/<slug>[?anchor=<anker>]
+            var slug = url.pathname.replace(/^\/help\//, '');
+            var anchor = url.hash ? url.hash.slice(1) : '';
+            var popoverUrl = '/help/popover/' + slug + (anchor ? '?anchor=' + encodeURIComponent(anchor) : '');
+            htmx.ajax('GET', popoverUrl, { target: '#modal-root', swap: 'innerHTML' });
+        });
+    }());
+</script>
+
 {% if anchor %}
 <script>
     // Auto-Scroll zum Anker, sobald der Popover im DOM ist. Wir warten einen

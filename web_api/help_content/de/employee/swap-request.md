@@ -24,9 +24,9 @@ dir im Tausch gegen seinen/ihren an — die Disposition bestätigt am Ende den T
 
 | Du möchtest … | Nimm … |
 |---|---|
-| Den Termin nicht wahrnehmen, egal wer einspringt | **Absage** |
+| Den Termin nicht wahrnehmen, egal wer einspringt | [Absage](/help/employee/cancellation) |
 | Mit einer/m bestimmten Kolleg:in tauschen | **Tauschanfrage** |
-| Auf Termine schauen, ob jemand passendes da ist | **Tauschbörse** (siehe eigenes Hilfe-Thema) |
+| Auf Termine schauen, ob jemand passendes da ist | [Tauschbörse](/help/employee/swap-browse) |
 
 Die Tauschanfrage hat einen **wichtigen Unterschied**: dein abzugebender Termin und der zu
 übernehmende Termin werden **gemeinsam** bearbeitet. Entweder beide tauschen oder gar nichts.
@@ -34,7 +34,7 @@ Bei der Absage gibst du nur ab, ein Ersatz wird unabhängig gesucht.
 
 ## Tauschanfrage stellen {#tausch-stellen}
 
-1. Öffne **Mein Kalender** oder die **Tauschbörse** und finde den Termin, den du übernehmen möchtest.
+1. Öffne [Mein Kalender](/help/employee/calendar) oder die **Tauschbörse** und finde den Termin, den du übernehmen möchtest.
 2. Klicke beim Zieltermin auf **„Tausch anbieten"**.
 3. Im Formular wählst du **deinen Gegenangebots-Termin** — also den, den die andere Person übernehmen würde.
 4. Optional: füge eine **Nachricht** für den/die Kolleg:in hinzu („Mir ginge der 12. besser — wäre

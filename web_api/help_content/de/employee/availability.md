@@ -68,7 +68,7 @@ wird entfernt. Auch hier ist nichts zu speichern.
 **Achtung — bereits eingeplante Tage:** Wenn dein Disponent dich für einen Termin an diesem Tag
 und zu dieser Tageszeit bereits eingeplant hat, lässt sich die Verfügbarkeit **nicht mehr löschen**.
 Du erhältst dann eine Fehlermeldung („Verfügbarkeitstag ist bereits eingeplant"). In diesem Fall
-nutze den **Absage-Workflow** für den konkreten Termin — siehe das Hilfe-Thema „Absagen".
+nutze den [Absage-Workflow](/help/employee/cancellation) für den konkreten Termin.
 
 ## Eigene Tageszeiten verwalten (nur Intervall-Modus) {#eigene-tageszeiten}
 
@@ -104,7 +104,7 @@ Wenn dein Disponent eine Planungsperiode **geschlossen** hat, erscheint im Tages
 möglich — die Verfügbarkeiten, die du eingetragen hast, sind verbindlich.
 
 Wenn sich nachträglich etwas ändert (du wirst krank, ein Termin fällt unerwartet weg etc.),
-nutze den **Absage-Workflow** oder die **Tauschbörse**, statt die Verfügbarkeit zu ändern.
+nutze den **Absage-Workflow** oder die [Tauschbörse](/help/employee/swap-browse), statt die Verfügbarkeit zu ändern.
 
 ## Häufige Fragen {#haeufige-fragen}
 
@@ -120,7 +120,7 @@ sprich deinen Administrator an, wenn du andere Zeiten brauchst.
 
 **Warum verschwindet eine Verfügbarkeit nicht beim Klick?**
 
-Höchstwahrscheinlich bist du bereits für diesen Tag eingeplant. Schau in **„Mein Kalender"**, ob
+Höchstwahrscheinlich bist du bereits für diesen Tag eingeplant. Schau in [„Mein Kalender"](/help/employee/calendar), ob
 dort ein Termin an diesem Tag und zu dieser Tageszeit liegt. Wenn ja: nutze den Absage- oder
 Tausch-Workflow.
 

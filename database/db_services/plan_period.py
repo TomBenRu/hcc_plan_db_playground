@@ -787,6 +787,32 @@ def undelete(plan_period_id: UUID) -> schemas.PlanPeriodMinimal:
         return schemas.PlanPeriodMinimal.model_validate(pp)
 
 
+def hard_delete(plan_period_id: UUID) -> UUID:
+    """Final-Hard-Delete einer einzelnen soft-deleted PP.
+
+    Voraussetzung: PP ist bereits soft-deletet (`prep_delete IS NOT NULL`).
+    Aktive PPs koennen nicht hart geloescht werden — der Caller muss vorher
+    `delete()` aufrufen. Gibt `team_id` der geloeschten PP zurueck (fuer den
+    HTMX-Liste-Reload im Web-UI).
+    """
+    log_function_info()
+    with get_session() as session:
+        pp = session.get(models.PlanPeriod, plan_period_id)
+        if pp is None:
+            raise ValueError(f"PlanPeriod {plan_period_id} nicht gefunden.")
+        if pp.prep_delete is None:
+            raise ValueError(
+                f"PlanPeriod {plan_period_id} ist nicht soft-deletet. "
+                "Hard-Delete erfordert vorher einen Soft-Delete."
+            )
+        team_id = pp.team_id
+        source_group = pp.notification_group
+        session.delete(pp)
+        session.flush()
+        _cleanup_source_group_if_empty(session, source_group)
+        return team_id
+
+
 def delete_prep_deletes(team_id: UUID):
     """Final-Hard-Delete aller soft-deleted PPs eines Teams.
 

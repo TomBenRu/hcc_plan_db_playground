@@ -484,6 +484,41 @@ def delete_period(
     return _redirect_to_list(deleted.team_id)
 
 
+@router.post("/{plan_period_id}/restore", response_class=HTMLResponse)
+def restore_period(
+    request: Request,
+    plan_period_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
+):
+    """Stellt eine soft-deletete PP aus dem Papierkorb wieder her.
+
+    Die PP kommt groupless zurueck (Soft-Delete hat sie aus ihrer
+    NotificationGroup entkoppelt) — Dispatcher ordnet sie ggf. im
+    NG-View neu zu.
+    """
+    pp = db_services.PlanPeriod.undelete(plan_period_id)
+    return _redirect_to_list(pp.team_id)
+
+
+@router.delete("/{plan_period_id}/hard-delete", response_class=HTMLResponse)
+def hard_delete_period(
+    request: Request,
+    plan_period_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
+):
+    """Endgueltige Loeschung einer soft-deleteten PP. Admin only."""
+    if not _is_admin(user):
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            detail="Endgueltiges Loeschen erfordert Admin-Rolle.",
+        )
+    try:
+        team_id = db_services.PlanPeriod.hard_delete(plan_period_id)
+    except ValueError as e:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail=str(e))
+    return _redirect_to_list(team_id)
+
+
 def _redirect_to_list(
     team_id: uuid.UUID,
     *,

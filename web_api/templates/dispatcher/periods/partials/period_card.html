@@ -76,6 +76,26 @@
                         Wiedereröffnen
                     </button>
                 </form>
+                {% elif is_softdel %}
+                <form hx-post="/dispatcher/periods/{{ pp.id }}/restore"
+                      hx-target="body" hx-swap="none">
+                    <button type="submit"
+                            class="text-xs px-3 py-1.5 rounded-md border border-emerald-200 dark:border-emerald-700/50
+                                   text-emerald-700 dark:text-emerald-400
+                                   hover:bg-emerald-50 dark:hover:bg-emerald-900/20 w-full">
+                        Wiederherstellen
+                    </button>
+                </form>
+                {% if is_admin %}
+                <button hx-delete="/dispatcher/periods/{{ pp.id }}/hard-delete"
+                        hx-confirm="Diese Periode endgültig löschen? Die Aktion ist nicht rückgängig zu machen."
+                        hx-target="body" hx-swap="none"
+                        class="text-xs px-3 py-1.5 rounded-md border border-rose-200 dark:border-rose-800/50
+                               text-rose-700 dark:text-rose-400
+                               hover:bg-rose-50 dark:hover:bg-rose-900/20">
+                    Endgültig löschen
+                </button>
+                {% endif %}
                 {% endif %}
             </div>
         </div>

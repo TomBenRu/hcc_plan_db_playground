@@ -27,7 +27,6 @@ class Create(Command):
     def execute(self):
         self.created_plan_period = api_plan_period.create(
             start=self.plan_period.start, end=self.plan_period.end,
-            deadline=self.plan_period.deadline, remainder=self.plan_period.remainder,
             team_id=self.plan_period.team.id,
             notes=self.plan_period.notes,
             notes_for_employees=self.plan_period.notes_for_employees,
@@ -57,7 +56,6 @@ class CreateWithChildren(Command):
     def execute(self):
         self.created_plan_period = api_plan_period.create_with_children(
             start=self.plan_period.start, end=self.plan_period.end,
-            deadline=self.plan_period.deadline, remainder=self.plan_period.remainder,
             team_id=self.plan_period.team.id,
             notes=self.plan_period.notes,
             notes_for_employees=self.plan_period.notes_for_employees,

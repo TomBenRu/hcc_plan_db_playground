@@ -2,14 +2,39 @@ import datetime
 import os
 from uuid import UUID
 
+from PySide6.QtCore import Qt
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import QDialog, QWidget, QLabel, QComboBox, QDateEdit, QPlainTextEdit, QCheckBox, \
+from PySide6.QtWidgets import QDialog, QWidget, QLabel, QComboBox, QDateEdit, \
     QVBoxLayout, QDialogButtonBox, QMessageBox, QFormLayout, QGroupBox, QPushButton, QTextEdit
 
 from commands.command_base_classes import ContrExecUndoRedo
 from database import db_services, schemas
 from commands.database_commands import plan_period_commands
+from gui.api_client import plan_period as api_plan_period
+from gui.api_client.client import get_api_client
 from tools.helper_functions import date_to_string, setup_form_help
+
+
+_NG_VIEW_PATH = "/dispatcher/notification-groups"
+
+
+def _build_reminder_hint_label(parent: QWidget) -> QLabel:
+    """Hinweis-Label mit klickbarem Link zur NG-View im Web-Frontend.
+
+    Klick oeffnet den Default-Browser; der Dispatcher muss sich dort einmal
+    einloggen (Web-Auth-Cookie ist getrennt vom Desktop-Auth-Token).
+    """
+    base = get_api_client().base_url.rstrip("/")
+    url = f"{base}{_NG_VIEW_PATH}"
+    label = QLabel(parent)
+    label.setText(parent.tr(
+        'Deadline and reminders are configured in the web app under '
+        '<a href="{url}">Reminder</a>.'
+    ).format(url=url))
+    label.setWordWrap(True)
+    label.setOpenExternalLinks(True)
+    label.setStyleSheet('color: gray; font-style: italic;')
+    return label
 
 
 class DlgPlanPeriodCreate(QDialog):
@@ -56,24 +81,21 @@ class DlgPlanPeriodCreate(QDialog):
         self.de_start.dateChanged.connect(self.proof_with_end)
         self.de_end = QDateEdit()
         self.de_end.dateChanged.connect(self.proof_with_start)
-        self.de_deadline = QDateEdit()
 
         self.text_notes = QTextEdit()
         self.text_notes_for_employees = QTextEdit()
-
-        self.chk_remainder = QCheckBox(self.tr('Send reminder?'))
 
         self.data_input_layout.addRow(self.tr('Planner'), self.cb_dispatcher)
         self.data_input_layout.addRow(self.tr('Team'), self.cb_teams)
         self.data_input_layout.addRow(self.tr('Start'), self.de_start)
         self.data_input_layout.addRow(self.tr('End'), self.de_end)
-        self.data_input_layout.addRow(self.tr('Deadline'), self.de_deadline)
         self.data_input_layout.addRow(self.tr('Notes'), None)
         self.data_input_layout.addRow(self.text_notes)
         self.data_input_layout.addRow(self.tr('Notes in Online Portal'), None)
         self.data_input_layout.addRow(self.text_notes_for_employees)
 
-        self.data_input_layout.addRow(self.chk_remainder)
+        self.lb_reminder_hint = _build_reminder_hint_label(self)
+        self.layout.addWidget(self.lb_reminder_hint)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.StandardButton.Save | QDialogButtonBox.StandardButton.Cancel)
         self.button_box.accepted.connect(self.accept)
@@ -107,7 +129,6 @@ class DlgPlanPeriodCreate(QDialog):
         self.de_end.setMinimumDate(self.max_end_plan_periods + datetime.timedelta(days=1))
         self.de_start.setDate(self.max_end_plan_periods + datetime.timedelta(days=1))
         self.de_end.setDate(self.max_end_plan_periods + datetime.timedelta(days=1))
-        self.de_deadline.setDate(datetime.date.today())
         team: schemas.TeamShow = self.cb_teams.currentData()
         self.text_notes.setText(team.notes)
 
@@ -126,16 +147,15 @@ class DlgPlanPeriodCreate(QDialog):
             return
         start = self.de_start.date().toPython()
         end = self.de_end.date().toPython()
-        deadline = self.de_deadline.date().toPython()
 
         new_plan_period = schemas.PlanPeriodCreate(
             start=start,
             end=end,
-            deadline=deadline,
+            deadline=None,
             notes=self.text_notes.toPlainText(),
             notes_for_employees=self.text_notes_for_employees.toPlainText(),
             team=self.cb_teams.currentData(),
-            remainder=self.chk_remainder.isChecked())
+            remainder=False)
         # Atomarer Server-Side-Create: 1 API-Call statt 1 + 2N + 2M
         command = plan_period_commands.CreateWithChildren(new_plan_period)
         self.controller.execute(command)
@@ -205,22 +225,30 @@ class DlgPlanPeriodEdit(QDialog):
         self.de_start.dateChanged.connect(self.proof_with_end)
         self.de_end = QDateEdit()
         self.de_end.dateChanged.connect(self.proof_with_start)
-        self.de_deadline = QDateEdit()
         self.te_notes = QTextEdit()
         self.bt_reset_from_team = QPushButton(self.tr('Copy from Team Notes'))
         self.bt_reset_from_team.clicked.connect(self.reset_notes_from_team)
         self.te_notes_for_employees = QTextEdit()
-        self.chk_remainder = QCheckBox(self.tr('Send Reminder'))
 
         self.layout_pp_datas.addRow(self.tr('Start:'), self.de_start)
         self.layout_pp_datas.addRow(self.tr('End:'), self.de_end)
-        self.layout_pp_datas.addRow(self.tr('Deadline:'), self.de_deadline)
         self.layout_pp_datas.addRow(self.tr('Notes:'), None)
         self.layout_pp_datas.addRow(self.te_notes)
         self.layout_pp_datas.addRow(self.bt_reset_from_team)
         self.layout_pp_datas.addRow(self.tr('API Messages to Employees:'), None)
         self.layout_pp_datas.addRow(self.te_notes_for_employees)
-        self.layout_pp_datas.addRow(self.chk_remainder)
+
+        self.lb_reminder_hint = _build_reminder_hint_label(self)
+        self.layout_body.addWidget(self.lb_reminder_hint)
+
+        self.group_ng_info = QGroupBox(self.tr('Reminder Group'))
+        self.group_ng_info.setVisible(False)
+        layout_ng = QVBoxLayout(self.group_ng_info)
+        self.lb_ng_info = QLabel()
+        self.lb_ng_info.setWordWrap(True)
+        self.lb_ng_info.setTextFormat(Qt.TextFormat.RichText)
+        layout_ng.addWidget(self.lb_ng_info)
+        self.layout_body.addWidget(self.group_ng_info)
 
         self.bt_delete = QPushButton(self.tr('Delete'))
         self.bt_delete.clicked.connect(self.delete)
@@ -272,25 +300,57 @@ class DlgPlanPeriodEdit(QDialog):
             self.de_end.setDate(plan_period.end)
             if pp_after:
                 self.de_end.setMaximumDate(pp_after.start - datetime.timedelta(days=1))
-            self.de_deadline.setDate(plan_period.deadline)
             self.te_notes.setText(plan_period.notes)
             self.te_notes_for_employees.setText(plan_period.notes_for_employees or '')
-            self.chk_remainder.setChecked(plan_period.remainder)
+            self._refresh_ng_info(plan_period.id)
         else:
             self.de_start.setDate(datetime.date(year=1999, month=1, day=1))
             self.de_end.setDate(datetime.date(year=1999, month=1, day=1))
-            self.de_deadline.setDate(datetime.date(year=1999, month=1, day=1))
             self.te_notes.clear()
-            self.chk_remainder.setChecked(False)
             self.disable_enable_data_fields(True)
+            self.group_ng_info.setVisible(False)
+
+    def _refresh_ng_info(self, plan_period_id: UUID) -> None:
+        """Holt NG-Info zur ausgewaehlten PP und befuellt die Anzeige.
+
+        Bei Server-Fehler wird die Sektion versteckt — kein Crash, weil das
+        nur eine Hinweis-Anzeige ist und der Speichern-Workflow davon
+        unabhaengig funktioniert.
+        """
+        try:
+            ng_info = api_plan_period.get_notification_group(plan_period_id)
+        except Exception:
+            self.group_ng_info.setVisible(False)
+            return
+        if ng_info is None:
+            self.lb_ng_info.setText(self.tr(
+                'No reminder is configured for this planning period yet.'))
+            self.group_ng_info.setVisible(True)
+            return
+        deadline_str = date_to_string(ng_info.deadline)
+        siblings = [e for e in ng_info.plan_periods if e.id != plan_period_id]
+        if not siblings:
+            self.lb_ng_info.setText(self.tr(
+                'Reminder is configured (deadline {deadline}). '
+                'This planning period has its own reminder group.'
+            ).format(deadline=deadline_str))
+        else:
+            rows = ''.join(
+                f'<li>{e.team_name}: {date_to_string(e.start)} – {date_to_string(e.end)}</li>'
+                for e in siblings
+            )
+            self.lb_ng_info.setText(self.tr(
+                'Reminder is shared with {count} other planning period(s) '
+                '(deadline {deadline}):'
+            ).format(count=len(siblings), deadline=deadline_str)
+                + f'<ul style="margin-top:4px;">{rows}</ul>')
+        self.group_ng_info.setVisible(True)
 
     def disable_enable_data_fields(self, disable: bool):
         self.de_start.setDisabled(disable)
         self.de_end.setDisabled(disable)
-        self.de_deadline.setDisabled(disable)
         self.te_notes.setDisabled(disable)
         self.te_notes_for_employees.setDisabled(disable)
-        self.chk_remainder.setDisabled(disable)
 
     def proof_with_end(self):
         if self.de_start.date() > self.de_end.date():
@@ -308,10 +368,8 @@ class DlgPlanPeriodEdit(QDialog):
         plan_period: schemas.PlanPeriod = self.cb_planperiods.currentData()
         plan_period.start = self.de_start.date().toPython()
         plan_period.end = self.de_end.date().toPython()
-        plan_period.deadline = self.de_deadline.date().toPython()
         plan_period.notes = self.te_notes.toPlainText()
         plan_period.notes_for_employees = self.te_notes_for_employees.toPlainText()
-        plan_period.remainder = self.chk_remainder.isChecked()
 
         self.updated_plan_period = plan_period
 

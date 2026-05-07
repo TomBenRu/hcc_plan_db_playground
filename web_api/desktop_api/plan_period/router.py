@@ -37,10 +37,8 @@ teams_router = APIRouter(prefix="/teams", tags=["desktop-plan-periods"])
 class PlanPeriodCreateBody(BaseModel):
     start: datetime.date
     end: datetime.date
-    deadline: datetime.date
     notes: str | None = None
     notes_for_employees: str | None = None
-    remainder: bool
     team_id: uuid.UUID
 
 
@@ -51,15 +49,26 @@ class PlanPeriodNotesBody(BaseModel):
 def _to_create_schema(body: PlanPeriodCreateBody) -> schemas.PlanPeriodCreate:
     team = db_services.Team.get(body.team_id)
     return schemas.PlanPeriodCreate(
-        start=body.start, end=body.end, deadline=body.deadline,
+        start=body.start, end=body.end, deadline=None,
         notes=body.notes, notes_for_employees=body.notes_for_employees,
-        remainder=body.remainder, team=team,
+        remainder=False, team=team,
     )
 
 
 @router.get("/{plan_period_id}", response_model=schemas.PlanPeriodShow)
 def get_plan_period(plan_period_id: uuid.UUID, _: DesktopUser):
     return db_services.PlanPeriod.get(plan_period_id)
+
+
+@router.get("/{plan_period_id}/notification-group",
+            response_model=schemas.NotificationGroupInfo | None)
+def get_plan_period_notification_group(plan_period_id: uuid.UUID, _: DesktopUser):
+    """Reminder-Gruppe der PP + alle Mit-PPs in derselben Group.
+
+    Antwort `null`, wenn die PP keiner Group zugeordnet ist (Phase A
+    nullable FK). Soft-deletete Mit-PPs werden serverseitig gefiltert.
+    """
+    return db_services.PlanPeriod.get_notification_group_info(plan_period_id)
 
 
 @teams_router.get("/{team_id}/plan-periods", response_model=list[schemas.PlanPeriodShow])

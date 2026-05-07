@@ -1645,6 +1645,32 @@ class LocationMaskData:
     location_id__skill_groups: dict  # dict[UUID, list[SkillGroup]]
 
 
+class NotificationGroupPlanPeriodEntry(BaseModel):
+    """Schlanker Eintrag fuer die Mitglieder-Liste einer NotificationGroup —
+    zugeschnitten auf den Desktop-PP-Edit-Dialog (NG-Info-Anzeige)."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    team_name: str
+    start: datetime.date
+    end: datetime.date
+
+
+class NotificationGroupInfo(BaseModel):
+    """Info-Bundle fuer den Desktop-PP-Edit-Dialog: Reminder-Group der
+    aktuell ausgewaehlten PP plus alle Mit-PPs in derselben Group.
+
+    Wird vom Endpoint `/plan-periods/{id}/notification-group` zurueckgegeben.
+    Antwort kann `None` sein, wenn die PP keiner Group zugeordnet ist
+    (Phase A der NG-Verwaltung erlaubt nullable FK)."""
+    model_config = ConfigDict(from_attributes=True)
+
+    id: UUID
+    name: Optional[str]
+    deadline: datetime.date
+    plan_periods: List[NotificationGroupPlanPeriodEntry]
+
+
 PersonCreate.model_rebuild()
 Person.model_rebuild()
 PersonShow.model_rebuild()

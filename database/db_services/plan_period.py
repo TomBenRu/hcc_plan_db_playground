@@ -147,6 +147,30 @@ def get(plan_period_id: UUID, minimal: bool = False, *,
         return schemas.PlanPeriodShow.model_validate(pp)
 
 
+def get_notification_group_info(plan_period_id: UUID) -> "schemas.NotificationGroupInfo | None":
+    """Liefert die Reminder-Group der PP plus alle aktiven Mit-PPs.
+
+    `None`, wenn die PP keiner Group zugeordnet ist (Phase A der NG-Verwaltung
+    erlaubt nullable FK). Soft-deletete Mit-PPs werden aus der Liste gefiltert.
+    Die Mit-PP-Liste ist nach `start` aufsteigend sortiert und enthaelt die
+    PP selbst (Aufrufer kann sie bei Bedarf clientseitig ausblenden).
+    """
+    with get_session() as session:
+        pp = session.get(models.PlanPeriod, plan_period_id)
+        if pp is None or pp.notification_group is None:
+            return None
+        ng = pp.notification_group
+        entries = sorted(
+            (schemas.NotificationGroupPlanPeriodEntry(
+                id=p.id, team_name=p.team.name, start=p.start, end=p.end)
+             for p in ng.plan_periods if p.prep_delete is None),
+            key=lambda e: e.start,
+        )
+        return schemas.NotificationGroupInfo(
+            id=ng.id, name=ng.name, deadline=ng.deadline, plan_periods=entries,
+        )
+
+
 def get_for_actor_tab(plan_period_id: UUID, *,
                       include_deleted: bool = False) -> schemas.PlanPeriodForActorTab:
     """Lädt PlanPeriod für FrmTabActorPlanPeriods — ohne location_plan_periods, cast_groups, project.
@@ -705,6 +729,12 @@ def delete(plan_period_id: UUID) -> schemas.PlanPeriodMinimal:
     """Soft-Delete der PlanPeriod. Bei `closed=True` blockiert (PlanPeriodClosedError);
     Admin muss zuerst re-openen.
 
+    Entkoppelt die PP von ihrer NotificationGroup (FK = NULL): bei 1er-Group
+    wird die NG geloescht und ihre Reminder-Jobs deregistriert; bei Multi-PP-
+    Group laeuft die Group ohne diese PP weiter. Der Restore-Pfad (`undelete`)
+    bringt die PP groupless zurueck — Dispatcher ordnet sie ggf. wieder einer
+    Group im NG-View zu.
+
     Gibt PlanPeriodMinimal (id, start, end, closed, prep_delete, team_id) zurück
     — kein PlanPeriodShow, weil das bei großen Perioden hunderte Lazy-Queries
     triggert und die Mutation auf 30 s+ aufbläht.
@@ -716,8 +746,12 @@ def delete(plan_period_id: UUID) -> schemas.PlanPeriodMinimal:
             raise PlanPeriodClosedError(
                 f"PlanPeriod {pp.id} is closed; soft-delete blocked. Reopen first."
             )
+        source_group = pp.notification_group
         pp.prep_delete = _utcnow()
+        if source_group is not None:
+            pp.notification_group_id = None
         session.flush()
+        _cleanup_source_group_if_empty(session, source_group)
         return schemas.PlanPeriodMinimal.model_validate(pp)
 
 
@@ -754,11 +788,22 @@ def undelete(plan_period_id: UUID) -> schemas.PlanPeriodMinimal:
 
 
 def delete_prep_deletes(team_id: UUID):
+    """Final-Hard-Delete aller soft-deleted PPs eines Teams.
+
+    Defensiver NG-Cleanup: `delete()` entkoppelt PPs vom Soft-Delete-Pfad
+    bereits von ihrer NG, hier sollte also typischerweise nichts mehr zu
+    bereinigen sein. Falls aber je eine PP per anderem Pfad mit `prep_delete`
+    markiert wurde (z. B. Cascade aus Team-Soft-Delete), faengt der Cleanup
+    leer gewordene Groups ab.
+    """
     with get_session() as session:
         pps = session.exec(select(models.PlanPeriod).where(
             models.PlanPeriod.team_id == team_id, models.PlanPeriod.prep_delete.isnot(None))).all()
         for pp in pps:
+            source_group = pp.notification_group
             session.delete(pp)
+            session.flush()
+            _cleanup_source_group_if_empty(session, source_group)
 
 
 def find_takeover_candidates(new_pp_id: UUID) -> schemas.TakeoverPreview:

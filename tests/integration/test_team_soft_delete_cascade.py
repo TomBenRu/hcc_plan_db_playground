@@ -57,8 +57,9 @@ def main() -> int:
         pp_create = schemas.PlanPeriodCreate(
             start=today + datetime.timedelta(days=14),
             end=today + datetime.timedelta(days=28),
-            deadline=today + datetime.timedelta(days=10),
+            deadline=None,
             notes=None, notes_for_employees=None,
+            remainder=False,
             team=schemas.Team.model_validate(created.model_dump()),
         )
         pp = api_plan_period.create(pp_create)

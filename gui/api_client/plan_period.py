@@ -7,23 +7,19 @@ from database import schemas
 from gui.api_client.client import get_api_client
 
 
-def create(start: datetime.date, end: datetime.date, deadline: datetime.date,
-           remainder: bool, team_id: uuid.UUID,
+def create(start: datetime.date, end: datetime.date, team_id: uuid.UUID,
            notes: str | None = None, notes_for_employees: str | None = None) -> schemas.PlanPeriodShow:
     data = get_api_client().post("/api/v1/plan-periods", json={
         "start": start.isoformat(),
         "end": end.isoformat(),
-        "deadline": deadline.isoformat(),
         "notes": notes,
         "notes_for_employees": notes_for_employees,
-        "remainder": remainder,
         "team_id": str(team_id),
     })
     return schemas.PlanPeriodShow.model_validate(data)
 
 
-def create_with_children(start: datetime.date, end: datetime.date, deadline: datetime.date,
-                         remainder: bool, team_id: uuid.UUID,
+def create_with_children(start: datetime.date, end: datetime.date, team_id: uuid.UUID,
                          notes: str | None = None,
                          notes_for_employees: str | None = None) -> schemas.PlanPeriodShow:
     """Atomarer Create: PP + LPP+EventGroup-Master + APP+AvailDayGroup-Master in
@@ -32,10 +28,8 @@ def create_with_children(start: datetime.date, end: datetime.date, deadline: dat
     data = get_api_client().post("/api/v1/plan-periods/with-children", json={
         "start": start.isoformat(),
         "end": end.isoformat(),
-        "deadline": deadline.isoformat(),
         "notes": notes,
         "notes_for_employees": notes_for_employees,
-        "remainder": remainder,
         "team_id": str(team_id),
     })
     return schemas.PlanPeriodShow.model_validate(data)
@@ -51,6 +45,18 @@ def set_closed(plan_period_id: uuid.UUID, closed: bool) -> schemas.PlanPeriodMin
     endpoint = "close" if closed else "reopen"
     data = get_api_client().post(f"/api/v1/plan-periods/{plan_period_id}/{endpoint}")
     return schemas.PlanPeriodMinimal.model_validate(data)
+
+
+def get_notification_group(plan_period_id: uuid.UUID) -> schemas.NotificationGroupInfo | None:
+    """Liefert die Reminder-Gruppe einer PP plus alle Mit-PPs.
+
+    `None`, wenn die PP keiner NG zugeordnet ist (PP ohne Reminder).
+    Server filtert soft-deletete Mit-PPs aus der Liste raus.
+    """
+    data = get_api_client().get(f"/api/v1/plan-periods/{plan_period_id}/notification-group")
+    if data is None:
+        return None
+    return schemas.NotificationGroupInfo.model_validate(data)
 
 
 def find_takeover_candidates(plan_period_id: uuid.UUID) -> schemas.TakeoverPreview:

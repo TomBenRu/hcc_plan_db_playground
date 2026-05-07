@@ -73,7 +73,7 @@ Klicke auf einen Termin im Kalender, um Details zu sehen:
 - **Datum, Uhrzeit, Einsatzort**
 - **Eingeteilte Personen** (mit dir markiert)
 - **Notizen** der Disposition (z. B. „Sondertermin", „Anfahrtszeit beachten")
-- **Aktionen** — je nach Termin und Status: Absagen, Tausch anbieten, Einsprung anbieten
+- **Aktionen** — je nach Termin und Status: Termin absagen, Termin tauschen, Ich kann einspringen
 
 Bei vergangenen Terminen sind die Aktionen ausgeblendet — du kannst dir aber die Details als
 Nachweis ansehen.
@@ -84,10 +84,9 @@ Im Detail-Panel rechts findest du je nach Kontext einen oder mehrere Aktions-But
 
 | Button | Wann sichtbar | Was passiert |
 |---|---|---|
-| **Absagen** | Eigener, künftiger Termin | Öffnet das Absage-Formular |
-| **Tausch anbieten** | Eigener, künftiger Termin | Öffnet die Tauschbörse mit Vorbelegung |
-| **Übernahme anbieten** | Fremder Termin mit offener Absage und du im Benachrichtigungskreis | Öffnet das Übernahme-Vorschlags-Formular |
-| **Einsprung anbieten** | Unterbesetzter Termin im Team | Öffnet das Einsprung-Formular |
+| **Termin absagen** | Eigener, künftiger Termin | Öffnet das Absage-Formular |
+| **Termin tauschen** | Eigener, künftiger Termin | Öffnet die Tauschbörse mit Vorbelegung |
+| **Ich kann einspringen** | Fremder, unterbesetzter Termin | Sendet ein Einsprung-Angebot — optional mit Nachricht |
 
 Für jede Aktion gibt es ein eigenes Hilfe-Thema (siehe „Auch interessant" am Ende dieser Seite).
 

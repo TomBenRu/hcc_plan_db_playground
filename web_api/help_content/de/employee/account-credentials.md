@@ -45,11 +45,11 @@ Wichtige Unterscheidung:
 
 ### Häufige Fehler beim Passwort-Wechsel
 
-| Meldung | Ursache |
-|---|---|
-| „Aktuelles Passwort ist falsch" | Tippfehler im ersten Feld; Caps-Lock prüfen |
-| „Die beiden neuen Passwörter stimmen nicht überein" | Wiederhol-Feld weicht ab |
-| „Passwort zu kurz" | Mindestlänge wird vom System vorgegeben (typisch 8–12 Zeichen) |
+| Meldung | Ursache                                                         |
+|---|-----------------------------------------------------------------|
+| „Aktuelles Passwort ist falsch" | Tippfehler im ersten Feld; Caps-Lock prüfen                     |
+| „Die beiden neuen Passwörter stimmen nicht überein" | Wiederhol-Feld weicht ab                                        |
+| „Passwort zu kurz" | Mindestlänge wird vom System vorgegeben (typisch 12-16 Zeichen) |
 
 ## Login-E-Mail wechseln {#email-wechsel}
 

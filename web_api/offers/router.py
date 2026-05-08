@@ -54,22 +54,54 @@ def _success_response(request: Request, message: str) -> HTMLResponse:
     )
 
 
+_VALID_OFFER_FILTERS = {
+    "",
+    "pending",
+    "accepted_by_dispatcher",
+    "rejected_by_dispatcher",
+    "withdrawn",
+    "superseded_by_cast_change",
+    "superseded_by_plan_unbind",
+}
+
+
+def _filter_offers(
+    offers: list, status_filter: str | None
+) -> list:
+    if not status_filter:
+        return offers
+    return [o for o in offers if o.status.value == status_filter]
+
+
 @router.get("/dispatcher", response_class=HTMLResponse)
 def list_dispatcher_offers(
     request: Request,
     user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
     session: Session = Depends(get_db_session),
+    status_filter: str = Query(default="pending"),
 ):
-    """Dispatcher-Übersicht: alle Pending-Angebote in den Teams des Dispatchers."""
+    """Dispatcher-Übersicht: Angebote in den Teams des Dispatchers.
+
+    Default-Filter `pending`; per Sidebar-Filter umstellbar auf andere Status
+    oder „Alle" (`status_filter=""`).
+    """
+    if status_filter not in _VALID_OFFER_FILTERS:
+        status_filter = "pending"
     all_offers = get_offers_for_dispatcher(session, user)
-    pending_offers = [o for o in all_offers if o.status == AvailabilityOfferStatus.pending]
+    pending_count = sum(
+        1 for o in all_offers if o.status == AvailabilityOfferStatus.pending
+    )
+    visible_offers = _filter_offers(all_offers, status_filter)
     return templates.TemplateResponse(
         "offers/dispatcher_index.html",
         {
             "request": request,
             "user": user,
-            "offers": pending_offers,
-            "total_count": len(pending_offers),
+            "offers": visible_offers,
+            "total_count": len(all_offers),
+            "pending_count": pending_count,
+            "filtered_count": len(visible_offers),
+            "status_filter": status_filter,
         },
     )
 
@@ -79,25 +111,30 @@ def list_my_offers(
     request: Request,
     user: LoggedInUser,
     session: Session = Depends(get_db_session),
+    status_filter: str = Query(default="pending"),
 ):
     """Eigene Angebote des Offerers — aktiver Einstiegspunkt für Mitarbeiter.
 
-    Zeigt alle eigenen Angebote (pending + abgeschlossen), nach Erstellung absteigend.
-    Pending erscheinen oben, Terminals (accepted/rejected/withdrawn/superseded)
-    darunter als Archiv.
+    Default-Filter `pending`; Terminals (accepted/rejected/withdrawn/superseded)
+    sind über die Sidebar-Filter zugänglich.
     """
-    offers = get_offers_for_user(session, user.id)
+    if status_filter not in _VALID_OFFER_FILTERS:
+        status_filter = "pending"
+    all_offers = get_offers_for_user(session, user.id)
     pending_count = sum(
-        1 for o in offers if o.status == AvailabilityOfferStatus.pending
+        1 for o in all_offers if o.status == AvailabilityOfferStatus.pending
     )
+    visible_offers = _filter_offers(all_offers, status_filter)
     return templates.TemplateResponse(
         "offers/mine_index.html",
         {
             "request": request,
             "user": user,
-            "offers": offers,
+            "offers": visible_offers,
             "pending_count": pending_count,
-            "total_count": len(offers),
+            "total_count": len(all_offers),
+            "filtered_count": len(visible_offers),
+            "status_filter": status_filter,
         },
     )
 
@@ -108,16 +145,28 @@ def get_offer_detail_page(
     offer_id: uuid.UUID,
     user: LoggedInUser,
     session: Session = Depends(get_db_session),
+    from_dispatcher: bool = Query(default=False),
 ):
     """Rollen-sensitive Detail-Ansicht eines Angebots.
 
     Ziel für Inbox-Deep-Links (`reference_type == "availability_offer"`). Sichtbar
     für Offerer und Dispatcher des zuständigen Teams; sonst 403.
+
+    `from_dispatcher` schaltet die UX zwischen Mitarbeiter-Sicht (Withdraw-Button)
+    und Dispatcher-Sicht (Accept/Reject-Buttons). Bei Doppelrollen verhindert das
+    Flag, dass beide Aktionsbereiche gleichzeitig sichtbar sind — die Server-Auth
+    der Mutation-Endpoints bleibt davon unberührt.
     """
     detail = get_offer_detail(session, offer_id, user)
     return templates.TemplateResponse(
         "offers/detail.html",
-        {"request": request, "user": user, "offer": detail},
+        {
+            "request": request,
+            "user": user,
+            "offer": detail,
+            "from_dispatcher": from_dispatcher,
+            "back_url": "/offers/dispatcher" if from_dispatcher else "/offers/mine",
+        },
     )
 
 

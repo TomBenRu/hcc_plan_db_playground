@@ -123,8 +123,10 @@
                 Details
             </a>
             {% elif group.reference_type == "availability_offer" and group.reference_id %}
+              {# Dispatcher-gerichtete Msg-Types öffnen die Dispatcher-Sicht. #}
+              {% set _offer_qs = "?from_dispatcher=1" if _first.type.value in ("availability_offer_received", "availability_offer_withdrawn") else "" %}
               {% if group.has_unread %}
-              <a href="/offers/{{ group.reference_id }}"
+              <a href="/offers/{{ group.reference_id }}{{ _offer_qs }}"
                  onclick="event.stopPropagation();"
                  class="flex-shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-lg
                         bg-sky-50 text-sky-700 border border-sky-200
@@ -132,7 +134,7 @@
                   Angebot öffnen
               </a>
               {% else %}
-              <a href="/offers/{{ group.reference_id }}"
+              <a href="/offers/{{ group.reference_id }}{{ _offer_qs }}"
                  onclick="event.stopPropagation();"
                  class="flex-shrink-0 text-[11px] font-medium text-slate-400 hover:text-navy transition-colors whitespace-nowrap">
                   Details

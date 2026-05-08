@@ -87,7 +87,9 @@
                 Details
             </a>
             {% elif item.reference_type == "availability_offer" and item.reference_id %}
-            <a href="/offers/{{ item.reference_id }}"
+            {# Dispatcher-gerichtete Msg-Types öffnen die Dispatcher-Sicht; Offerer-gerichtete die Mitarbeiter-Sicht. #}
+            {% set _is_dispatcher_msg = item.type.value in ("availability_offer_received", "availability_offer_withdrawn") %}
+            <a href="/offers/{{ item.reference_id }}{% if _is_dispatcher_msg %}?from_dispatcher=1{% endif %}"
                class="text-[11px] font-medium text-slate-400 hover:text-navy transition-colors whitespace-nowrap">
                 Details
             </a>

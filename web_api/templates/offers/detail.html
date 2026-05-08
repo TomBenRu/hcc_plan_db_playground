@@ -28,7 +28,7 @@
 
     {# Header #}
     <div class="flex items-center gap-3 mb-6">
-        <a href="/inbox"
+        <a href="{{ back_url | default('/offers/mine') }}"
            class="text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors">
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
@@ -104,15 +104,17 @@
         </div>
 
         {# ── Aktions-Bereich ─────────────────────────────────────────────────── #}
+        {# Trennung der Verantwortlichkeiten: bei Doppelrolle (Employee + Dispatcher) #}
+        {# entscheidet `from_dispatcher` aus der URL, welche Aktionen sichtbar sind. #}
         <div id="offer-action-area">
 
-            {# Dispatcher: pending → Annehmen / Ablehnen (mit optionaler Begründung) #}
-            {% if sval == "pending" and offer.is_dispatcher_for_team %}
+            {# Dispatcher-Sicht: Annehmen / Ablehnen #}
+            {% if sval == "pending" and offer.is_dispatcher_for_team and from_dispatcher %}
                 {% include "offers/partials/dispatcher_actions.html" %}
             {% endif %}
 
-            {# Offerer: pending → Zurückziehen #}
-            {% if sval == "pending" and offer.is_offerer %}
+            {# Mitarbeiter-Sicht: Zurückziehen #}
+            {% if sval == "pending" and offer.is_offerer and not from_dispatcher %}
             <form hx-post="/offers/{{ offer.id }}/withdraw"
                   hx-swap="none"
                   hx-on::after-request="if(event.detail.successful) window.location.reload()"

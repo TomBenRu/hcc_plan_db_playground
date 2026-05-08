@@ -1161,6 +1161,41 @@ document.addEventListener('DOMContentLoaded', function () {
         if (btn) btn.setAttribute('aria-expanded', isOpen ? 'true' : 'false');
         setTimeout(() => { if (calendar && calendar.updateSize) calendar.updateSize(); }, 320);
     };
+
+    // ── Touch-Swipe in der Monatsansicht ────────────────────────────────────
+    // Triggert die Custom-Buttons (myPrev/myNext), damit Cross-PP-Sprung an
+    // den Periode-Grenzen greift. Disabled-Buttons werden geprüft — wenn die
+    // Navigation nicht möglich ist, ist der Swipe ein No-Op.
+    window.hccSwipeNav(calendarEl, {
+        onPrev: function () {
+            const b = document.querySelector('.fc-myPrev-button');
+            if (b && !b.disabled) b.click();
+        },
+        onNext: function () {
+            const b = document.querySelector('.fc-myNext-button');
+            if (b && !b.disabled) b.click();
+        },
+    });
+
+    // ── Touch-Swipe in der Wochenansicht ────────────────────────────────────
+    // #week-view scrollt auf <640px horizontal (innerer #week-grid hat
+    // min-w-[640px]). In dem Fall darf der Swipe nur Wochen-Navigation
+    // auslösen, wenn der Container am linken bzw. rechten Rand steht;
+    // sonst frisst er die normale Tagesspalten-Scrollgeste.
+    const weekViewEl = document.getElementById('week-view');
+    window.hccSwipeNav(weekViewEl, {
+        onPrev: function () { window.prevWeek(); },
+        onNext: function () { window.nextWeek(); },
+        allowSwipe: function (phase, e, info) {
+            if (phase !== 'end') return true;
+            const maxScroll = weekViewEl.scrollWidth - weekViewEl.clientWidth;
+            if (maxScroll <= 0) return true;  // kein horizontales Overflow
+            // 2px Toleranz gegen Sub-Pixel-Rundung am Rand
+            if (info.dx > 0 && weekViewEl.scrollLeft > 2) return false;
+            if (info.dx < 0 && weekViewEl.scrollLeft < maxScroll - 2) return false;
+            return true;
+        },
+    });
 });
 </script>
 {% endblock %}

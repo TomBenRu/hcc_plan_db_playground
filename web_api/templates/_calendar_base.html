@@ -650,6 +650,17 @@ document.addEventListener('DOMContentLoaded', function () {
 
     calendar.render();
 
+    // ── Touch-Swipe (Touchscreens / Mobile) ──────────────────────────────
+    // Horizontaler Wisch im Kalender-Container ruft prev/next auf — gilt fuer
+    // Monat, Woche und Liste, weil FC bei View-Wechsel nur das innere DOM
+    // austauscht; der Listener auf #calendar bleibt persistent. Vertikales
+    // Scrollen in Wochen-/Listenansicht ist unangetastet (passive listener +
+    // Vertikalitaets-Filter im Helper).
+    window.hccSwipeNav(calendarEl, {
+        onPrev: function () { calendar.prev(); },
+        onNext: function () { calendar.next(); },
+    });
+
     {% if pending_appointment_id %}
     // Inbox-Deep-Link: Termin-Detail nach Render automatisch laden, damit
     // Notifications wie "In Cast aufgenommen" direkt zum Termin springen.

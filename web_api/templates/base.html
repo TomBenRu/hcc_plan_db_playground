@@ -278,6 +278,57 @@
     }());
     </script>
 
+    <script>
+    /* ── Touch-Swipe-Helper: horizontale Navigation ──────────────────────────
+       Erkennt eine horizontale Wisch-Geste (>= threshold px, |dy/dx| < ratio,
+       dt < maxDuration) und ruft onPrev (Wisch nach rechts) bzw. onNext
+       (Wisch nach links) auf. Vertikales Scrollen bleibt unangetastet,
+       weil Listener passiv sind und der Vertikalitaets-Filter zu vertikale
+       Gesten ignoriert. Optionale Gate-Funktion `allowSwipe(phase, e, info)`
+       erlaubt Caller, Swipe je nach Container-Zustand zu unterdruecken
+       (z.B. bei horizontal scrollendem Container nur am Rand wischen). */
+    (function () {
+        window.hccSwipeNav = function (el, opts) {
+            if (!el) return;
+            var onPrev = opts.onPrev;
+            var onNext = opts.onNext;
+            var threshold    = opts.threshold    || 60;
+            var maxVertRatio = opts.maxVertRatio || 0.5;
+            var maxDuration  = opts.maxDuration  || 800;
+            var gate = opts.allowSwipe || function () { return true; };
+            var startX = 0, startY = 0, startTime = 0, tracking = false;
+
+            el.addEventListener('touchstart', function (e) {
+                if (e.touches.length !== 1) { tracking = false; return; }
+                if (!gate('start', e))      { tracking = false; return; }
+                startX = e.touches[0].clientX;
+                startY = e.touches[0].clientY;
+                startTime = Date.now();
+                tracking = true;
+            }, { passive: true });
+
+            el.addEventListener('touchend', function (e) {
+                if (!tracking) return;
+                tracking = false;
+                if (!e.changedTouches || e.changedTouches.length !== 1) return;
+                var dx = e.changedTouches[0].clientX - startX;
+                var dy = e.changedTouches[0].clientY - startY;
+                var dt = Date.now() - startTime;
+                if (Math.abs(dx) < threshold) return;
+                if (Math.abs(dy) > Math.abs(dx) * maxVertRatio) return;
+                if (dt > maxDuration) return;
+                if (!gate('end', e, { dx: dx, dy: dy, dt: dt })) return;
+                if (dx < 0) { if (onNext) onNext(); }
+                else        { if (onPrev) onPrev(); }
+            }, { passive: true });
+
+            el.addEventListener('touchcancel', function () {
+                tracking = false;
+            }, { passive: true });
+        };
+    }());
+    </script>
+
     {% block scripts %}{% endblock %}
 </body>
 </html>

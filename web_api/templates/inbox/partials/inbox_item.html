@@ -81,6 +81,11 @@
                       hover:bg-red-100 transition-colors whitespace-nowrap">
                 Übernahme anbieten
             </a>
+            {% elif item.reference_type == "cancellation_request" and item.reference_id %}
+            <a href="/cancellations/{{ item.reference_id }}"
+               class="text-[11px] font-medium text-slate-400 hover:text-navy transition-colors whitespace-nowrap">
+                Details
+            </a>
             {% elif item.reference_type == "swap_request" and item.reference_id %}
             <a href="/swap-requests/{{ item.reference_id }}"
                class="text-[11px] font-medium text-slate-400 hover:text-navy transition-colors whitespace-nowrap">
@@ -93,6 +98,24 @@
                class="text-[11px] font-medium text-slate-400 hover:text-navy transition-colors whitespace-nowrap">
                 Details
             </a>
+            {% elif item.reference_type == "takeover_offer" %}
+              {# Takeover-Offer-Inbox-Messages haben die zugehörige cancellation_id im
+                 Snapshot (siehe plan_adjustment.service). Alte Snapshots ohne den
+                 Key fallen lautlos auf "kein Link" zurück. #}
+              {% set _cid = (item.snapshot_data or {}).get("cancellation_id") %}
+              {% if _cid %}
+              <a href="/cancellations/{{ _cid }}"
+                 class="text-[11px] font-medium text-slate-400 hover:text-navy transition-colors whitespace-nowrap">
+                  Details
+              </a>
+              {% endif %}
+            {% elif item.reference_type == "appointment" and item.reference_id %}
+              {# Cast-Change-Notification: Calendar-Deep-Link mit Auto-Open des Detail-Partials. #}
+              {% set _appt_date = (item.snapshot_data or {}).get("event_date") %}
+              <a href="/employees/calendar?appointment={{ item.reference_id }}{% if _appt_date %}&date={{ _appt_date }}{% endif %}"
+                 class="text-[11px] font-medium text-slate-400 hover:text-navy transition-colors whitespace-nowrap">
+                  Details
+              </a>
             {% elif item.reference_type == "notification_group" %}
               {# Reminder-Notification: Link zur ersten offenen Period (Verfuegbarkeitsmaske). #}
               {% set _periods = (item.snapshot_data or {}).get("periods") or [] %}
@@ -106,11 +129,6 @@
                   Verfügbarkeit eingeben
               </a>
               {% endif %}
-            {% elif item.reference_id %}
-            <a href="/cancellations/{{ item.reference_id }}"
-               class="text-[11px] font-medium text-slate-400 hover:text-navy transition-colors whitespace-nowrap">
-                Details
-            </a>
             {% endif %}
 
             {% if not item.is_read %}

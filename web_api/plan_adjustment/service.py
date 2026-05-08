@@ -276,12 +276,15 @@ def _cancel_open_requests_for_removed_persons(
             offerer = users_by_id.get(offer.web_user_id)
             if offerer is None:
                 continue
-            offerer_snapshot = _build_snapshot(
-                ctx,
-                request_type="takeover_offer",
-                recipient_role="offerer",
-                removed_person_name=removed_name,
-            )
+            offerer_snapshot = {
+                **_build_snapshot(
+                    ctx,
+                    request_type="takeover_offer",
+                    recipient_role="offerer",
+                    removed_person_name=removed_name,
+                ),
+                "cancellation_id": str(cr.id),
+            }
             create_inbox_message(
                 session,
                 recipient_id=offerer.id,
@@ -1076,7 +1079,10 @@ def cancel_open_requests_for_unbound_plan(
             offerer = users_by_id.get(offer.web_user_id)
             if offerer is None:
                 continue
-            offerer_snapshot = _build_plan_unbind_snapshot(ctx, request_type="takeover_offer")
+            offerer_snapshot = {
+                **_build_plan_unbind_snapshot(ctx, request_type="takeover_offer"),
+                "cancellation_id": str(cr.id),
+            }
             create_inbox_message(
                 session,
                 recipient_id=offerer.id,

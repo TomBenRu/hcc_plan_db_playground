@@ -44,17 +44,29 @@ def calendar_page(
     request: Request,
     user: LoggedInUser,
     session: Session = Depends(get_db_session),
+    appointment: uuid.UUID | None = Query(default=None),
+    date_param: date | None = Query(default=None, alias="date"),
 ):
+    """Mitarbeiter-Kalender.
+
+    Optional: `?appointment={id}&date={iso}` öffnet den Termin direkt nach
+    dem Render — Ziel für Inbox-Deep-Links auf Cast-Change-Notifications,
+    bei denen es keinen Standalone-Detail-View gibt.
+    """
     person_id = _require_person(user)
     plan_periods = get_plan_periods_for_person(session, person_id)
 
-    # Initial-Datum: Start der aktuellen oder nächsten Planperiode
+    # Initial-Datum: Start der aktuellen oder nächsten Planperiode (Default).
+    # Bei Deep-Link-Aufruf hat das `date`-Query-Param Vorrang, damit der
+    # Calendar gleich am Termin-Monat startet.
     today = date.today()
     initial_date = today.isoformat()
     for pp in reversed(plan_periods):  # älteste zuerst
         if pp.end >= today:
             initial_date = pp.start.isoformat()
             break
+    if date_param is not None:
+        initial_date = date_param.isoformat()
 
     # Legende aus own + team: deckt alle Orte ab, die mit dem Show-All-Toggle
     # überhaupt erscheinen können, damit sich die Legende nicht an-/abschaltet.
@@ -79,6 +91,7 @@ def calendar_page(
             "location_legend": location_legend,
             "initial_date": initial_date,
             "total_appointments": len(own_events),
+            "pending_appointment_id": str(appointment) if appointment else None,
         },
     )
 

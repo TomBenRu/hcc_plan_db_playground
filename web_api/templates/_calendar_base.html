@@ -650,6 +650,20 @@ document.addEventListener('DOMContentLoaded', function () {
 
     calendar.render();
 
+    {% if pending_appointment_id %}
+    // Inbox-Deep-Link: Termin-Detail nach Render automatisch laden, damit
+    // Notifications wie "In Cast aufgenommen" direkt zum Termin springen.
+    (function () {
+        const panel = document.getElementById('detail-panel');
+        if (panel) panel.classList.add('has-content');
+        htmx.ajax(
+            'GET',
+            '{{ self.calendar_detail_url_prefix() }}{{ pending_appointment_id }}',
+            { target: '#appointment-detail', swap: 'innerHTML' }
+        ).then(applyDetailColors);
+    })();
+    {% endif %}
+
     // Für Kind-Templates zugänglich machen (z. B. Dispatcher-Team-Filter → refetchEvents())
     window.hccCalendar = calendar;
     // Farben auf neu eingefügte Legend-/Event-DOM-Elemente anwenden (Colorblind-Remap)

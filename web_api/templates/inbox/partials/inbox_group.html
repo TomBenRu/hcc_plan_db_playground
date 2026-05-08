@@ -99,7 +99,9 @@
                 </svg>
             </div>
 
-            {# Link zu Absage-Detail / Übernahme-CTA #}
+            {# Link zu Detail / spezifischer CTA — explizit pro reference_type.
+               Pattern: bei has_unread prominenter farbiger CTA, sonst dezenter Default-Link.
+               Farben spiegeln die Notification-Icons des jeweiligen reference_type. #}
             {% if group.reference_id and group.reference_type == "cancellation_request" %}
               {% if can_offer_takeover and group.cancellation_open and group.requester_web_user_id != user.id %}
               <a href="/cancellations/{{ group.reference_id }}"
@@ -109,6 +111,14 @@
                         hover:bg-orange-100 transition-colors whitespace-nowrap">
                   Übernahme anbieten
               </a>
+              {% elif group.has_unread %}
+              <a href="/cancellations/{{ group.reference_id }}"
+                 onclick="event.stopPropagation();"
+                 class="flex-shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-lg
+                        bg-red-50 text-red-700 border border-red-200
+                        hover:bg-red-100 transition-colors whitespace-nowrap">
+                  Absage öffnen
+              </a>
               {% else %}
               <a href="/cancellations/{{ group.reference_id }}"
                  onclick="event.stopPropagation();"
@@ -117,11 +127,21 @@
               </a>
               {% endif %}
             {% elif group.reference_type == "swap_request" and group.reference_id %}
-            <a href="/swap-requests/{{ group.reference_id }}"
-               onclick="event.stopPropagation();"
-               class="flex-shrink-0 text-[11px] font-medium text-slate-400 hover:text-navy transition-colors whitespace-nowrap">
-                Details
-            </a>
+              {% if group.has_unread %}
+              <a href="/swap-requests/{{ group.reference_id }}"
+                 onclick="event.stopPropagation();"
+                 class="flex-shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-lg
+                        bg-blue-50 text-blue-700 border border-blue-200
+                        hover:bg-blue-100 transition-colors whitespace-nowrap">
+                  Tausch öffnen
+              </a>
+              {% else %}
+              <a href="/swap-requests/{{ group.reference_id }}"
+                 onclick="event.stopPropagation();"
+                 class="flex-shrink-0 text-[11px] font-medium text-slate-400 hover:text-navy transition-colors whitespace-nowrap">
+                  Details
+              </a>
+              {% endif %}
             {% elif group.reference_type == "availability_offer" and group.reference_id %}
               {# Dispatcher-gerichtete Msg-Types öffnen die Dispatcher-Sicht. #}
               {% set _offer_qs = "?from_dispatcher=1" if _first.type.value in ("availability_offer_received", "availability_offer_withdrawn") else "" %}
@@ -135,6 +155,46 @@
               </a>
               {% else %}
               <a href="/offers/{{ group.reference_id }}{{ _offer_qs }}"
+                 onclick="event.stopPropagation();"
+                 class="flex-shrink-0 text-[11px] font-medium text-slate-400 hover:text-navy transition-colors whitespace-nowrap">
+                  Details
+              </a>
+              {% endif %}
+            {% elif group.reference_type == "takeover_offer" %}
+              {# Takeover-Offer-Group: cancellation_id steckt im Snapshot der ersten
+                 Message (gemeinsame Cancellation für alle Messages der Group). #}
+              {% set _cid = (_first.snapshot_data or {}).get("cancellation_id") %}
+              {% if _cid %}
+                {% if group.has_unread %}
+                <a href="/cancellations/{{ _cid }}"
+                   onclick="event.stopPropagation();"
+                   class="flex-shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-lg
+                          bg-violet-50 text-violet-700 border border-violet-200
+                          hover:bg-violet-100 transition-colors whitespace-nowrap">
+                    Absage öffnen
+                </a>
+                {% else %}
+                <a href="/cancellations/{{ _cid }}"
+                   onclick="event.stopPropagation();"
+                   class="flex-shrink-0 text-[11px] font-medium text-slate-400 hover:text-navy transition-colors whitespace-nowrap">
+                    Details
+                </a>
+                {% endif %}
+              {% endif %}
+            {% elif group.reference_type == "appointment" and group.reference_id %}
+              {# Cast-Change-Group: Deep-Link in den Mitarbeiter-Kalender. #}
+              {% set _appt_date = (_first.snapshot_data or {}).get("event_date") %}
+              {% set _appt_url = "/employees/calendar?appointment=" ~ group.reference_id|string ~ ("&date=" ~ _appt_date if _appt_date else "") %}
+              {% if group.has_unread %}
+              <a href="{{ _appt_url }}"
+                 onclick="event.stopPropagation();"
+                 class="flex-shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-lg
+                        bg-emerald-50 text-emerald-700 border border-emerald-200
+                        hover:bg-emerald-100 transition-colors whitespace-nowrap">
+                  Termin öffnen
+              </a>
+              {% else %}
+              <a href="{{ _appt_url }}"
                  onclick="event.stopPropagation();"
                  class="flex-shrink-0 text-[11px] font-medium text-slate-400 hover:text-navy transition-colors whitespace-nowrap">
                   Details
@@ -154,12 +214,6 @@
                   Verfügbarkeit eingeben
               </a>
               {% endif %}
-            {% elif group.reference_id %}
-            <a href="/cancellations/{{ group.reference_id }}"
-               onclick="event.stopPropagation();"
-               class="flex-shrink-0 text-[11px] font-medium text-slate-400 hover:text-navy transition-colors whitespace-nowrap">
-                Details
-            </a>
             {% endif %}
 
         </div>

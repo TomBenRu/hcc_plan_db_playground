@@ -259,25 +259,28 @@
         #week-label { min-width: 7rem !important; font-size: 0.7rem; }
         /* Bottom-Sheet auf sehr kleinen Screens */
         .detail-panel.has-content { height: 70vh !important; }
-        /* Scroll-Hinweis rechts am Wochen-Grid */
-        #week-view { position: relative; }
-        #week-view::after {
-            content: '›';
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            position: absolute;
-            top: 50%; right: 0;
-            transform: translateY(-50%);
-            width: 28px; height: 48px;
-            background: rgba(15, 23, 42, 0.65);
-            color: #fff;
-            font-size: 1.2rem;
-            border-radius: 6px 0 0 6px;
-            pointer-events: none;
-            z-index: 2;
-        }
     }
+
+    /* Scroll-Hinweis rechts am Wochen-Grid — sitzt als Sibling AUSSERHALB des
+       scrollenden Containers (`<main>` ist position:relative), sonst wuerde er
+       mit dem Inhalt mitscrollen. JS togglet display:flex via #week-view, wenn
+       Wochenansicht aktiv ist UND noch Inhalt rechts existiert. */
+    #week-scroll-hint {
+        display: none;
+        align-items: center;
+        justify-content: center;
+        position: absolute;
+        top: 50%; right: 0;
+        transform: translateY(-50%);
+        width: 28px; height: 48px;
+        background: rgba(15, 23, 42, 0.65);
+        color: #fff;
+        font-size: 1.2rem;
+        border-radius: 6px 0 0 6px;
+        pointer-events: none;
+        z-index: 2;
+    }
+    #week-scroll-hint.visible { display: flex; }
 
     /* Landscape mit kurzer Höhe (Phones im Querformat): zurück zu 2 Spalten,
        schmale Sidebar links — die Höhe ist hier das knappe Gut */
@@ -640,7 +643,7 @@
         </aside>
 
         <!-- ── Kalender-Bereich ───────────────────────────────────────────── -->
-        <main class="flex flex-col bg-white overflow-hidden animate-fade-up" style="animation-delay: 0.06s;">
+        <main class="relative flex flex-col bg-white overflow-hidden animate-fade-up" style="animation-delay: 0.06s;">
 
             <!-- View-Toggle Toolbar -->
             <div class="view-toolbar flex items-center gap-3 px-4 pt-3 pb-2 border-b border-slate-100 lg:px-6 flex-shrink-0">
@@ -696,6 +699,10 @@
                     </div>
                 </div>
             </div>
+
+            <!-- Scroll-Hinweis: bleibt ausserhalb von #week-view, damit er nicht
+                 mit dem Inhalt mitscrollt. Sichtbarkeit per JS toggle. -->
+            <div id="week-scroll-hint" aria-hidden="true">›</div>
 
         </main>
 
@@ -1210,6 +1217,32 @@ document.addEventListener('DOMContentLoaded', function () {
             return true;
         },
     });
+
+    // ── Scroll-Hint Visibility ──────────────────────────────────────────────
+    // Chevron `›` zeigen, wenn Wochenansicht aktiv ist UND der Container noch
+    // Inhalt rechts hat. scrollWidth>clientWidth erkennt das horizontale
+    // Overflow zuverlaessig (greift nur auf <640px wegen min-w-[640px] des
+    // inneren Grids). 2px Toleranz gegen Sub-Pixel-Rundung am rechten Rand.
+    const scrollHintEl = document.getElementById('week-scroll-hint');
+    function updateScrollHint() {
+        if (!scrollHintEl) return;
+        const isWeek = currentViewMode === 'week';
+        const max = weekViewEl.scrollWidth - weekViewEl.clientWidth;
+        const canScrollRight = max > 2 && weekViewEl.scrollLeft < max - 2;
+        scrollHintEl.classList.toggle('visible', isWeek && canScrollRight);
+    }
+    weekViewEl.addEventListener('scroll', updateScrollHint, { passive: true });
+    window.addEventListener('resize', updateScrollHint, { passive: true });
+    // Initial-State + nach jedem week-grid-Reload aktualisieren
+    document.body.addEventListener('htmx:afterSwap', function (evt) {
+        if (evt.target.id === 'week-grid') updateScrollHint();
+    });
+    // switchView() wechselt currentViewMode — auch dort updaten
+    const _originalSwitchView = window.switchView;
+    window.switchView = function (mode) {
+        _originalSwitchView(mode);
+        updateScrollHint();
+    };
 
     // ── View-Mode aus Tab-Session wiederherstellen ──────────────────────────
     // Cross-PP-Sprung (prev/next/today an PP-Grenze) macht ein Page-Reload via

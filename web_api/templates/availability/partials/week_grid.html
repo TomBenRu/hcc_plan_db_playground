@@ -8,6 +8,7 @@
     period_start, period_end: date
     view_start_min, view_end_min: int                    — Sichtfenster in Minuten ab 0:00
     hour_marks: list[int]                                — volle Stunden im Sichtfenster (für Achse + Raster)
+    is_simple_mode: bool                                 — wenn True: keine Uhrzeiten auf Chips/Tooltips
 #}
 {% set weekdays = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'] %}
 {% set months_de = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'] %}
@@ -97,11 +98,13 @@
                                 left: calc({{ lane_left | round(2) }}% + 2px); width: calc({{ lane_w | round(2) }}% - 4px);
                                 background-color: {{ color }}; box-shadow: 0 1px 3px {{ color }}55;"
                          data-event-color="{{ color }}"
-                         title="{{ s.marker.time_of_day_enum_name }} ({{ '%02d:%02d' % (s.marker.time_of_day_start.hour, s.marker.time_of_day_start.minute) }}–{{ '%02d:%02d' % (s.marker.time_of_day_end.hour, s.marker.time_of_day_end.minute) }})">
+                         title="{{ s.marker.time_of_day_enum_name }}{% if not (is_simple_mode | default(false)) %} ({{ '%02d:%02d' % (s.marker.time_of_day_start.hour, s.marker.time_of_day_start.minute) }}–{{ '%02d:%02d' % (s.marker.time_of_day_end.hour, s.marker.time_of_day_end.minute) }}){% endif %}">
                         <span class="text-[11px] font-semibold truncate">{{ s.marker.time_of_day_enum_name }}</span>
+                        {% if not (is_simple_mode | default(false)) %}
                         <span class="text-[10px] font-normal opacity-90 truncate">
                             {{ '%02d:%02d' % (s.marker.time_of_day_start.hour, s.marker.time_of_day_start.minute) }} – {{ '%02d:%02d' % (s.marker.time_of_day_end.hour, s.marker.time_of_day_end.minute) }}
                         </span>
+                        {% endif %}
                         {% if s.marker.has_appointment %}
                             <svg class="w-2.5 h-2.5 absolute top-1 right-1 opacity-80" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

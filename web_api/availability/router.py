@@ -202,6 +202,7 @@ def week_grid(
             "view_start_min": view_start_min,
             "view_end_min": view_end_min,
             "hour_marks": hour_marks,
+            "is_simple_mode": service.is_simple_mode_for_person(session, person_id),
         },
     )
 

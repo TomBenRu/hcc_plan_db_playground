@@ -1051,8 +1051,22 @@ document.addEventListener('DOMContentLoaded', function () {
             { target: '#week-grid', swap: 'innerHTML' }
         );
     }
+    // Persistiere die View-Wahl pro Tab-Session, damit Cross-PP-Sprung
+    // (jumpToPeriod() macht ein Page-Reload) nicht zurueck auf Monat fallen
+    // laesst. sessionStorage statt localStorage: nach Tab-Schliessen wieder
+    // Default = Monat — Wochenansicht ist eine waehrend-der-Session-Wahl,
+    // keine permanente Praeferenz.
+    const VIEW_STORAGE_KEY = 'availability-view';
+    function persistView(mode) {
+        try {
+            if (mode === 'week') sessionStorage.setItem(VIEW_STORAGE_KEY, 'week');
+            else                 sessionStorage.removeItem(VIEW_STORAGE_KEY);
+        } catch (e) { /* Privatmodus: sessionStorage gesperrt — egal */ }
+    }
+
     window.switchView = function (mode) {
         currentViewMode = mode;
+        persistView(mode);
         const monthView = document.getElementById('month-view');
         const weekView  = document.getElementById('week-view');
         const weekNav   = document.getElementById('week-nav');
@@ -1196,6 +1210,16 @@ document.addEventListener('DOMContentLoaded', function () {
             return true;
         },
     });
+
+    // ── View-Mode aus Tab-Session wiederherstellen ──────────────────────────
+    // Cross-PP-Sprung (prev/next/today an PP-Grenze) macht ein Page-Reload via
+    // jumpToPeriod(); ohne diesen Restore landet der User immer im Monatsgrid,
+    // selbst wenn er aus der Wochenansicht navigiert hat.
+    try {
+        if (sessionStorage.getItem(VIEW_STORAGE_KEY) === 'week') {
+            window.switchView('week');
+        }
+    } catch (e) { /* Privatmodus: egal — Default = Monat */ }
 });
 </script>
 {% endblock %}

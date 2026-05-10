@@ -1,4 +1,6 @@
-{# Partial: Tausch-Formular. Kontext: own_appointments, prefilled_target_id, prefilled_requester_id, requester_ctx #}
+{# Partial: Tausch-Formular.
+   Kontext: prefilled_requester_id, prefilled_target_id, prefilled_target_web_user_id,
+            requester_ctx, target_ctx, target_holder_name #}
 {% set months_de = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"] %}
 
 <div id="swap-action-area"
@@ -13,13 +15,12 @@
           hx-target="#swap-action-area"
           hx-swap="outerHTML">
 
-        {# Mein Termin — vorausgefüllt aus Kalender oder Auswahl-Dropdown #}
+        {# Mein Termin — kommt immer aus dem Browse-Flow vorbelegt #}
+        {% if prefilled_requester_id and requester_ctx %}
         <div class="mb-4">
-            <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1.5">
+            <p class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1.5">
                 Mein Termin (den ich abgebe)
-            </label>
-            {% if prefilled_requester_id and requester_ctx %}
-            {# Aus Kalender übergeben — nur anzeigen, kein Dropdown #}
+            </p>
             <input type="hidden" name="requester_appointment_id" value="{{ prefilled_requester_id }}">
             <div class="flex items-center gap-2 px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-900
                         border border-slate-200 dark:border-slate-700 text-sm text-slate-700 dark:text-slate-200">
@@ -28,42 +29,53 @@
                           d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
                 </svg>
                 <span>
-                    {{ requester_ctx.event_date.day }}. {{ months_de[requester_ctx.event_date.month - 1] }} {{ requester_ctx.event_date.year }}
+                    {{ requester_ctx.event_date.day }}. {{ months_de[requester_ctx.event_date.month - 1] }}
+                    {{ requester_ctx.event_date.year }}
                     · {{ requester_ctx.location_name }}
                     {% if requester_ctx.time_of_day_name %} · {{ requester_ctx.time_of_day_name }}{% endif %}
                 </span>
             </div>
-            {% elif own_appointments %}
-            <select name="requester_appointment_id"
-                    required
-                    class="w-full text-sm rounded-lg border border-slate-200 dark:border-slate-700
-                           bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100
-                           px-3 py-2 focus:outline-none focus:ring-2 focus:ring-brand/50">
-                <option value="" disabled selected>Termin auswählen…</option>
-                {% for appt in own_appointments %}
-                <option value="{{ appt.appointment_id }}">
-                    {{ appt.event_date.day }}. {{ months_de[appt.event_date.month - 1] }} {{ appt.event_date.year }}
-                    · {{ appt.location_name }}
-                    {% if appt.time_of_day_name %} · {{ appt.time_of_day_name }}{% endif %}
-                </option>
-                {% endfor %}
-            </select>
-            {% else %}
-            <p class="text-sm text-slate-400 dark:text-slate-500 italic">
-                Keine eigenen zukünftigen Termine gefunden.
-            </p>
-            {% endif %}
         </div>
+        {% else %}
+        <div class="mb-4 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20
+                    border border-amber-200 dark:border-amber-700/40 text-sm
+                    text-amber-700 dark:text-amber-300">
+            Kein eigener Termin übergeben. Bitte den Tausch aus dem Kalender anstoßen.
+        </div>
+        {% endif %}
 
-        {# Ziel-Termin(e) — vorausgefüllt mit dem Kandidaten, weitere wählbar #}
+        {# Ziel-Termin — vorausgewählter Kandidat (read-only) #}
         <div class="mb-4">
-            <label class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1.5">
-                Ziel-Termin(e) <span class="text-slate-400 font-normal">(mindestens einer)</span>
-            </label>
+            <p class="block text-xs font-medium text-slate-600 dark:text-slate-300 mb-1.5">
+                Ziel-Termin (den ich übernehmen möchte)
+            </p>
             <input type="hidden" name="target_appointment_ids" value="{{ prefilled_target_id }}">
             <input type="hidden" name="target_web_user_id" value="{{ prefilled_target_web_user_id }}">
-            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1">
-                Ausgewählter Termin ist vorbelegt. Weitere Kandidaten werden separat angefragt.
+            {% if target_ctx %}
+            <div class="px-3 py-2 rounded-lg bg-slate-50 dark:bg-slate-900
+                        border border-slate-200 dark:border-slate-700 text-sm
+                        text-slate-700 dark:text-slate-200">
+                {% if target_holder_name %}
+                <p class="font-semibold text-slate-800 dark:text-slate-100 mb-0.5">
+                    {{ target_holder_name }}
+                </p>
+                {% endif %}
+                <div class="flex items-center gap-2">
+                    <svg class="w-4 h-4 text-slate-400 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/>
+                    </svg>
+                    <span>
+                        {{ target_ctx.event_date.day }}. {{ months_de[target_ctx.event_date.month - 1] }}
+                        {{ target_ctx.event_date.year }}
+                        · {{ target_ctx.location_name }}
+                        {% if target_ctx.time_of_day_name %} · {{ target_ctx.time_of_day_name }}{% endif %}
+                    </span>
+                </div>
+            </div>
+            {% endif %}
+            <p class="text-xs text-slate-400 dark:text-slate-500 mt-1.5">
+                Weitere Kandidaten können einzeln angefragt werden.
             </p>
         </div>
 
@@ -83,7 +95,7 @@
 
         <div class="flex gap-2">
             <button type="submit"
-                    {% if not prefilled_requester_id and not own_appointments %}disabled{% endif %}
+                    {% if not prefilled_requester_id or not requester_ctx or not target_ctx %}disabled{% endif %}
                     class="flex-1 py-2.5 rounded-xl text-sm font-medium bg-brand text-white hover:opacity-90
                            transition-opacity disabled:opacity-40 disabled:cursor-not-allowed">
                 Tausch anfragen

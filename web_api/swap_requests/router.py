@@ -8,6 +8,7 @@ from fastapi.responses import HTMLResponse, Response
 from sqlalchemy import select as sa_select
 from sqlmodel import Session
 
+from database.models import Person
 from web_api.auth.dependencies import LoggedInUser, WebUserRole, require_role
 from web_api.dependencies import get_db_session
 from web_api.email.service import schedule_emails
@@ -33,7 +34,6 @@ from web_api.swap_requests.service import (
     create_swap_request,
     dispatcher_reject_swap_request,
     get_filter_options_for_user,
-    get_own_upcoming_appointments,
     get_swap_candidate_appointments,
     get_swap_requests_for_user,
     reject_swap_request,
@@ -179,20 +179,35 @@ def swap_form(
                 headers=_ERROR_HEADERS,
             )
 
-    own_appointments = get_own_upcoming_appointments(session, user)
     requester_ctx = None
     if requester_appointment_id is not None:
         requester_ctx = _load_appointment_context(session, requester_appointment_id)
+
+    target_ctx = None
+    if target_appointment_id is not None:
+        target_ctx = _load_appointment_context(session, target_appointment_id)
+
+    target_holder_name = None
+    if target_web_user_id is not None:
+        holder_row = session.execute(
+            sa_select(Person.f_name, Person.l_name)
+            .join(WebUser, WebUser.person_id == Person.id)
+            .where(WebUser.id == target_web_user_id)
+        ).first()
+        if holder_row is not None:
+            target_holder_name = f"{holder_row.f_name} {holder_row.l_name}".strip()
+
     return templates.TemplateResponse(
         "swap_requests/partials/swap_form.html",
         {
             "request": request,
             "user": user,
-            "own_appointments": own_appointments,
             "prefilled_target_id": target_appointment_id,
             "prefilled_target_web_user_id": target_web_user_id,
             "prefilled_requester_id": requester_appointment_id,
             "requester_ctx": requester_ctx,
+            "target_ctx": target_ctx,
+            "target_holder_name": target_holder_name,
         },
     )
 

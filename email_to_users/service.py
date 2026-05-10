@@ -520,7 +520,7 @@ class EmailService:
         ueber das Auth-Token, nicht ueber URL-Parameter.
         """
         items: list[dict] = []
-        for pp in group.plan_periods:
+        for pp in sorted(group.plan_periods, key=lambda p: p.start):
             person_app = next(
                 (app for app in pp.actor_plan_periods if app.person_id == person.id),
                 None,

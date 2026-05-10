@@ -314,8 +314,9 @@ def reject_swap_request(
     session: Session,
     swap_id: uuid.UUID,
     target_user: WebUser,
+    rejection_reason: str | None = None,
 ) -> list[EmailPayload]:
-    """Ziel-Mitarbeiter lehnt Tausch-Anfrage ab."""
+    """Ziel-Mitarbeiter lehnt Tausch-Anfrage ab. Begründung optional."""
     swap = session.get(SwapRequest, swap_id)
     if swap is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Tausch-Anfrage nicht gefunden.")
@@ -327,6 +328,8 @@ def reject_swap_request(
             detail="Diese Tausch-Anfrage kann nicht mehr abgelehnt werden.",
         )
 
+    cleaned_reason = (rejection_reason or "").strip() or None
+    swap.rejection_reason = cleaned_reason
     swap.status = SwapRequestStatus.rejected_by_target
     session.add(swap)
     session.flush()
@@ -335,6 +338,7 @@ def reject_swap_request(
     requester_user = session.get(WebUser, swap.requester_web_user_id)
     req_ctx = _load_appointment_context(session, swap.requester_appointment_id)
     snapshot = _build_swap_snapshot(session, swap, req_ctx)
+    snapshot["rejection_reason"] = cleaned_reason or ""
 
     email_payloads: list[EmailPayload] = []
     if requester_user:
@@ -349,6 +353,7 @@ def reject_swap_request(
         html = _render_email(
             "swap_rejected.html",
             snapshot=snapshot,
+            rejection_reason=cleaned_reason,
             recipient_first_name=first_name_for_web_user(session, requester_user),
         )
         email_payloads.append(

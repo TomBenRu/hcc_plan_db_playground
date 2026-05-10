@@ -106,6 +106,16 @@
         </div>
         {% endif %}
 
+        {# ── Mitarbeiter-Begründung bei Ablehnung ────────────────────────────── #}
+        {% if sval == "rejected_by_target" and swap.rejection_reason %}
+        <div class="bg-amber-50 dark:bg-amber-900/20 rounded-xl border border-amber-100 dark:border-amber-700/30 p-4">
+            <p class="text-xs font-semibold tracking-widest uppercase text-amber-600 dark:text-amber-400 mb-1">
+                Begründung {{ snapshot.target_name }}
+            </p>
+            <p class="text-sm text-slate-700 dark:text-slate-200 italic">&bdquo;{{ swap.rejection_reason }}&ldquo;</p>
+        </div>
+        {% endif %}
+
         {# ── Zeitstempel ────────────────────────────────────────────────────── #}
         <div class="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm p-4">
             <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 dark:text-slate-500 mb-1">
@@ -120,29 +130,46 @@
         {# ── Aktions-Bereich ─────────────────────────────────────────────────── #}
         <div id="swap-action-area">
 
-            {# Ziel: pending → Annehmen / Ablehnen #}
+            {# Ziel: pending → Annehmen / Ablehnen (Ablehnen mit optionaler Begründung) #}
             {% if sval == "pending" and is_target %}
-            <div class="flex gap-2 pt-2">
-                <form hx-post="/swap-requests/{{ swap.id }}/accept"
-                      hx-swap="none"
-                      hx-on::after-request="if(event.detail.successful) window.location.reload()"
-                      class="flex-1">
-                    <button type="submit"
-                            class="w-full py-2.5 rounded-xl text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition-colors">
-                        Annehmen
-                    </button>
-                </form>
+            <form hx-post="/swap-requests/{{ swap.id }}/accept"
+                  hx-swap="none"
+                  hx-on::after-request="if(event.detail.successful) window.location.reload()"
+                  class="pt-2">
+                <button type="submit"
+                        class="w-full py-2.5 rounded-xl text-sm font-medium bg-green-600 text-white hover:bg-green-700 transition-colors">
+                    Annehmen
+                </button>
+            </form>
+            <details class="pt-2 group">
+                <summary class="cursor-pointer list-none">
+                    <span class="block w-full text-center py-2.5 rounded-xl text-sm font-medium border border-slate-200 dark:border-slate-700
+                                 text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+                        Ablehnen
+                    </span>
+                </summary>
                 <form hx-post="/swap-requests/{{ swap.id }}/reject"
                       hx-swap="none"
                       hx-on::after-request="if(event.detail.successful) window.location.reload()"
-                      class="flex-1">
+                      class="mt-2 bg-white dark:bg-slate-800 rounded-xl border border-slate-200 dark:border-slate-700 p-4 space-y-3">
+                    <label class="block">
+                        <span class="text-xs font-semibold tracking-widest uppercase text-slate-400 dark:text-slate-500">
+                            Begründung <span class="text-slate-400 dark:text-slate-500 normal-case tracking-normal font-normal">(optional)</span>
+                        </span>
+                        <textarea name="rejection_reason"
+                                  rows="3"
+                                  placeholder="Möchtest du dem Anfragenden einen Grund mitteilen?"
+                                  class="mt-1 w-full text-sm rounded-lg border border-slate-200 dark:border-slate-700
+                                         bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100
+                                         placeholder-slate-400 px-3 py-2 resize-none
+                                         focus:outline-none focus:ring-2 focus:ring-slate-400/40"></textarea>
+                    </label>
                     <button type="submit"
-                            class="w-full py-2.5 rounded-xl text-sm font-medium border border-slate-200 dark:border-slate-700
-                                   text-slate-600 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
-                        Ablehnen
+                            class="w-full py-2.5 rounded-xl text-sm font-medium bg-slate-700 text-white hover:bg-slate-800 dark:bg-slate-600 dark:hover:bg-slate-500 transition-colors">
+                        Tausch ablehnen
                     </button>
                 </form>
-            </div>
+            </details>
             {% endif %}
 
             {# Anfragender: pending oder accepted → Zurückziehen (nicht im Dispatcher-Kontext) #}

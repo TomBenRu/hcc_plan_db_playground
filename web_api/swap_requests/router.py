@@ -329,10 +329,11 @@ def post_reject_swap(
     swap_id: uuid.UUID,
     background_tasks: BackgroundTasks,
     user: LoggedInUser,
+    rejection_reason: str | None = Form(None),
     session: Session = Depends(get_db_session),
 ):
     try:
-        email_payloads = reject_swap_request(session, swap_id, user)
+        email_payloads = reject_swap_request(session, swap_id, user, rejection_reason)
     except HTTPException as exc:
         return templates.TemplateResponse(
             "swap_requests/partials/error.html",

@@ -43,7 +43,7 @@ class PreferFixedCastEventsBody(BaseModel):
 
 
 class CustomRuleBody(BaseModel):
-    custom_rule: str
+    custom_rule: str | None = None
 
 
 class CastRuleLinkBody(BaseModel):

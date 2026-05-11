@@ -212,7 +212,7 @@ def update_prefer_fixed_cast_events(cast_group_id: UUID, prefer_fixed_cast_event
         return schemas.CastGroupShow.model_validate(cg)
 
 
-def update_custom_rule(cast_group_id: UUID, custom_rule: str) -> schemas.CastGroupShow:
+def update_custom_rule(cast_group_id: UUID, custom_rule: str | None) -> schemas.CastGroupShow:
     log_function_info()
     with get_session() as session:
         cg = session.get(models.CastGroup, cast_group_id)

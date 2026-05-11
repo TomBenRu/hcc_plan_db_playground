@@ -59,7 +59,7 @@ def update_prefer_fixed_cast_events(cg_id: uuid.UUID,
     return schemas.CastGroupShow.model_validate(data)
 
 
-def update_custom_rule(cg_id: uuid.UUID, custom_rule: str) -> schemas.CastGroupShow:
+def update_custom_rule(cg_id: uuid.UUID, custom_rule: str | None) -> schemas.CastGroupShow:
     data = get_api_client().patch(f"/api/v1/cast-groups/{cg_id}/custom-rule",
                                   json={"custom_rule": custom_rule})
     return schemas.CastGroupShow.model_validate(data)

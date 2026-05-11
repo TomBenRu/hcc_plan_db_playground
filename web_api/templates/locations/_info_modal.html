@@ -1,0 +1,131 @@
+{# Read-only Modal: Einsatzort-Detailansicht.
+   Kontext: card (LocationInfoCard) #}
+{% extends "partials/modal_shell.html" %}
+
+{% set days_de   = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"] %}
+{% set months_de = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"] %}
+
+{% block modal_size %}max-w-lg{% endblock %}
+
+{% block modal_kicker_wrapper %}
+<p class="text-xs font-semibold tracking-widest uppercase mb-1"
+   style="color: {{ card.color }};">
+    Einsatzort
+</p>
+{% endblock %}
+
+{% block modal_title %}{{ card.display_name }}{% endblock %}
+
+{% block modal_body %}
+<div class="flex flex-col gap-4">
+
+    {% if card.address_lines %}
+    <section>
+        <p class="text-xs font-semibold tracking-widest uppercase
+                  text-slate-400 dark:text-slate-500 mb-2">Adresse</p>
+        <div class="bg-slate-50 dark:bg-slate-900/40 rounded-xl
+                    border border-slate-100 dark:border-slate-700/50 p-4">
+            <address class="not-italic text-sm text-slate-700 dark:text-slate-200 leading-relaxed">
+                {% for line in card.address_lines %}
+                <div>{{ line }}</div>
+                {% endfor %}
+            </address>
+            {% if card.maps_url %}
+            <a href="{{ card.maps_url }}" target="_blank" rel="noopener noreferrer"
+               class="inline-flex items-center gap-1.5 mt-3 text-xs font-medium
+                      text-brand hover:underline">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.244-4.243a8 8 0 1111.314 0z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round"
+                          d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/>
+                </svg>
+                In Google Maps öffnen
+            </a>
+            {% endif %}
+        </div>
+    </section>
+    {% endif %}
+
+    {% if card.notes %}
+    <section>
+        <p class="text-xs font-semibold tracking-widest uppercase
+                  text-slate-400 dark:text-slate-500 mb-2">Notizen</p>
+        <div class="bg-amber-50 dark:bg-amber-900/20 rounded-xl
+                    border border-amber-100 dark:border-amber-700/40 p-4">
+            <p class="text-sm text-slate-700 dark:text-slate-200
+                      leading-relaxed whitespace-pre-wrap">{{ card.notes }}</p>
+        </div>
+    </section>
+    {% endif %}
+
+    <section>
+        <p class="text-xs font-semibold tracking-widest uppercase
+                  text-slate-400 dark:text-slate-500 mb-2">
+            {% if card.is_dispatcher_view %}Nächste Termine hier{% else %}Deine nächsten Termine hier{% endif %}
+        </p>
+
+        {% if card.upcoming %}
+        <ul class="bg-white dark:bg-slate-800 rounded-xl
+                   border border-slate-100 dark:border-slate-700/50
+                   divide-y divide-slate-100 dark:divide-slate-700/50 overflow-hidden">
+            {% for appt in card.upcoming %}
+            <li class="px-4 py-3 flex items-start gap-3">
+                <div class="flex-shrink-0 w-12 text-center">
+                    <p class="text-[10px] font-semibold text-slate-400 dark:text-slate-500
+                              uppercase tracking-wide">
+                        {{ days_de[appt.event_date.weekday()] }}
+                    </p>
+                    <p class="text-sm font-semibold text-slate-700 dark:text-slate-200 leading-none mt-0.5">
+                        {{ "%02d.%02d."|format(appt.event_date.day, appt.event_date.month) }}
+                    </p>
+                </div>
+                <div class="min-w-0 flex-1">
+                    {% if appt.time_of_day_name %}
+                    <p class="text-sm font-medium text-slate-700 dark:text-slate-200">
+                        {{ appt.time_of_day_name }}
+                    </p>
+                    {% endif %}
+                    {% if appt.time_start or appt.time_end %}
+                    <p class="text-xs text-slate-400 dark:text-slate-500 mt-0.5">
+                        {% if appt.time_start %}{{ appt.time_start.strftime("%H:%M") }}{% endif %}
+                        {% if appt.time_start and appt.time_end %} – {% endif %}
+                        {% if appt.time_end %}{{ appt.time_end.strftime("%H:%M") }}{% endif %}
+                    </p>
+                    {% endif %}
+                    {% if card.is_dispatcher_view and appt.cast_names %}
+                    <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 font-sans">
+                        {{ appt.cast_names|join(", ") }}
+                    </p>
+                    {% endif %}
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <div class="bg-slate-50 dark:bg-slate-900/40 rounded-xl
+                    border border-dashed border-slate-200 dark:border-slate-700/50 p-4 text-center">
+            <p class="text-xs text-slate-400 dark:text-slate-500 font-sans">
+                {% if card.is_dispatcher_view %}
+                Keine weiteren Termine an diesem Einsatzort.
+                {% else %}
+                Keine weiteren eigenen Termine an diesem Einsatzort.
+                {% endif %}
+            </p>
+        </div>
+        {% endif %}
+    </section>
+
+</div>
+{% endblock %}
+
+{% block modal_footer %}
+<div class="flex justify-end px-6 py-3 border-t border-slate-100 dark:border-slate-700/50">
+    <button type="button" onclick="window.hccModal.close()"
+            class="px-4 py-2 text-sm rounded-lg border border-slate-200 dark:border-slate-700
+                   text-slate-600 dark:text-slate-300
+                   hover:bg-slate-50 dark:hover:bg-slate-700/50 transition-colors">
+        Schließen
+    </button>
+</div>
+{% endblock %}

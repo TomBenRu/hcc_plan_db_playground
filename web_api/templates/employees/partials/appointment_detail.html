@@ -6,8 +6,14 @@
 
 <div class="p-5 h-full flex flex-col" style="font-family: 'Outfit', sans-serif;">
 
-    <!-- Farbstreifen oben + Location-Badge -->
-    <div class="rounded-xl overflow-hidden mb-4 shadow-sm border border-slate-100">
+    <!-- Farbstreifen oben + Location-Badge (Klick oeffnet Einsatzort-Modal) -->
+    <div class="rounded-xl overflow-hidden mb-4 shadow-sm border border-slate-100
+                cursor-pointer hover:shadow-md hover:border-slate-200 transition-all"
+         role="button" tabindex="0"
+         hx-get="/locations/{{ event.location_id }}/info-card?view=employee&exclude={{ event.appointment_id }}"
+         hx-target="#modal-root" hx-swap="innerHTML"
+         hx-trigger="click, keyup[key=='Enter']"
+         title="Einsatzort-Details ansehen">
         <!-- Color bar -->
         <div class="h-1.5 w-full"
              data-event-color="{{ event.color }}"
@@ -32,7 +38,7 @@
                 </div>
                 <!-- Schließen-Button (immer sichtbar oben rechts) -->
                 <button
-                    onclick="clearDetail()"
+                    onclick="event.stopPropagation(); clearDetail()"
                     title="Schließen"
                     class="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center
                            text-slate-400 hover:text-slate-700 hover:bg-slate-100

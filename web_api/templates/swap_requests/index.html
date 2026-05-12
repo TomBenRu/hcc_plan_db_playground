@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "_macros/help.html" import help_button %}
+{% from "_macros/branding.html" import role_kicker %}
 
 {% block title %}Tausch-Anfragen – hcc plan{% endblock %}
 
@@ -96,10 +97,7 @@
         {# Brand-Header #}
         <div class="sidebar-header mb-6">
             <div class="flex items-center gap-1.5 mb-2">
-                <span class="inline-block w-1.5 h-1.5 rounded-full" style="background-color:#3B82F6;"></span>
-                <span class="text-xs font-semibold tracking-widest uppercase font-sans text-blue-400/80">
-                    {% if is_dispatcher %}Disposition{% else %}Mitarbeiter{% endif %}
-                </span>
+                {{ role_kicker("dispatcher" if is_dispatcher else "employee") }}
             </div>
             <h1 class="font-display text-white text-2xl font-semibold leading-tight tracking-tight flex items-center gap-2">
                 <span>{% if is_dispatcher %}Tausch&shy;anfragen{% else %}Tausch&shy;börse{% endif %}</span>

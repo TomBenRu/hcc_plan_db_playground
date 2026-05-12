@@ -1,0 +1,25 @@
+{#
+    Rollen-Kicker fuer Sidebar-Header.
+
+    Rendert das `● MITARBEITER` / `● DISPOSITION` / ...-Muster konsistent
+    zur Dashboard-Sektion. Single Source of Truth fuer Label/Farbe ist
+    web_api.branding.ROLE_BRANDING; das Macro liest die Daten ueber die
+    Jinja-Global `role_branding(role_key)`.
+
+    Aufruf:
+        {% from "_macros/branding.html" import role_kicker %}
+        {{ role_kicker("employee") }}
+        {{ role_kicker("dispatcher") }}
+        {{ role_kicker("employee", size="sm") }}     {# Mobile-Header #}
+
+    Parameter:
+        role_key — eines von "employee", "dispatcher", "admin", "accountant"
+        size     — "md" (default, sidebar) oder "sm" (mobile header, 10px)
+#}
+{% macro role_kicker(role_key, size="md") -%}
+    {%- set b = role_branding(role_key) -%}
+    <span class="inline-block w-1.5 h-1.5 rounded-full {{ b.dot_class }} flex-shrink-0"></span>
+    <span class="{% if size == 'sm' %}text-[10px]{% else %}text-xs{% endif %} font-semibold tracking-widest {{ b.text_class }} uppercase font-sans flex-shrink-0">
+        {{ b.label }}
+    </span>
+{%- endmacro %}

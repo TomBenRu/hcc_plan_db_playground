@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "_macros/help.html" import help_button %}
+{% from "_macros/branding.html" import role_kicker %}
 
 {% block title %}Verfügbarkeit — hcc plan{% endblock %}
 
@@ -363,10 +364,7 @@
             </svg>
         </a>
         <div class="flex items-center gap-1.5 min-w-0 flex-1">
-            <span class="inline-block w-1.5 h-1.5 rounded-full bg-brand flex-shrink-0"></span>
-            <span class="text-[10px] font-semibold tracking-widest text-brand/80 uppercase font-sans flex-shrink-0">
-                Mitarbeiter
-            </span>
+            {{ role_kicker("employee", size="sm") }}
             <span class="text-slate-600 text-xs flex-shrink-0">·</span>
             <span class="text-sm font-semibold text-white font-sans truncate">
                 Verfügbarkeit
@@ -394,8 +392,7 @@
             <div class="mb-7">
                 <div class="flex items-center justify-between gap-2 mb-2">
                     <div class="flex items-center gap-1.5">
-                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-brand"></span>
-                        <span class="text-xs font-semibold tracking-widest text-brand/80 uppercase font-sans">Mitarbeiter</span>
+                        {{ role_kicker("employee") }}
                     </div>
                     <a href="/dashboard"
                        class="lg:hidden flex items-center gap-1 text-xs text-slate-500 hover:text-slate-300 transition-colors font-sans flex-shrink-0">

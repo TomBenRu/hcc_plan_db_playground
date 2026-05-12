@@ -2,7 +2,8 @@
     Base-Template für rollenbasierte Kalender-Ansichten (Employee, Dispatcher, ...).
 
     Vertrag mit Kind-Templates:
-    - Muss Block `calendar_role_label` füllen (Sidebar-Kicker, z. B. "Mitarbeiter")
+    - Muss Block `calendar_role_key` füllen (Rollen-Identifier, z. B. "employee" oder "dispatcher").
+      Label + Farben kommen aus web_api.branding.ROLE_BRANDING via role_kicker-Macro.
     - Muss Block `calendar_title` füllen (h1, z. B. "Mein Kalender")
     - Muss Block `calendar_event_source_url` füllen (URL für FullCalendar-Events)
     - Muss Block `calendar_detail_url_prefix` füllen (URL-Präfix für Detail-Swap)
@@ -17,6 +18,13 @@
     - window.jumpToPeriod — Change-Handler für #period-select
 #}
 {% extends "base.html" %}
+{% from "_macros/branding.html" import role_kicker %}
+
+{# Rollen-Key aus Kind-Template einsammeln und in Variable kapern (Block-Inhalt
+   wuerde sonst an dieser Stelle ausgegeben werden). Wird unten zweimal an
+   role_kicker uebergeben (Mobile-Header + Sidebar). #}
+{%- set calendar_role_key %}{% block calendar_role_key %}employee{% endblock %}{% endset -%}
+{%- set calendar_role_key = calendar_role_key|trim -%}
 
 {% block title %}{% block calendar_page_title %}Kalender — hcc plan{% endblock %}{% endblock %}
 
@@ -368,10 +376,7 @@
             </svg>
         </a>
         <div class="flex items-center gap-1.5 min-w-0 flex-1">
-            <span class="inline-block w-1.5 h-1.5 rounded-full bg-brand flex-shrink-0"></span>
-            <span class="text-[10px] font-semibold tracking-widest text-brand/80 uppercase font-sans flex-shrink-0">
-                {{ self.calendar_role_label() }}
-            </span>
+            {{ role_kicker(calendar_role_key, size="sm") }}
             <span class="text-slate-600 text-xs flex-shrink-0">·</span>
             <span class="text-sm font-semibold text-white font-sans truncate">
                 {{ self.calendar_title() }}
@@ -399,8 +404,7 @@
             <div class="mb-7">
                 <div class="flex items-center justify-between gap-2 mb-2">
                     <div class="flex items-center gap-1.5">
-                        <span class="inline-block w-1.5 h-1.5 rounded-full bg-brand"></span>
-                        <span class="text-xs font-semibold tracking-widest text-brand/80 uppercase font-sans">{% block calendar_role_label %}{% endblock %}</span>
+                        {{ role_kicker(calendar_role_key) }}
                     </div>
                     <!-- Zurück-Link: nur auf kleinen Displays sichtbar (wo sidebar-spacer hidden ist) -->
                     <a href="/dashboard"

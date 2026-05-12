@@ -9,6 +9,7 @@ from sqlmodel import Session
 
 from database.models import Person
 from web_api.auth.dependencies import LoggedInUser
+from web_api.branding import PERSONAL_BRANDING, ROLE_BRANDING
 from web_api.dashboard.service import resolve_tile_count
 from web_api.dependencies import get_db_session
 from web_api.models.web_models import WebUser, WebUserRole
@@ -18,12 +19,10 @@ router = APIRouter(tags=["dashboard"])
 
 # ── Tile-Definitionen je Rolle ────────────────────────────────────────────────
 # icon_path: Heroicons outline, viewBox="0 0 24 24"
+# Label + Farben je Rolle: zentral in web_api.branding.ROLE_BRANDING.
 
-_ROLE_SECTIONS = {
+_ROLE_SECTIONS: dict[WebUserRole, dict] = {
     WebUserRole.employee: {
-        "label": "Mitarbeiter",
-        "color": "#F97316",
-        "color_light": "#FFF7ED",
         "tiles": [
             {
                 "title": "Mein Kalender",
@@ -58,9 +57,6 @@ _ROLE_SECTIONS = {
         ],
     },
     WebUserRole.dispatcher: {
-        "label": "Disposition",
-        "color": "#38BDF8",
-        "color_light": "#F0F9FF",
         "tiles": [
             {
                 "title": "Team-Pläne",
@@ -107,9 +103,6 @@ _ROLE_SECTIONS = {
         ],
     },
     WebUserRole.admin: {
-        "label": "Administration",
-        "color": "#F43F5E",
-        "color_light": "#FFF1F2",
         "tiles": [
             {
                 "title": "Benutzerverwaltung",
@@ -138,9 +131,6 @@ _ROLE_SECTIONS = {
         ],
     },
     WebUserRole.accountant: {
-        "label": "Buchhaltung",
-        "color": "#2DD4BF",
-        "color_light": "#F0FDFA",
         "tiles": [
             {
                 "title": "Abrechnungsexport",
@@ -153,11 +143,9 @@ _ROLE_SECTIONS = {
 }
 
 # ── Persönliche Sektion (rollen-unabhängig, für alle eingeloggten User) ─────
+# Label + Farben: zentral in web_api.branding.PERSONAL_BRANDING.
 
-_PERSONAL_SECTION = {
-    "label": "Persönlich",
-    "color": "#64748B",        # slate-500 — bewusst neutraler Ton gegenüber Rollen-Farben
-    "color_light": "#F1F5F9",  # slate-100
+_PERSONAL_SECTION: dict = {
     "tiles": [
         {
             "title": "Einstellungen",
@@ -207,29 +195,30 @@ def dashboard(request: Request, user: LoggedInUser, session: Session = Depends(g
     for role, section in _ROLE_SECTIONS.items():
         if role not in user.roles:
             continue
+        branding = ROLE_BRANDING[role]
         tiles = [
             {
                 **tile,
-                "color": section["color"],
-                "color_light": section["color_light"],
+                "color": branding["color"],
+                "color_light": branding["color_light"],
                 "count": resolve_tile_count(tile["url"], session, user),
             }
             for tile in section["tiles"]
         ]
-        sections.append({**section, "tiles": tiles})
+        sections.append({**branding, "tiles": tiles})
 
     # Persönliche Sektion für jeden eingeloggten User ans Ende hängen —
     # rollen-unabhängig, keine Badge-Counts.
     personal_tiles = [
         {
             **tile,
-            "color": _PERSONAL_SECTION["color"],
-            "color_light": _PERSONAL_SECTION["color_light"],
+            "color": PERSONAL_BRANDING["color"],
+            "color_light": PERSONAL_BRANDING["color_light"],
             "count": None,
         }
         for tile in _PERSONAL_SECTION["tiles"]
     ]
-    sections.append({**_PERSONAL_SECTION, "tiles": personal_tiles})
+    sections.append({**PERSONAL_BRANDING, "tiles": personal_tiles})
 
     # Hilfe-Sektion ganz am Ende — Onboarding-Anker für neue User.
     help_tiles = [

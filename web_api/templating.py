@@ -4,6 +4,7 @@ from pathlib import Path
 
 from fastapi.templating import Jinja2Templates
 
+from web_api.branding import role_branding
 from web_api.palette import LOCATION_PALETTE, OKABE_ITO_PALETTE
 
 templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
@@ -12,3 +13,7 @@ templates = Jinja2Templates(directory=str(Path(__file__).parent / "templates"))
 # _calendar_base.html, availability/index.html, employees/service.py).
 templates.env.globals["location_palette"] = LOCATION_PALETTE
 templates.env.globals["cb_palette"] = OKABE_ITO_PALETTE
+
+# Rollen-Branding (Label + Farben) als Single Source of Truth fuer das
+# role_kicker-Macro in templates/_macros/branding.html.
+templates.env.globals["role_branding"] = role_branding

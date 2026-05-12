@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "_macros/help.html" import help_button %}
+{% from "_macros/branding.html" import role_kicker %}
 
 {% block title %}Absagen – hcc plan{% endblock %}
 
@@ -97,10 +98,7 @@
         {# Brand-Header #}
         <div class="sidebar-header mb-6">
             <div class="flex items-center gap-1.5 mb-2">
-                <span class="inline-block w-1.5 h-1.5 rounded-full" style="background-color:#EF4444;"></span>
-                <span class="text-xs font-semibold tracking-widest uppercase font-sans text-red-400/80">
-                    {% if is_dispatcher %}Team{% else %}Mitarbeiter{% endif %}
-                </span>
+                {{ role_kicker("employee") }}
             </div>
             <h1 class="font-display text-white text-2xl font-semibold leading-tight tracking-tight flex items-center gap-2">
                 {% if is_dispatcher %}Absagen{% else %}Meine Absagen{% endif %}

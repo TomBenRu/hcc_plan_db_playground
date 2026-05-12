@@ -235,6 +235,15 @@ def swap_detail(
     if not (is_requester or is_target or is_dispatcher):
         raise HTTPException(403, detail="Kein Zugriff.")
 
+    # Auto-Promote: Dispatcher ohne eigene Beteiligung am Swap (weder
+    # Anfragender noch Ziel) ist per Definition in Disposition-Rolle. Das
+    # macht Einstiegspfade ueber Inbox / E-Mail / Direkt-URL konsistent —
+    # ohne dass dort jedes Link-Template per Hand `?from_dispatcher=1`
+    # setzen muss. Mitarbeiter, die zugleich Dispatcher sind, bleiben in
+    # Mitarbeiter-Sicht solange sie selbst Requester oder Target sind.
+    if not from_dispatcher and is_dispatcher and not is_requester and not is_target:
+        from_dispatcher = True
+
     req_ctx = _load_appointment_context(session, swap.requester_appointment_id)
     tgt_ctx = _load_appointment_context(session, swap.target_appointment_id)
     snapshot = _build_swap_snapshot(session, swap, req_ctx)

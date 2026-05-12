@@ -251,6 +251,7 @@ def swap_detail(
             "is_requester": is_requester,
             "is_target": is_target,
             "from_dispatcher": from_dispatcher,
+            "back_url": "/dispatcher/swap-requests" if from_dispatcher else "/swap-requests",
         },
     )
 

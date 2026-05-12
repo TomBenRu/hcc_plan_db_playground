@@ -24,12 +24,13 @@ Benachrichtigungskreis, die einen **Übernahme-Vorschlag** unterbreiten können.
 
 - **Klassische Absage** — du weißt, dass du den Termin nicht wahrnehmen kannst (krank, anderer Termin etc.).
 - **Tauschanfrage statt Absage** — wenn du nur an einem konkreten Tag tauschen möchtest, ist die
-  [Tauschbörse](/help/employee/swap-browse) der bessere Weg, weil du dort gezielt eine Person
-  ansprichst. Siehe [Tauschanfrage stellen](/help/employee/swap-request).
+  [Tauschanfrage](/help/employee/swap-request) der bessere Weg, weil du dort gezielt eine Person
+  ansprichst.
 
-> **Wichtig:** Es kann pro Termin **immer nur eine** offene Absage oder Tauschanfrage geben. Solange
-> für deinen Termin schon eine Absage oder Tauschanfrage offen ist, blockiert das System einen zweiten
-> Antrag. Zieh den ersten Antrag erst zurück, wenn du den Workflow wechseln willst.
+> **Wichtig:** Pro Termin kann nur **eine** offene Absage gleichzeitig existieren. Solange für
+> deinen Termin (oder den Ziel-Termin eines Tausches) eine offene Absage läuft, blockiert das
+> System eine neue Tauschanfrage für diesen Termin — und umgekehrt. Zieh den bestehenden Antrag
+> erst zurück, wenn du den Workflow wechseln willst.
 
 ## Absage stellen {#absage-stellen}
 
@@ -85,7 +86,8 @@ Das ist nützlich, wenn du merkst, das du den Termin nun doch wahrnehmen kannst.
 **Warum erscheint mein Absage-Button nicht?**
 
 Höchstwahrscheinlich existiert für den Termin bereits eine offene Absage oder Tauschanfrage von dir.
-Schau in den Listen **„Meine Absagen"** und **„Tauschbörse"** nach offenen Einträgen.
+Schau in **„Meine Absagen"** und in der **[Tauschbörse](/help/employee/swap-browse)** nach offenen
+Einträgen.
 
 **Wer sieht meine Absage-Begründung?**
 

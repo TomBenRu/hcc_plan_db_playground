@@ -85,7 +85,7 @@ Im Detail-Panel rechts findest du je nach Kontext einen oder mehrere Aktions-But
 | Button | Wann sichtbar | Was passiert |
 |---|---|---|
 | **Termin absagen** | Eigener, künftiger Termin | Öffnet das [Absage-Formular](/help/employee/cancellation) |
-| **Termin tauschen** | Eigener, künftiger Termin | Öffnet die [Tauschbörse](/help/employee/swap-browse) (vorbelegt) |
+| **Termin tauschen** | Eigener, künftiger Termin | Startet eine [Tauschanfrage](/help/employee/swap-request) mit diesem Termin als Gegenangebot |
 | **Ich kann einspringen** | Fremder, unterbesetzter Termin | Sendet ein Einsprung-Angebot — optional mit Nachricht |
 
 Für jede Aktion gibt es ein eigenes Hilfe-Thema (siehe „Auch interessant" am Ende dieser Seite).

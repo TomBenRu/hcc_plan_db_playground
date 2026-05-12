@@ -22,7 +22,7 @@ die du als Mitarbeiter:in regelmäßig brauchst.
 - **[Verfügbarkeit eintragen](/help/employee/availability)** — Zeiträume eintragen, in denen du arbeiten kannst.
 - **[Termin absagen](/help/employee/cancellation)** — geplante Termine kurzfristig absagen.
 - **[Tauschanfrage stellen](/help/employee/swap-request)** — gezielt mit einer/m Kolleg:in tauschen.
-- **[Tauschbörse durchstöbern](/help/employee/swap-browse)** — den Marktplatz nach Tauschpartnern durchsuchen.
+- **[Tauschbörse](/help/employee/swap-browse)** — Übersicht aller eigenen Tauschanfragen, Status verfolgen, beantworten oder zurückziehen.
 - **[Einsprung-Angebote](/help/employee/offers)** — bei unterbesetzten Terminen einspringen.
 
 ### Kommunikation und Konto

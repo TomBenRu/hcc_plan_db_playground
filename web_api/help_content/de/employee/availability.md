@@ -104,7 +104,8 @@ Wenn dein Disponent eine Planungsperiode **geschlossen** hat, erscheint im Tages
 möglich — die Verfügbarkeiten, die du eingetragen hast, sind verbindlich.
 
 Wenn sich nachträglich etwas ändert (du wirst krank, ein Termin fällt unerwartet weg etc.),
-nutze den **Absage-Workflow** oder die [Tauschbörse](/help/employee/swap-browse), statt die Verfügbarkeit zu ändern.
+stelle eine [Absage](/help/employee/cancellation) oder eine
+[Tauschanfrage](/help/employee/swap-request), statt die Verfügbarkeit zu ändern.
 
 ## Häufige Fragen {#haeufige-fragen}
 

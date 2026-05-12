@@ -1,94 +1,96 @@
 ---
-title: Tauschbörse durchstöbern
+title: Tauschbörse
 roles: [employee]
 category: Mitarbeiter
 order: 60
-updated: 2026-05-07
+updated: 2026-05-12
 anchors:
   - was-ist-die-boerse
   - filter-nutzen
-  - tausch-anbieten
-  - selected-vs-submitted
+  - aktionen
+  - status-lifecycle
   - haeufige-fragen
 related:
   - employee/swap-request
   - employee/cancellation
 ---
 
-Die **Tauschbörse** ist der Marktplatz für Termin-Tausche im Team. Sie zeigt dir Termine deiner
-Kolleg:innen, gegen die du tauschen kannst — gefiltert nach Zeitraum, Standort und Personen, sodass
-du nicht alles durchsuchen musst.
+Die **Tauschbörse** ist deine zentrale Übersicht über alle Tauschanfragen, an denen du beteiligt
+bist — vom Dashboard aus erreichbar. Hier siehst du Anfragen, die du gestellt hast, sowie Anfragen,
+bei denen du Zielperson bist, filterst nach Status und bearbeitest sie (annehmen, ablehnen,
+zurückziehen).
 
-## Was siehst du in der Börse? {#was-ist-die-boerse}
+> **Wichtig:** Wie du eine **neue Anfrage stellst**, beschreibt die Seite
+> **[Tauschanfrage stellen](/help/employee/swap-request)** — der Workflow läuft immer aus dem
+> Kalender heraus, nicht aus der Tauschbörse.
 
-Die Börse listet **alle kommenden Termine** deines Teams (und ggf. anderer Teams, je nach
-Berechtigungen) — mit Ausnahme deiner eigenen. Pro Termin siehst du:
+## Was zeigt die Tauschbörse? {#was-ist-die-boerse}
 
-- Datum und Uhrzeit
-- Einsatzort
-- Eingeteilte Person(en)
-- Einen **„Tausch anbieten"-Button**, wenn du gegen diesen Termin tauschen kannst
+Die Liste zeigt alle Tauschanfragen, an denen du beteiligt bist:
 
-> **Vorbedingung:** Damit du tauschen kannst, brauchst du selbst einen eigenen Termin im gleichen
-> Zeitraum, den du als Gegenangebot anbieten kannst. Hast du nichts in deinem Kalender, ist der
-> Button deaktiviert.
+- **Anfragen, die du gestellt hast** — als Anfragende:r
+- **Anfragen, die an dich gerichtet sind** — als Zielperson
 
-## Filter nutzen {#filter-nutzen}
+Pro Eintrag siehst du:
 
-In der Sidebar links findest du drei Filtergruppen — sie sind kombinierbar:
+- Beide Tauschpartner:innen (Anfrager:in ↔ Ziel)
+- Den angebotenen und den gewünschten Termin (Datum + Einsatzort)
+- Den aktuellen **Status** (siehe Tabelle unten)
+- Eine optionale Nachricht der/des Anfragenden
 
-- **Standorte** — Mehrfach-Auswahl per Checkbox; nur Termine an den gewählten Orten erscheinen.
-- **Personen** — schränkt auf Termine bestimmter Kolleg:innen ein; nützlich, wenn du gezielt mit
-  jemandem tauschen willst.
-- **Zeitraum** — Datum von / bis; standardmäßig sind alle kommenden Termine sichtbar.
+## Filter nach Status {#filter-nutzen}
 
-Die Liste rechts aktualisiert sich automatisch, sobald du einen Filter änderst.
+In der Sidebar links filterst du die Liste nach Status. Standardmäßig ist **„Ausstehend"** aktiv —
+das sind die Anfragen, die deine Aufmerksamkeit am wahrscheinlichsten brauchen. Über „Alle" siehst
+du auch ältere, terminale Einträge (Bestätigt, Zurückgezogen, etc.).
 
-## Tausch anbieten {#tausch-anbieten}
+## Aktionen pro Eintrag {#aktionen}
 
-1. **Termine auswählen** — klicke auf **„Tausch anbieten"** an einem oder mehreren Zeilen-Einträgen.
-   Der Button wechselt in den **„Ausgewählt"-Zustand** (grün).
-2. **Gegenangebot wählen** — oben erscheint ein Auswahlfenster, wenn du mehrere eigene Termine als
-   Gegenangebot zur Verfügung stellen kannst. Wähle den, den du anbieten möchtest.
-3. **Optional Nachricht** hinzufügen.
-4. **„Anfragen senden"** — Du kannst in der Börse mehrere Anfragen nacheinander stellen und diese abschicken.
+Klicke auf einen Listeneintrag, um das Detail mit dem Aktions-Bereich zu öffnen. Welche Aktionen du
+siehst, hängt von deiner Rolle und vom Status ab:
 
-> **Tipp:** Mehrfach-Anfragen sind fair, solange du in der Nachricht erwähnst, dass parallele
-> Anfragen laufen. So weiß jede:r, dass der Tausch eventuell nicht stattfindet.
+| Rolle | Status | Mögliche Aktion |
+|---|---|---|
+| **Zielperson** | Ausstehend | **Annehmen** oder **Ablehnen** (mit optionaler Begründung) |
+| **Anfragende:r** | Ausstehend / Zugestimmt | **Zurückziehen** |
 
-## Button-Zustände verstehen {#selected-vs-submitted}
+Sobald die Zielperson zustimmt, wartet die Anfrage auf die **Bestätigung durch die Disposition** —
+erst dann werden die Termine tatsächlich getauscht. Ein bestätigter Tausch ist nicht mehr
+zurücknehmbar.
 
-Der **„Tausch anbieten"-Button** kennt drei Zustände:
+## Status verstehen {#status-lifecycle}
 
-| Zustand | Bedeutung |
+| Status | Bedeutung |
 |---|---|
-| **Standard (weiß)** | Du kannst diesen Termin auswählen |
-| **Ausgewählt (grün)** | Im aktuellen Klick-Vorgang ausgewählt — wird mitgesendet |
-| **Bereits angefragt (grau)** | Du hast schon eine offene Tauschanfrage für diesen Termin gestellt — kein erneutes Anfragen möglich |
-
-Bereits-angefragte Termine kannst du in der Liste **„Tauschbörse"** unter „Meine offenen
-Anfragen" einsehen — dort kannst du sie bei Bedarf zurückziehen.
+| **Ausstehend** | Wartet auf Antwort der Zielperson |
+| **Zugestimmt** | Zielperson hat akzeptiert — wartet auf Bestätigung der Disposition |
+| **Bestätigt** | Disposition hat den Tausch durchgeführt; Termine sind getauscht |
+| **Abgelehnt** | Zielperson hat abgelehnt — optional mit Begründung |
+| **Abgelehnt (Einsatzplanung)** | Disposition hat abgelehnt — mit Pflicht-Begründung |
+| **Zurückgezogen** | Du oder die Zielperson hat den Antrag storniert |
+| **Besetzung geändert** | Ein anderer Tausch wurde durchgeführt — diese Anfrage ist hinfällig |
+| **Plan nicht mehr aktuell** | Der zugrundeliegende Plan wurde zurückgezogen — die Anfrage ist hinfällig |
 
 ## Häufige Fragen {#haeufige-fragen}
 
-**Warum sehe ich Termine, an denen ich gar nicht arbeiten kann (anderer Standort)?**
+**Wie stelle ich eine neue Tauschanfrage?**
 
-Standardmäßig zeigt die Börse alle Termine des Teams. Filtere über die Sidebar auf deine Standorte
-oder die Standorte, die du gerade abdecken kannst.
+Vom Dashboard aus geht das nicht direkt — Tauschanfragen werden immer aus dem Kalender heraus
+gestellt. Siehe **[Tauschanfrage stellen](/help/employee/swap-request)**.
 
-**Wie erfahre ich, wenn jemand meine Anfrage annimmt?**
+**Eine meiner Anfragen wurde auf „Besetzung geändert" gesetzt — was bedeutet das?**
 
-Du erhältst eine **E-Mail** sowie eine **Inbox-Nachricht** in hcc plan. In deiner Tauschbörse-Liste
-springt der Status der betroffenen Anfrage auf **„Zustimmung"** und wartet dann auf die Bestätigung
-durch die Disposition.
+Die Disposition hat einen **anderen** Tausch bestätigt, der einen der beteiligten Termine umfasste —
+dadurch ist deine Anfrage hinfällig. Falls die Konstellation für dich noch sinnvoll wäre, stelle
+einfach eine neue Anfrage aus dem Kalender.
 
-**Kann ich einen Termin ohne Gegenangebot anbieten („Ich gebe ab, brauche nichts dafür")?**
+**Wer sieht meine Begründung, wenn ich eine Anfrage ablehne?**
 
-Nein — das ist konzeptionell eine Absage, kein Tausch. Nutze dafür den
-[Absage-Workflow](/help/employee/cancellation).
+Die Begründung ist optional. Wenn du sie ausfüllst, sieht sie der/die Anfragende per E-Mail und in
+der Detail-Ansicht. Die Disposition sieht sie ebenfalls.
 
 **Wie unterscheidet sich die Tauschbörse von „Meine Angebote"?**
 
-Die Tauschbörse ist für **gegenseitigen Termin-Tausch**. „Meine Angebote" sind eigene
+Die Tauschbörse zeigt **gegenseitige Tausch-Anfragen**. „Meine Angebote" zeigt deine
 [Einsprung-Angebote](/help/employee/offers) für unterbesetzte Termine — also einseitige
 Hilfeleistung ohne Gegenleistung.

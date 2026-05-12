@@ -52,19 +52,20 @@ def list_swap_requests(
     session: Session = Depends(get_db_session),
 ):
     swaps = get_swap_requests_for_user(session, user.id)
-    is_dispatcher = user.has_any_role(WebUserRole.dispatcher, WebUserRole.admin)
 
     # Status-Filter anwenden
     if status_filter:
         swaps = [s for s in swaps if s.status.value == status_filter]
 
+    # /swap-requests ist der Employee-Bereich (Dashboard-Kachel "Tauschboerse").
+    # Disposition-Sicht laeuft ueber /dispatcher/swap-requests mit eigenem Endpoint.
     return templates.TemplateResponse(
         "swap_requests/index.html",
         {
             "request": request,
             "user": user,
             "swaps": swaps,
-            "is_dispatcher": is_dispatcher,
+            "is_dispatcher": False,
             "from_dispatcher": False,
             "status_filter": status_filter or "",
         },

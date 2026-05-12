@@ -3,9 +3,10 @@ title: Verfügbarkeit eintragen
 roles: [employee]
 category: Mitarbeiter
 order: 30
-updated: 2026-05-07
+updated: 2026-05-12
 anchors:
   - ueberblick
+  - monats-wochenansicht
   - verfuegbarkeit-eintragen
   - verfuegbarkeit-loeschen
   - eigene-tageszeiten
@@ -27,17 +28,35 @@ Du erreichst die Maske über die Dashboard-Kachel **„Verfügbarkeit"** oder di
 
 - **Sidebar (links)** — wechselt zwischen Teams und Planungsperioden, zeigt Statistik (Anzahl
   Verfügbarkeiten, Wunscheinsätze, eigene Anmerkungen).
-- **Wochengrid (Mitte)** — eine Wochenansicht mit allen 7 Tagen nebeneinander. Jede deiner
-  eingetragenen Verfügbarkeiten erscheint als farbiger Block.
+- **Kalender-Bereich (Mitte)** — zeigt deine eingetragenen Verfügbarkeiten als farbige Blöcke.
+  Oben in der Toolbar kannst du zwischen **Monat** und **Woche** umschalten (siehe
+  [Monats- und Wochenansicht](#monats-wochenansicht)).
 - **Tages-Panel (rechts)** — öffnet sich beim Klick auf einen Tag und enthält die eigentlichen
   Schaltflächen zum Eintragen und Löschen.
 
 > **Hinweis:** Wenn du in mehreren Teams arbeitest, wähle zuerst das richtige Team über die
 > Sidebar. Jedes Team hat eigene Planungsperioden — Verfügbarkeiten gelten immer pro Team.
 
+## Monats- und Wochenansicht {#monats-wochenansicht}
+
+Über die Toolbar oben im Kalender-Bereich wählst du, wie deine Verfügbarkeiten dargestellt werden:
+
+- **Monat** *(Standard)* — eine klassische Monatsübersicht. Du siehst alle Tage des Monats auf
+  einen Blick und kannst über die FullCalendar-Navigation (Pfeile / **Heute**) zwischen Monaten
+  blättern, solange das Ziel innerhalb der Planungsperiode liegt.
+- **Woche** — eine kompakte Wochenansicht mit allen 7 Tagen nebeneinander. Mit den Pfeil-Buttons
+  bzw. **Heute** in der Toolbar springst du wochenweise vor und zurück. Auf schmalen Bildschirmen
+  scrollt das Grid horizontal — ein kleiner Chevron `›` am rechten Rand zeigt an, dass es weiter
+  geht.
+
+Beide Ansichten arbeiten mit demselben Tages-Panel rechts: Egal aus welcher Ansicht heraus du auf
+einen Tag klickst, du trägst Verfügbarkeiten immer auf die gleiche Weise ein. Deine Auswahl der
+Ansicht bleibt während der Browser-Sitzung erhalten — startest du den Browser neu, beginnt die
+Maske wieder mit der Monatsansicht.
+
 ## Verfügbarkeit eintragen {#verfuegbarkeit-eintragen}
 
-1. Öffne im Wochengrid den gewünschten Tag durch Klick auf die Spalte oder den Tagestitel.
+1. Klicke in der Monats- oder Wochenansicht auf den gewünschten Tag (Spalte bzw. Datumsfeld).
 2. Im Tages-Panel rechts erscheinen die Tageszeit-Kategorien deines Projekts
    (z. B. **Vormittag**, **Nachmittag**, **Abend**).
 3. Klicke auf den Button der Kategorie, an der du verfügbar bist. Die Schaltfläche wird sofort

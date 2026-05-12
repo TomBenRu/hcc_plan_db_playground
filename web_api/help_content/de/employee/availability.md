@@ -41,13 +41,18 @@ Du erreichst die Maske über die Dashboard-Kachel **„Verfügbarkeit"** oder di
 
 Über die Toolbar oben im Kalender-Bereich wählst du, wie deine Verfügbarkeiten dargestellt werden:
 
-- **Monat** *(Standard)* — eine klassische Monatsübersicht. Du siehst alle Tage des Monats auf
-  einen Blick und kannst über die FullCalendar-Navigation (Pfeile / **Heute**) zwischen Monaten
-  blättern, solange das Ziel innerhalb der Planungsperiode liegt.
-- **Woche** — eine kompakte Wochenansicht mit allen 7 Tagen nebeneinander. Mit den Pfeil-Buttons
-  bzw. **Heute** in der Toolbar springst du wochenweise vor und zurück. Auf schmalen Bildschirmen
-  scrollt das Grid horizontal — ein kleiner Chevron `›` am rechten Rand zeigt an, dass es weiter
-  geht.
+- **Monat** *(Standard)* — eine klassische Monatsübersicht. Mit den Pfeil-Buttons blätterst du
+  monatsweise; **Heute** springt zum aktuellen Datum. An den Rändern der aktuellen Planungs­periode
+  wechselt die Navigation automatisch in die vorherige bzw. nächste Planungsperiode — sofern
+  eine vorhanden ist. Existiert keine angrenzende Periode, ist der Pfeil deaktiviert.
+- **Woche** — eine kompakte Wochenansicht mit allen 7 Tagen nebeneinander. Pfeile und **Heute**
+  verhalten sich analog zur Monatsansicht: am PP-Rand führen sie in die angrenzende Planungs­periode
+  weiter (falls vorhanden). Auf schmalen Bildschirmen scrollt das Grid zusätzlich horizontal —
+  ein kleiner Chevron `›` am rechten Rand zeigt an, dass es noch weiter geht.
+
+> **Touch:** Auf Touch-Geräten kannst du in beiden Ansichten auch per **Wischgeste** vor- und
+> zurückblättern. Die Wischgeste folgt derselben Logik wie die Pfeile — am PP-Rand wechselt sie
+> ebenfalls in eine angrenzende Planungsperiode, falls vorhanden.
 
 Beide Ansichten arbeiten mit demselben Tages-Panel rechts: Egal aus welcher Ansicht heraus du auf
 einen Tag klickst, du trägst Verfügbarkeiten immer auf die gleiche Weise ein. Deine Auswahl der

@@ -1,0 +1,122 @@
+{# Read-Only-Detail-Drawer fuer eine Person.
+   Erwartet: detail (PersonDetail). #}
+
+{%- set p = detail.person -%}
+{%- set parts = (p.f_name ~ " " ~ p.l_name).split() -%}
+{%- if parts | length >= 2 -%}
+    {%- set initials = (parts[0][0] ~ parts[-1][0]) | upper -%}
+{%- elif parts | length == 1 -%}
+    {%- set initials = parts[0][:2] | upper -%}
+{%- else -%}
+    {%- set initials = "??" -%}
+{%- endif -%}
+
+<div class="p-6 flex flex-col gap-6">
+
+    {# ── Kopf ─────────────────────────────────────────────────────────── #}
+    <div class="flex items-start justify-between gap-4">
+        <div class="min-w-0 flex items-center gap-3">
+            <span class="avatar" style="width: 2.5rem; height: 2.5rem; font-size: 0.85rem;">
+                {{ initials }}
+            </span>
+            <div class="min-w-0">
+                <h2 class="font-display text-xl font-semibold text-slate-800 dark:text-slate-100 leading-tight">
+                    {{ p.f_name }} {{ p.l_name }}
+                </h2>
+                {% if p.role %}
+                <p class="text-xs text-slate-500 dark:text-slate-400 uppercase tracking-wide mt-0.5">
+                    {{ p.role.value }}
+                </p>
+                {% endif %}
+                {% if p.prep_delete %}
+                <span class="inline-block mt-1 text-[10px] font-medium px-2 py-0.5 rounded-full
+                             bg-amber-50 text-amber-700 ring-1 ring-amber-200
+                             dark:bg-amber-900/30 dark:text-amber-300 dark:ring-amber-700/40">
+                    Gelöscht am {{ p.prep_delete.strftime("%d.%m.%Y") }}
+                </span>
+                {% endif %}
+            </div>
+        </div>
+        <button type="button"
+                class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                onclick="document.getElementById('person-drawer-wrap').classList.remove('open')">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+
+    {# ── Kontakt ──────────────────────────────────────────────────────── #}
+    <section>
+        <div class="text-xs font-semibold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-2">
+            Kontakt
+        </div>
+        <dl class="text-sm space-y-1.5 text-slate-700 dark:text-slate-300">
+            <div class="flex justify-between gap-3">
+                <dt class="text-slate-500 dark:text-slate-400 text-xs">E-Mail</dt>
+                <dd class="font-mono text-xs break-all text-right">{{ p.email or "—" }}</dd>
+            </div>
+            <div class="flex justify-between gap-3">
+                <dt class="text-slate-500 dark:text-slate-400 text-xs">Telefon</dt>
+                <dd class="font-mono text-xs text-right">{{ p.phone_nr or "—" }}</dd>
+            </div>
+        </dl>
+    </section>
+
+    {# ── Adresse ──────────────────────────────────────────────────────── #}
+    {% if p.address %}
+    <section>
+        <div class="text-xs font-semibold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-2">
+            Adresse
+        </div>
+        <div class="text-sm text-slate-700 dark:text-slate-300 leading-relaxed">
+            {% if p.address.street %}{{ p.address.street }}<br>{% endif %}
+            {% if p.address.postal_code or p.address.city %}
+                {{ p.address.postal_code or "" }} {{ p.address.city or "" }}
+            {% endif %}
+        </div>
+    </section>
+    {% endif %}
+
+    {# ── Team-Historie ───────────────────────────────────────────────── #}
+    <section>
+        <div class="text-xs font-semibold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-2">
+            Team-Zugehörigkeit
+        </div>
+        {% if detail.team_history %}
+        <ul class="space-y-1.5">
+            {% for team_name, start, end in detail.team_history %}
+            {% set is_current = (end is none or end > today_date) %}
+            <li class="flex items-center justify-between gap-3 text-sm">
+                <div class="flex items-center gap-2 min-w-0">
+                    <span class="w-1.5 h-1.5 rounded-full flex-shrink-0
+                                 {% if is_current %}bg-emerald-500{% else %}bg-slate-300 dark:bg-slate-600{% endif %}"></span>
+                    <span class="truncate {% if not is_current %}text-slate-500 dark:text-slate-400{% else %}text-slate-700 dark:text-slate-200{% endif %}">
+                        {{ team_name }}
+                    </span>
+                </div>
+                <span class="text-xs text-slate-500 dark:text-slate-400 font-mono flex-shrink-0">
+                    {{ start.strftime("%d.%m.%Y") }} – {{ end.strftime("%d.%m.%Y") if end else "offen" }}
+                </span>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-xs text-slate-400 italic">Keine Team-Zuordnungen.</p>
+        {% endif %}
+    </section>
+
+    {# ── Notizen ──────────────────────────────────────────────────────── #}
+    {% if p.notes %}
+    <section>
+        <div class="text-xs font-semibold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-2">
+            Notizen
+        </div>
+        <p class="text-sm text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed">{{ p.notes }}</p>
+    </section>
+    {% endif %}
+
+    <div class="mt-auto pt-2 text-[11px] text-slate-400 dark:text-slate-500 italic text-center">
+        Diese Ansicht ist lesend.
+    </div>
+</div>

@@ -148,6 +148,24 @@ _ROLE_SECTIONS: dict[WebUserRole, dict] = {
                 "url": "/viewer/plan",
                 "icon": "M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z M15 12a3 3 0 11-6 0 3 3 0 016 0z",
             },
+            {
+                "title": "Planungsperioden",
+                "desc": "Übersicht aller Perioden je Team",
+                "url": "/viewer/periods",
+                "icon": "M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z",
+            },
+            {
+                "title": "Mitarbeiter",
+                "desc": "Stammdaten und Team-Zugehörigkeit einsehen",
+                "url": "/viewer/persons",
+                "icon": "M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-2.13a4 4 0 11-8 0 4 4 0 018 0zm6 0a4 4 0 11-8 0 4 4 0 018 0z",
+            },
+            {
+                "title": "Verfügbarkeiten",
+                "desc": "Verfügbarkeiten der Mitarbeiter einsehen",
+                "url": "/viewer/availability",
+                "icon": "M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z",
+            },
         ],
     },
 }

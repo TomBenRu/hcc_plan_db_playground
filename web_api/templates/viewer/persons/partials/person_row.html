@@ -1,0 +1,59 @@
+{# Tabellenzeile fuer eine Person. Erwartet: row (PersonRow). #}
+
+{%- set parts = (row.f_name ~ " " ~ row.l_name).split() -%}
+{%- if parts | length >= 2 -%}
+    {%- set initials = (parts[0][0] ~ parts[-1][0]) | upper -%}
+{%- elif parts | length == 1 -%}
+    {%- set initials = parts[0][:2] | upper -%}
+{%- else -%}
+    {%- set initials = "??" -%}
+{%- endif -%}
+
+<tr hx-get="/viewer/persons/{{ row.id }}/drawer"
+    hx-target="#person-drawer"
+    hx-swap="innerHTML"
+    hx-on::after-request="document.getElementById('person-drawer-wrap').classList.add('open')">
+
+    {# Spalte 1: Avatar + Name + E-Mail #}
+    <td>
+        <div class="flex items-center gap-3">
+            <span class="avatar {% if row.is_soft_deleted %}inactive{% endif %}">{{ initials }}</span>
+            <div class="min-w-0">
+                <div class="font-medium text-slate-800 dark:text-slate-100 truncate
+                            {% if row.is_soft_deleted %}line-through opacity-60{% endif %}">
+                    {{ row.f_name }} {{ row.l_name }}
+                </div>
+                <div class="text-xs text-slate-400 dark:text-slate-500 truncate flex items-center gap-1.5">
+                    {{ row.email or "—" }}
+                    {% if row.is_soft_deleted %}
+                    <span class="inline-flex items-center text-amber-600 dark:text-amber-400
+                                  text-[10px] font-medium">
+                        gelöscht
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </td>
+
+    {# Spalte 2: Teams (aktuell) #}
+    <td>
+        {% if row.current_team_names %}
+            {% for name in row.current_team_names %}
+                <span class="team-chip">{{ name }}</span>
+            {% endfor %}
+        {% else %}
+            <span class="text-xs text-slate-400 italic">keine</span>
+        {% endif %}
+    </td>
+
+    {# Spalte 3: Telefon #}
+    <td class="text-slate-500 dark:text-slate-400 text-xs">
+        {% if row.phone_nr %}{{ row.phone_nr }}{% else %}—{% endif %}
+    </td>
+
+    {# Spalte 4: Rolle #}
+    <td class="text-right pr-4 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wide">
+        {{ row.role or "—" }}
+    </td>
+</tr>

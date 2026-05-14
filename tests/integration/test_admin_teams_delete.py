@@ -239,3 +239,76 @@ def test_dispatcher_cannot_soft_delete(
     session.refresh(team)
     resp = as_dispatcher.post(f"/admin/teams/teams/{team.id}/soft-delete")
     assert resp.status_code == 403
+
+
+def test_admin_drawer_shows_soft_delete_button_for_active_team(
+    as_admin, session: Session, project: Project
+) -> None:
+    team = Team(name="UIActionsAktiv", project=project)
+    session.add(team)
+    session.commit()
+    session.refresh(team)
+
+    resp = as_admin.get(f"/admin/teams/teams/{team.id}/drawer")
+    assert resp.status_code == 200
+    assert "In Inaktiv verschieben" in resp.text
+    assert "Wiederherstellen" not in resp.text
+    assert "Endgültig löschen" not in resp.text
+
+
+def test_admin_drawer_shows_restore_and_delete_for_inactive_team(
+    as_admin, session: Session, project: Project
+) -> None:
+    team = Team(
+        name="UIActionsInaktiv",
+        project=project,
+        prep_delete=datetime.datetime.now(datetime.timezone.utc),
+    )
+    session.add(team)
+    session.commit()
+    session.refresh(team)
+
+    resp = as_admin.get(f"/admin/teams/teams/{team.id}/drawer")
+    assert resp.status_code == 200
+    assert "Wiederherstellen" in resp.text
+    assert "Endgültig löschen" in resp.text
+    assert "name_confirmation" in resp.text
+    assert "In Inaktiv verschieben" not in resp.text
+
+
+def test_dispatcher_drawer_hides_action_buttons(
+    as_dispatcher, session: Session, project: Project
+) -> None:
+    """Aktions-Footer ist Admin-only. Dispatcher sieht ihn nicht."""
+    team = Team(name="NoActionsForDisp", project=project)
+    session.add(team)
+    session.commit()
+    session.refresh(team)
+    resp = as_dispatcher.get(f"/admin/teams/teams/{team.id}/drawer")
+    assert resp.status_code == 200
+    assert "In Inaktiv verschieben" not in resp.text
+    assert "Endgültig löschen" not in resp.text
+
+
+def test_admin_drawer_shows_location_actions(
+    as_admin, session: Session, project: Project
+) -> None:
+    loc_active = LocationOfWork(name="LocAktiv", project=project)
+    loc_inactive = LocationOfWork(
+        name="LocInaktiv",
+        project=project,
+        prep_delete=datetime.datetime.now(datetime.timezone.utc),
+    )
+    session.add_all([loc_active, loc_inactive])
+    session.commit()
+    session.refresh(loc_active)
+    session.refresh(loc_inactive)
+
+    resp_active = as_admin.get(f"/admin/teams/locations/{loc_active.id}/drawer")
+    assert "In Inaktiv verschieben" in resp_active.text
+    assert "Endgültig löschen" not in resp_active.text
+
+    resp_inactive = as_admin.get(f"/admin/teams/locations/{loc_inactive.id}/drawer")
+    assert "Wiederherstellen" in resp_inactive.text
+    assert "Endgültig löschen" in resp_inactive.text
+    assert "name_confirmation" in resp_inactive.text

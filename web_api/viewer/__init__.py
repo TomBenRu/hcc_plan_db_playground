@@ -1,0 +1,1 @@
+"""Viewer-Rolle: projektweiter Read-Only-Zugriff auf Einsatzplaene."""

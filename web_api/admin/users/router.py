@@ -246,6 +246,7 @@ def invite_submit(
     role_dispatcher: str | None = Form(default=None),
     role_employee: str | None = Form(default=None),
     role_accountant: str | None = Form(default=None),
+    role_viewer: str | None = Form(default=None),
 ):
     """Legt einen neuen User an, erzeugt Setup-Token und verschickt die Setup-Mail."""
     roles: set[WebUserRole] = set()
@@ -257,6 +258,8 @@ def invite_submit(
         roles.add(WebUserRole.employee)
     if role_accountant:
         roles.add(WebUserRole.accountant)
+    if role_viewer:
+        roles.add(WebUserRole.viewer)
 
     parsed_person: uuid.UUID | None = uuid.UUID(person_id) if person_id else None
 
@@ -284,6 +287,7 @@ def invite_submit(
                     "role_dispatcher": role_dispatcher,
                     "role_employee": role_employee,
                     "role_accountant": role_accountant,
+                    "role_viewer": role_viewer,
                     "person_id": person_id,
                 },
             },

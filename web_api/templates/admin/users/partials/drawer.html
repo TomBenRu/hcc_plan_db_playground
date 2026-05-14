@@ -98,6 +98,8 @@
                     "bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 ring-orange-200 dark:ring-orange-700/40"),
                 ("accountant", "Buchhaltung",
                     "bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300 ring-teal-200 dark:ring-teal-700/40"),
+                ("viewer", "Einblick",
+                    "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 ring-indigo-200 dark:ring-indigo-700/40"),
             ] %}
                 {% set has_role = (role_key in (detail.roles | map(attribute="value") | list)) %}
                 {% set is_locked = (role_key == "admin" and is_self) %}

@@ -171,6 +171,7 @@ role={{ r }}&status={{ s }}&person_link={{ p }}&sort={{ o }}&search={{ q | urlen
     "dispatcher": "Disposition",
     "employee":   "Mitarbeiter",
     "accountant": "Buchhaltung",
+    "viewer":     "Einblick",
 } %}
 
 {% set status_labels = {
@@ -198,6 +199,7 @@ role={{ r }}&status={{ s }}&person_link={{ p }}&sort={{ o }}&search={{ q | urlen
     "dispatcher": ("bg-sky-50",   "text-sky-700",   "bg-sky-900/30",   "text-sky-300",   "DISP"),
     "employee":   ("bg-orange-50","text-orange-700","bg-orange-900/30","text-orange-300","EMP"),
     "accountant": ("bg-teal-50",  "text-teal-700",  "bg-teal-900/30",  "text-teal-300",  "ACC"),
+    "viewer":     ("bg-indigo-50","text-indigo-700","bg-indigo-900/30","text-indigo-300","VIEW"),
 } %}
 
 <div class="h-[calc(100vh-56px)] flex flex-col overflow-hidden">
@@ -242,7 +244,7 @@ role={{ r }}&status={{ s }}&person_link={{ p }}&sort={{ o }}&search={{ q | urlen
             </p>
             {% for key, dot in [("all", "bg-slate-500"), ("admin", "bg-rose-500"),
                                  ("dispatcher", "bg-sky-400"), ("employee", "bg-orange-500"),
-                                 ("accountant", "bg-teal-400")] %}
+                                 ("accountant", "bg-teal-400"), ("viewer", "bg-indigo-400")] %}
             <a href="?{{ qs(role=key) }}"
                class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
                       border-transparent text-sm font-sans text-slate-400

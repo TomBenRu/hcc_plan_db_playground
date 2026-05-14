@@ -19,6 +19,7 @@ class WebUserRole(str, enum.Enum):
     dispatcher = "dispatcher"
     employee = "employee"
     accountant = "accountant"
+    viewer = "viewer"
 
 
 class WebUserRoleLink(SQLModel, table=True):

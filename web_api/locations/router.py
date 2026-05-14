@@ -33,7 +33,9 @@ def location_info_card(
 
     `view` bestimmt die Sicht (vom aufrufenden Template gesetzt):
     - `employee` (Default): nur eigene Termine, ohne Cast-Liste.
-    - `dispatcher`: alle Termine + Cast-Namen — verlangt Dispatcher/Admin-Rolle.
+    - `dispatcher`: alle Termine + Cast-Namen — verlangt Dispatcher-, Admin-
+      oder Viewer-Rolle. Der Name `dispatcher` beschreibt nur die Dichte der
+      Anzeige (voll vs. nur-eigene), nicht die Berechtigung.
 
     Auf Dual-Rolle (Mitarbeiter+Dispatcher) wuerde eine Rolle-basierte
     Erkennung den User immer als Dispatcher behandeln, auch im Mitarbeiter-
@@ -47,7 +49,7 @@ def location_info_card(
 
     is_dispatcher_view = view == "dispatcher"
     if is_dispatcher_view and not user.has_any_role(
-        WebUserRole.dispatcher, WebUserRole.admin
+        WebUserRole.dispatcher, WebUserRole.admin, WebUserRole.viewer
     ):
         raise HTTPException(status.HTTP_403_FORBIDDEN)
 

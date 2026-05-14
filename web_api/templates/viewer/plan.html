@@ -1,0 +1,307 @@
+{% extends "_calendar_base.html" %}
+
+{% block calendar_page_title %}Einblick-Pläne — hcc plan{% endblock %}
+
+{% block head %}
+    {{ super() }}
+    <style>
+        /* ── Unterbesetzungs-Marker (identisch zu dispatcher/plan.html) ───── */
+        .fc-event-understaffed.fc-daygrid-event { position: relative; }
+        .fc-event-understaffed.fc-daygrid-event::after,
+        .fc-event-understaffed.fc-timegrid-event::after {
+            content: '';
+            position: absolute;
+            top: 2px;
+            right: 2px;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #ef4444;
+            box-shadow: 0 0 0 1.5px #ffffff;
+            z-index: 1;
+        }
+        [data-theme="dark"] .fc-event-understaffed.fc-daygrid-event::after,
+        [data-theme="dark"] .fc-event-understaffed.fc-timegrid-event::after {
+            box-shadow: 0 0 0 1.5px #1E293B;
+        }
+        [data-theme="colorblind"] .fc-event-understaffed.fc-daygrid-event::after,
+        [data-theme="colorblind"] .fc-event-understaffed.fc-timegrid-event::after {
+            background-color: #D55E00;
+        }
+        .fc-list-event.fc-event-understaffed .fc-list-event-title a::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: #ef4444;
+            margin-right: 8px;
+            vertical-align: middle;
+            box-shadow: 0 0 0 1.5px #ffffff;
+        }
+
+        /* ── Read-Only-Banner ────────────────────────────────────────────── */
+        .viewer-readonly-banner {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.375rem;
+            font-size: 0.625rem;
+            font-weight: 600;
+            letter-spacing: 0.06em;
+            text-transform: uppercase;
+            color: rgba(255, 255, 255, 0.55);
+            background: rgba(129, 140, 248, 0.18);
+            border: 1px solid rgba(129, 140, 248, 0.35);
+            padding: 0.25rem 0.625rem;
+            border-radius: 9999px;
+        }
+
+        /* ── Mobile-Layout fuer Team-Filter (identisch zu dispatcher/plan.html) ── */
+        @media (max-width: 1023px) {
+            .cal-sidebar .team-filter-section {
+                display: flex !important;
+                flex-direction: row;
+                align-items: center;
+                gap: 0.75rem;
+                margin-bottom: 0 !important;
+                flex: 1 1 100%;
+                min-width: 0;
+            }
+            .cal-sidebar .team-filter-section > label {
+                flex-shrink: 0;
+                margin-bottom: 0 !important;
+            }
+            .cal-sidebar .team-filter-section > ul {
+                display: flex !important;
+                flex-direction: row;
+                gap: 0.375rem;
+                flex-wrap: nowrap;
+                overflow-x: auto;
+            }
+            .cal-sidebar .team-filter-section > ul::-webkit-scrollbar { height: 2px; }
+            .cal-sidebar .team-filter-section > ul::-webkit-scrollbar-thumb {
+                background: rgba(255, 255, 255, 0.2);
+                border-radius: 1px;
+            }
+            .cal-sidebar .understaffed-filter-section {
+                flex: 1 1 100%;
+                margin-bottom: 0 !important;
+            }
+        }
+    </style>
+{% endblock %}
+
+{% block calendar_role_key %}viewer{% endblock %}
+
+{% block calendar_title %}Pläne aller Teams{% endblock %}
+
+{% block calendar_subtitle %}
+    <span class="text-slate-300 font-medium">{{ total_appointments }}</span>
+    Termin{% if total_appointments != 1 %}e{% endif %}
+    {% if my_teams|length > 1 %}
+        · {{ my_teams|length }} Teams
+    {% endif %}
+    <br>
+    <span class="viewer-readonly-banner mt-1.5">
+        <svg class="w-3 h-3" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                  d="M15 12a3 3 0 11-6 0 3 3 0 016 0z M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7z"/>
+        </svg>
+        Read-only
+    </span>
+{% endblock %}
+
+{% block calendar_sidebar_sections %}
+    <!-- Team-Filter -->
+    <div class="sidebar-section sidebar-section-mobile team-filter-section mb-6">
+        <label class="block text-xs font-semibold tracking-widest text-slate-500 uppercase mb-2.5 font-sans">
+            Teams
+        </label>
+
+        {% if my_teams %}
+        <ul class="space-y-1">
+            <li>
+                <label class="flex items-center gap-2.5 cursor-pointer group py-1 px-2 -mx-2 rounded-md hover:bg-white/5 transition-colors">
+                    <input type="checkbox"
+                           class="team-filter-all w-3.5 h-3.5 rounded accent-brand"
+                           {% if not selected_team_ids %}checked{% endif %}>
+                    <span class="text-sm font-medium text-slate-300 group-hover:text-slate-100 transition-colors font-sans">
+                        Alle Teams
+                    </span>
+                </label>
+            </li>
+
+            {% for team in my_teams %}
+            <li>
+                <label class="flex items-center gap-2.5 cursor-pointer group py-1 px-2 -mx-2 rounded-md hover:bg-white/5 transition-colors">
+                    <input type="checkbox"
+                           class="team-filter w-3.5 h-3.5 rounded accent-brand"
+                           value="{{ team.id }}"
+                           {% if team.id|string in selected_team_ids %}checked{% endif %}>
+                    <span class="text-sm text-slate-400 group-hover:text-slate-200 transition-colors font-sans truncate">
+                        {{ team.name }}
+                    </span>
+                </label>
+            </li>
+            {% endfor %}
+        </ul>
+        {% else %}
+        <p class="text-xs text-slate-600 font-sans italic leading-relaxed">
+            In diesem Projekt sind aktuell keine Teams angelegt.
+        </p>
+        {% endif %}
+    </div>
+
+    <!-- Unterbesetzungs-Filter -->
+    <div class="sidebar-section sidebar-section-mobile understaffed-filter-section mb-6">
+        <label class="flex items-center gap-2.5 cursor-pointer group py-1 px-2 -mx-2 rounded-md hover:bg-white/5 transition-colors">
+            <input type="checkbox"
+                   id="only-understaffed"
+                   class="w-3.5 h-3.5 rounded accent-red-500"
+                   {% if only_understaffed %}checked{% endif %}>
+            <span class="text-sm text-slate-400 group-hover:text-slate-200 transition-colors font-sans">
+                Nur unterbesetzte
+            </span>
+        </label>
+    </div>
+
+    <!-- Location-Legende -->
+    <div id="location-legend-section" class="sidebar-section mb-6"
+         {% if not location_legend %}style="display: none;"{% endif %}>
+        <label class="block text-xs font-semibold tracking-widest text-slate-500 uppercase mb-2.5 font-sans">
+            Einsatzorte
+        </label>
+        <ul id="location-legend-list" class="space-y-2">
+            {% for loc in location_legend %}
+            <li class="flex items-center gap-2.5 group">
+                <span
+                    class="w-2 h-2 rounded-full flex-shrink-0 ring-1 ring-white/10"
+                    data-legend-color="{{ loc.color }}"
+                    style="background-color: {{ loc.color }}; box-shadow: 0 0 6px {{ loc.color }}60;"
+                ></span>
+                <span class="text-sm text-slate-400 font-sans truncate group-hover:text-slate-200 transition-colors">
+                    {{ loc.name }}
+                </span>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+{% endblock %}
+
+{% block calendar_event_source_url %}{{ events_url }}{% endblock %}
+
+{% block calendar_detail_url_prefix %}/viewer/plan/appointments/{% endblock %}
+
+{% block calendar_extra_scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const allCheckbox = document.querySelector('.team-filter-all');
+    const teamCheckboxes = document.querySelectorAll('.team-filter');
+    const understaffedCheckbox = document.getElementById('only-understaffed');
+
+    function currentSelection() {
+        return Array.from(teamCheckboxes).filter(cb => cb.checked).map(cb => cb.value);
+    }
+
+    function syncAllCheckbox() {
+        if (!allCheckbox) return;
+        allCheckbox.checked = currentSelection().length === 0;
+    }
+
+    function refreshCalendar() {
+        const selected = currentSelection();
+        const onlyUnderstaffed = understaffedCheckbox && understaffedCheckbox.checked;
+
+        // URL im Browser aktualisieren (shareable Deep-Link)
+        const url = new URL(window.location);
+        url.searchParams.delete('teams');
+        url.searchParams.delete('only_understaffed');
+        selected.forEach(t => url.searchParams.append('teams', t));
+        if (onlyUnderstaffed) url.searchParams.set('only_understaffed', '1');
+        history.replaceState({}, '', url);
+
+        // FullCalendar-Event-Source austauschen
+        const sources = window.hccCalendar.getEventSources();
+        sources.forEach(s => s.remove());
+
+        const params = new URLSearchParams();
+        selected.forEach(t => params.append('teams', t));
+        if (onlyUnderstaffed) params.set('only_understaffed', '1');
+        const eventsUrl = '/viewer/plan/events' + (params.toString() ? '?' + params.toString() : '');
+        window.hccCalendar.addEventSource({ url: eventsUrl, method: 'GET' });
+    }
+
+    teamCheckboxes.forEach(cb => {
+        cb.addEventListener('change', function () {
+            syncAllCheckbox();
+            refreshCalendar();
+        });
+    });
+
+    if (allCheckbox) {
+        allCheckbox.addEventListener('change', function () {
+            if (this.checked) {
+                teamCheckboxes.forEach(cb => { cb.checked = false; });
+                refreshCalendar();
+            } else {
+                if (currentSelection().length === 0) {
+                    this.checked = true;
+                }
+            }
+        });
+    }
+
+    if (understaffedCheckbox) {
+        understaffedCheckbox.addEventListener('change', refreshCalendar);
+    }
+
+    // Location-Legende synchron zu sichtbaren Events halten — gespiegelte
+    // Server-Logik: aggregiere nach location_id, behalte First-Occurrence-Order.
+    function rebuildLocationLegend(events) {
+        const section = document.getElementById('location-legend-section');
+        const list = document.getElementById('location-legend-list');
+        if (!section || !list) return;
+
+        const seen = new Map();
+        events.forEach(ev => {
+            const locId = ev.extendedProps && ev.extendedProps.location_id;
+            const locName = (ev.extendedProps && ev.extendedProps.location_name) || ev.title;
+            if (locId && !seen.has(locId)) {
+                seen.set(locId, { name: locName, color: ev.backgroundColor });
+            }
+        });
+
+        if (seen.size === 0) {
+            section.style.display = 'none';
+            list.innerHTML = '';
+            return;
+        }
+        section.style.display = '';
+
+        list.innerHTML = '';
+        seen.forEach(entry => {
+            const li = document.createElement('li');
+            li.className = 'flex items-center gap-2.5 group';
+
+            const dot = document.createElement('span');
+            dot.className = 'w-2 h-2 rounded-full flex-shrink-0 ring-1 ring-white/10';
+            dot.setAttribute('data-legend-color', entry.color);
+            dot.style.backgroundColor = entry.color;
+            dot.style.boxShadow = '0 0 6px ' + entry.color + '60';
+
+            const label = document.createElement('span');
+            label.className = 'text-sm text-slate-400 font-sans truncate group-hover:text-slate-200 transition-colors';
+            label.textContent = entry.name;
+
+            li.appendChild(dot);
+            li.appendChild(label);
+            list.appendChild(li);
+        });
+
+        if (window.hccCalendar.refreshColors) window.hccCalendar.refreshColors();
+    }
+
+    window.hccCalendar.on('eventsSet', rebuildLocationLegend);
+});
+</script>
+{% endblock %}

@@ -43,6 +43,13 @@ ROLE_BRANDING: dict[WebUserRole, dict[str, str]] = {
         "dot_class": "bg-teal-400",
         "text_class": "text-teal-300/80",
     },
+    WebUserRole.viewer: {
+        "label": "Einblick",
+        "color": "#818CF8",          # indigo-400 — bewusst kuehler als die aktiven Rollen
+        "color_light": "#EEF2FF",
+        "dot_class": "bg-indigo-400",
+        "text_class": "text-indigo-300/80",
+    },
 }
 
 

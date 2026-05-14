@@ -1,0 +1,32 @@
+{# Adress-Autocomplete-Liste. Klick auf einen Vorschlag fuellt die Form-Felder
+   im Drawer vor (JS), ohne ``address_id`` zu setzen — neue Address-Zeile beim
+   Speichern (PRD US-08). #}
+
+{% if suggestions %}
+<ul class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700
+           rounded-lg shadow-sm divide-y divide-slate-100 dark:divide-slate-700/50
+           text-sm max-h-48 overflow-y-auto">
+    {% for addr in suggestions %}
+    <li>
+        <button type="button"
+                onclick="
+                    var f = this.closest('form');
+                    if (!f) return;
+                    f.querySelector('[name=address_name]').value = {{ (addr.name or '') | tojson }};
+                    f.querySelector('[name=address_street]').value = {{ (addr.street or '') | tojson }};
+                    f.querySelector('[name=address_postal_code]').value = {{ (addr.postal_code or '') | tojson }};
+                    f.querySelector('[name=address_city]').value = {{ (addr.city or '') | tojson }};
+                    document.getElementById('address-suggest-results').innerHTML = '';
+                "
+                class="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/40
+                       text-slate-800 dark:text-slate-100">
+            {% if addr.name %}<span class="font-medium">{{ addr.name }}</span><br>{% endif %}
+            <span class="text-xs text-slate-500">
+                {{ addr.street or "" }}{% if addr.street and addr.city %}, {% endif %}
+                {{ addr.postal_code or "" }} {{ addr.city or "" }}
+            </span>
+        </button>
+    </li>
+    {% endfor %}
+</ul>
+{% endif %}

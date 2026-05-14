@@ -16,6 +16,7 @@ from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
 from database.models import (
+    Address,
     LocationOfWork,
     Person,
     Project,
@@ -217,6 +218,42 @@ def list_locations_view(
             )
         )
     return rows
+
+
+def address_suggest(
+    session: Session,
+    project_id: uuid.UUID,
+    q: str,
+    *,
+    limit: int = 10,
+) -> list[Address]:
+    """Adress-Autocomplete-Pool: alle nicht-soft-deleted ``Address``-Zeilen
+    des Projekts, gefiltert nach Substring in Name oder Strasse.
+
+    Bewusst projektweit, nicht nur an Standorten haengende — Adressen
+    aus Personen- oder Event-Kontext sind ebenfalls fair als Vorschlag.
+    Frontend kopiert die Felder nur vor; eine neue Address-Zeile wird
+    beim Speichern erzeugt (Sharing ausgeschlossen).
+    """
+    query = q.strip()
+    if not query:
+        return []
+    pattern = f"%{query}%"
+    stmt = (
+        select(Address)
+        .where(
+            Address.project_id == project_id,
+            Address.prep_delete.is_(None),  # type: ignore[union-attr]
+        )
+        .where(
+            (Address.name.ilike(pattern))  # type: ignore[union-attr]
+            | (Address.street.ilike(pattern))  # type: ignore[union-attr]
+            | (Address.city.ilike(pattern))  # type: ignore[union-attr]
+        )
+        .order_by(Address.street, Address.city)
+        .limit(limit)
+    )
+    return list(session.exec(stmt).all())
 
 
 def count_teams(session: Session, project_id: uuid.UUID, *, only_inactive: bool) -> int:

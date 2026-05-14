@@ -558,6 +558,27 @@ def update_team_location_endpoint(
     return _render_team_drawer(request, team, user, saved=True)
 
 
+@router.get("/addresses/suggest", response_class=HTMLResponse)
+def address_suggest_endpoint(
+    request: Request,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    q: str = "",
+):
+    """Live-Suche fuer Adress-Vorschlaege im Standort-Drawer.
+
+    Frontend-Pattern: Klick auf einen Vorschlag fuellt die Adress-Felder
+    vor, laesst aber ``address_id`` unveraendert — beim Speichern wird
+    immer eine **neue** Address-Zeile erzeugt (siehe PRD US-08).
+    """
+    project = service.get_session_project(session, user)
+    suggestions = service.address_suggest(session, project.id, q)
+    return templates.TemplateResponse(
+        "admin/teams/partials/address_suggest_results.html",
+        {"request": request, "suggestions": suggestions},
+    )
+
+
 @router.patch("/locations/{location_id}/stammdaten", response_class=HTMLResponse)
 def update_location_stammdaten_endpoint(
     request: Request,

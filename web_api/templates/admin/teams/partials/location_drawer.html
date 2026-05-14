@@ -108,8 +108,14 @@
                         <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Strasse</label>
                         <input type="text" name="address_street" maxlength="50"
                                value="{{ location.address.street if location and location.address and location.address.street else '' }}"
+                               hx-get="/admin/teams/addresses/suggest"
+                               hx-trigger="input changed delay:300ms"
+                               hx-target="#address-suggest-results"
+                               hx-include="this"
+                               hx-vals='js:{q: this.value}'
                                class="w-full px-3 py-1.5 rounded-md border bg-white dark:bg-slate-700/40
                                       border-slate-200 dark:border-slate-700 text-sm text-slate-800 dark:text-slate-100">
+                        <div id="address-suggest-results" class="mt-1"></div>
                     </div>
                     <div>
                         <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">PLZ</label>

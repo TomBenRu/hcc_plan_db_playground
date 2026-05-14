@@ -1,0 +1,427 @@
+{% extends "base.html" %}
+{% from "_macros/branding.html" import role_kicker %}
+
+{# ─ Querystring-Helfer: liest aktuelle Filter, ueberschreibt mit Kwargs ─ #}
+{%- macro qs(role=None, status=None, person_link=None, sort=None, search=None) -%}
+{%- set r = role if role is not none else filters.role -%}
+{%- set s = status if status is not none else filters.status -%}
+{%- set p = person_link if person_link is not none else filters.person_link -%}
+{%- set o = sort if sort is not none else filters.sort -%}
+{%- set q = search if search is not none else filters.search -%}
+role={{ r }}&status={{ s }}&person_link={{ p }}&sort={{ o }}&search={{ q | urlencode }}
+{%- endmacro -%}
+
+{% block title %}Benutzerverwaltung – hcc plan{% endblock %}
+
+{% block head %}
+<style>
+    /* ── Sidebar scrollbar ─────────────────────────────────────────────────── */
+    .sidebar-scroll::-webkit-scrollbar { width: 3px; }
+    .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+    .sidebar-scroll::-webkit-scrollbar-thumb {
+        background: rgba(255,255,255,0.15); border-radius: 2px;
+    }
+
+    /* ── Content scrollbar ─────────────────────────────────────────────────── */
+    .content-scroll::-webkit-scrollbar { width: 4px; }
+    .content-scroll::-webkit-scrollbar-track { background: transparent; }
+    .content-scroll::-webkit-scrollbar-thumb {
+        background: #e2e8f0; border-radius: 2px;
+    }
+
+    /* ── Responsive: Mobile/Tablet ─────────────────────────────────────────── */
+    @media (max-width: 1023px) {
+        .page-wrapper { grid-template-columns: 1fr !important; grid-template-rows: auto 1fr; }
+        .page-sidebar {
+            flex-direction: row !important; flex-wrap: wrap;
+            gap: 0.5rem; padding: 0.75rem 1rem !important;
+            align-items: center; min-height: unset !important;
+            overflow: visible !important;
+        }
+        .page-sidebar .sidebar-header { margin-bottom: 0 !important; flex-shrink: 0; }
+        .page-sidebar .sidebar-header h1 { font-size: 1rem !important; }
+        .page-sidebar .sidebar-header p  { display: none !important; }
+        .page-sidebar .sidebar-divider   { display: none !important; }
+        .page-sidebar .sidebar-spacer    { display: none !important; }
+        .sidebar-filter-toggle { display: flex !important; }
+        .sidebar-filters {
+            flex-basis: 100%; max-height: 0; overflow: hidden;
+            transition: max-height 0.3s ease-in-out;
+        }
+        .sidebar-filters.open { max-height: 800px; }
+        .sidebar-back { display: none !important; }
+    }
+    @media (min-width: 1024px) {
+        .sidebar-filter-toggle { display: none !important; }
+        .sidebar-filters {
+            max-height: none !important; overflow: visible !important;
+            display: flex; flex-direction: column;
+        }
+    }
+
+    /* ── Filter-Button aktiv ───────────────────────────────────────────────── */
+    .filter-btn         { transition: background 0.15s, color 0.15s, border-color 0.15s; }
+    .filter-btn.active  { background: rgba(255,255,255,0.12); color: #fff; border-color: rgba(255,255,255,0.2); }
+    .filter-btn:not(.active):hover { background: rgba(255,255,255,0.06); color: #cbd5e1; }
+
+    .filter-count {
+        font-size: 0.6875rem;
+        color: rgba(255,255,255,0.4);
+        margin-left: auto;
+        font-variant-numeric: tabular-nums;
+    }
+    .filter-btn.active .filter-count { color: rgba(255,255,255,0.7); }
+
+    /* ── Karten-Animation ──────────────────────────────────────────────────── */
+    @keyframes fadeUp {
+        from { opacity: 0; transform: translateY(10px); }
+        to   { opacity: 1; transform: translateY(0); }
+    }
+    .anim { animation: fadeUp 0.35s ease-out both; }
+
+    /* ── Tabelle ───────────────────────────────────────────────────────────── */
+    .users-table { font-variant-numeric: tabular-nums; }
+    .users-table thead th {
+        font-size: 0.6875rem;
+        text-transform: uppercase;
+        letter-spacing: 0.06em;
+        font-weight: 600;
+        color: #94a3b8;
+        padding: 0.5rem 0.75rem;
+        text-align: left;
+        white-space: nowrap;
+    }
+    [data-theme="dark"] .users-table thead th { color: #64748b; }
+    .users-table tbody tr {
+        border-top: 1px solid #f1f5f9;
+        transition: background 0.12s;
+        cursor: pointer;
+    }
+    [data-theme="dark"] .users-table tbody tr { border-top-color: #1f2a3a; }
+    .users-table tbody tr:hover { background: #f8fafc; }
+    [data-theme="dark"] .users-table tbody tr:hover { background: rgba(148,163,184,0.06); }
+    .users-table td { padding: 0.625rem 0.75rem; vertical-align: middle; }
+
+    .role-chip {
+        display: inline-block;
+        padding: 0.125rem 0.5rem;
+        border-radius: 9999px;
+        font-size: 0.625rem;
+        font-weight: 600;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        margin-right: 0.25rem;
+        line-height: 1.4;
+    }
+
+    /* Avatar-Initialen */
+    .avatar {
+        width: 1.75rem;
+        height: 1.75rem;
+        border-radius: 9999px;
+        background: linear-gradient(135deg, #cbd5e1, #94a3b8);
+        color: #fff;
+        font-size: 0.6875rem;
+        font-weight: 600;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex-shrink: 0;
+    }
+    .avatar.inactive { background: linear-gradient(135deg, #e2e8f0, #cbd5e1); color: #64748b; }
+
+    /* ── Drawer ────────────────────────────────────────────────────────────── */
+    .drawer-wrap {
+        position: fixed;
+        inset: 0 0 0 auto;
+        width: 100%;
+        max-width: 480px;
+        transform: translateX(100%);
+        transition: transform 0.25s ease-out;
+        z-index: 50;
+        pointer-events: none;
+    }
+    .drawer-wrap.open { transform: translateX(0); pointer-events: auto; }
+    .drawer-wrap > .drawer-panel {
+        height: 100%;
+        background: #fff;
+        border-left: 1px solid #e2e8f0;
+        box-shadow: -8px 0 30px rgba(0,0,0,0.08);
+        overflow-y: auto;
+    }
+    [data-theme="dark"] .drawer-wrap > .drawer-panel {
+        background: #1e293b; border-left-color: #334155;
+        box-shadow: -8px 0 30px rgba(0,0,0,0.4);
+    }
+    .drawer-backdrop {
+        position: fixed; inset: 0; background: rgba(15,23,42,0.35);
+        opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 40;
+    }
+    .drawer-wrap.open ~ .drawer-backdrop { opacity: 1; pointer-events: auto; }
+</style>
+{% endblock %}
+
+{% block nav %}{% include "partials/nav.html" %}{% endblock %}
+
+{% block content %}
+
+{% set role_labels = {
+    "all":        "Alle",
+    "admin":      "Administration",
+    "dispatcher": "Disposition",
+    "employee":   "Mitarbeiter",
+    "accountant": "Buchhaltung",
+} %}
+
+{% set status_labels = {
+    "all":      "Alle",
+    "active":   "aktiv",
+    "inactive": "inaktiv",
+    "invited":  "Einladung offen",
+} %}
+
+{% set person_link_labels = {
+    "all":      "Alle",
+    "linked":   "Verknüpft",
+    "unlinked": "Ohne Person",
+} %}
+
+{% set sort_labels = {
+    "name":           "Name",
+    "created":        "Angelegt",
+    "last_modified":  "Letzte Änderung",
+    "last_login":     "Letzter Login",
+} %}
+
+{% set role_colors = {
+    "admin":      ("bg-rose-50",  "text-rose-700",  "bg-rose-900/30",  "text-rose-300",  "ADM"),
+    "dispatcher": ("bg-sky-50",   "text-sky-700",   "bg-sky-900/30",   "text-sky-300",   "DISP"),
+    "employee":   ("bg-orange-50","text-orange-700","bg-orange-900/30","text-orange-300","EMP"),
+    "accountant": ("bg-teal-50",  "text-teal-700",  "bg-teal-900/30",  "text-teal-300",  "ACC"),
+} %}
+
+<div class="h-[calc(100vh-56px)] flex flex-col overflow-hidden">
+<div class="page-wrapper flex-1 grid overflow-hidden" style="grid-template-columns: 240px 1fr;">
+
+    {# ── Left Sidebar ─────────────────────────────────────────────────────── #}
+    <aside class="page-sidebar bg-navy grid-bg flex flex-col overflow-y-auto sidebar-scroll
+                  p-6 animate-fade-up border-r border-white/5">
+
+        <div class="sidebar-header mb-6">
+            <div class="flex items-center gap-1.5 mb-2">
+                {{ role_kicker("admin") }}
+            </div>
+            <h1 class="font-display text-white text-2xl font-semibold leading-tight tracking-tight">
+                Benutzer
+            </h1>
+            <p class="font-sans text-xs text-slate-500 mt-1.5">
+                Zugänge, Rollen und Einladungen verwalten.
+            </p>
+        </div>
+
+        <div class="sidebar-divider border-t border-white/5 mb-5"></div>
+
+        {# Mobile Filter-Toggle #}
+        <button class="sidebar-filter-toggle hidden w-full items-center justify-between
+                       text-xs font-semibold tracking-widest uppercase text-slate-400 mb-3"
+                onclick="
+                    var s = document.getElementById('sidebar-filters');
+                    s.classList.toggle('open');
+                ">
+            <span>Filter</span>
+            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+        </button>
+
+        <div id="sidebar-filters" class="sidebar-filters flex flex-col gap-1.5 mb-6">
+
+            {# ── Rolle ──────────────────────────────────────────────────── #}
+            <p class="hidden lg:block text-xs font-semibold tracking-widest uppercase text-slate-500 mb-2 font-sans">
+                Rolle
+            </p>
+            {% for key, dot in [("all", "bg-slate-500"), ("admin", "bg-rose-500"),
+                                 ("dispatcher", "bg-sky-400"), ("employee", "bg-orange-500"),
+                                 ("accountant", "bg-teal-400")] %}
+            <a href="?{{ qs(role=key) }}"
+               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                      border-transparent text-sm font-sans text-slate-400
+                      {% if filters.role == key %}active{% endif %}">
+                <span class="w-2 h-2 rounded-full flex-shrink-0 {{ dot }}"></span>
+                {{ role_labels[key] }}
+                <span class="filter-count">
+                    {% if key == "all" %}{{ counts.total }}{% else %}{{ counts.by_role.get(key, 0) }}{% endif %}
+                </span>
+            </a>
+            {% endfor %}
+
+            {# ── Status ─────────────────────────────────────────────────── #}
+            <p class="hidden lg:block text-xs font-semibold tracking-widest uppercase text-slate-500 mt-5 mb-2 font-sans">
+                Status
+            </p>
+            {% for key, dot in [("all", "bg-slate-500"), ("active", "bg-emerald-400"),
+                                 ("inactive", "bg-slate-400"), ("invited", "bg-amber-400")] %}
+            <a href="?{{ qs(status=key) }}"
+               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                      border-transparent text-sm font-sans text-slate-400
+                      {% if filters.status == key %}active{% endif %}">
+                <span class="w-2 h-2 rounded-full flex-shrink-0 {{ dot }}"></span>
+                {{ status_labels[key] }}
+                <span class="filter-count">{{ counts.by_status.get(key, 0) }}</span>
+            </a>
+            {% endfor %}
+
+            {# ── Person-Link ────────────────────────────────────────────── #}
+            <p class="hidden lg:block text-xs font-semibold tracking-widest uppercase text-slate-500 mt-5 mb-2 font-sans">
+                Person-Verknüpfung
+            </p>
+            {% for key, dot in [("all", "bg-slate-500"), ("linked", "bg-indigo-400"),
+                                 ("unlinked", "bg-slate-500")] %}
+            <a href="?{{ qs(person_link=key) }}"
+               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                      border-transparent text-sm font-sans text-slate-400
+                      {% if filters.person_link == key %}active{% endif %}">
+                <span class="w-2 h-2 rounded-full flex-shrink-0 {{ dot }}"></span>
+                {{ person_link_labels[key] }}
+                <span class="filter-count">{{ counts.by_person_link.get(key, 0) }}</span>
+            </a>
+            {% endfor %}
+
+            {# ── Sortierung ─────────────────────────────────────────────── #}
+            <p class="hidden lg:block text-xs font-semibold tracking-widest uppercase text-slate-500 mt-5 mb-2 font-sans">
+                Sortierung
+            </p>
+            {% for key in ["name", "created", "last_modified", "last_login"] %}
+            <a href="?{{ qs(sort=key) }}"
+               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                      border-transparent text-sm font-sans text-slate-400
+                      {% if filters.sort == key %}active{% endif %}">
+                <svg class="w-3 h-3 flex-shrink-0 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"/>
+                </svg>
+                {{ sort_labels[key] }}
+            </a>
+            {% endfor %}
+
+        </div>
+
+        <div class="sidebar-spacer flex-1"></div>
+
+        <a href="/dashboard"
+           class="sidebar-back flex items-center gap-2 text-xs text-slate-600 hover:text-slate-300
+                  transition-colors font-sans mt-4 pt-4 border-t border-white/5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Zurück zum Dashboard
+        </a>
+
+    </aside>
+
+    {# ── Main Content ─────────────────────────────────────────────────────── #}
+    <main class="flex-1 overflow-y-auto content-scroll bg-slate-50 dark:bg-slate-900 px-6 py-8">
+        <div class="max-w-5xl mx-auto">
+
+            {# ── Kopfzeile: Such-/Aktionsleiste ──────────────────────────── #}
+            <div class="mb-6 flex items-center gap-3 anim" style="animation-delay: 0.05s;">
+                <form method="get" class="flex-1">
+                    {# Verstecke alle nicht-Such-Filter, damit GET die Filter beibehält. #}
+                    <input type="hidden" name="role"        value="{{ filters.role }}">
+                    <input type="hidden" name="status"      value="{{ filters.status }}">
+                    <input type="hidden" name="person_link" value="{{ filters.person_link }}">
+                    <input type="hidden" name="sort"        value="{{ filters.sort }}">
+                    <div class="relative">
+                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
+                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M21 21l-4.35-4.35M11 17a6 6 0 100-12 6 6 0 000 12z"/>
+                        </svg>
+                        <input type="search" name="search" value="{{ filters.search }}"
+                               placeholder="Suche nach E-Mail-Adresse …"
+                               class="w-full pl-9 pr-3 py-2 rounded-lg border
+                                      bg-white dark:bg-slate-800
+                                      border-slate-200 dark:border-slate-700
+                                      text-sm text-slate-800 dark:text-slate-100
+                                      placeholder:text-slate-400 dark:placeholder:text-slate-500
+                                      focus:outline-none focus:ring-2 focus:ring-rose-400/30
+                                      focus:border-rose-400">
+                    </div>
+                </form>
+
+                <button type="button"
+                        hx-get="/admin/users/invite"
+                        hx-target="#invite-modal-wrap"
+                        hx-swap="innerHTML"
+                        class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg
+                               bg-rose-500 hover:bg-rose-600 text-white text-sm font-medium
+                               shadow-sm transition-colors">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"/>
+                    </svg>
+                    Benutzer einladen
+                </button>
+            </div>
+
+            {# ── Tabelle ────────────────────────────────────────────────── #}
+            {% if rows %}
+            <div class="bg-white dark:bg-slate-800 rounded-xl border
+                        border-slate-100 dark:border-slate-700/50 shadow-sm overflow-hidden
+                        anim" style="animation-delay: 0.1s;">
+                <table class="users-table w-full text-sm">
+                    <thead class="bg-slate-50/60 dark:bg-slate-900/40">
+                        <tr>
+                            <th>Name &amp; E-Mail</th>
+                            <th>Rollen</th>
+                            <th>Status</th>
+                            <th>Letzter Login</th>
+                            <th class="text-right pr-4">Angelegt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                            {% include "admin/users/partials/user_row.html" %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            <p class="text-xs text-slate-400 mt-3 font-sans">
+                {{ rows | length }} {{ "Eintrag" if rows | length == 1 else "Einträge" }} angezeigt
+            </p>
+            {% else %}
+            <div class="anim flex flex-col items-center justify-center py-16 text-slate-400"
+                 style="animation-delay: 0.1s;">
+                <div class="w-14 h-14 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100
+                            dark:border-slate-700/50 shadow-sm flex items-center justify-center mb-4">
+                    <svg class="w-7 h-7 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                              d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-2.13a4 4 0 11-8 0 4 4 0 018 0zm6 0a4 4 0 11-8 0 4 4 0 018 0z"/>
+                    </svg>
+                </div>
+                <p class="text-sm font-medium text-slate-500 dark:text-slate-300">Keine Treffer</p>
+                <p class="text-xs mt-1">
+                    {% if filters.search %}Keine E-Mail enthält „{{ filters.search }}".
+                    {% else %}Mit den aktuellen Filtern wurde kein Benutzer gefunden.{% endif %}
+                </p>
+            </div>
+            {% endif %}
+
+        </div>
+    </main>
+
+</div>
+</div>
+
+{# ── Drawer (HTMX-Target) ─────────────────────────────────────────────────── #}
+<div id="user-drawer-wrap" class="drawer-wrap">
+    <div class="drawer-panel" id="user-drawer">
+        {# wird per HTMX gefuellt #}
+    </div>
+</div>
+<div class="drawer-backdrop"
+     onclick="document.getElementById('user-drawer-wrap').classList.remove('open')"></div>
+
+{# ── Einladungs-Modal-Slot (HTMX-Target) ──────────────────────────────────── #}
+<div id="invite-modal-wrap"></div>
+
+{% endblock %}

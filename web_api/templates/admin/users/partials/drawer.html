@@ -1,0 +1,253 @@
+{# Drawer-Inhalt fuer einen WebUser. Erwartet: detail (UserDetail), actor (WebUser). #}
+
+{%- set u = detail.user -%}
+{%- set is_self = (actor.id == u.id) -%}
+{%- set source_name = (detail.person and (detail.person.f_name ~ " " ~ detail.person.l_name)) or u.email -%}
+
+<div class="p-6 flex flex-col gap-6">
+
+    {# ── Kopf ─────────────────────────────────────────────────────────── #}
+    <div class="flex items-start justify-between gap-4">
+        <div class="min-w-0">
+            <h2 class="font-display text-xl font-semibold text-slate-800 dark:text-slate-100 leading-tight">
+                {{ source_name }}
+            </h2>
+            <p class="text-sm text-slate-500 dark:text-slate-400 mt-0.5 truncate">{{ u.email }}</p>
+            {% if u.pending_email %}
+            <div class="mt-2 inline-flex items-start gap-2 text-xs bg-amber-50 dark:bg-amber-900/30
+                        text-amber-700 dark:text-amber-300 px-2.5 py-1.5 rounded-md
+                        ring-1 ring-amber-200 dark:ring-amber-700/40">
+                <svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                </svg>
+                <div>
+                    Email-Wechsel ausstehend<br>
+                    <span class="font-mono">{{ u.pending_email }}</span>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        <button type="button"
+                class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                onclick="document.getElementById('user-drawer-wrap').classList.remove('open')">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+            </svg>
+        </button>
+    </div>
+
+    {# ── Aktivierungs-Toggle ─────────────────────────────────────────── #}
+    <section>
+        <div class="text-xs font-semibold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-2">
+            Status
+        </div>
+        <form hx-post="/admin/users/{{ u.id }}/active"
+              hx-target="#user-drawer"
+              hx-swap="innerHTML"
+              class="flex items-center justify-between p-3 rounded-lg border
+                     border-slate-200 dark:border-slate-700 bg-slate-50/60 dark:bg-slate-900/30">
+            <div>
+                <div class="text-sm font-medium {% if u.is_active %}text-emerald-700 dark:text-emerald-300{% else %}text-slate-500 dark:text-slate-400{% endif %}">
+                    {% if detail.has_open_invitation %}Einladung offen{% elif u.is_active %}aktiv{% else %}inaktiv{% endif %}
+                </div>
+                <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    {% if u.is_active %}Konto kann sich einloggen.{% else %}Login ist blockiert.{% endif %}
+                </p>
+            </div>
+            {% if is_self %}
+                <button type="button" disabled
+                        class="px-3 py-1.5 rounded-md text-xs font-medium
+                               bg-slate-200 dark:bg-slate-700 text-slate-400 dark:text-slate-500
+                               cursor-not-allowed"
+                        title="Eigenes Konto nicht deaktivierbar">
+                    Eigenes Konto
+                </button>
+            {% else %}
+                {% if u.is_active %}
+                    <button type="submit"
+                            class="px-3 py-1.5 rounded-md text-xs font-medium
+                                   bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600
+                                   text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-700/40
+                                   transition-colors">
+                        Deaktivieren
+                    </button>
+                {% else %}
+                    <button type="submit" name="is_active" value="on"
+                            class="px-3 py-1.5 rounded-md text-xs font-medium
+                                   bg-emerald-500 hover:bg-emerald-600 text-white transition-colors">
+                        Aktivieren
+                    </button>
+                {% endif %}
+            {% endif %}
+        </form>
+    </section>
+
+    {# ── Rollen-Toggles ──────────────────────────────────────────────── #}
+    <section>
+        <div class="text-xs font-semibold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-2">
+            Rollen
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+            {% for role_key, label, badge_class in [
+                ("admin", "Administration",
+                    "bg-rose-50 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300 ring-rose-200 dark:ring-rose-700/40"),
+                ("dispatcher", "Disposition",
+                    "bg-sky-50 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300 ring-sky-200 dark:ring-sky-700/40"),
+                ("employee", "Mitarbeiter",
+                    "bg-orange-50 text-orange-700 dark:bg-orange-900/30 dark:text-orange-300 ring-orange-200 dark:ring-orange-700/40"),
+                ("accountant", "Buchhaltung",
+                    "bg-teal-50 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300 ring-teal-200 dark:ring-teal-700/40"),
+            ] %}
+                {% set has_role = (role_key in (detail.roles | map(attribute="value") | list)) %}
+                {% set is_locked = (role_key == "admin" and is_self) %}
+                <form hx-post="/admin/users/{{ u.id }}/roles/{{ role_key }}"
+                      hx-target="#user-drawer"
+                      hx-swap="innerHTML">
+                    {# Wenn aktuell aktiv → Submit ohne `enable` (= deaktivieren).
+                       Wenn nicht aktiv → enable=on mitschicken. #}
+                    {% if not has_role %}
+                        <input type="hidden" name="enable" value="on">
+                    {% endif %}
+                    <button type="submit"
+                            {% if is_locked %}disabled title="Eigene Admin-Rolle nicht entziehbar"{% endif %}
+                            class="w-full px-3 py-2 rounded-lg text-xs font-medium ring-1 transition-all
+                                   text-left flex items-center justify-between
+                                   {% if has_role %}{{ badge_class }} ring-1{% else %}
+                                   bg-slate-50 dark:bg-slate-900/40 text-slate-500 dark:text-slate-500
+                                   ring-slate-200 dark:ring-slate-700/50
+                                   hover:bg-slate-100 dark:hover:bg-slate-800{% endif %}
+                                   {% if is_locked %}opacity-50 cursor-not-allowed{% endif %}">
+                        <span>{{ label }}</span>
+                        {% if has_role %}
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                            </svg>
+                        {% endif %}
+                    </button>
+                </form>
+            {% endfor %}
+        </div>
+    </section>
+
+    {# ── Person-Verknuepfung ─────────────────────────────────────────── #}
+    <section>
+        <div class="text-xs font-semibold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-2">
+            Verknüpfte Person
+        </div>
+        {% if detail.person %}
+            <div class="p-3 rounded-lg border border-slate-200 dark:border-slate-700
+                        bg-slate-50/60 dark:bg-slate-900/30 flex items-center justify-between gap-3">
+                <div class="min-w-0">
+                    <div class="text-sm font-medium text-slate-800 dark:text-slate-100">
+                        {{ detail.person.f_name }} {{ detail.person.l_name }}
+                    </div>
+                    <div class="text-xs text-slate-500 dark:text-slate-400 truncate">
+                        {{ detail.person.email }}
+                    </div>
+                </div>
+                <form hx-post="/admin/users/{{ u.id }}/person"
+                      hx-target="#user-drawer"
+                      hx-swap="innerHTML"
+                      hx-confirm="Person-Verknüpfung wirklich lösen?">
+                    <button type="submit"
+                            class="px-2.5 py-1.5 rounded-md text-xs font-medium
+                                   bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600
+                                   text-slate-600 dark:text-slate-300
+                                   hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
+                        Lösen
+                    </button>
+                </form>
+            </div>
+        {% else %}
+            <div class="text-xs text-slate-500 dark:text-slate-400 mb-3">
+                Diesem Konto ist aktuell keine Person zugeordnet.
+            </div>
+            <div class="relative">
+                <input type="search"
+                       name="q"
+                       placeholder="Person suchen (Name oder E-Mail) …"
+                       hx-get="/admin/users/{{ u.id }}/person-search"
+                       hx-trigger="keyup changed delay:250ms, search"
+                       hx-target="#person-search-results"
+                       hx-swap="innerHTML"
+                       class="w-full px-3 py-2 rounded-lg border
+                              bg-white dark:bg-slate-800
+                              border-slate-200 dark:border-slate-700
+                              text-sm text-slate-800 dark:text-slate-100
+                              placeholder:text-slate-400 dark:placeholder:text-slate-500
+                              focus:outline-none focus:ring-2 focus:ring-rose-400/30
+                              focus:border-rose-400">
+                <div id="person-search-results" class="mt-2"></div>
+            </div>
+        {% endif %}
+    </section>
+
+    {# ── Aktionen ────────────────────────────────────────────────────── #}
+    <section>
+        <div class="text-xs font-semibold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-2">
+            Aktionen
+        </div>
+        <div class="flex flex-col gap-2">
+            {% if detail.has_open_invitation %}
+            <form hx-post="/admin/users/{{ u.id }}/resend-invite"
+                  hx-target="#user-drawer"
+                  hx-swap="innerHTML">
+                <button type="submit"
+                        class="w-full px-3 py-2 rounded-md text-xs font-medium text-left
+                               bg-amber-50 hover:bg-amber-100 dark:bg-amber-900/30 dark:hover:bg-amber-900/40
+                               text-amber-700 dark:text-amber-300
+                               ring-1 ring-amber-200 dark:ring-amber-700/40 transition-colors">
+                    Einladungs-Mail erneut senden
+                </button>
+            </form>
+            {% else %}
+            <form hx-post="/admin/users/{{ u.id }}/resend-invite"
+                  hx-target="#user-drawer"
+                  hx-swap="innerHTML"
+                  hx-confirm="Neuen Passwort-Setup-Link an {{ u.email }} senden? Bestehende Links werden ungültig.">
+                <button type="submit"
+                        class="w-full px-3 py-2 rounded-md text-xs font-medium text-left
+                               bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600
+                               text-slate-700 dark:text-slate-200
+                               hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
+                    Passwort-Reset-Link senden
+                </button>
+            </form>
+            {% endif %}
+        </div>
+    </section>
+
+    {# ── Account-Meta ────────────────────────────────────────────────── #}
+    <section>
+        <div class="text-xs font-semibold tracking-widest uppercase text-slate-500 dark:text-slate-400 mb-2">
+            Konto-Daten
+        </div>
+        <dl class="text-xs space-y-1.5 text-slate-600 dark:text-slate-400">
+            <div class="flex justify-between gap-3">
+                <dt>Angelegt</dt>
+                <dd class="font-mono">{{ u.created_at.strftime("%d.%m.%Y %H:%M") }}</dd>
+            </div>
+            <div class="flex justify-between gap-3">
+                <dt>Letzte Änderung</dt>
+                <dd class="font-mono">{{ u.last_modified.strftime("%d.%m.%Y %H:%M") }}</dd>
+            </div>
+            <div class="flex justify-between gap-3">
+                <dt>Passwort geändert</dt>
+                <dd class="font-mono">{{ u.password_changed_at.strftime("%d.%m.%Y %H:%M") }}</dd>
+            </div>
+            <div class="flex justify-between gap-3">
+                <dt>Letzter Login</dt>
+                <dd class="font-mono">
+                    {% if u.last_login_at %}{{ u.last_login_at.strftime("%d.%m.%Y %H:%M") }}
+                    {% else %}<span class="text-slate-400">nie</span>{% endif %}
+                </dd>
+            </div>
+            <div class="flex justify-between gap-3">
+                <dt>ID</dt>
+                <dd class="font-mono text-[10px] text-slate-400 select-all">{{ u.id }}</dd>
+            </div>
+        </dl>
+    </section>
+
+</div>

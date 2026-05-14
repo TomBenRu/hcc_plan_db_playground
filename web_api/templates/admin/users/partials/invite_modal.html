@@ -1,0 +1,112 @@
+{# Einladungs-Modal. Erwartet: form (dict mit prefill-Werten), error (str|None). #}
+
+<div id="invite-modal-backdrop"
+     class="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-sm
+            flex items-center justify-center p-4"
+     onclick="if (event.target === this) document.getElementById('invite-modal-wrap').innerHTML = ''">
+    <div class="bg-white dark:bg-slate-800 rounded-xl shadow-xl max-w-md w-full
+                border border-slate-200 dark:border-slate-700 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-700/50 flex items-center justify-between">
+            <h3 class="font-display text-lg font-semibold text-slate-800 dark:text-slate-100">
+                Benutzer einladen
+            </h3>
+            <button type="button"
+                    class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-200"
+                    onclick="document.getElementById('invite-modal-wrap').innerHTML = ''">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                </svg>
+            </button>
+        </div>
+
+        <form hx-post="/admin/users/invite"
+              hx-target="#invite-modal-wrap"
+              hx-swap="innerHTML"
+              class="p-6 flex flex-col gap-4">
+
+            {% if error %}
+            <div class="text-xs bg-rose-50 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300
+                        ring-1 ring-rose-200 dark:ring-rose-700/40 px-3 py-2 rounded-md">
+                {{ error }}
+            </div>
+            {% endif %}
+
+            <label class="block">
+                <span class="text-xs font-semibold tracking-widest uppercase text-slate-500 dark:text-slate-400">
+                    E-Mail-Adresse
+                </span>
+                <input type="email" name="email" required
+                       value="{{ form.email or '' }}"
+                       placeholder="anna@firma.de"
+                       class="mt-1.5 w-full px-3 py-2 rounded-lg border
+                              bg-white dark:bg-slate-900
+                              border-slate-200 dark:border-slate-700
+                              text-sm text-slate-800 dark:text-slate-100
+                              focus:outline-none focus:ring-2 focus:ring-rose-400/30
+                              focus:border-rose-400">
+            </label>
+
+            <div>
+                <span class="text-xs font-semibold tracking-widest uppercase text-slate-500 dark:text-slate-400">
+                    Rollen
+                </span>
+                <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5 mb-2">
+                    Mindestens eine Rolle wählen.
+                </p>
+                <div class="grid grid-cols-2 gap-2">
+                    {% for role_key, label, role_field in [
+                        ("admin", "Administration", "role_admin"),
+                        ("dispatcher", "Disposition", "role_dispatcher"),
+                        ("employee", "Mitarbeiter", "role_employee"),
+                        ("accountant", "Buchhaltung", "role_accountant"),
+                    ] %}
+                    <label class="flex items-center gap-2 px-3 py-2 rounded-lg border
+                                   border-slate-200 dark:border-slate-700
+                                   bg-slate-50/60 dark:bg-slate-900/30
+                                   text-sm text-slate-700 dark:text-slate-200
+                                   cursor-pointer hover:bg-slate-100 dark:hover:bg-slate-800">
+                        <input type="checkbox" name="{{ role_field }}"
+                               {% if form[role_field] %}checked{% endif %}
+                               class="rounded text-rose-500 focus:ring-rose-400/30 border-slate-300">
+                        <span>{{ label }}</span>
+                    </label>
+                    {% endfor %}
+                </div>
+            </div>
+
+            <label class="block">
+                <span class="text-xs font-semibold tracking-widest uppercase text-slate-500 dark:text-slate-400">
+                    Person (optional)
+                </span>
+                <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-0.5">
+                    Für Mitarbeiter-Konten: Verknüpfung mit dem Stammdaten-Eintrag.
+                    Lässt sich auch später im Drawer setzen.
+                </p>
+                <input type="text" name="person_id"
+                       value="{{ form.person_id or '' }}"
+                       placeholder="(leer lassen oder Person-ID einfügen)"
+                       class="mt-1.5 w-full px-3 py-2 rounded-lg border
+                              bg-white dark:bg-slate-900
+                              border-slate-200 dark:border-slate-700
+                              text-xs font-mono text-slate-800 dark:text-slate-100
+                              focus:outline-none focus:ring-2 focus:ring-rose-400/30
+                              focus:border-rose-400">
+            </label>
+
+            <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-100 dark:border-slate-700/50 mt-2">
+                <button type="button"
+                        onclick="document.getElementById('invite-modal-wrap').innerHTML = ''"
+                        class="px-3 py-2 rounded-md text-sm font-medium
+                               text-slate-600 dark:text-slate-300
+                               hover:bg-slate-100 dark:hover:bg-slate-700/40 transition-colors">
+                    Abbrechen
+                </button>
+                <button type="submit"
+                        class="px-3 py-2 rounded-md text-sm font-medium
+                               bg-rose-500 hover:bg-rose-600 text-white shadow-sm transition-colors">
+                    Einladung verschicken
+                </button>
+            </div>
+        </form>
+    </div>
+</div>

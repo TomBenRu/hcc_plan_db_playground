@@ -1,0 +1,40 @@
+{# Suchergebnis-Liste fuer die Person-Verknuepfung.
+   Erwartet: results (list[PersonSearchResult]), user_id, query. #}
+
+{% if not query %}
+{% elif not results %}
+    <div class="text-xs text-slate-400 dark:text-slate-500 py-2">
+        Keine passende Person gefunden.
+    </div>
+{% else %}
+    <ul class="divide-y divide-slate-100 dark:divide-slate-700/50 rounded-lg border
+               border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800
+               max-h-64 overflow-y-auto">
+    {% for p in results %}
+        <li>
+            <form hx-post="/admin/users/{{ user_id }}/person"
+                  hx-target="#user-drawer"
+                  hx-swap="innerHTML">
+                <input type="hidden" name="person_id" value="{{ p.id }}">
+                <button type="submit"
+                        class="w-full text-left px-3 py-2 flex items-center justify-between gap-2
+                               hover:bg-slate-50 dark:hover:bg-slate-700/40 transition-colors">
+                    <div class="min-w-0">
+                        <div class="text-sm text-slate-800 dark:text-slate-100 truncate">
+                            {{ p.f_name }} {{ p.l_name }}
+                        </div>
+                        <div class="text-xs text-slate-400 dark:text-slate-500 truncate">
+                            {{ p.email }}
+                        </div>
+                    </div>
+                    <svg class="w-4 h-4 text-slate-300 dark:text-slate-600 flex-shrink-0"
+                         fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M14 5l7 7-7 7M3 12h18"/>
+                    </svg>
+                </button>
+            </form>
+        </li>
+    {% endfor %}
+    </ul>
+{% endif %}

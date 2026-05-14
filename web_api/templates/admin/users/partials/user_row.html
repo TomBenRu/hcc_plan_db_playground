@@ -1,0 +1,102 @@
+{# Tabellenzeile fuer einen WebUser. Erwartet: row (UserListRow), role_colors. #}
+
+{# Initialen aus Person-Name oder E-Mail-Prefix ableiten. #}
+{%- set source_name = row.person_name or (row.email.split("@")[0] | replace(".", " ") | replace("_", " ") | title) -%}
+{%- set parts = source_name.split() -%}
+{%- if parts | length >= 2 -%}
+    {%- set initials = (parts[0][0] ~ parts[-1][0]) | upper -%}
+{%- elif parts | length == 1 -%}
+    {%- set initials = parts[0][:2] | upper -%}
+{%- else -%}
+    {%- set initials = "??" -%}
+{%- endif -%}
+
+<tr hx-get="/admin/users/{{ row.id }}/drawer"
+    hx-target="#user-drawer"
+    hx-swap="innerHTML"
+    hx-on::after-request="document.getElementById('user-drawer-wrap').classList.add('open')">
+    {# Spalte 1: Avatar + Name + E-Mail #}
+    <td>
+        <div class="flex items-center gap-3">
+            <span class="avatar {% if not row.is_active %}inactive{% endif %}">{{ initials }}</span>
+            <div class="min-w-0">
+                <div class="font-medium text-slate-800 dark:text-slate-100 truncate">
+                    {{ source_name }}
+                </div>
+                <div class="text-xs text-slate-400 dark:text-slate-500 truncate flex items-center gap-1.5">
+                    {{ row.email }}
+                    {% if row.pending_email %}
+                    <span class="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400
+                                  text-[10px] font-medium" title="Email-Wechsel ausstehend">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+                        </svg>
+                        Wechsel
+                    </span>
+                    {% endif %}
+                    {% if not row.person_id %}
+                    <span class="inline-flex items-center text-slate-400 dark:text-slate-500
+                                  text-[10px] font-medium" title="Kein Person-Eintrag verknüpft">
+                        ohne Person
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </td>
+
+    {# Spalte 2: Rollen-Chips #}
+    <td>
+        {% if row.roles %}
+            {% for role in row.roles %}
+                {% set rc = role_colors[role.value] %}
+                <span class="role-chip {{ rc[0] }} {{ rc[1] }} dark:{{ rc[2] }} dark:{{ rc[3] }}">
+                    {{ rc[4] }}
+                </span>
+            {% endfor %}
+        {% else %}
+            <span class="text-xs text-slate-400 italic">keine</span>
+        {% endif %}
+    </td>
+
+    {# Spalte 3: Status #}
+    <td>
+        {% if row.has_open_invitation %}
+            <span class="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full
+                          bg-amber-50 text-amber-700 ring-1 ring-amber-200
+                          dark:bg-amber-900/30 dark:text-amber-300 dark:ring-amber-700/50">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                Einladung
+            </span>
+        {% elif row.is_active %}
+            <span class="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full
+                          bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200
+                          dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-700/50">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                aktiv
+            </span>
+        {% else %}
+            <span class="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-full
+                          bg-slate-100 text-slate-600 ring-1 ring-slate-200
+                          dark:bg-slate-700/40 dark:text-slate-400 dark:ring-slate-600/50">
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                inaktiv
+            </span>
+        {% endif %}
+    </td>
+
+    {# Spalte 4: Letzter Login #}
+    <td class="text-slate-500 dark:text-slate-400 text-xs">
+        {% if row.last_login_at %}
+            {{ row.last_login_at.strftime("%d.%m.%Y") }}
+        {% else %}
+            <span class="text-slate-300 dark:text-slate-600">nie</span>
+        {% endif %}
+    </td>
+
+    {# Spalte 5: Angelegt am #}
+    <td class="text-right pr-4 text-slate-500 dark:text-slate-400 text-xs">
+        {{ row.created_at.strftime("%d.%m.%Y") }}
+    </td>
+</tr>

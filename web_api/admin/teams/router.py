@@ -9,15 +9,16 @@ from __future__ import annotations
 
 import uuid
 
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse
 from sqlmodel import Session
 
 from database import db_services
-from web_api.admin.teams import service
-from web_api.auth.dependencies import LoggedInUser
+from database.models import LocationOfWork, Team
+from web_api.admin.teams import mutations, service
+from web_api.auth.dependencies import LoggedInUser, require_role
 from web_api.dependencies import get_db_session
-from web_api.models.web_models import WebUserRole
+from web_api.models.web_models import WebUser, WebUserRole
 from web_api.templating import templates
 
 router = APIRouter(prefix="/admin/teams", tags=["admin-teams"])
@@ -157,3 +158,235 @@ def location_drawer(
             "is_dispatcher": user.has_any_role(WebUserRole.dispatcher),
         },
     )
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Phase 1.1 — Stammdaten-Mutations (Admin)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def _render_team_drawer(
+    request: Request,
+    team: Team,
+    user: WebUser,
+    *,
+    saved: bool = False,
+    error: str | None = None,
+) -> HTMLResponse:
+    """Drawer fuer ein ``Team`` rendern. Hilfsfunktion, weil mehrere Mutations
+    denselben Render-Pfad teilen."""
+    response = templates.TemplateResponse(
+        "admin/teams/partials/team_drawer.html",
+        {
+            "request": request,
+            "user": user,
+            "team": team,
+            "is_admin": user.has_any_role(WebUserRole.admin),
+            "is_dispatcher": user.has_any_role(WebUserRole.dispatcher),
+            "saved": saved,
+            "error": error,
+        },
+    )
+    response.headers["HX-Trigger"] = "teams-list-changed"
+    return response
+
+
+def _render_location_drawer(
+    request: Request,
+    location: LocationOfWork,
+    user: WebUser,
+    *,
+    saved: bool = False,
+    error: str | None = None,
+) -> HTMLResponse:
+    response = templates.TemplateResponse(
+        "admin/teams/partials/location_drawer.html",
+        {
+            "request": request,
+            "user": user,
+            "location": location,
+            "is_admin": user.has_any_role(WebUserRole.admin),
+            "is_dispatcher": user.has_any_role(WebUserRole.dispatcher),
+            "saved": saved,
+            "error": error,
+        },
+    )
+    response.headers["HX-Trigger"] = "locations-list-changed"
+    return response
+
+
+@router.post("/teams", response_class=HTMLResponse)
+def create_team_endpoint(
+    request: Request,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    name: str = Form(...),
+    notes: str | None = Form(default=None),
+    dispatcher_id: str | None = Form(default=None),
+):
+    project = service.get_session_project(session, user)
+    dispatcher_uuid = uuid.UUID(dispatcher_id) if dispatcher_id else None
+    try:
+        team = mutations.create_team(
+            session,
+            project=project,
+            name=name,
+            dispatcher_id=dispatcher_uuid,
+            notes=notes,
+            actor=user,
+        )
+    except HTTPException as exc:
+        if exc.status_code == status.HTTP_409_CONFLICT:
+            # Empty-Drawer mit Fehler-Banner rendern — kein separates Form-Card-Partial,
+            # damit es nur EINEN Drawer-Inhalt zu warten gibt.
+            response = templates.TemplateResponse(
+                "admin/teams/partials/team_drawer.html",
+                {
+                    "request": request,
+                    "user": user,
+                    "team": None,
+                    "is_admin": user.has_any_role(WebUserRole.admin),
+                    "is_dispatcher": user.has_any_role(WebUserRole.dispatcher),
+                    "saved": False,
+                    "error": exc.detail,
+                },
+                status_code=status.HTTP_409_CONFLICT,
+            )
+            return response
+        raise
+    return _render_team_drawer(request, team, user, saved=True)
+
+
+@router.patch("/teams/{team_id}", response_class=HTMLResponse)
+def update_team_endpoint(
+    request: Request,
+    team_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    name: str = Form(...),
+    notes: str | None = Form(default=None),
+):
+    team = session.get(Team, team_id)
+    if team is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Team nicht gefunden")
+    try:
+        team = mutations.update_team_stammdaten(
+            session, team=team, name=name, notes=notes, actor=user
+        )
+    except HTTPException as exc:
+        if exc.status_code == status.HTTP_409_CONFLICT:
+            return _render_team_drawer(request, team, user, error=exc.detail)
+        raise
+    return _render_team_drawer(request, team, user, saved=True)
+
+
+@router.post("/teams/{team_id}/dispatcher", response_class=HTMLResponse)
+def update_team_dispatcher_endpoint(
+    request: Request,
+    team_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    dispatcher_id: str | None = Form(default=None),
+):
+    team = session.get(Team, team_id)
+    if team is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Team nicht gefunden")
+    dispatcher_uuid = uuid.UUID(dispatcher_id) if dispatcher_id else None
+    team = mutations.update_team_dispatcher(
+        session, team=team, dispatcher_id=dispatcher_uuid, actor=user
+    )
+    return _render_team_drawer(request, team, user, saved=True)
+
+
+@router.get("/teams/{team_id}/dispatcher-search", response_class=HTMLResponse)
+def dispatcher_search_endpoint(
+    request: Request,
+    team_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    q: str = "",
+):
+    project = service.get_session_project(session, user)
+    candidates = mutations.search_dispatcher_pool(session, project.id, q)
+    return templates.TemplateResponse(
+        "admin/teams/partials/dispatcher_search_results.html",
+        {"request": request, "team_id": team_id, "candidates": candidates},
+    )
+
+
+@router.post("/locations", response_class=HTMLResponse)
+def create_location_endpoint(
+    request: Request,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    name: str = Form(...),
+    nr_actors: int = Form(default=2, ge=0, le=255),
+    address_name: str | None = Form(default=None),
+    address_street: str | None = Form(default=None),
+    address_postal_code: str | None = Form(default=None),
+    address_city: str | None = Form(default=None),
+):
+    project = service.get_session_project(session, user)
+    fields = mutations.address_fields_from_form(
+        address_name, address_street, address_postal_code, address_city
+    )
+    try:
+        loc = mutations.create_location(
+            session,
+            project=project,
+            name=name,
+            address_fields=fields,
+            nr_actors=nr_actors,
+            actor=user,
+        )
+    except HTTPException as exc:
+        if exc.status_code == status.HTTP_409_CONFLICT:
+            response = templates.TemplateResponse(
+                "admin/teams/partials/location_drawer.html",
+                {
+                    "request": request,
+                    "user": user,
+                    "location": None,
+                    "is_admin": user.has_any_role(WebUserRole.admin),
+                    "is_dispatcher": user.has_any_role(WebUserRole.dispatcher),
+                    "saved": False,
+                    "error": exc.detail,
+                },
+                status_code=status.HTTP_409_CONFLICT,
+            )
+            return response
+        raise
+    return _render_location_drawer(request, loc, user, saved=True)
+
+
+@router.patch("/locations/{location_id}/stammdaten", response_class=HTMLResponse)
+def update_location_stammdaten_endpoint(
+    request: Request,
+    location_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    name: str = Form(...),
+    address_name: str | None = Form(default=None),
+    address_street: str | None = Form(default=None),
+    address_postal_code: str | None = Form(default=None),
+    address_city: str | None = Form(default=None),
+):
+    location = session.get(LocationOfWork, location_id)
+    if location is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Standort nicht gefunden")
+    fields = mutations.address_fields_from_form(
+        address_name, address_street, address_postal_code, address_city
+    )
+    try:
+        location = mutations.update_location_admin_fields(
+            session,
+            location=location,
+            name=name,
+            address_fields=fields,
+            actor=user,
+        )
+    except HTTPException as exc:
+        if exc.status_code == status.HTTP_409_CONFLICT:
+            return _render_location_drawer(request, location, user, error=exc.detail)
+        raise
+    return _render_location_drawer(request, location, user, saved=True)

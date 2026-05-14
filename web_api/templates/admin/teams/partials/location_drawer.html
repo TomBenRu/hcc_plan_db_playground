@@ -1,14 +1,18 @@
-{# Standort-Detail-Drawer (read-only in Phase 1.0).
+{# Standort-Detail-Drawer.
 
-   Layout deutet bereits die rollen-abhaengige Aufteilung der spaeteren Phasen
-   an: Stammdaten-Block (Phase 1.1 — Admin) und Plan-Konfig-Block (Phase 1.2 —
-   Dispatcher) sind sichtbar getrennt. #}
+   Phase 1.0: read-only.
+   Phase 1.1: Stammdaten-Form fuer Admin (Name + Adresse).
+   Phase 1.2: Plan-Konfig-Form fuer Dispatcher kommt spaeter.
+
+   Wenn ``location`` None ist, wird der Drawer als "Neuer Standort"-Form
+   gerendert. #}
 
 <div class="p-6">
     {# Header #}
     <div class="flex items-start justify-between mb-6">
         <div>
             <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-1">Standort</p>
+            {% if location %}
             <h2 class="font-display text-xl font-semibold text-slate-800 dark:text-slate-100">
                 {{ location.name }}
             </h2>
@@ -18,6 +22,11 @@
                          dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-600/40">
                 Inaktiv seit {{ location.prep_delete.strftime("%Y-%m-%d") }}
             </span>
+            {% endif %}
+            {% else %}
+            <h2 class="font-display text-xl font-semibold text-slate-800 dark:text-slate-100">
+                Neuer Standort
+            </h2>
             {% endif %}
         </div>
         <button type="button"
@@ -30,7 +39,20 @@
         </button>
     </div>
 
-    {# Stammdaten (Admin-Domaene) #}
+    {% if saved %}
+    <div class="mb-4 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/30
+                text-emerald-700 dark:text-emerald-300 text-xs">
+        Gespeichert.
+    </div>
+    {% endif %}
+    {% if error %}
+    <div class="mb-4 px-3 py-2 rounded-lg bg-rose-50 dark:bg-rose-900/30
+                text-rose-700 dark:text-rose-300 text-xs">
+        {{ error }}
+    </div>
+    {% endif %}
+
+    {# ── Stammdaten (Admin-Domaene: Name + Adresse) ───────────────────── #}
     <section class="mb-6">
         <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-3">
             Stammdaten
@@ -40,11 +62,88 @@
             </span>
             {% endif %}
         </p>
+
+        {% if is_admin %}
+        <form {% if location %}hx-patch="/admin/teams/locations/{{ location.id }}/stammdaten"
+              {% else %}hx-post="/admin/teams/locations"{% endif %}
+              hx-target="#location-drawer" hx-swap="innerHTML" class="space-y-3">
+            <div>
+                <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Name</label>
+                <input type="text" name="name" required maxlength="50"
+                       value="{{ location.name if location else '' }}"
+                       class="w-full px-3 py-1.5 rounded-md border bg-white dark:bg-slate-700/40
+                              border-slate-200 dark:border-slate-700
+                              text-sm text-slate-800 dark:text-slate-100
+                              focus:outline-none focus:ring-2 focus:ring-sky-400/30">
+            </div>
+
+            {% if not location %}
+            <div>
+                <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">
+                    Soll-Besetzung
+                </label>
+                <input type="number" name="nr_actors" value="2" min="0" max="255"
+                       class="w-full px-3 py-1.5 rounded-md border bg-white dark:bg-slate-700/40
+                              border-slate-200 dark:border-slate-700
+                              text-sm text-slate-800 dark:text-slate-100
+                              focus:outline-none focus:ring-2 focus:ring-sky-400/30">
+            </div>
+            {% endif %}
+
+            <div class="pt-2 border-t border-slate-100 dark:border-slate-700/50">
+                <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-2">
+                    Adresse
+                </p>
+                <div class="grid grid-cols-2 gap-2">
+                    <div class="col-span-2">
+                        <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">
+                            Bezeichnung
+                        </label>
+                        <input type="text" name="address_name" maxlength="50"
+                               value="{{ location.address.name if location and location.address and location.address.name else '' }}"
+                               class="w-full px-3 py-1.5 rounded-md border bg-white dark:bg-slate-700/40
+                                      border-slate-200 dark:border-slate-700 text-sm text-slate-800 dark:text-slate-100">
+                    </div>
+                    <div class="col-span-2">
+                        <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Strasse</label>
+                        <input type="text" name="address_street" maxlength="50"
+                               value="{{ location.address.street if location and location.address and location.address.street else '' }}"
+                               class="w-full px-3 py-1.5 rounded-md border bg-white dark:bg-slate-700/40
+                                      border-slate-200 dark:border-slate-700 text-sm text-slate-800 dark:text-slate-100">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">PLZ</label>
+                        <input type="text" name="address_postal_code" maxlength="20"
+                               value="{{ location.address.postal_code if location and location.address and location.address.postal_code else '' }}"
+                               class="w-full px-3 py-1.5 rounded-md border bg-white dark:bg-slate-700/40
+                                      border-slate-200 dark:border-slate-700 text-sm text-slate-800 dark:text-slate-100">
+                    </div>
+                    <div>
+                        <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Stadt</label>
+                        <input type="text" name="address_city" maxlength="40"
+                               value="{{ location.address.city if location and location.address and location.address.city else '' }}"
+                               class="w-full px-3 py-1.5 rounded-md border bg-white dark:bg-slate-700/40
+                                      border-slate-200 dark:border-slate-700 text-sm text-slate-800 dark:text-slate-100">
+                    </div>
+                </div>
+            </div>
+
+            <button type="submit"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md
+                           bg-sky-500 hover:bg-sky-600 text-white text-xs font-medium">
+                {% if location %}Speichern{% else %}Anlegen{% endif %}
+            </button>
+        </form>
+        {% else %}
         <dl class="space-y-3 text-sm">
+            <div>
+                <dt class="text-slate-500 dark:text-slate-400 text-xs">Name</dt>
+                <dd class="text-slate-800 dark:text-slate-100 mt-0.5">{{ location.name if location else '—' }}</dd>
+            </div>
             <div>
                 <dt class="text-slate-500 dark:text-slate-400 text-xs">Adresse</dt>
                 <dd class="text-slate-800 dark:text-slate-100 mt-0.5">
-                    {% if location.address %}
+                    {% if location and location.address %}
                         {{ location.address.street or "" }}{% if location.address.street and (location.address.postal_code or location.address.city) %}, {% endif %}
                         {{ location.address.postal_code or "" }} {{ location.address.city or "" }}
                     {% else %}
@@ -53,9 +152,11 @@
                 </dd>
             </div>
         </dl>
+        {% endif %}
     </section>
 
-    {# Plan-Konfig (Dispatcher-Domaene) #}
+    {% if location %}
+    {# ── Plan-Konfig (Dispatcher-Domaene) ─────────────────────────────── #}
     <section class="mb-6">
         <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-3">
             Plan-Konfiguration
@@ -81,10 +182,12 @@
             </div>
             <div>
                 <dt class="text-slate-500 dark:text-slate-400 text-xs">Notes</dt>
-                <dd class="text-slate-800 dark:text-slate-100 mt-0.5">
-                    {{ location.notes or "—" }}
-                </dd>
+                <dd class="text-slate-800 dark:text-slate-100 mt-0.5">{{ location.notes or "—" }}</dd>
             </div>
         </dl>
+        <p class="text-xs text-slate-400 italic mt-3">
+            Bearbeitung folgt in Phase 1.2.
+        </p>
     </section>
+    {% endif %}
 </div>

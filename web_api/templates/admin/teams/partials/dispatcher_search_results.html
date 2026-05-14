@@ -1,0 +1,29 @@
+{# Inline-Search-Result-Liste fuer den Dispatcher-Selector im Team-Drawer.
+
+   Aufruf: GET /admin/teams/teams/{team_id}/dispatcher-search?q=
+   Container: Drawer-Wurzel-Element mit id="dispatcher-search-results". #}
+
+{% if candidates %}
+<ul class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700
+           rounded-lg shadow-sm divide-y divide-slate-100 dark:divide-slate-700/50
+           text-sm max-h-60 overflow-y-auto">
+    {% for person in candidates %}
+    <li>
+        <button type="button"
+                hx-post="/admin/teams/teams/{{ team_id }}/dispatcher"
+                hx-target="#team-drawer"
+                hx-swap="innerHTML"
+                hx-vals='{"dispatcher_id": "{{ person.id }}"}'
+                class="w-full text-left px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/40
+                       text-slate-800 dark:text-slate-100">
+            <span class="font-medium">{{ person.f_name }} {{ person.l_name }}</span>
+            <span class="block text-xs text-slate-400">{{ person.email }}</span>
+        </button>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p class="text-xs text-slate-400 italic px-3 py-2">
+    Keine passenden Dispatcher gefunden.
+</p>
+{% endif %}

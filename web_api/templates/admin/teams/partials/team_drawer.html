@@ -1,10 +1,17 @@
-{# Team-Detail-Drawer (read-only in Phase 1.0). #}
+{# Team-Detail-Drawer.
+
+   Phase 1.0: read-only.
+   Phase 1.1: Stammdaten-Form fuer Admin + Dispatcher-Search.
+
+   Wenn ``team`` None ist, wird der Drawer als "Neues Team anlegen"-Form
+   gerendert. Sonst zeigt er Detail + Bearbeitungs-Form. #}
 
 <div class="p-6">
     {# Header #}
     <div class="flex items-start justify-between mb-6">
         <div>
             <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-1">Team</p>
+            {% if team %}
             <h2 class="font-display text-xl font-semibold text-slate-800 dark:text-slate-100">
                 {{ team.name }}
             </h2>
@@ -14,6 +21,11 @@
                          dark:bg-slate-700/40 dark:text-slate-300 dark:ring-slate-600/40">
                 Inaktiv seit {{ team.prep_delete.strftime("%Y-%m-%d") }}
             </span>
+            {% endif %}
+            {% else %}
+            <h2 class="font-display text-xl font-semibold text-slate-800 dark:text-slate-100">
+                Neues Team
+            </h2>
             {% endif %}
         </div>
         <button type="button"
@@ -26,57 +38,135 @@
         </button>
     </div>
 
-    {# Stammdaten #}
+    {% if saved %}
+    <div class="mb-4 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/30
+                text-emerald-700 dark:text-emerald-300 text-xs">
+        Gespeichert.
+    </div>
+    {% endif %}
+    {% if error %}
+    <div class="mb-4 px-3 py-2 rounded-lg bg-rose-50 dark:bg-rose-900/30
+                text-rose-700 dark:text-rose-300 text-xs">
+        {{ error }}
+    </div>
+    {% endif %}
+
+    {# ── Stammdaten (Admin editierbar) ─────────────────────────────────── #}
     <section class="mb-6">
         <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-3">
             Stammdaten
+            {% if not is_admin %}
+            <span class="ml-2 normal-case tracking-normal text-[10px] text-slate-400 font-normal">
+                (nur Admin)
+            </span>
+            {% endif %}
         </p>
+
+        {% if is_admin %}
+        <form {% if team %}hx-patch="/admin/teams/teams/{{ team.id }}"
+              {% else %}hx-post="/admin/teams/teams"{% endif %}
+              hx-target="#team-drawer" hx-swap="innerHTML" class="space-y-3">
+            <div>
+                <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Name</label>
+                <input type="text" name="name" required maxlength="50"
+                       value="{{ team.name if team else '' }}"
+                       class="w-full px-3 py-1.5 rounded-md border bg-white dark:bg-slate-700/40
+                              border-slate-200 dark:border-slate-700
+                              text-sm text-slate-800 dark:text-slate-100
+                              focus:outline-none focus:ring-2 focus:ring-sky-400/30">
+            </div>
+            <div>
+                <label class="block text-xs text-slate-500 dark:text-slate-400 mb-1">Notes</label>
+                <textarea name="notes" rows="2"
+                          class="w-full px-3 py-1.5 rounded-md border bg-white dark:bg-slate-700/40
+                                 border-slate-200 dark:border-slate-700
+                                 text-sm text-slate-800 dark:text-slate-100
+                                 focus:outline-none focus:ring-2 focus:ring-sky-400/30">{{ team.notes if team and team.notes else "" }}</textarea>
+            </div>
+            <button type="submit"
+                    class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md
+                           bg-sky-500 hover:bg-sky-600 text-white text-xs font-medium">
+                {% if team %}Speichern{% else %}Anlegen{% endif %}
+            </button>
+        </form>
+        {% else %}
         <dl class="space-y-3 text-sm">
             <div>
-                <dt class="text-slate-500 dark:text-slate-400 text-xs">Dispatcher</dt>
-                <dd class="text-slate-800 dark:text-slate-100 mt-0.5">
-                    {% if team.dispatcher %}
-                        {{ team.dispatcher.f_name }} {{ team.dispatcher.l_name }}
-                    {% else %}
-                        <span class="text-amber-600 dark:text-amber-400">Kein Dispatcher zugewiesen</span>
-                    {% endif %}
-                </dd>
+                <dt class="text-slate-500 dark:text-slate-400 text-xs">Name</dt>
+                <dd class="text-slate-800 dark:text-slate-100 mt-0.5">{{ team.name if team else '—' }}</dd>
             </div>
             <div>
                 <dt class="text-slate-500 dark:text-slate-400 text-xs">Notes</dt>
-                <dd class="text-slate-800 dark:text-slate-100 mt-0.5">
-                    {{ team.notes or "—" }}
-                </dd>
+                <dd class="text-slate-800 dark:text-slate-100 mt-0.5">{{ team.notes if team and team.notes else '—' }}</dd>
             </div>
         </dl>
+        {% endif %}
     </section>
 
+    {% if team %}
+    {# ── Dispatcher-Auswahl (Admin) ────────────────────────────────────── #}
+    {% if is_admin %}
+    <section class="mb-6">
+        <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-3">
+            Dispatcher
+        </p>
+        {% if team.dispatcher %}
+        <p class="text-sm text-slate-800 dark:text-slate-100 mb-2">
+            {{ team.dispatcher.f_name }} {{ team.dispatcher.l_name }}
+            <button type="button"
+                    hx-post="/admin/teams/teams/{{ team.id }}/dispatcher"
+                    hx-target="#team-drawer" hx-swap="innerHTML"
+                    hx-vals='{"dispatcher_id": ""}'
+                    class="ml-2 text-xs text-rose-500 hover:underline">entfernen</button>
+        </p>
+        {% else %}
+        <p class="text-amber-600 dark:text-amber-400 text-xs mb-2">
+            Kein Dispatcher zugewiesen.
+        </p>
+        {% endif %}
+        <input type="search" name="q" placeholder="Person suchen …"
+               hx-get="/admin/teams/teams/{{ team.id }}/dispatcher-search"
+               hx-trigger="input changed delay:300ms, focus"
+               hx-target="#dispatcher-search-results"
+               hx-swap="innerHTML"
+               class="w-full px-3 py-1.5 rounded-md border bg-white dark:bg-slate-700/40
+                      border-slate-200 dark:border-slate-700
+                      text-sm text-slate-800 dark:text-slate-100
+                      focus:outline-none focus:ring-2 focus:ring-sky-400/30">
+        <div id="dispatcher-search-results" class="mt-2"></div>
+        <p class="text-[10px] text-slate-400 mt-2">
+            Person fehlt? Erst Web-Zugang anlegen und Dispatcher-Rolle vergeben →
+            <a href="/admin/users" class="underline">/admin/users</a>.
+        </p>
+    </section>
+    {% else %}
+    <section class="mb-6">
+        <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-3">Dispatcher</p>
+        <p class="text-sm text-slate-800 dark:text-slate-100">
+            {% if team.dispatcher %}{{ team.dispatcher.f_name }} {{ team.dispatcher.l_name }}
+            {% else %}<span class="text-amber-600 dark:text-amber-400">Kein Dispatcher</span>{% endif %}
+        </p>
+    </section>
+    {% endif %}
+
     {% if team.prep_delete %}
-    {# Hinweis: Mitglieder-Sicht ist im Inaktiv-Zustand abgeblendet, weil die
-       Read-Helper im DB-Service ueber den Team-Join auf prep_delete IS NULL
-       filtern. Bewusst, damit historische Plaene konsistent bleiben. #}
     <div class="bg-slate-50 dark:bg-slate-700/40 rounded-lg p-4 text-sm
                 text-slate-600 dark:text-slate-300 mb-6">
         Team ist inaktiv — Zuordnungen werden ausgeblendet.
     </div>
     {% else %}
-    {# Aktive Mitglieder + Standorte: in Phase 1.3 mit Detail-Blocks befuellt. #}
     <section class="mb-6">
         <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-3">
             Mitglieder ({{ team.team_actor_assigns | length }})
         </p>
-        <p class="text-xs text-slate-400 italic">
-            Detail-Pflege folgt in Phase 1.3.
-        </p>
+        <p class="text-xs text-slate-400 italic">Detail-Pflege folgt in Phase 1.3.</p>
     </section>
-
     <section class="mb-6">
         <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-3">
             Standorte ({{ team.team_location_assigns | length }})
         </p>
-        <p class="text-xs text-slate-400 italic">
-            Detail-Pflege folgt in Phase 1.3.
-        </p>
+        <p class="text-xs text-slate-400 italic">Detail-Pflege folgt in Phase 1.3.</p>
     </section>
+    {% endif %}
     {% endif %}
 </div>

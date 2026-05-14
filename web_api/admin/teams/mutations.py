@@ -333,6 +333,44 @@ def create_location(
     return loc
 
 
+def update_location_plan_config(
+    session: Session,
+    *,
+    location: LocationOfWork,
+    nr_actors: int,
+    fixed_cast: str | None,
+    fixed_cast_only_if_available: bool,
+    notes: str | None,
+    actor: WebUser,
+) -> LocationOfWork:
+    """Dispatcher-Domaene: ``nr_actors``, ``fixed_cast``, Notes.
+
+    Validierung: ``nr_actors`` 0..255 (FastAPI ``Form(..., ge=0, le=255)``).
+    ``notification_circle_restricted`` ist bewusst NICHT Teil dieses Pfads —
+    Verwaltung erfolgt in ``/dispatcher/notification-circles``.
+    """
+    if not 0 <= nr_actors <= 255:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="nr_actors muss zwischen 0 und 255 liegen",
+        )
+    location.nr_actors = nr_actors
+    location.fixed_cast = _normalize(fixed_cast)
+    location.fixed_cast_only_if_available = bool(fixed_cast_only_if_available)
+    location.notes = _normalize(notes)
+    session.commit()
+    session.refresh(location)
+    logger.info(
+        "teams_admin_action",
+        extra={
+            "action": "location_plan_config_changed",
+            "actor_id": str(actor.id),
+            "target_id": str(location.id),
+        },
+    )
+    return location
+
+
 def update_location_admin_fields(
     session: Session,
     *,

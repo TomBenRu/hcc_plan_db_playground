@@ -359,6 +359,37 @@ def create_location_endpoint(
     return _render_location_drawer(request, loc, user, saved=True)
 
 
+@router.patch("/locations/{location_id}/plan-konfig", response_class=HTMLResponse)
+def update_location_plan_config_endpoint(
+    request: Request,
+    location_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    nr_actors: int = Form(default=2, ge=0, le=255),
+    fixed_cast: str | None = Form(default=None),
+    fixed_cast_only_if_available: str | None = Form(default=None),
+    notes: str | None = Form(default=None),
+):
+    """Dispatcher-Felder am Standort. Admin darf ebenfalls; Stammdaten bleiben Admin-only.
+
+    ``fixed_cast_only_if_available`` kommt als Checkbox — Formularkonvention: vorhanden
+    (egal welcher Wert) = True, fehlend = False.
+    """
+    location = session.get(LocationOfWork, location_id)
+    if location is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Standort nicht gefunden")
+    location = mutations.update_location_plan_config(
+        session,
+        location=location,
+        nr_actors=nr_actors,
+        fixed_cast=fixed_cast,
+        fixed_cast_only_if_available=fixed_cast_only_if_available is not None,
+        notes=notes,
+        actor=user,
+    )
+    return _render_location_drawer(request, location, user, saved=True)
+
+
 @router.patch("/locations/{location_id}/stammdaten", response_class=HTMLResponse)
 def update_location_stammdaten_endpoint(
     request: Request,

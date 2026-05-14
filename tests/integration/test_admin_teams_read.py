@@ -51,11 +51,12 @@ def test_admin_can_switch_to_locations_tab(as_admin, session: Session, project: 
 
 
 def test_dispatcher_lands_on_locations_tab_with_dispatcher_branding(
-    as_dispatcher, session: Session, project: Project
+    as_dispatcher, session: Session, project: Project, link_location_to_dispatcher
 ) -> None:
     """Reiner Dispatcher wird auf den Standorte-Tab gezwungen und sieht das
     DISPOSITION-Branding statt 'Administration'."""
-    _add_location(session, project, "DispoLoc")
+    loc = _add_location(session, project, "DispoLoc")
+    link_location_to_dispatcher(loc)
     _add_team(session, project, "Hamburg-D")
 
     resp = as_dispatcher.get("/admin/teams")
@@ -75,11 +76,12 @@ def test_dispatcher_lands_on_locations_tab_with_dispatcher_branding(
 
 
 def test_dispatcher_cannot_switch_to_teams_tab(
-    as_dispatcher, session: Session, project: Project
+    as_dispatcher, session: Session, project: Project, link_location_to_dispatcher
 ) -> None:
     """Auch wenn der Dispatcher URL-manuell ?tab=teams setzt, landet er auf locations."""
     _add_team(session, project, "Hamburg-D2")
-    _add_location(session, project, "DispoLoc2")
+    loc = _add_location(session, project, "DispoLoc2")
+    link_location_to_dispatcher(loc)
     resp = as_dispatcher.get("/admin/teams?tab=teams")
     assert resp.status_code == 200
     assert "DispoLoc2" in resp.text

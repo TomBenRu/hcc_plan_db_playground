@@ -16,12 +16,13 @@ from database.models import LocationOfWork, Project
 
 
 def test_dispatcher_can_change_nr_actors(
-    as_dispatcher, session: Session, project: Project
+    as_dispatcher, session: Session, project: Project, link_location_to_dispatcher
 ) -> None:
     loc = LocationOfWork(name="Loc-PC1", project=project, nr_actors=2)
     session.add(loc)
     session.commit()
     session.refresh(loc)
+    link_location_to_dispatcher(loc)
 
     resp = as_dispatcher.patch(
         f"/admin/teams/locations/{loc.id}/plan-konfig",
@@ -34,12 +35,13 @@ def test_dispatcher_can_change_nr_actors(
 
 
 def test_dispatcher_can_set_fixed_cast_and_flag(
-    as_dispatcher, session: Session, project: Project
+    as_dispatcher, session: Session, project: Project, link_location_to_dispatcher
 ) -> None:
     loc = LocationOfWork(name="Loc-PC2", project=project)
     session.add(loc)
     session.commit()
     session.refresh(loc)
+    link_location_to_dispatcher(loc)
 
     resp = as_dispatcher.patch(
         f"/admin/teams/locations/{loc.id}/plan-konfig",
@@ -59,7 +61,7 @@ def test_dispatcher_can_set_fixed_cast_and_flag(
 
 
 def test_fixed_cast_only_if_available_unset_when_checkbox_absent(
-    as_dispatcher, session: Session, project: Project
+    as_dispatcher, session: Session, project: Project, link_location_to_dispatcher
 ) -> None:
     """Checkbox-Konvention: Feld fehlt im Submit → False."""
     loc = LocationOfWork(
@@ -70,6 +72,7 @@ def test_fixed_cast_only_if_available_unset_when_checkbox_absent(
     session.add(loc)
     session.commit()
     session.refresh(loc)
+    link_location_to_dispatcher(loc)
 
     resp = as_dispatcher.patch(
         f"/admin/teams/locations/{loc.id}/plan-konfig",
@@ -101,7 +104,7 @@ def test_admin_can_also_change_plan_config(
 
 
 def test_notification_circle_restricted_is_ignored(
-    as_dispatcher, session: Session, project: Project
+    as_dispatcher, session: Session, project: Project, link_location_to_dispatcher
 ) -> None:
     """Defensiver Filter: notification_circle_restricted darf vom Endpoint
     NICHT gesetzt werden — Form-Body-Wert wird stillschweigend ignoriert."""
@@ -113,6 +116,7 @@ def test_notification_circle_restricted_is_ignored(
     session.add(loc)
     session.commit()
     session.refresh(loc)
+    link_location_to_dispatcher(loc)
 
     resp = as_dispatcher.patch(
         f"/admin/teams/locations/{loc.id}/plan-konfig",

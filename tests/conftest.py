@@ -56,7 +56,16 @@ import database.models  # noqa: F401 — Side-Effect: registriert Tabellen in SQ
 import web_api.dependencies as _web_dependencies
 import web_api.models.web_models  # noqa: F401 — Web-spezifische Tabellen ebenfalls registrieren
 from database.event_listeners import register_listeners
-from database.models import Person, Project
+from datetime import date
+
+from database.models import (
+    Gender,
+    LocationOfWork,
+    Person,
+    Project,
+    Team,
+    TeamLocationAssign,
+)
 from web_api.auth.dependencies import require_login
 from web_api.auth.service import hash_password
 from web_api.dependencies import get_db_session
@@ -161,10 +170,14 @@ def _make_person(
     l_name: str,
     admin_of: Project | None = None,
 ) -> Person:
+    # @example.com statt @test.local: Pydantic-EmailStr lehnt .local-TLDs ab
+    # (RFC 6761 "special-use"). gender='f' weil das Show-Schema einen Enum-Wert
+    # erfordert (None waere Validation-Error bei transitiver Hydration).
     person = Person(
         f_name=f_name,
         l_name=l_name,
-        email=f"{f_name.lower()}.{l_name.lower()}@test.local",
+        gender=Gender.female,
+        email=f"{f_name.lower()}.{l_name.lower()}-{secrets.token_hex(3)}@example.com",
         username=f"{f_name.lower()}-{l_name.lower()}-{secrets.token_hex(3)}",
         password="dummy-hash-not-used",
         project=project,
@@ -253,3 +266,33 @@ def as_dispatcher(
         yield client
     finally:
         app.dependency_overrides.pop(require_login, None)
+
+
+@pytest.fixture
+def link_location_to_dispatcher(
+    session: Session, project: Project, dispatcher_user: WebUser
+):
+    """Verknuepft einen bereits angelegten ``LocationOfWork`` mit dem
+    ``dispatcher_user``: erzeugt ein Team mit ``dispatcher_id=person_id`` und
+    eine aktive ``TeamLocationAssign``.
+
+    Wird von Tests verwendet, deren Endpoints durch den Dispatcher-Scope-Check
+    laufen (PATCH plan-konfig, Drawer-Form-Anzeige). Doppel-Rollen-User brauchen
+    das nicht, weil Admin-Pfad sowieso durchkommt.
+    """
+
+    def _link(location: LocationOfWork, team_name: str = "linked-team") -> None:
+        team = Team(
+            name=f"{team_name}-{secrets.token_hex(3)}",
+            project=project,
+            dispatcher_id=dispatcher_user.person_id,
+        )
+        session.add(team)
+        session.commit()
+        tla = TeamLocationAssign(
+            location_of_work=location, team=team, start=date.today()
+        )
+        session.add(tla)
+        session.commit()
+
+    return _link

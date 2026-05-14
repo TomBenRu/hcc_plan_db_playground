@@ -8,7 +8,7 @@ from __future__ import annotations
 
 import uuid
 from dataclasses import dataclass
-from datetime import date, datetime
+from datetime import date, datetime  # noqa: F401 — date wird in Subquery genutzt
 
 from fastapi import HTTPException, status
 from sqlalchemy import func, or_
@@ -163,12 +163,53 @@ def list_teams_view(
     return rows
 
 
+def _responsible_locations_subquery(dispatcher_person_id: uuid.UUID):
+    """Subquery: IDs der Standorte, fuer die ``dispatcher_person_id`` derzeit
+    Verantwortung traegt (Dispatcher eines Teams mit aktiver Standort-Zuordnung).
+
+    Aktiv = ``TeamLocationAssign.start <= today AND (end IS NULL OR end > today)``.
+    Wenn ein Standort von mehreren Teams bespielt wird und auch nur eines davon
+    diesem Dispatcher gehoert, gilt der Standort als 'meiner' — siehe PRD-Insight.
+    """
+    today = date.today()
+    return (
+        select(TeamLocationAssign.location_of_work_id)
+        .join(Team, Team.id == TeamLocationAssign.team_id)
+        .where(
+            Team.dispatcher_id == dispatcher_person_id,
+            Team.prep_delete.is_(None),  # type: ignore[union-attr]
+            TeamLocationAssign.start <= today,
+            or_(
+                TeamLocationAssign.end.is_(None),  # type: ignore[union-attr]
+                TeamLocationAssign.end > today,  # type: ignore[union-attr]
+            ),
+        )
+    )
+
+
+def is_dispatcher_responsible_for_location(
+    session: Session,
+    *,
+    dispatcher_person_id: uuid.UUID,
+    location_id: uuid.UUID,
+) -> bool:
+    """True, wenn der Dispatcher zur Zeit ueber mindestens ein Team Verantwortung
+    fuer den Standort traegt. Wird vom Endpoint vor Plan-Konfig-Mutationen
+    aufgerufen — defensiver 403-Check."""
+    subq = _responsible_locations_subquery(dispatcher_person_id)
+    stmt = select(func.count()).select_from(subq.subquery()).where(
+        subq.subquery().c.location_of_work_id == location_id
+    )
+    return session.execute(stmt).scalar_one() > 0
+
+
 def list_locations_view(
     session: Session,
     project_id: uuid.UUID,
     *,
     only_inactive: bool,
     search: str,
+    dispatcher_filter_person_id: uuid.UUID | None = None,
 ) -> list[LocationListRow]:
     """Standorte projektweit mit Adress-Zusammenfassung + Team-Count.
 
@@ -176,6 +217,10 @@ def list_locations_view(
     soft-deleted aus und bietet keinen Schalter — wir bauen die Query daher
     direkt hier, um den Inaktiv-Filter abzubilden. Semantik wie bei
     ``list_teams_view``: ``only_inactive`` zerteilt streng nach ``prep_delete``.
+
+    ``dispatcher_filter_person_id`` schraenkt die Liste auf Standorte ein, fuer
+    die dieser Dispatcher Verantwortung traegt — fuer den reinen Dispatcher-
+    Pfad (PRD: nur eigene Standorte sichtbar).
     """
     stmt = (
         select(LocationOfWork)
@@ -187,6 +232,12 @@ def list_locations_view(
         stmt = stmt.where(LocationOfWork.prep_delete.is_not(None))  # type: ignore[union-attr]
     else:
         stmt = stmt.where(LocationOfWork.prep_delete.is_(None))  # type: ignore[union-attr]
+    if dispatcher_filter_person_id is not None:
+        stmt = stmt.where(
+            LocationOfWork.id.in_(  # type: ignore[union-attr]
+                _responsible_locations_subquery(dispatcher_filter_person_id)
+            )
+        )
     if search:
         stmt = stmt.where(LocationOfWork.name.ilike(f"%{search}%"))  # type: ignore[union-attr]
 
@@ -265,7 +316,13 @@ def count_teams(session: Session, project_id: uuid.UUID, *, only_inactive: bool)
     return session.execute(stmt).scalar_one()
 
 
-def count_locations(session: Session, project_id: uuid.UUID, *, only_inactive: bool) -> int:
+def count_locations(
+    session: Session,
+    project_id: uuid.UUID,
+    *,
+    only_inactive: bool,
+    dispatcher_filter_person_id: uuid.UUID | None = None,
+) -> int:
     stmt = (
         select(func.count())
         .select_from(LocationOfWork)
@@ -275,4 +332,10 @@ def count_locations(session: Session, project_id: uuid.UUID, *, only_inactive: b
         stmt = stmt.where(LocationOfWork.prep_delete.is_not(None))  # type: ignore[union-attr]
     else:
         stmt = stmt.where(LocationOfWork.prep_delete.is_(None))  # type: ignore[union-attr]
+    if dispatcher_filter_person_id is not None:
+        stmt = stmt.where(
+            LocationOfWork.id.in_(  # type: ignore[union-attr]
+                _responsible_locations_subquery(dispatcher_filter_person_id)
+            )
+        )
     return session.execute(stmt).scalar_one()

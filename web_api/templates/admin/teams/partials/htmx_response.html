@@ -1,0 +1,19 @@
+{# OOB-Wrapper fuer HTMX-Refresh: Hauptcontent + Sidebar gleichzeitig aktualisieren.
+
+   Hauptcontent (#main-content) wird per regulaerem hx-target/hx-swap getauscht;
+   Sidebar-Filters und der gesetzte Tab-Hidden-State via OOB-Swap. So bleiben
+   Counts und aktive Filter-Markierungen synchron, ohne dass die Seite neu laedt. #}
+
+{# Hauptcontent: passende Liste je Tab #}
+{% if filters.tab == "locations" %}
+    {% include "admin/teams/partials/locations_list.html" %}
+{% else %}
+    {% include "admin/teams/partials/teams_list.html" %}
+{% endif %}
+
+{# OOB-Sidebar: Counts + aktive Filter-Markierungen #}
+{%- from "admin/teams/_macros.html" import qs with context -%}
+<div id="sidebar-filters" class="sidebar-filters flex flex-col gap-1.5 mb-6"
+     hx-swap-oob="outerHTML">
+    {% include "admin/teams/partials/sidebar_filters.html" %}
+</div>

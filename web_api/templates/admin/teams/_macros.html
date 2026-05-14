@@ -1,0 +1,13 @@
+{# Querystring-Helfer fuer die Teams-/Standorte-Seite.
+
+   Wiederverwendet von index.html (Sidebar-Filter, Suchformular) UND vom
+   OOB-Partial htmx_response.html (Sidebar-Refresh). In ein eigenes File
+   ausgelagert, damit `{% import %}` nicht das gesamte index.html mitrendert
+   und damit auch keinen `{% block nav %}`-Kontext braucht. #}
+
+{%- macro qs(tab=None, status=None, search=None) -%}
+{%- set t = tab if tab is not none else filters.tab -%}
+{%- set s = status if status is not none else filters.status -%}
+{%- set q = search if search is not none else filters.search -%}
+tab={{ t }}&status={{ s }}&search={{ q | urlencode }}
+{%- endmacro -%}

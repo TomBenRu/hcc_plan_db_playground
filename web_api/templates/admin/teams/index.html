@@ -1,0 +1,200 @@
+{% extends "base.html" %}
+{% from "_macros/branding.html" import role_kicker %}
+{% from "admin/teams/_macros.html" import qs with context %}
+
+{% block title %}Teams &amp; Standorte – hcc plan{% endblock %}
+
+{% block head %}
+<style>
+    /* ── Scrollbars ─ */
+    .sidebar-scroll::-webkit-scrollbar { width: 3px; }
+    .sidebar-scroll::-webkit-scrollbar-track { background: transparent; }
+    .sidebar-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.15); border-radius: 2px; }
+    .content-scroll::-webkit-scrollbar { width: 4px; }
+    .content-scroll::-webkit-scrollbar-track { background: transparent; }
+    .content-scroll::-webkit-scrollbar-thumb { background: #e2e8f0; border-radius: 2px; }
+
+    /* ── Responsive ─ */
+    @media (max-width: 1023px) {
+        .page-wrapper { grid-template-columns: 1fr !important; grid-template-rows: auto 1fr; }
+        .page-sidebar { flex-direction: row !important; flex-wrap: wrap; gap: 0.5rem;
+                        padding: 0.75rem 1rem !important; align-items: center;
+                        min-height: unset !important; overflow: visible !important; }
+        .page-sidebar .sidebar-header { margin-bottom: 0 !important; flex-shrink: 0; }
+        .page-sidebar .sidebar-header h1 { font-size: 1rem !important; }
+        .page-sidebar .sidebar-header p, .page-sidebar .sidebar-divider,
+        .page-sidebar .sidebar-spacer, .sidebar-back { display: none !important; }
+        .sidebar-filter-toggle { display: flex !important; }
+        .sidebar-filters { flex-basis: 100%; max-height: 0; overflow: hidden;
+                           transition: max-height 0.3s ease-in-out; }
+        .sidebar-filters.open { max-height: 800px; }
+    }
+    @media (min-width: 1024px) {
+        .sidebar-filter-toggle { display: none !important; }
+        .sidebar-filters { max-height: none !important; overflow: visible !important;
+                           display: flex; flex-direction: column; }
+    }
+
+    /* ── Filter-Buttons ─ */
+    .filter-btn         { transition: background 0.15s, color 0.15s, border-color 0.15s; }
+    .filter-btn.active  { background: rgba(255,255,255,0.12); color: #fff;
+                          border-color: rgba(255,255,255,0.2); }
+    .filter-btn:not(.active):hover { background: rgba(255,255,255,0.06); color: #cbd5e1; }
+    .filter-count       { font-size: 0.6875rem; color: rgba(255,255,255,0.4);
+                          margin-left: auto; font-variant-numeric: tabular-nums; }
+    .filter-btn.active .filter-count { color: rgba(255,255,255,0.7); }
+
+    /* ── Animation ─ */
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(10px); }
+                        to { opacity: 1; transform: translateY(0); } }
+    .anim { animation: fadeUp 0.35s ease-out both; }
+
+    /* ── Tabelle ─ */
+    .teams-table { font-variant-numeric: tabular-nums; }
+    .teams-table thead th {
+        font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.06em;
+        font-weight: 600; color: #94a3b8; padding: 0.5rem 0.75rem; text-align: left; white-space: nowrap;
+    }
+    [data-theme="dark"] .teams-table thead th { color: #64748b; }
+    .teams-table tbody tr {
+        border-top: 1px solid #f1f5f9; transition: background 0.12s; cursor: pointer;
+    }
+    [data-theme="dark"] .teams-table tbody tr { border-top-color: #1f2a3a; }
+    .teams-table tbody tr:hover { background: #f8fafc; }
+    [data-theme="dark"] .teams-table tbody tr:hover { background: rgba(148,163,184,0.06); }
+    .teams-table td { padding: 0.625rem 0.75rem; vertical-align: middle; }
+
+    /* ── Drawer ─ */
+    .drawer-wrap {
+        position: fixed; inset: 0 0 0 auto; width: 100%; max-width: 480px;
+        transform: translateX(100%); transition: transform 0.25s ease-out;
+        z-index: 50; pointer-events: none;
+    }
+    .drawer-wrap.open { transform: translateX(0); pointer-events: auto; }
+    .drawer-wrap > .drawer-panel {
+        height: 100%; background: #fff; border-left: 1px solid #e2e8f0;
+        box-shadow: -8px 0 30px rgba(0,0,0,0.08); overflow-y: auto;
+    }
+    [data-theme="dark"] .drawer-wrap > .drawer-panel {
+        background: #1e293b; border-left-color: #334155;
+        box-shadow: -8px 0 30px rgba(0,0,0,0.4);
+    }
+    .drawer-backdrop {
+        position: fixed; inset: 0; background: rgba(15,23,42,0.35);
+        opacity: 0; pointer-events: none; transition: opacity 0.2s; z-index: 40;
+    }
+    .drawer-wrap.open ~ .drawer-backdrop { opacity: 1; pointer-events: auto; }
+</style>
+{% endblock %}
+
+{% block nav %}{% include "partials/nav.html" %}{% endblock %}
+
+{% block content %}
+<div class="h-[calc(100vh-56px)] flex flex-col overflow-hidden">
+<div class="page-wrapper flex-1 grid overflow-hidden" style="grid-template-columns: 240px 1fr;">
+
+    {# ── Sidebar ─────────────────────────────────────────────────────────── #}
+    <aside class="page-sidebar bg-navy grid-bg flex flex-col overflow-y-auto sidebar-scroll
+                  p-6 animate-fade-up border-r border-white/5">
+
+        <div class="sidebar-header mb-6">
+            <div class="flex items-center gap-1.5 mb-2">
+                {{ role_kicker("admin") }}
+            </div>
+            <h1 class="font-display text-white text-2xl font-semibold leading-tight tracking-tight">
+                Teams &amp; Standorte
+            </h1>
+            <p class="font-sans text-xs text-slate-500 mt-1.5">
+                Organisationsstruktur und Zuweisungen pflegen.
+            </p>
+        </div>
+
+        <div class="sidebar-divider border-t border-white/5 mb-5"></div>
+
+        <button class="sidebar-filter-toggle hidden w-full items-center justify-between
+                       text-xs font-semibold tracking-widest uppercase text-slate-400 mb-3"
+                onclick="document.getElementById('sidebar-filters').classList.toggle('open');">
+            <span>Filter</span>
+            <svg class="w-4 h-4 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+        </button>
+
+        <div id="sidebar-filters" class="sidebar-filters flex flex-col gap-1.5 mb-6">
+            {% include "admin/teams/partials/sidebar_filters.html" %}
+        </div>
+
+        <div class="sidebar-spacer flex-1"></div>
+
+        <a href="/dashboard"
+           class="sidebar-back flex items-center gap-2 text-xs text-slate-600 hover:text-slate-300
+                  transition-colors font-sans mt-4 pt-4 border-t border-white/5">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Zurück zum Dashboard
+        </a>
+    </aside>
+
+    {# ── Main ────────────────────────────────────────────────────────────── #}
+    <main class="flex-1 overflow-y-auto content-scroll bg-slate-50 dark:bg-slate-900 px-6 py-8">
+        <div class="max-w-5xl mx-auto">
+
+            <div class="mb-6 flex items-center gap-3 anim" style="animation-delay: 0.05s;">
+                <form method="get" class="flex-1"
+                      hx-get="/admin/teams" hx-trigger="input changed delay:300ms from:input[type='search']"
+                      hx-target="#main-content" hx-swap="innerHTML"
+                      hx-push-url="true">
+                    <input type="hidden" name="tab" value="{{ filters.tab }}">
+                    <input type="hidden" name="status" value="{{ filters.status }}">
+                    <div class="relative">
+                        <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
+                             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M21 21l-4.35-4.35M11 17a6 6 0 100-12 6 6 0 000 12z"/>
+                        </svg>
+                        <input type="search" name="search" value="{{ filters.search }}"
+                               placeholder="Nach Name suchen …"
+                               class="w-full pl-9 pr-3 py-2 rounded-lg border
+                                      bg-white dark:bg-slate-800
+                                      border-slate-200 dark:border-slate-700
+                                      text-sm text-slate-800 dark:text-slate-100
+                                      placeholder:text-slate-400 dark:placeholder:text-slate-500
+                                      focus:outline-none focus:ring-2 focus:ring-sky-400/30
+                                      focus:border-sky-400">
+                    </div>
+                </form>
+            </div>
+
+            <div id="main-content">
+                {% if filters.tab == "locations" %}
+                    {% include "admin/teams/partials/locations_list.html" %}
+                {% else %}
+                    {% include "admin/teams/partials/teams_list.html" %}
+                {% endif %}
+            </div>
+
+        </div>
+    </main>
+
+</div>
+</div>
+
+{# ── Drawer-Container ────────────────────────────────────────────────────── #}
+<div id="team-drawer-wrap" class="drawer-wrap"><div class="drawer-panel" id="team-drawer"></div></div>
+<div id="location-drawer-wrap" class="drawer-wrap"><div class="drawer-panel" id="location-drawer"></div></div>
+<div class="drawer-backdrop"
+     onclick="document.querySelectorAll('.drawer-wrap').forEach(d => d.classList.remove('open'));"></div>
+
+<script>
+    // Drawer oeffnen, sobald HTMX einen Drawer-Inhalt geladen hat
+    document.body.addEventListener('htmx:afterSwap', function(evt) {
+        if (evt.detail.target.id === 'team-drawer') {
+            document.getElementById('team-drawer-wrap').classList.add('open');
+        } else if (evt.detail.target.id === 'location-drawer') {
+            document.getElementById('location-drawer-wrap').classList.add('open');
+        }
+    });
+</script>
+
+{% endblock %}

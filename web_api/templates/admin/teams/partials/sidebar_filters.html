@@ -1,0 +1,49 @@
+{# ── Tab-Auswahl Teams/Standorte ──────────────────────────────────────── #}
+<p class="hidden lg:block text-xs font-semibold tracking-widest uppercase text-slate-500 mb-2 font-sans">
+    Bereich
+</p>
+{% for key, dot, label in [
+        ("teams", "bg-sky-400", "Teams"),
+        ("locations", "bg-emerald-400", "Standorte")] %}
+<a href="?{{ qs(tab=key, search='') }}"
+   class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+          border-transparent text-sm font-sans text-slate-400
+          {% if filters.tab == key %}active{% endif %}">
+    <span class="w-2 h-2 rounded-full flex-shrink-0 {{ dot }}"></span>
+    {{ label }}
+    <span class="filter-count">
+        {% if key == "teams" %}
+            {% if filters.status == "inactive" %}{{ sidebar_counts.teams_inactive }}
+            {% else %}{{ sidebar_counts.teams_active }}{% endif %}
+        {% else %}
+            {% if filters.status == "inactive" %}{{ sidebar_counts.locations_inactive }}
+            {% else %}{{ sidebar_counts.locations_active }}{% endif %}
+        {% endif %}
+    </span>
+</a>
+{% endfor %}
+
+{# ── Status ─────────────────────────────────────────────────────────────── #}
+<p class="hidden lg:block text-xs font-semibold tracking-widest uppercase text-slate-500 mt-5 mb-2 font-sans">
+    Status
+</p>
+{% for key, dot, label in [
+        ("active", "bg-emerald-400", "Aktiv"),
+        ("inactive", "bg-slate-400", "Inaktiv")] %}
+<a href="?{{ qs(status=key) }}"
+   class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+          border-transparent text-sm font-sans text-slate-400
+          {% if filters.status == key %}active{% endif %}">
+    <span class="w-2 h-2 rounded-full flex-shrink-0 {{ dot }}"></span>
+    {{ label }}
+    <span class="filter-count">
+        {% if filters.tab == "teams" %}
+            {% if key == "active" %}{{ sidebar_counts.teams_active }}
+            {% else %}{{ sidebar_counts.teams_inactive }}{% endif %}
+        {% else %}
+            {% if key == "active" %}{{ sidebar_counts.locations_active }}
+            {% else %}{{ sidebar_counts.locations_inactive }}{% endif %}
+        {% endif %}
+    </span>
+</a>
+{% endfor %}

@@ -21,6 +21,7 @@ from web_api.rate_limit import limiter
 
 from web_api.account.router import router as account_router
 from web_api.admin.router import router as admin_router
+from web_api.admin.teams.router import router as admin_teams_router
 from web_api.admin.users.router import router as admin_users_router
 from web_api.auth.router import router as auth_router
 from web_api.desktop_api.router import router as desktop_api_router
@@ -96,6 +97,7 @@ async def rate_limit_handler(request: Request, exc: RateLimitExceeded) -> JSONRe
 
 app.include_router(account_router)
 app.include_router(admin_router)
+app.include_router(admin_teams_router)
 app.include_router(admin_users_router)
 app.include_router(auth_router)
 app.include_router(desktop_api_router)

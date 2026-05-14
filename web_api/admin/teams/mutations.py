@@ -15,12 +15,22 @@ from __future__ import annotations
 import logging
 import uuid
 from dataclasses import dataclass
+from datetime import date, datetime, timezone
 
 from fastapi import HTTPException, status
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlmodel import Session, select
 
-from database.models import Address, LocationOfWork, Person, Project, Team
+from database.models import (
+    Address,
+    LocationOfWork,
+    Person,
+    Project,
+    Team,
+    TeamActorAssign,
+    TeamLocationAssign,
+)
+from web_api.admin.teams import guards
 from web_api.models.web_models import WebUser, WebUserRole, WebUserRoleLink
 
 logger = logging.getLogger(__name__)
@@ -331,6 +341,208 @@ def create_location(
         },
     )
     return loc
+
+
+# ─── Soft-/Hard-Delete ────────────────────────────────────────────────────────
+
+
+def _cleanup_open_assigns_for_team(session: Session, *, team_id: uuid.UUID) -> None:
+    """Vor Soft-Delete eines Teams: offene Mitgliedschaften/Standortzuweisungen
+    mit ``end=today`` schliessen, Future-Eintraege loeschen.
+
+    Aktive Eintraege bewahren Historie — closed end-date fuer Audit-Konsistenz.
+    Future-Eintraege haben noch keine historische Bedeutung → DELETE.
+    """
+    today = date.today()
+    # TAA
+    open_taas = session.exec(
+        select(TeamActorAssign).where(
+            TeamActorAssign.team_id == team_id,
+            or_(TeamActorAssign.end.is_(None), TeamActorAssign.end > today),  # type: ignore[union-attr]
+        )
+    ).all()
+    for taa in open_taas:
+        if taa.start > today:
+            session.delete(taa)
+        elif taa.end is None or taa.end > today:
+            taa.end = today
+    # TLA analog
+    open_tlas = session.exec(
+        select(TeamLocationAssign).where(
+            TeamLocationAssign.team_id == team_id,
+            or_(TeamLocationAssign.end.is_(None), TeamLocationAssign.end > today),  # type: ignore[union-attr]
+        )
+    ).all()
+    for tla in open_tlas:
+        if tla.start > today:
+            session.delete(tla)
+        elif tla.end is None or tla.end > today:
+            tla.end = today
+
+
+def soft_delete_team(session: Session, *, team: Team, actor: WebUser) -> Team:
+    if team.prep_delete is not None:
+        return team  # idempotent
+    active = guards.count_active_plan_periods_for_team(session, team.id)
+    if active > 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Team kann nicht entfernt werden — {active} aktive Planungsperiode(n).",
+        )
+    _cleanup_open_assigns_for_team(session, team_id=team.id)
+    team.prep_delete = datetime.now(timezone.utc)
+    session.commit()
+    session.refresh(team)
+    logger.info(
+        "teams_admin_action",
+        extra={
+            "action": "team_soft_deleted",
+            "actor_id": str(actor.id),
+            "target_id": str(team.id),
+        },
+    )
+    return team
+
+
+def restore_team(session: Session, *, team: Team, actor: WebUser) -> Team:
+    team.prep_delete = None
+    session.commit()
+    session.refresh(team)
+    logger.info(
+        "teams_admin_action",
+        extra={
+            "action": "team_restored",
+            "actor_id": str(actor.id),
+            "target_id": str(team.id),
+        },
+    )
+    return team
+
+
+def hard_delete_team(
+    session: Session, *, team: Team, name_confirmation: str, actor: WebUser
+) -> None:
+    """Endgueltiges DELETE. Blockiert bei JEDER existierenden PlanPeriod
+    (Schutz vor cascade_delete-Verlust historischer Plaene)."""
+    if name_confirmation.strip() != team.name:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Name-Bestätigung stimmt nicht überein.",
+        )
+    any_pps = guards.count_any_plan_periods_for_team(session, team.id)
+    if any_pps > 0:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                f"Endgültiges Löschen nicht möglich — {any_pps} Plan-Period(en) "
+                "existieren (auch historische). Eintrag bleibt im Inaktiv-Filter."
+            ),
+        )
+    team_id_for_log = str(team.id)
+    session.delete(team)
+    session.commit()
+    logger.info(
+        "teams_admin_action",
+        extra={
+            "action": "team_hard_deleted",
+            "actor_id": str(actor.id),
+            "target_id": team_id_for_log,
+        },
+    )
+
+
+def _cleanup_open_assigns_for_location(
+    session: Session, *, location_id: uuid.UUID
+) -> None:
+    today = date.today()
+    open_tlas = session.exec(
+        select(TeamLocationAssign).where(
+            TeamLocationAssign.location_of_work_id == location_id,
+            or_(TeamLocationAssign.end.is_(None), TeamLocationAssign.end > today),  # type: ignore[union-attr]
+        )
+    ).all()
+    for tla in open_tlas:
+        if tla.start > today:
+            session.delete(tla)
+        elif tla.end is None or tla.end > today:
+            tla.end = today
+
+
+def soft_delete_location(
+    session: Session, *, location: LocationOfWork, actor: WebUser
+) -> LocationOfWork:
+    if location.prep_delete is not None:
+        return location
+    lpp_count = guards.count_active_location_plan_periods(session, location.id)
+    if lpp_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"Standort kann nicht entfernt werden — {lpp_count} aktive Location-PlanPeriod(n).",
+        )
+    _cleanup_open_assigns_for_location(session, location_id=location.id)
+    location.prep_delete = datetime.now(timezone.utc)
+    session.commit()
+    session.refresh(location)
+    logger.info(
+        "teams_admin_action",
+        extra={
+            "action": "location_soft_deleted",
+            "actor_id": str(actor.id),
+            "target_id": str(location.id),
+        },
+    )
+    return location
+
+
+def restore_location(
+    session: Session, *, location: LocationOfWork, actor: WebUser
+) -> LocationOfWork:
+    location.prep_delete = None
+    session.commit()
+    session.refresh(location)
+    logger.info(
+        "teams_admin_action",
+        extra={
+            "action": "location_restored",
+            "actor_id": str(actor.id),
+            "target_id": str(location.id),
+        },
+    )
+    return location
+
+
+def hard_delete_location(
+    session: Session,
+    *,
+    location: LocationOfWork,
+    name_confirmation: str,
+    actor: WebUser,
+) -> None:
+    if name_confirmation.strip() != location.name:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Name-Bestätigung stimmt nicht überein.",
+        )
+    lpp_count = guards.count_any_location_plan_periods(session, location.id)
+    if lpp_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                f"Endgültiges Löschen nicht möglich — {lpp_count} Location-PlanPeriod(n) "
+                "existieren."
+            ),
+        )
+    loc_id_for_log = str(location.id)
+    session.delete(location)
+    session.commit()
+    logger.info(
+        "teams_admin_action",
+        extra={
+            "action": "location_hard_deleted",
+            "actor_id": str(actor.id),
+            "target_id": loc_id_for_log,
+        },
+    )
 
 
 def update_location_plan_config(

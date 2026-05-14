@@ -17,7 +17,7 @@ from datetime import date
 
 from database import db_services
 from database.models import LocationOfWork, Team, TeamActorAssign, TeamLocationAssign
-from web_api.admin.teams import assignments, mutations, service
+from web_api.admin.teams import assignments, guards, mutations, service
 from web_api.auth.dependencies import LoggedInUser, require_role
 from web_api.dependencies import get_db_session
 from web_api.models.web_models import WebUser, WebUserRole
@@ -556,6 +556,120 @@ def update_team_location_endpoint(
     )
     team = session.get(Team, assign.team_id)
     return _render_team_drawer(request, team, user, saved=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Phase 1.5 — Soft-Delete + Hard-Delete-Pfad
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@router.post("/teams/{team_id}/soft-delete", response_class=HTMLResponse)
+def soft_delete_team_endpoint(
+    request: Request,
+    team_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+):
+    team = session.get(Team, team_id)
+    if team is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Team nicht gefunden")
+    try:
+        team = mutations.soft_delete_team(session, team=team, actor=user)
+    except HTTPException as exc:
+        if exc.status_code == status.HTTP_409_CONFLICT:
+            return _render_team_drawer(request, team, user, error=exc.detail)
+        raise
+    return _render_team_drawer(request, team, user, saved=True)
+
+
+@router.post("/teams/{team_id}/restore", response_class=HTMLResponse)
+def restore_team_endpoint(
+    request: Request,
+    team_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+):
+    team = session.get(Team, team_id)
+    if team is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Team nicht gefunden")
+    team = mutations.restore_team(session, team=team, actor=user)
+    return _render_team_drawer(request, team, user, saved=True)
+
+
+@router.delete("/teams/{team_id}", response_class=HTMLResponse)
+def hard_delete_team_endpoint(
+    request: Request,
+    team_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    name_confirmation: str = Form(default=""),
+):
+    team = session.get(Team, team_id)
+    if team is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Team nicht gefunden")
+    mutations.hard_delete_team(
+        session, team=team, name_confirmation=name_confirmation, actor=user
+    )
+    # Nach Hard-Delete: leerer Response mit HX-Trigger
+    from fastapi.responses import Response
+
+    resp = Response(status_code=status.HTTP_200_OK)
+    resp.headers["HX-Trigger"] = "teams-list-changed"
+    return resp
+
+
+@router.post("/locations/{location_id}/soft-delete", response_class=HTMLResponse)
+def soft_delete_location_endpoint(
+    request: Request,
+    location_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+):
+    location = session.get(LocationOfWork, location_id)
+    if location is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Standort nicht gefunden")
+    try:
+        location = mutations.soft_delete_location(session, location=location, actor=user)
+    except HTTPException as exc:
+        if exc.status_code == status.HTTP_409_CONFLICT:
+            return _render_location_drawer(request, location, user, error=exc.detail)
+        raise
+    return _render_location_drawer(request, location, user, saved=True)
+
+
+@router.post("/locations/{location_id}/restore", response_class=HTMLResponse)
+def restore_location_endpoint(
+    request: Request,
+    location_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+):
+    location = session.get(LocationOfWork, location_id)
+    if location is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Standort nicht gefunden")
+    location = mutations.restore_location(session, location=location, actor=user)
+    return _render_location_drawer(request, location, user, saved=True)
+
+
+@router.delete("/locations/{location_id}", response_class=HTMLResponse)
+def hard_delete_location_endpoint(
+    request: Request,
+    location_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    name_confirmation: str = Form(default=""),
+):
+    location = session.get(LocationOfWork, location_id)
+    if location is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Standort nicht gefunden")
+    mutations.hard_delete_location(
+        session, location=location, name_confirmation=name_confirmation, actor=user
+    )
+    from fastapi.responses import Response
+
+    resp = Response(status_code=status.HTTP_200_OK)
+    resp.headers["HX-Trigger"] = "locations-list-changed"
+    return resp
 
 
 @router.get("/addresses/suggest", response_class=HTMLResponse)

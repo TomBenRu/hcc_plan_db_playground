@@ -13,13 +13,27 @@ from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse
 from sqlmodel import Session
 
+from datetime import date
+
 from database import db_services
-from database.models import LocationOfWork, Team
-from web_api.admin.teams import mutations, service
+from database.models import LocationOfWork, Team, TeamActorAssign, TeamLocationAssign
+from web_api.admin.teams import assignments, mutations, service
 from web_api.auth.dependencies import LoggedInUser, require_role
 from web_api.dependencies import get_db_session
 from web_api.models.web_models import WebUser, WebUserRole
 from web_api.templating import templates
+
+
+def _parse_optional_date(raw: str | None) -> date | None:
+    """Form-Date-Helper: leere Strings als None, sonst ``YYYY-MM-DD`` parsen."""
+    if not raw or not raw.strip():
+        return None
+    try:
+        return date.fromisoformat(raw.strip())
+    except ValueError as exc:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Ungültiges Datum: {raw}"
+        ) from exc
 
 router = APIRouter(prefix="/admin/teams", tags=["admin-teams"])
 
@@ -388,6 +402,160 @@ def update_location_plan_config_endpoint(
         actor=user,
     )
     return _render_location_drawer(request, location, user, saved=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Phase 1.3 — Zuordnungen (Mitglieder + Standorte zum Team)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@router.get("/teams/{team_id}/member-search", response_class=HTMLResponse)
+def member_search_endpoint(
+    request: Request,
+    team_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    q: str = "",
+):
+    project = service.get_session_project(session, user)
+    candidates = assignments.search_persons_for_team(
+        session, project_id=project.id, q=q
+    )
+    return templates.TemplateResponse(
+        "admin/teams/partials/member_search_results.html",
+        {"request": request, "team_id": team_id, "candidates": candidates},
+    )
+
+
+@router.post("/teams/{team_id}/members", response_class=HTMLResponse)
+def add_team_member_endpoint(
+    request: Request,
+    team_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    person_id: uuid.UUID = Form(...),
+    start: str | None = Form(default=None),
+):
+    team = session.get(Team, team_id)
+    if team is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Team nicht gefunden")
+    parsed_start = _parse_optional_date(start)
+    try:
+        assignments.add_team_member(
+            session, team=team, person_id=person_id, start=parsed_start, actor=user
+        )
+    except HTTPException as exc:
+        if exc.status_code == status.HTTP_409_CONFLICT and isinstance(
+            exc.detail, assignments.AssignConflict
+        ):
+            return templates.TemplateResponse(
+                "admin/teams/partials/conflict_dialog.html",
+                {
+                    "request": request,
+                    "kind": "member",
+                    "team_id": team_id,
+                    "person_id": person_id,
+                    "start": parsed_start,
+                    "conflict": exc.detail,
+                },
+                status_code=status.HTTP_409_CONFLICT,
+            )
+        raise
+    return _render_team_drawer(request, team, user, saved=True)
+
+
+@router.patch("/members/{assign_id}", response_class=HTMLResponse)
+def update_team_member_endpoint(
+    request: Request,
+    assign_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    end: str | None = Form(default=None),
+):
+    """End-Datum setzen oder revertieren. ``end=""`` revertiert auf NULL."""
+    assign = session.get(TeamActorAssign, assign_id)
+    if assign is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Mitgliedschaft nicht gefunden")
+    parsed_end = _parse_optional_date(end)
+    assign = assignments.set_team_member_end(
+        session, assign=assign, end=parsed_end, actor=user
+    )
+    team = session.get(Team, assign.team_id)
+    return _render_team_drawer(request, team, user, saved=True)
+
+
+@router.get("/teams/{team_id}/location-search", response_class=HTMLResponse)
+def location_search_endpoint(
+    request: Request,
+    team_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    q: str = "",
+):
+    project = service.get_session_project(session, user)
+    candidates = assignments.search_locations_for_team(
+        session, project_id=project.id, q=q
+    )
+    return templates.TemplateResponse(
+        "admin/teams/partials/location_search_results.html",
+        {"request": request, "team_id": team_id, "candidates": candidates},
+    )
+
+
+@router.post("/teams/{team_id}/locations", response_class=HTMLResponse)
+def add_team_location_endpoint(
+    request: Request,
+    team_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    location_id: uuid.UUID = Form(...),
+    start: str | None = Form(default=None),
+):
+    team = session.get(Team, team_id)
+    if team is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Team nicht gefunden")
+    parsed_start = _parse_optional_date(start)
+    try:
+        assignments.add_team_location(
+            session, team=team, location_id=location_id, start=parsed_start, actor=user
+        )
+    except HTTPException as exc:
+        if exc.status_code == status.HTTP_409_CONFLICT and isinstance(
+            exc.detail, assignments.AssignConflict
+        ):
+            return templates.TemplateResponse(
+                "admin/teams/partials/conflict_dialog.html",
+                {
+                    "request": request,
+                    "kind": "location",
+                    "team_id": team_id,
+                    "location_id": location_id,
+                    "start": parsed_start,
+                    "conflict": exc.detail,
+                },
+                status_code=status.HTTP_409_CONFLICT,
+            )
+        raise
+    return _render_team_drawer(request, team, user, saved=True)
+
+
+@router.patch("/team-locations/{assign_id}", response_class=HTMLResponse)
+def update_team_location_endpoint(
+    request: Request,
+    assign_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    end: str | None = Form(default=None),
+):
+    assign = session.get(TeamLocationAssign, assign_id)
+    if assign is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Zuordnung nicht gefunden")
+    parsed_end = _parse_optional_date(end)
+    assign = assignments.set_team_location_end(
+        session, assign=assign, end=parsed_end, actor=user
+    )
+    team = session.get(Team, assign.team_id)
+    return _render_team_drawer(request, team, user, saved=True)
 
 
 @router.patch("/locations/{location_id}/stammdaten", response_class=HTMLResponse)

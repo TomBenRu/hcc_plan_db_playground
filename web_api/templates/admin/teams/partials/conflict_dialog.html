@@ -1,0 +1,41 @@
+{# Konflikt-Dialog: bestehende offene Zuordnung blockiert neue Anlage.
+
+   Bewusst pragmatisch: der Dialog zeigt nur Hinweis + Schliessen. Das
+   Beenden der bestehenden Zuordnung erfolgt manuell ueber den Mitglieder-
+   bzw. Standort-Block im Drawer. So bleibt das UI ohne implizite Kaskade,
+   und das in PRD §8 geforderte Konflikt-Feedback ist gegeben. #}
+
+<div class="p-4 bg-amber-50 dark:bg-amber-900/30 border border-amber-200
+            dark:border-amber-700/50 rounded-lg space-y-3">
+    <div class="flex items-start gap-2">
+        <svg class="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0"
+             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 9v2m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <div class="text-sm text-amber-800 dark:text-amber-200">
+            {% if kind == "member" %}
+            Diese Person hat bereits eine offene Mitgliedschaft in diesem Team.
+            {% else %}
+            Dieser Standort ist diesem Team bereits zugeordnet.
+            {% endif %}
+            <span class="block text-xs mt-1 text-amber-700 dark:text-amber-300">
+                Beginn: {{ conflict.existing_start.strftime("%Y-%m-%d") }}
+                {% if conflict.existing_end %}
+                — endet am {{ conflict.existing_end.strftime("%Y-%m-%d") }}
+                {% endif %}
+            </span>
+            <p class="text-xs mt-2 text-amber-700 dark:text-amber-300">
+                Bitte zuerst die bestehende Zuordnung im Drawer beenden,
+                dann erneut zuweisen.
+            </p>
+        </div>
+    </div>
+    <button type="button"
+            hx-get="/admin/teams/teams/{{ team_id }}/drawer"
+            hx-target="#team-drawer" hx-swap="innerHTML"
+            class="px-3 py-1.5 rounded bg-slate-200 dark:bg-slate-700
+                   text-slate-700 dark:text-slate-200 text-xs">
+        Schließen
+    </button>
+</div>

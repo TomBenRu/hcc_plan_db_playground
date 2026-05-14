@@ -60,6 +60,7 @@ class WebUser(SQLModel, table=True):
     created_at: datetime = Field(default_factory=_utcnow)
     last_modified: datetime = Field(default_factory=_utcnow)
     password_changed_at: datetime = Field(default_factory=_utcnow)
+    last_login_at: Optional[datetime] = Field(default=None, nullable=True)
     pending_email: Optional[str] = Field(default=None, max_length=254, nullable=True)
 
     role_links: list[WebUserRoleLink] = Relationship(back_populates="user")

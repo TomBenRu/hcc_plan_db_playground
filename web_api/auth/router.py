@@ -33,6 +33,7 @@ from web_api.auth.service import (
     decode_token,
     load_user_with_roles,
     silent_refresh,
+    touch_last_login,
     verify_password,
 )
 from web_api.config import Settings, get_settings
@@ -130,6 +131,10 @@ def login(
     role_values = [r.value for r in user.roles]
     access_tok = create_access_token(str(user.id), user.email, role_values, settings)
     refresh_tok = create_refresh_token(str(user.id), settings)
+
+    # Tages-Heartbeat fuer `last_login_at` — nur ein Write pro 24 h pro User.
+    if touch_last_login(session, user):
+        session.commit()
 
     # ?next= hat Vorrang, sonst Dashboard
     redirect_url = _validate_next_url(next_url) or "/dashboard"

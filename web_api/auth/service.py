@@ -15,6 +15,11 @@ _ALGORITHM = "HS256"
 # Toleranz gegen Uhren-Drift bei iat-vs-password_changed_at-Vergleich (Sekunden).
 _PWD_CHANGE_CLOCK_SKEW_SECONDS = 5
 
+# Mindestabstand zwischen zwei `last_login_at`-Updates. Verhindert, dass
+# jeder Silent-Refresh und jeder Browser-Tab eigene Writes auf die User-Zeile
+# produziert — fuer die Benutzerverwaltung reicht Tages-Granularitaet voellig.
+_LAST_LOGIN_DEBOUNCE_SECONDS = 24 * 60 * 60
+
 
 # ── User-Lookup ───────────────────────────────────────────────────────────────
 
@@ -42,6 +47,27 @@ def hash_password(plain: str) -> str:
 
 def verify_password(plain: str, hashed: str) -> bool:
     return bcrypt.checkpw(plain.encode(), hashed.encode())
+
+
+# ── Login-Aktivitaet ──────────────────────────────────────────────────────────
+
+
+def touch_last_login(session: Session, user: WebUser) -> bool:
+    """Schreibt `last_login_at = now()`, wenn der letzte Wert > 24 h alt ist.
+
+    Returns True, wenn ein Write geflusht wurde (Caller entscheidet ueber commit).
+    Aufrufer: Login-Endpoint und Silent-Refresh. Idempotenter Tages-Heartbeat.
+    """
+    now = datetime.now(timezone.utc)
+    if user.last_login_at is not None:
+        last = user.last_login_at
+        if last.tzinfo is None:
+            last = last.replace(tzinfo=timezone.utc)
+        if (now - last).total_seconds() < _LAST_LOGIN_DEBOUNCE_SECONDS:
+            return False
+    user.last_login_at = now
+    session.add(user)
+    return True
 
 
 # ── JWT ───────────────────────────────────────────────────────────────────────
@@ -134,4 +160,10 @@ def silent_refresh(
     role_values = [r.value for r in user.roles]
     new_access = create_access_token(str(user.id), user.email, role_values, settings)
     new_refresh = create_refresh_token(str(user.id), settings)
+
+    # Tages-Heartbeat: ohne Refresh wuerde der Wert bei eingeloggten Browser-
+    # Sessions nie wieder aktualisiert. Commit ueberlassen wir dem Caller.
+    if touch_last_login(session, user):
+        session.commit()
+
     return user, new_access, new_refresh

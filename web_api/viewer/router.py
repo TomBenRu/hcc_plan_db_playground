@@ -272,6 +272,7 @@ def viewer_persons(
     session: Session = Depends(get_db_session),
     team_id: uuid.UUID | None = None,
     include_deleted: bool = Query(default=False),
+    include_inactive: bool = Query(default=False),
     search: str = Query(default=""),
 ):
     """Read-Only-Listenseite der Mitarbeiter im Projekt mit Filtern."""
@@ -282,6 +283,7 @@ def viewer_persons(
         project_id=project_id,
         team_id=team_id,
         include_deleted=include_deleted,
+        include_inactive=include_inactive,
         search=search,
     )
     return templates.TemplateResponse(
@@ -295,6 +297,7 @@ def viewer_persons(
             "filters": {
                 "team_id": team_id,
                 "include_deleted": include_deleted,
+                "include_inactive": include_inactive,
                 "search": search,
             },
         },

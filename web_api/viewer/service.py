@@ -66,7 +66,12 @@ def get_all_teams_in_project(session: Session, project_id: uuid.UUID) -> list[Te
 
 @dataclass
 class PersonRow:
-    """View-Model fuer die Personen-Listentabelle."""
+    """View-Model fuer die Personen-Listentabelle.
+
+    `is_inactive`: lebend (prep_delete=NULL), aber ohne heute aktive
+    Team-Zuordnung. Das ist die typische Karteileichen-Kategorie — die
+    Person ist im System, aber operativ nicht (mehr) eingebunden.
+    """
 
     id: uuid.UUID
     f_name: str
@@ -75,6 +80,7 @@ class PersonRow:
     phone_nr: str | None
     role: str | None  # PersonRoleEnum.value oder None
     is_soft_deleted: bool
+    is_inactive: bool
     current_team_names: list[str]  # heute aktive Team-Zuordnungen
 
 
@@ -98,6 +104,7 @@ def list_persons_in_project(
     project_id: uuid.UUID,
     team_id: uuid.UUID | None = None,
     include_deleted: bool = False,
+    include_inactive: bool = False,
     search: str = "",
 ) -> list[PersonRow]:
     """Listet alle Personen eines Projekts fuer die Read-Only-Stammdaten-Sicht.
@@ -132,6 +139,15 @@ def list_persons_in_project(
     rows: list[PersonRow] = []
     for p in persons:
         team_names = _current_team_names(p, today)
+        is_deleted = p.prep_delete is not None
+        is_inactive = (not is_deleted) and not team_names
+
+        # Status-Filter: Karteileichen ausblenden, wenn nicht ausdruecklich gewuenscht.
+        # `include_deleted` greift hier nicht (das laeuft schon ueber das SQL-WHERE),
+        # daher pruefen wir nur `is_inactive`.
+        if is_inactive and not include_inactive:
+            continue
+
         if team_id is not None:
             # Python-seitiger Filter, weil current_team_names date-abhaengig ist
             # und nicht trivial in SQL ausgedrueckt werden kann.
@@ -149,7 +165,8 @@ def list_persons_in_project(
                 email=p.email,
                 phone_nr=p.phone_nr,
                 role=p.role.value if p.role else None,
-                is_soft_deleted=p.prep_delete is not None,
+                is_soft_deleted=is_deleted,
+                is_inactive=is_inactive,
                 current_team_names=team_names,
             )
         )

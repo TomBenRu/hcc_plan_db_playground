@@ -16,21 +16,17 @@
 
     {# Spalte 1: Avatar + Name + E-Mail #}
     <td>
-        <div class="flex items-center gap-3">
-            <span class="avatar {% if row.is_soft_deleted %}inactive{% endif %}">{{ initials }}</span>
+        <div class="flex items-center gap-3 {% if row.is_inactive %}opacity-70{% endif %}">
+            <span class="avatar {% if row.is_soft_deleted or row.is_inactive %}inactive{% endif %}">
+                {{ initials }}
+            </span>
             <div class="min-w-0">
                 <div class="font-medium text-slate-800 dark:text-slate-100 truncate
                             {% if row.is_soft_deleted %}line-through opacity-60{% endif %}">
                     {{ row.f_name }} {{ row.l_name }}
                 </div>
-                <div class="text-xs text-slate-400 dark:text-slate-500 truncate flex items-center gap-1.5">
+                <div class="text-xs text-slate-400 dark:text-slate-500 truncate">
                     {{ row.email or "—" }}
-                    {% if row.is_soft_deleted %}
-                    <span class="inline-flex items-center text-amber-600 dark:text-amber-400
-                                  text-[10px] font-medium">
-                        gelöscht
-                    </span>
-                    {% endif %}
                 </div>
             </div>
         </div>
@@ -52,8 +48,29 @@
         {% if row.phone_nr %}{{ row.phone_nr }}{% else %}—{% endif %}
     </td>
 
-    {# Spalte 4: Rolle #}
-    <td class="text-right pr-4 text-slate-500 dark:text-slate-400 text-xs uppercase tracking-wide">
-        {{ row.role or "—" }}
+    {# Spalte 4: Status (aktiv / inaktiv / gelöscht). #}
+    <td class="text-right pr-4">
+        {% if row.is_soft_deleted %}
+            <span class="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full
+                         bg-amber-50 text-amber-700 ring-1 ring-amber-200
+                         dark:bg-amber-900/30 dark:text-amber-300 dark:ring-amber-700/40">
+                <span class="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                gelöscht
+            </span>
+        {% elif row.is_inactive %}
+            <span class="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full
+                         bg-slate-100 text-slate-600 ring-1 ring-slate-200
+                         dark:bg-slate-700/40 dark:text-slate-400 dark:ring-slate-600/50">
+                <span class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                inaktiv
+            </span>
+        {% else %}
+            <span class="inline-flex items-center gap-1 text-[10px] font-medium px-2 py-0.5 rounded-full
+                         bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200
+                         dark:bg-emerald-900/30 dark:text-emerald-300 dark:ring-emerald-700/40">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                aktiv
+            </span>
+        {% endif %}
     </td>
 </tr>

@@ -2,12 +2,14 @@
 {% from "_macros/branding.html" import role_kicker %}
 
 {# Querystring-Helfer: laesst die aktiven Filter stehen, ueberschreibt nur Kwargs. #}
-{%- macro qs(team_id=None, include_deleted=None, search=None) -%}
+{%- macro qs(team_id=None, include_deleted=None, include_inactive=None, search=None) -%}
 {%- set t = team_id if team_id is not none else filters.team_id -%}
 {%- set d = include_deleted if include_deleted is not none else filters.include_deleted -%}
+{%- set i = include_inactive if include_inactive is not none else filters.include_inactive -%}
 {%- set q = search if search is not none else filters.search -%}
 {%- if t %}team_id={{ t }}&{% endif -%}
 {%- if d %}include_deleted=1&{% endif -%}
+{%- if i %}include_inactive=1&{% endif -%}
 search={{ q | urlencode }}
 {%- endmacro -%}
 
@@ -157,9 +159,16 @@ search={{ q | urlencode }}
 
         <div class="mb-3">
             <p class="text-[10px] uppercase tracking-widest text-slate-500 mb-2 px-3">Sichtbarkeit</p>
-            <a href="?{{ qs(include_deleted=(not filters.include_deleted) or '') }}"
+            <a href="?{{ qs(include_inactive=(not filters.include_inactive) or '') }}"
                class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
                       border-transparent text-sm font-sans text-slate-400
+                      {% if filters.include_inactive %}active{% endif %}">
+                <span class="w-2 h-2 rounded-full flex-shrink-0 bg-slate-400"></span>
+                Inaktive einschließen
+            </a>
+            <a href="?{{ qs(include_deleted=(not filters.include_deleted) or '') }}"
+               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                      border-transparent text-sm font-sans text-slate-400 mt-1
                       {% if filters.include_deleted %}active{% endif %}">
                 <span class="w-2 h-2 rounded-full flex-shrink-0 bg-amber-400"></span>
                 Gelöschte einschließen
@@ -197,6 +206,7 @@ search={{ q | urlencode }}
             <form method="get" class="mb-4 anim" style="animation-delay: 0.07s;">
                 <input type="hidden" name="team_id" value="{{ filters.team_id or '' }}">
                 {% if filters.include_deleted %}<input type="hidden" name="include_deleted" value="1">{% endif %}
+                {% if filters.include_inactive %}<input type="hidden" name="include_inactive" value="1">{% endif %}
                 <div class="relative">
                     <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
                          fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -225,7 +235,7 @@ search={{ q | urlencode }}
                             <th>Name &amp; E-Mail</th>
                             <th>Teams (aktuell)</th>
                             <th>Telefon</th>
-                            <th class="text-right pr-4">Rolle</th>
+                            <th class="text-right pr-4">Status</th>
                         </tr>
                     </thead>
                     <tbody>

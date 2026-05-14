@@ -1,0 +1,8 @@
+{# Hidden-Inputs fuer das Such-Form — bilden den aktuellen Filter-Stand ab.
+   Wird vom Sidebar-Filter-Klick OOB mit-aktualisiert, damit beim
+   anschliessenden Tippen ins Suchfeld die frischen Filter-Werte
+   im Request landen. #}
+
+{% if filters.team_id %}<input type="hidden" name="team_id" value="{{ filters.team_id }}">{% endif %}
+{% if filters.include_deleted %}<input type="hidden" name="include_deleted" value="1">{% endif %}
+{% if filters.include_inactive %}<input type="hidden" name="include_inactive" value="1">{% endif %}

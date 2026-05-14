@@ -133,46 +133,11 @@ search={{ q | urlencode }}
 
         <div class="sidebar-divider border-t border-white/5 mb-4"></div>
 
-        <div class="mb-3">
-            <p class="text-[10px] uppercase tracking-widest text-slate-500 mb-2 px-3">Team</p>
-            <div class="sidebar-filters flex flex-col gap-1">
-                <a href="?{{ qs(team_id='') }}"
-                   class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
-                          border-transparent text-sm font-sans text-slate-400
-                          {% if not filters.team_id %}active{% endif %}">
-                    <span class="w-2 h-2 rounded-full flex-shrink-0 bg-slate-500"></span>
-                    Alle Teams
-                </a>
-                {% for team in teams %}
-                <a href="?{{ qs(team_id=team.id) }}"
-                   class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
-                          border-transparent text-sm font-sans text-slate-400
-                          {% if filters.team_id == team.id %}active{% endif %}">
-                    <span class="w-2 h-2 rounded-full flex-shrink-0 bg-indigo-400"></span>
-                    <span class="truncate">{{ team.name }}</span>
-                </a>
-                {% endfor %}
-            </div>
-        </div>
-
-        <div class="sidebar-divider border-t border-white/5 mt-4 mb-4"></div>
-
-        <div class="mb-3">
-            <p class="text-[10px] uppercase tracking-widest text-slate-500 mb-2 px-3">Sichtbarkeit</p>
-            <a href="?{{ qs(include_inactive=(not filters.include_inactive) or '') }}"
-               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
-                      border-transparent text-sm font-sans text-slate-400
-                      {% if filters.include_inactive %}active{% endif %}">
-                <span class="w-2 h-2 rounded-full flex-shrink-0 bg-slate-400"></span>
-                Inaktive einschließen
-            </a>
-            <a href="?{{ qs(include_deleted=(not filters.include_deleted) or '') }}"
-               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
-                      border-transparent text-sm font-sans text-slate-400 mt-1
-                      {% if filters.include_deleted %}active{% endif %}">
-                <span class="w-2 h-2 rounded-full flex-shrink-0 bg-amber-400"></span>
-                Gelöschte einschließen
-            </a>
+        {# Sidebar-Filter mit ID auf dem Wrapper — wird per HTMX-OOB-Swap
+           bei jedem Filter-Klick ausgetauscht, damit der `active`-Zustand
+           der Buttons mitwandert ohne Full-Page-Reload. #}
+        <div id="sidebar-filters" class="contents">
+            {% include "viewer/persons/partials/sidebar_filters.html" %}
         </div>
 
         <div class="sidebar-spacer flex-1"></div>
@@ -203,10 +168,16 @@ search={{ q | urlencode }}
                 </span>
             </div>
 
-            <form method="get" class="mb-4 anim" style="animation-delay: 0.07s;">
-                <input type="hidden" name="team_id" value="{{ filters.team_id or '' }}">
-                {% if filters.include_deleted %}<input type="hidden" name="include_deleted" value="1">{% endif %}
-                {% if filters.include_inactive %}<input type="hidden" name="include_inactive" value="1">{% endif %}
+            {# Suche: Live-HTMX, kein Form-Submit. Hidden inputs nur emittieren,
+               wenn der Wert gesetzt ist — leeres `team_id=` wuerde sonst beim
+               Enter-Druck als UUID-Parse-Fehler 422 produzieren. #}
+            <form class="mb-4 anim" style="animation-delay: 0.07s;" onsubmit="return false;">
+                {# Hidden-Filter-Stand mit eigener ID, damit Sidebar-Klicks ihn
+                   per OOB-Swap aktualisieren koennen (sonst veraltet er
+                   zwischen Sidebar-Toggle und Search-Tippen). #}
+                <span id="search-hidden-state">
+                    {% include "viewer/persons/partials/search_hidden_state.html" %}
+                </span>
                 <div class="relative">
                     <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400"
                          fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -215,6 +186,12 @@ search={{ q | urlencode }}
                     </svg>
                     <input type="search" name="search" value="{{ filters.search }}"
                            placeholder="Suche nach Name oder E-Mail …"
+                           hx-get="/viewer/persons"
+                           hx-include="closest form"
+                           hx-trigger="keyup changed delay:300ms, search"
+                           hx-target="#persons-table"
+                           hx-swap="outerHTML"
+                           hx-push-url="true"
                            class="w-full pl-9 pr-3 py-2 rounded-lg border
                                   bg-white dark:bg-slate-800
                                   border-slate-200 dark:border-slate-700
@@ -225,43 +202,9 @@ search={{ q | urlencode }}
                 </div>
             </form>
 
-            {% if rows %}
-            <div class="bg-white dark:bg-slate-800 rounded-xl border
-                        border-slate-100 dark:border-slate-700/50 shadow-sm overflow-hidden
-                        anim" style="animation-delay: 0.1s;">
-                <table class="persons-table w-full text-sm">
-                    <thead class="bg-slate-50/60 dark:bg-slate-900/40">
-                        <tr>
-                            <th>Name &amp; E-Mail</th>
-                            <th>Teams (aktuell)</th>
-                            <th>Telefon</th>
-                            <th class="text-right pr-4">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in rows %}
-                            {% include "viewer/persons/partials/person_row.html" %}
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div class="anim" style="animation-delay: 0.1s;">
+                {% include "viewer/persons/partials/table.html" %}
             </div>
-            {% else %}
-            <div class="anim flex flex-col items-center justify-center py-16 text-slate-400"
-                 style="animation-delay: 0.1s;">
-                <div class="w-14 h-14 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100
-                            dark:border-slate-700/50 shadow-sm flex items-center justify-center mb-4">
-                    <svg class="w-7 h-7 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                              d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-2.13a4 4 0 11-8 0 4 4 0 018 0zm6 0a4 4 0 11-8 0 4 4 0 018 0z"/>
-                    </svg>
-                </div>
-                <p class="text-sm font-medium text-slate-500 dark:text-slate-300">Keine Treffer</p>
-                <p class="text-xs mt-1">
-                    {% if filters.search %}Niemand passt zu „{{ filters.search }}".
-                    {% else %}Mit den aktuellen Filtern wurde niemand gefunden.{% endif %}
-                </p>
-            </div>
-            {% endif %}
 
         </div>
     </main>

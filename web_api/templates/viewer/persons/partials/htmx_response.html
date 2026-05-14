@@ -1,0 +1,16 @@
+{# HTMX-Antwort: Tabelle als hx-target-Swap + Sidebar-Filter als OOB-Swap.
+   Wird nur fuer Requests mit HX-Request=true geliefert. #}
+
+{% include "viewer/persons/partials/table.html" %}
+
+{# Sidebar-Filter mitliefern, damit der Active-Zustand der Buttons
+   serverseitig korrekt aktualisiert wird (OOB-Swap auf #sidebar-filters). #}
+<div id="sidebar-filters" hx-swap-oob="outerHTML" class="contents">
+    {% include "viewer/persons/partials/sidebar_filters.html" %}
+</div>
+
+{# Hidden-Filter-Stand im Suchfeld-Form aktualisieren, damit beim
+   anschliessenden Tippen die frischen Werte mitgesendet werden. #}
+<span id="search-hidden-state" hx-swap-oob="outerHTML">
+    {% include "viewer/persons/partials/search_hidden_state.html" %}
+</span>

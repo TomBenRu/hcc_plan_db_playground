@@ -1,0 +1,75 @@
+{# Sidebar-Filter-Block fuer die Personenliste.
+   Erwartet: filters (dict), teams (list). #}
+
+{# Querystring-Helfer — identisch zur Index-Definition, damit das Partial
+   in beiden Render-Pfaden (Full-Page + OOB) selbststaendig funktioniert. #}
+{%- macro qs(team_id=None, include_deleted=None, include_inactive=None, search=None) -%}
+{%- set t = team_id if team_id is not none else filters.team_id -%}
+{%- set d = include_deleted if include_deleted is not none else filters.include_deleted -%}
+{%- set i = include_inactive if include_inactive is not none else filters.include_inactive -%}
+{%- set q = search if search is not none else filters.search -%}
+{%- if t %}team_id={{ t }}&{% endif -%}
+{%- if d %}include_deleted=1&{% endif -%}
+{%- if i %}include_inactive=1&{% endif -%}
+search={{ q | urlencode }}
+{%- endmacro -%}
+
+    {# Team-Filter #}
+    <div class="mb-3">
+        <p class="text-[10px] uppercase tracking-widest text-slate-500 mb-2 px-3">Team</p>
+        <div class="sidebar-filters flex flex-col gap-1">
+            <a href="?{{ qs(team_id='') }}"
+               hx-get="/viewer/persons?{{ qs(team_id='') }}"
+               hx-target="#persons-table"
+               hx-swap="outerHTML"
+               hx-push-url="true"
+               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                      border-transparent text-sm font-sans text-slate-400
+                      {% if not filters.team_id %}active{% endif %}">
+                <span class="w-2 h-2 rounded-full flex-shrink-0 bg-slate-500"></span>
+                Alle Teams
+            </a>
+            {% for team in teams %}
+            <a href="?{{ qs(team_id=team.id) }}"
+               hx-get="/viewer/persons?{{ qs(team_id=team.id) }}"
+               hx-target="#persons-table"
+               hx-swap="outerHTML"
+               hx-push-url="true"
+               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                      border-transparent text-sm font-sans text-slate-400
+                      {% if filters.team_id == team.id %}active{% endif %}">
+                <span class="w-2 h-2 rounded-full flex-shrink-0 bg-indigo-400"></span>
+                <span class="truncate">{{ team.name }}</span>
+            </a>
+            {% endfor %}
+        </div>
+    </div>
+
+    <div class="sidebar-divider border-t border-white/5 mt-4 mb-4"></div>
+
+    {# Sichtbarkeits-Toggles — invertieren den aktuellen Zustand #}
+    <div class="mb-3">
+        <p class="text-[10px] uppercase tracking-widest text-slate-500 mb-2 px-3">Sichtbarkeit</p>
+        <a href="?{{ qs(include_inactive=(not filters.include_inactive) or '') }}"
+           hx-get="/viewer/persons?{{ qs(include_inactive=(not filters.include_inactive) or '') }}"
+           hx-target="#persons-table"
+           hx-swap="outerHTML"
+           hx-push-url="true"
+           class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                  border-transparent text-sm font-sans text-slate-400
+                  {% if filters.include_inactive %}active{% endif %}">
+            <span class="w-2 h-2 rounded-full flex-shrink-0 bg-slate-400"></span>
+            Inaktive einschließen
+        </a>
+        <a href="?{{ qs(include_deleted=(not filters.include_deleted) or '') }}"
+           hx-get="/viewer/persons?{{ qs(include_deleted=(not filters.include_deleted) or '') }}"
+           hx-target="#persons-table"
+           hx-swap="outerHTML"
+           hx-push-url="true"
+           class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                  border-transparent text-sm font-sans text-slate-400 mt-1
+                  {% if filters.include_deleted %}active{% endif %}">
+            <span class="w-2 h-2 rounded-full flex-shrink-0 bg-amber-400"></span>
+            Gelöschte einschließen
+        </a>
+    </div>

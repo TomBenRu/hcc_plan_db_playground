@@ -270,36 +270,66 @@ def viewer_persons(
     request: Request,
     user: WebUser = require_role(WebUserRole.viewer, WebUserRole.admin),
     session: Session = Depends(get_db_session),
-    team_id: uuid.UUID | None = None,
+    team_id: str | None = Query(default=None),
     include_deleted: bool = Query(default=False),
     include_inactive: bool = Query(default=False),
     search: str = Query(default=""),
 ):
-    """Read-Only-Listenseite der Mitarbeiter im Projekt mit Filtern."""
+    """Read-Only-Listenseite der Mitarbeiter im Projekt mit Filtern.
+
+    `team_id` ist absichtlich als String typisiert: HTMX-Forms senden leere
+    Hidden-Inputs (`?team_id=`) mit, die FastAPI sonst als UUID-Parse-Fehler
+    422 zurueckweisen wuerde. Empty-String wird hier zu None normalisiert.
+
+    Bei `HX-Request: true` (Live-Search aus dem Suchfeld) liefern wir nur
+    das Tabellen-Partial — Sidebar und URL-State bleiben stehen.
+    """
+    parsed_team_id: uuid.UUID | None = None
+    if team_id:
+        try:
+            parsed_team_id = uuid.UUID(team_id)
+        except ValueError:
+            parsed_team_id = None  # ungueltige UUID → Filter ignorieren
+
     project_id = get_user_project_id(session, user)
     teams = get_all_teams_in_project(session, project_id)
     rows = list_persons_in_project(
         session,
         project_id=project_id,
-        team_id=team_id,
+        team_id=parsed_team_id,
         include_deleted=include_deleted,
         include_inactive=include_inactive,
         search=search,
     )
+    filters = {
+        "team_id": parsed_team_id,
+        "include_deleted": include_deleted,
+        "include_inactive": include_inactive,
+        "search": search,
+    }
+
+    if request.headers.get("HX-Request") == "true":
+        # HTMX-Response: Tabelle als hx-target-Swap + Sidebar-Filter als
+        # OOB-Swap, damit Filter-Buttons den `active`-Zustand mitfuehren.
+        return templates.TemplateResponse(
+            "viewer/persons/partials/htmx_response.html",
+            {
+                "request": request,
+                "rows": rows,
+                "filters": filters,
+                "teams": teams,
+            },
+        )
+
     return templates.TemplateResponse(
         "viewer/persons/index.html",
         {
             "request": request,
             "user": user,
             "teams": teams,
-            "selected_team_id": team_id,
+            "selected_team_id": parsed_team_id,
             "rows": rows,
-            "filters": {
-                "team_id": team_id,
-                "include_deleted": include_deleted,
-                "include_inactive": include_inactive,
-                "search": search,
-            },
+            "filters": filters,
         },
     )
 

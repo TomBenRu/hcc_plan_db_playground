@@ -49,9 +49,20 @@ def _normalize_status(raw: str | None) -> str:
     return "inactive" if raw == "inactive" else "active"
 
 
-def _build_filters(tab: str | None, status: str | None, search: str | None) -> dict:
+def _build_filters(
+    tab: str | None,
+    status: str | None,
+    search: str | None,
+    *,
+    is_admin: bool,
+) -> dict:
+    """Filter normalisieren. Reiner Dispatcher (kein Admin) wird auf
+    ``tab=locations`` gezwungen — der Teams-Tab ist fuer ihn nicht erreichbar."""
+    normalized_tab = _normalize_tab(tab)
+    if not is_admin:
+        normalized_tab = "locations"
     return {
-        "tab": _normalize_tab(tab),
+        "tab": normalized_tab,
         "status": _normalize_status(status),
         "search": (search or "").strip(),
     }
@@ -116,7 +127,8 @@ def teams_index(
     fuer HTMX-Calls (Liste + Sidebar-Counts + Hidden-State austauschen).
     """
     service.require_admin_or_dispatcher(user)
-    filters = _build_filters(tab, status, search)
+    is_admin = user.has_any_role(WebUserRole.admin)
+    filters = _build_filters(tab, status, search, is_admin=is_admin)
     ctx = _build_view_context(request, user, session, filters)
 
     template_name = (

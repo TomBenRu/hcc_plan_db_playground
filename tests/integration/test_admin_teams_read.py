@@ -50,11 +50,56 @@ def test_admin_can_switch_to_locations_tab(as_admin, session: Session, project: 
     assert "Spielstaette A" in resp.text
 
 
-def test_dispatcher_sees_same_page(as_dispatcher, session: Session, project: Project) -> None:
+def test_dispatcher_lands_on_locations_tab_with_dispatcher_branding(
+    as_dispatcher, session: Session, project: Project
+) -> None:
+    """Reiner Dispatcher wird auf den Standorte-Tab gezwungen und sieht das
+    DISPOSITION-Branding statt 'Administration'."""
+    _add_location(session, project, "DispoLoc")
     _add_team(session, project, "Hamburg-D")
+
     resp = as_dispatcher.get("/admin/teams")
     assert resp.status_code == 200
-    assert "Hamburg-D" in resp.text
+    # Standorte sichtbar (Dispatcher-Tab)
+    assert "DispoLoc" in resp.text
+    # Team nicht sichtbar — Teams-Tab fuer Dispatcher nicht aktiv
+    assert "Hamburg-D" not in resp.text
+    # Dispatcher-Branding statt Admin-Branding
+    assert "Standorte" in resp.text
+    assert "DISPOSITION" in resp.text or "Disposition" in resp.text
+    # Admin-spezifische Subzeile darf nicht erscheinen
+    assert "Organisationsstruktur" not in resp.text
+    # Sidebar-Titel ist nicht der Admin-Format-String — der Test prueft das,
+    # indem er nach dem H1-Marker schaut (nicht nach dem <title>-Tag im Head).
+    assert "Teams &amp; Standorte<" not in resp.text  # H1-Schlusstag
+
+
+def test_dispatcher_cannot_switch_to_teams_tab(
+    as_dispatcher, session: Session, project: Project
+) -> None:
+    """Auch wenn der Dispatcher URL-manuell ?tab=teams setzt, landet er auf locations."""
+    _add_team(session, project, "Hamburg-D2")
+    _add_location(session, project, "DispoLoc2")
+    resp = as_dispatcher.get("/admin/teams?tab=teams")
+    assert resp.status_code == 200
+    assert "DispoLoc2" in resp.text
+    assert "Hamburg-D2" not in resp.text
+
+
+def test_admin_keeps_full_branding_and_both_tabs(
+    as_admin, session: Session, project: Project
+) -> None:
+    _add_team(session, project, "AdmTeam")
+    _add_location(session, project, "AdmLoc")
+    resp = as_admin.get("/admin/teams")
+    assert resp.status_code == 200
+    # Admin-Branding bleibt
+    assert "Teams &amp; Standorte" in resp.text
+    assert "Organisationsstruktur" in resp.text
+    assert "ADMINISTRATION" in resp.text or "Administration" in resp.text
+    # Beide Tabs erreichbar — Tab 'Teams' steht im Sidebar als Filter
+    # (Default-Tab Teams zeigt das Team)
+    assert "AdmTeam" in resp.text
 
 
 def test_inactive_filter_shows_only_soft_deleted_teams(

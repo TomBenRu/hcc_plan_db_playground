@@ -1,10 +1,14 @@
 {# ── Tab-Auswahl Teams/Standorte ──────────────────────────────────────── #}
+{# Reiner Dispatcher (kein Admin) sieht nur den Standorte-Eintrag — Teams sind
+   fuer ihn nicht ohne Schreibrecht relevant. is_admin wird vom Router gesetzt. #}
 <p class="hidden lg:block text-xs font-semibold tracking-widest uppercase text-slate-500 mb-2 font-sans">
     Bereich
 </p>
-{% for key, dot, label in [
-        ("teams", "bg-sky-400", "Teams"),
-        ("locations", "bg-emerald-400", "Standorte")] %}
+{% set tab_options = [("teams", "bg-sky-400", "Teams"),
+                      ("locations", "bg-emerald-400", "Standorte")]
+                     if is_admin else
+                     [("locations", "bg-emerald-400", "Standorte")] %}
+{% for key, dot, label in tab_options %}
 <a href="?{{ qs(tab=key, search='') }}"
    class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
           border-transparent text-sm font-sans text-slate-400

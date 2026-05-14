@@ -84,10 +84,12 @@ def test_fixed_cast_only_if_available_unset_when_checkbox_absent(
     assert fresh.fixed_cast_only_if_available is False
 
 
-def test_admin_can_also_change_plan_config(
+def test_admin_without_dispatcher_role_is_blocked_from_plan_config(
     as_admin, session: Session, project: Project
 ) -> None:
-    """Admin hat Doppel-Recht — Stammdaten + Plan-Konfig."""
+    """Plan-Konfig ist Dispatcher-Domaene. Reiner Admin darf nicht editieren,
+    auch wenn er sonst alle Schreibrechte hat — die Regel folgt strikt der
+    Dispatcher-Verantwortung am Standort."""
     loc = LocationOfWork(name="Loc-PC4", project=project)
     session.add(loc)
     session.commit()
@@ -97,10 +99,8 @@ def test_admin_can_also_change_plan_config(
         f"/admin/teams/locations/{loc.id}/plan-konfig",
         data={"nr_actors": 7, "fixed_cast": "", "notes": ""},
     )
-    assert resp.status_code == 200
-    session.expire_all()
-    fresh = session.get(LocationOfWork, loc.id)
-    assert fresh.nr_actors == 7
+    assert resp.status_code == 403
+    assert "nicht Dispatcher dieses Standorts" in resp.text
 
 
 def test_notification_circle_restricted_is_ignored(

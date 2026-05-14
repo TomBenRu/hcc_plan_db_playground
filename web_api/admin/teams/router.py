@@ -201,9 +201,10 @@ def location_drawer(
     location = db_services.location_of_work.get(location_id)
     is_admin = user.has_any_role(WebUserRole.admin)
     is_dispatcher = user.has_any_role(WebUserRole.dispatcher)
-    can_edit_plan_config = is_admin or (
-        is_dispatcher
-        and user.person_id is not None
+    # Plan-Konfig: strikt nach Dispatcher-Verantwortung. Admin-Rolle allein
+    # genuegt nicht; auch Doppel-Rollen-User braucht aktive Team-Zuordnung.
+    can_edit_plan_config = (
+        user.person_id is not None
         and service.is_dispatcher_responsible_for_location(
             session,
             dispatcher_person_id=user.person_id,
@@ -265,8 +266,11 @@ def _render_location_drawer(
 ) -> HTMLResponse:
     is_admin = user.has_any_role(WebUserRole.admin)
     is_dispatcher = user.has_any_role(WebUserRole.dispatcher)
-    can_edit_plan_config = is_admin
-    if not is_admin and is_dispatcher and session is not None and user.person_id is not None:
+    # Plan-Konfig-Editierung folgt strikt der Dispatcher-Verantwortung —
+    # auch ein Admin (mit oder ohne Dispatcher-Rolle) editiert nur, wenn er
+    # als Person Dispatcher des Standorts ist.
+    can_edit_plan_config = False
+    if session is not None and user.person_id is not None:
         can_edit_plan_config = service.is_dispatcher_responsible_for_location(
             session,
             dispatcher_person_id=user.person_id,
@@ -444,11 +448,15 @@ def update_location_plan_config_endpoint(
     fixed_cast_only_if_available: str | None = Form(default=None),
     notes: str | None = Form(default=None),
 ):
-    """Dispatcher-Felder am Standort. Admin darf ebenfalls; Stammdaten bleiben Admin-only.
+    """Dispatcher-Felder am Standort. Nur editierbar, wer **Dispatcher des
+    Standorts** ist — unabhaengig von der Admin-Rolle. Stammdaten bleiben
+    Admin-only (separater Endpoint).
 
-    Reiner Dispatcher (kein Admin) darf nur Standorte editieren, fuer die er
-    ueber Team-Zuordnung Verantwortung traegt — 403 sonst. Doppel-Rollen-User
-    (Admin + Dispatcher) hat Vollzugriff.
+    Konsistente Regel: Plan-Konfig folgt der Dispatcher-Verantwortung. Auch ein
+    User mit beiden Rollen (Admin + Dispatcher) darf nur die Standorte
+    bearbeiten, fuer die er als Dispatcher zustaendig ist. Ein reiner Admin
+    (ohne Dispatcher-Rolle) darf gar nicht editieren — die Plan-Konfig ist
+    Dispatcher-Domaene.
 
     ``fixed_cast_only_if_available`` kommt als Checkbox — Formularkonvention: vorhanden
     (egal welcher Wert) = True, fehlend = False.
@@ -456,18 +464,16 @@ def update_location_plan_config_endpoint(
     location = session.get(LocationOfWork, location_id)
     if location is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Standort nicht gefunden")
-    is_admin = user.has_any_role(WebUserRole.admin)
-    if not is_admin and user.person_id is not None:
-        responsible = service.is_dispatcher_responsible_for_location(
-            session,
-            dispatcher_person_id=user.person_id,
-            location_id=location_id,
+    responsible = user.person_id is not None and service.is_dispatcher_responsible_for_location(
+        session,
+        dispatcher_person_id=user.person_id,
+        location_id=location_id,
+    )
+    if not responsible:
+        raise HTTPException(
+            status.HTTP_403_FORBIDDEN,
+            detail="Sie sind nicht Dispatcher dieses Standorts.",
         )
-        if not responsible:
-            raise HTTPException(
-                status.HTTP_403_FORBIDDEN,
-                detail="Sie sind nicht Dispatcher dieses Standorts.",
-            )
     location = mutations.update_location_plan_config(
         session,
         location=location,

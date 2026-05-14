@@ -153,6 +153,132 @@ def test_admin_sees_all_locations(
     assert "AdmFremd" in resp.text
 
 
+# ─── Doppel-Rollen-Tests: Admin + Dispatcher ─────────────────────────────────
+# Die Regel ist konsistent: Plan-Konfig editiert nur, wer Dispatcher des
+# Standorts ist — egal welche zusaetzlichen Rollen vorhanden sind.
+
+
+def _make_admin_plus_dispatcher_user(session: Session, project: Project) -> WebUser:
+    """Helper: WebUser mit BEIDEN Rollen + verknuepfter Person."""
+    import secrets
+    from database.models import Gender
+    from web_api.auth.service import hash_password
+    from web_api.models.web_models import WebUserRole, WebUserRoleLink
+
+    person = Person(
+        f_name="DoppelRolle",
+        l_name="Test",
+        gender=Gender.female,
+        email=f"doppel-{secrets.token_hex(3)}@example.com",
+        username=f"doppel-{secrets.token_hex(3)}",
+        password="dummy",
+        project=project,
+        admin_of_project_id=project.id,
+    )
+    session.add(person)
+    session.commit()
+    user = WebUser(
+        email=f"doppel-{secrets.token_hex(3)}@example.com",
+        hashed_password=hash_password("test"),
+        is_active=True,
+        person_id=person.id,
+    )
+    session.add(user)
+    session.commit()
+    session.add(WebUserRoleLink(web_user_id=user.id, role=WebUserRole.admin))
+    session.add(WebUserRoleLink(web_user_id=user.id, role=WebUserRole.dispatcher))
+    session.commit()
+    session.refresh(user, attribute_names=["role_links"])
+    return user
+
+
+def test_admin_dispatcher_can_edit_own_location(session: Session, project: Project) -> None:
+    """Doppel-Rollen-User darf eigenen Standort editieren."""
+    from web_api.auth.dependencies import require_login
+    from web_api.main import app
+
+    dual = _make_admin_plus_dispatcher_user(session, project)
+    own_loc = LocationOfWork(name="Doppel-Eigen", project=project)
+    own_team = Team(name="Doppel-Team", project=project, dispatcher_id=dual.person_id)
+    session.add_all([own_loc, own_team])
+    session.commit()
+    session.add(TeamLocationAssign(
+        location_of_work=own_loc, team=own_team, start=date.today()
+    ))
+    session.commit()
+    session.refresh(own_loc)
+
+    app.dependency_overrides[require_login] = lambda: dual
+    try:
+        from fastapi.testclient import TestClient
+        client = TestClient(app)
+        resp = client.patch(
+            f"/admin/teams/locations/{own_loc.id}/plan-konfig",
+            data={"nr_actors": 9, "fixed_cast": "", "notes": ""},
+        )
+    finally:
+        app.dependency_overrides.pop(require_login, None)
+
+    assert resp.status_code == 200, resp.text
+    session.expire_all()
+    fresh = session.get(LocationOfWork, own_loc.id)
+    assert fresh.nr_actors == 9
+
+
+def test_admin_dispatcher_blocked_on_foreign_location(
+    session: Session, project: Project
+) -> None:
+    """Doppel-Rollen-User wird auch bei Plan-Konfig blockiert, wenn er fuer
+    den Standort nicht als Dispatcher zustaendig ist."""
+    from web_api.auth.dependencies import require_login
+    from web_api.main import app
+
+    dual = _make_admin_plus_dispatcher_user(session, project)
+    foreign = _foreign_location(session, project, "DoppelFremd")
+
+    app.dependency_overrides[require_login] = lambda: dual
+    try:
+        from fastapi.testclient import TestClient
+        client = TestClient(app)
+        resp = client.patch(
+            f"/admin/teams/locations/{foreign.id}/plan-konfig",
+            data={"nr_actors": 9, "fixed_cast": "", "notes": ""},
+        )
+    finally:
+        app.dependency_overrides.pop(require_login, None)
+
+    assert resp.status_code == 403
+    assert "nicht Dispatcher dieses Standorts" in resp.text
+
+
+def test_admin_dispatcher_sees_all_locations_in_list(
+    session: Session, project: Project, dispatcher_user: WebUser
+) -> None:
+    """Doppel-Rollen-User behaelt Admin-Sicht: ALLE Standorte sichtbar in der
+    Liste — nur die Plan-Konfig-Editierbarkeit ist auf eigene begrenzt. Das ist
+    bewusste UX: Doppel-Rolle sieht auch fremde Standorte (z.B. fuer Adress-
+    Edits, die Admin-Domaene sind)."""
+    from web_api.auth.dependencies import require_login
+    from web_api.main import app
+
+    dual = _make_admin_plus_dispatcher_user(session, project)
+    _own_location(session, project, dispatcher_user, "DD-Eigen")
+    _foreign_location(session, project, "DD-Fremd")
+
+    app.dependency_overrides[require_login] = lambda: dual
+    try:
+        from fastapi.testclient import TestClient
+        client = TestClient(app)
+        resp = client.get("/admin/teams?tab=locations")
+    finally:
+        app.dependency_overrides.pop(require_login, None)
+
+    assert resp.status_code == 200
+    # Doppel-Rolle hat is_admin=True → Liste ist nicht gefiltert
+    assert "DD-Eigen" in resp.text
+    assert "DD-Fremd" in resp.text
+
+
 def test_location_with_multiple_teams_is_responsible_via_any_team(
     as_dispatcher, session: Session, project: Project, dispatcher_user: WebUser
 ) -> None:

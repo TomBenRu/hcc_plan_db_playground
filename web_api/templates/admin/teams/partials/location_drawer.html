@@ -166,13 +166,9 @@
     <section class="mb-6">
         <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-3">
             Plan-Konfiguration
-            {% if is_dispatcher and not can_edit_plan_config %}
+            {% if not can_edit_plan_config %}
             <span class="ml-2 normal-case tracking-normal text-[10px] text-slate-400 font-normal">
                 (Sie sind nicht Dispatcher dieses Standorts)
-            </span>
-            {% elif not is_dispatcher and not is_admin %}
-            <span class="ml-2 normal-case tracking-normal text-[10px] text-slate-400 font-normal">
-                (nur Dispatcher)
             </span>
             {% endif %}
         </p>

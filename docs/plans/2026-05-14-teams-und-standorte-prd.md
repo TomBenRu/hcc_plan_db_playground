@@ -222,7 +222,9 @@ Keine Schema-Änderungen geplant. Genutzte Tabellen:
 | Hard-Delete aus Inaktiv-Filter | ✓ | — |
 | Wiederherstellen aus Inaktiv-Filter | ✓ | — |
 
-User mit beiden Rollen (`admin` UND `dispatcher`) sehen das volle Feld-Set editierbar.
+**Plan-Konfig-Sonderregel (Update 2026-05-15):** Die Plan-Konfig-Felder (`nr_actors`, `fixed_cast`, `fixed_cast_only_if_available`, `notes`) sind **nur** für den Dispatcher des Standorts editierbar — d.h. die eingeloggte Person muss als `Team.dispatcher` eines Teams mit aktiver `TeamLocationAssign` auf den Standort verzeichnet sein. Das gilt **unabhängig** von der Admin-Rolle: auch ein User mit beiden Rollen (Admin + Dispatcher) darf nur eigene Standorte editieren; ein reiner Admin (ohne Dispatcher-Rolle) hat gar keinen Plan-Konfig-Zugriff. Stammdaten (Name, Adresse) bleiben hingegen reine Admin-Domäne, ohne Standort-Scope.
+
+**Liste-Sichtbarkeit:** Reine Dispatcher sehen nur eigene Standorte (Filter im Service). Admins und Doppel-Rollen-User sehen alle Standorte — die Liste ist Admin-Sichtbarkeit; die Edit-Berechtigung greift erst am Drawer/Endpoint.
 
 Auf Endpoint-Ebene gilt: jede Mutation ist mit `require_role(...)` abgesichert, das Pattern folgt `web_api/admin/router.py:36`. Reine Read-Endpoints (Liste, Detail) sind für beide Rollen offen.
 

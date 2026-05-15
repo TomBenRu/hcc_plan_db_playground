@@ -160,6 +160,42 @@ def list_future_team_locations(session: Session, team_id: uuid.UUID) -> list[Tea
     return list(session.exec(stmt).all())
 
 
+def list_active_location_teams(
+    session: Session, location_id: uuid.UUID
+) -> list[TeamLocationAssign]:
+    """Aktive TLAs zu einer Location (Spiegel zu ``list_active_team_locations``)."""
+    today = date.today()
+    stmt = (
+        select(TeamLocationAssign)
+        .where(
+            TeamLocationAssign.location_of_work_id == location_id,
+            TeamLocationAssign.start <= today,
+            or_(
+                TeamLocationAssign.end.is_(None),  # type: ignore[union-attr]
+                TeamLocationAssign.end > today,  # type: ignore[union-attr]
+            ),
+        )
+        .order_by(TeamLocationAssign.start)
+    )
+    return list(session.exec(stmt).all())
+
+
+def list_future_location_teams(
+    session: Session, location_id: uuid.UUID
+) -> list[TeamLocationAssign]:
+    """Future-TLAs (``start > today``) zu einer Location."""
+    today = date.today()
+    stmt = (
+        select(TeamLocationAssign)
+        .where(
+            TeamLocationAssign.location_of_work_id == location_id,
+            TeamLocationAssign.start > today,
+        )
+        .order_by(TeamLocationAssign.start)
+    )
+    return list(session.exec(stmt).all())
+
+
 # ─── Mutations: TeamActorAssign ───────────────────────────────────────────────
 
 
@@ -391,3 +427,58 @@ def search_locations_for_team(
     if q.strip():
         stmt = stmt.where(LocationOfWork.name.ilike(pattern))  # type: ignore[union-attr]
     return list(session.exec(stmt).all())
+
+
+def search_teams_for_location(
+    session: Session,
+    *,
+    project_id: uuid.UUID,
+    q: str,
+    limit: int = 20,
+) -> list[Team]:
+    """Aktive Teams im Projekt — Pool fuer den Team-Selector im Standort-Drawer."""
+    pattern = f"%{q.strip()}%"
+    stmt = (
+        select(Team)
+        .where(
+            Team.project_id == project_id,
+            Team.prep_delete.is_(None),  # type: ignore[union-attr]
+        )
+        .order_by(Team.name)
+        .limit(limit)
+    )
+    if q.strip():
+        stmt = stmt.where(Team.name.ilike(pattern))  # type: ignore[union-attr]
+    return list(session.exec(stmt).all())
+
+
+def delete_future_team_location(
+    session: Session,
+    *,
+    assign: TeamLocationAssign,
+    actor: WebUser,
+) -> None:
+    """Loescht eine TLA — zulaessig nur, wenn ``start > today`` (Future-Eintrag).
+
+    Symmetrisch zur Soft-Delete-Cleanup-Logik in ``mutations._cleanup_open_assigns_*``:
+    Future-Eintraege haben noch keine historische Bedeutung und duerfen physisch
+    entfernt werden; aktive/historische Eintraege bleiben fuer Audit erhalten und
+    werden ueber ``end`` geschlossen.
+    """
+    today = date.today()
+    if assign.start <= today:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Nur zukuenftige Zuordnungen koennen geloescht werden.",
+        )
+    assign_id_for_log = str(assign.id)
+    session.delete(assign)
+    session.commit()
+    logger.info(
+        "teams_admin_action",
+        extra={
+            "action": "team_location_future_deleted",
+            "actor_id": str(actor.id),
+            "target_id": assign_id_for_log,
+        },
+    )

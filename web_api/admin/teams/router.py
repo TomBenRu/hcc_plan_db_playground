@@ -180,12 +180,21 @@ def location_drawer(
     request: Request,
     location_id: uuid.UUID,
     user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
 ):
     """Detail-Drawer fuer einen Standort."""
     location = db_services.location_of_work.get(location_id)
+    if location is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Standort nicht gefunden")
     return templates.TemplateResponse(
         "admin/teams/partials/location_drawer.html",
-        {"request": request, "user": user, "location": location},
+        {
+            "request": request,
+            "user": user,
+            "location": location,
+            "active_team_assigns": assignments.list_active_location_teams(session, location.id),
+            "future_team_assigns": assignments.list_future_location_teams(session, location.id),
+        },
     )
 
 
@@ -223,15 +232,26 @@ def _render_location_drawer(
     location: LocationOfWork,
     user: WebUser,
     *,
+    session: Session,
     saved: bool = False,
     error: str | None = None,
 ) -> HTMLResponse:
+    """Standort-Drawer rendern inkl. Team-Zuordnungen.
+
+    ``session`` ist zwingend, weil aktive und zukuenftige Team-Zuordnungen
+    pro Render frisch geladen werden — Lazy-Load ueber die ORM-Relation wuerde
+    historische Eintraege miteinschleppen und das Filtern ins Template verlagern.
+    """
+    active_team_assigns = assignments.list_active_location_teams(session, location.id)
+    future_team_assigns = assignments.list_future_location_teams(session, location.id)
     response = templates.TemplateResponse(
         "admin/teams/partials/location_drawer.html",
         {
             "request": request,
             "user": user,
             "location": location,
+            "active_team_assigns": active_team_assigns,
+            "future_team_assigns": future_team_assigns,
             "saved": saved,
             "error": error,
         },
@@ -377,7 +397,7 @@ def create_location_endpoint(
             )
             return response
         raise
-    return _render_location_drawer(request, loc, user, saved=True)
+    return _render_location_drawer(request, loc, user, session=session, saved=True)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -535,6 +555,106 @@ def update_team_location_endpoint(
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
+# Phase 1.3b — Team-Zuordnung von der Standort-Seite (Spiegel zu /teams/.../locations)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@router.get("/locations/{location_id}/team-search", response_class=HTMLResponse)
+def team_search_endpoint(
+    request: Request,
+    location_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    q: str = "",
+):
+    project = service.get_session_project(session, user)
+    candidates = assignments.search_teams_for_location(
+        session, project_id=project.id, q=q
+    )
+    return templates.TemplateResponse(
+        "admin/teams/partials/team_search_results.html",
+        {"request": request, "location_id": location_id, "candidates": candidates},
+    )
+
+
+@router.post("/locations/{location_id}/teams", response_class=HTMLResponse)
+def add_location_team_endpoint(
+    request: Request,
+    location_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    team_id: uuid.UUID = Form(...),
+    start: str | None = Form(default=None),
+):
+    location = session.get(LocationOfWork, location_id)
+    if location is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Standort nicht gefunden")
+    team = session.get(Team, team_id)
+    if team is None or team.project_id != location.project_id:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Team nicht gefunden")
+    parsed_start = _parse_optional_date(start)
+    try:
+        assignments.add_team_location(
+            session, team=team, location_id=location.id, start=parsed_start, actor=user
+        )
+    except HTTPException as exc:
+        if exc.status_code == status.HTTP_409_CONFLICT and isinstance(
+            exc.detail, assignments.AssignConflict
+        ):
+            return templates.TemplateResponse(
+                "admin/teams/partials/conflict_dialog.html",
+                {
+                    "request": request,
+                    "kind": "team",
+                    "drawer_target": "location-drawer",
+                    "drawer_reload_url": f"/admin/teams/locations/{location_id}/drawer",
+                    "conflict": exc.detail,
+                },
+                status_code=status.HTTP_409_CONFLICT,
+            )
+        raise
+    return _render_location_drawer(request, location, user, session=session, saved=True)
+
+
+@router.patch("/location-teams/{assign_id}", response_class=HTMLResponse)
+def update_location_team_endpoint(
+    request: Request,
+    assign_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    end: str | None = Form(default=None),
+):
+    """End-Datum einer Standort↔Team-Zuordnung setzen oder revertieren. Spiegel
+    zu ``update_team_location_endpoint``, rendert aber den Standort-Drawer."""
+    assign = session.get(TeamLocationAssign, assign_id)
+    if assign is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Zuordnung nicht gefunden")
+    parsed_end = _parse_optional_date(end)
+    assign = assignments.set_team_location_end(
+        session, assign=assign, end=parsed_end, actor=user
+    )
+    location = session.get(LocationOfWork, assign.location_of_work_id)
+    return _render_location_drawer(request, location, user, session=session, saved=True)
+
+
+@router.delete("/location-teams/{assign_id}", response_class=HTMLResponse)
+def delete_location_team_endpoint(
+    request: Request,
+    assign_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+):
+    """Future-TLA physisch loeschen — nur erlaubt fuer ``start > today``."""
+    assign = session.get(TeamLocationAssign, assign_id)
+    if assign is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Zuordnung nicht gefunden")
+    location_id = assign.location_of_work_id
+    assignments.delete_future_team_location(session, assign=assign, actor=user)
+    location = session.get(LocationOfWork, location_id)
+    return _render_location_drawer(request, location, user, session=session, saved=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
 # Phase 1.5 — Soft-Delete + Hard-Delete-Pfad
 # ═══════════════════════════════════════════════════════════════════════════════
 
@@ -608,9 +728,9 @@ def soft_delete_location_endpoint(
         location = mutations.soft_delete_location(session, location=location, actor=user)
     except HTTPException as exc:
         if exc.status_code == status.HTTP_409_CONFLICT:
-            return _render_location_drawer(request, location, user, error=exc.detail)
+            return _render_location_drawer(request, location, user, session=session, error=exc.detail)
         raise
-    return _render_location_drawer(request, location, user, saved=True)
+    return _render_location_drawer(request, location, user, session=session, saved=True)
 
 
 @router.post("/locations/{location_id}/restore", response_class=HTMLResponse)
@@ -624,7 +744,7 @@ def restore_location_endpoint(
     if location is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Standort nicht gefunden")
     location = mutations.restore_location(session, location=location, actor=user)
-    return _render_location_drawer(request, location, user, saved=True)
+    return _render_location_drawer(request, location, user, session=session, saved=True)
 
 
 @router.delete("/locations/{location_id}", response_class=HTMLResponse)
@@ -697,6 +817,6 @@ def update_location_stammdaten_endpoint(
         )
     except HTTPException as exc:
         if exc.status_code == status.HTTP_409_CONFLICT:
-            return _render_location_drawer(request, location, user, error=exc.detail)
+            return _render_location_drawer(request, location, user, session=session, error=exc.detail)
         raise
-    return _render_location_drawer(request, location, user, saved=True)
+    return _render_location_drawer(request, location, user, session=session, saved=True)

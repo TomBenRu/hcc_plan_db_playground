@@ -3,7 +3,16 @@
    Bewusst pragmatisch: der Dialog zeigt nur Hinweis + Schliessen. Das
    Beenden der bestehenden Zuordnung erfolgt manuell ueber den Mitglieder-
    bzw. Standort-Block im Drawer. So bleibt das UI ohne implizite Kaskade,
-   und das in PRD §8 geforderte Konflikt-Feedback ist gegeben. #}
+   und das in PRD §8 geforderte Konflikt-Feedback ist gegeben.
+
+   Kinds:
+     - "member"   → Person ↔ Team (Team-Drawer)
+     - "location" → Standort ↔ Team (Team-Drawer)
+     - "team"     → Team ↔ Standort (Standort-Drawer)
+
+   Wenn ``drawer_target``/``drawer_reload_url`` gesetzt sind (Team-Kind),
+   re-laedt der Schliessen-Button den Location-Drawer; sonst fallback auf
+   den Team-Drawer via ``team_id``. #}
 
 <div class="p-4 bg-amber-50 dark:bg-amber-900/30 border border-amber-200
             dark:border-amber-700/50 rounded-lg space-y-3">
@@ -16,6 +25,8 @@
         <div class="text-sm text-amber-800 dark:text-amber-200">
             {% if kind == "member" %}
             Diese Person hat bereits eine offene Mitgliedschaft in diesem Team.
+            {% elif kind == "team" %}
+            Dieses Team ist diesem Standort bereits zugeordnet.
             {% else %}
             Dieser Standort ist diesem Team bereits zugeordnet.
             {% endif %}
@@ -32,8 +43,8 @@
         </div>
     </div>
     <button type="button"
-            hx-get="/admin/teams/teams/{{ team_id }}/drawer"
-            hx-target="#team-drawer" hx-swap="innerHTML"
+            hx-get="{{ drawer_reload_url if drawer_reload_url else '/admin/teams/teams/' ~ team_id ~ '/drawer' }}"
+            hx-target="#{{ drawer_target if drawer_target else 'team-drawer' }}" hx-swap="innerHTML"
             class="px-3 py-1.5 rounded bg-slate-200 dark:bg-slate-700
                    text-slate-700 dark:text-slate-200 text-xs">
         Schließen

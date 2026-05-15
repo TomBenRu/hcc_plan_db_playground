@@ -249,3 +249,201 @@ def test_set_end_validates_end_must_be_after_start(
         data={"end": (today + timedelta(days=5)).isoformat()},
     )
     assert resp.status_code == 422
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Standort↔Team-Zuordnung von der Standort-Seite (Phase 1.3b)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def test_add_location_team_default_start_today(
+    as_admin, session: Session, project: Project
+) -> None:
+    loc = _make_location(session, project)
+    team = _make_team(session, project)
+
+    resp = as_admin.post(
+        f"/admin/teams/locations/{loc.id}/teams",
+        data={"team_id": str(team.id)},
+    )
+    assert resp.status_code == 200, resp.text
+    tla = session.exec(
+        select(TeamLocationAssign).where(TeamLocationAssign.location_of_work_id == loc.id)
+    ).one()
+    assert tla.team_id == team.id
+    assert tla.start == date.today()
+    assert tla.end is None
+
+
+def test_add_location_team_with_future_start(
+    as_admin, session: Session, project: Project
+) -> None:
+    loc = _make_location(session, project)
+    team = _make_team(session, project)
+    future = date.today() + timedelta(days=21)
+
+    resp = as_admin.post(
+        f"/admin/teams/locations/{loc.id}/teams",
+        data={"team_id": str(team.id), "start": future.isoformat()},
+    )
+    assert resp.status_code == 200
+    tla = session.exec(
+        select(TeamLocationAssign).where(TeamLocationAssign.location_of_work_id == loc.id)
+    ).one()
+    assert tla.start == future
+
+
+def test_duplicate_open_location_team_returns_conflict_dialog(
+    as_admin, session: Session, project: Project
+) -> None:
+    loc = _make_location(session, project)
+    team = _make_team(session, project)
+    as_admin.post(
+        f"/admin/teams/locations/{loc.id}/teams",
+        data={"team_id": str(team.id)},
+    )
+    resp = as_admin.post(
+        f"/admin/teams/locations/{loc.id}/teams",
+        data={"team_id": str(team.id)},
+    )
+    assert resp.status_code == 409
+    assert "bereits zugeordnet" in resp.text
+    # Schliessen-Button laedt den Location-Drawer, nicht den Team-Drawer
+    assert "location-drawer" in resp.text
+
+
+def test_end_location_team_with_future_date(
+    as_admin, session: Session, project: Project
+) -> None:
+    loc = _make_location(session, project)
+    team = _make_team(session, project)
+    tla = TeamLocationAssign(location_of_work=loc, team=team, start=date.today())
+    session.add(tla)
+    session.commit()
+    session.refresh(tla)
+    future = date.today() + timedelta(days=14)
+
+    resp = as_admin.patch(
+        f"/admin/teams/location-teams/{tla.id}",
+        data={"end": future.isoformat()},
+    )
+    assert resp.status_code == 200
+    session.expire_all()
+    fresh = session.get(TeamLocationAssign, tla.id)
+    assert fresh.end == future
+
+
+def test_revert_location_team_end(
+    as_admin, session: Session, project: Project
+) -> None:
+    loc = _make_location(session, project)
+    team = _make_team(session, project)
+    future = date.today() + timedelta(days=10)
+    tla = TeamLocationAssign(
+        location_of_work=loc, team=team, start=date.today(), end=future
+    )
+    session.add(tla)
+    session.commit()
+    session.refresh(tla)
+
+    resp = as_admin.patch(
+        f"/admin/teams/location-teams/{tla.id}",
+        data={"end": ""},
+    )
+    assert resp.status_code == 200
+    session.expire_all()
+    fresh = session.get(TeamLocationAssign, tla.id)
+    assert fresh.end is None
+
+
+def test_delete_future_location_team(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Future-TLA loeschen ist erlaubt (physisch entfernt)."""
+    loc = _make_location(session, project)
+    team = _make_team(session, project)
+    future = date.today() + timedelta(days=30)
+    tla = TeamLocationAssign(location_of_work=loc, team=team, start=future)
+    session.add(tla)
+    session.commit()
+    tla_id = tla.id
+
+    resp = as_admin.delete(f"/admin/teams/location-teams/{tla_id}")
+    assert resp.status_code == 200
+    session.expire_all()
+    assert session.get(TeamLocationAssign, tla_id) is None
+
+
+def test_delete_active_location_team_is_blocked(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Aktive TLA (start <= today) darf nicht physisch geloescht werden — 422."""
+    loc = _make_location(session, project)
+    team = _make_team(session, project)
+    tla = TeamLocationAssign(location_of_work=loc, team=team, start=date.today())
+    session.add(tla)
+    session.commit()
+    tla_id = tla.id
+
+    resp = as_admin.delete(f"/admin/teams/location-teams/{tla_id}")
+    assert resp.status_code == 422
+    session.expire_all()
+    assert session.get(TeamLocationAssign, tla_id) is not None
+
+
+def test_team_search_returns_teams(
+    as_admin, session: Session, project: Project
+) -> None:
+    loc = _make_location(session, project)
+    _make_team(session, project, "Hamburg-Search")
+    resp = as_admin.get(f"/admin/teams/locations/{loc.id}/team-search?q=Hamburg")
+    assert resp.status_code == 200
+    assert "Hamburg-Search" in resp.text
+
+
+def test_dispatcher_cannot_add_location_team(
+    as_dispatcher, session: Session, project: Project
+) -> None:
+    loc = _make_location(session, project)
+    team = _make_team(session, project)
+    resp = as_dispatcher.post(
+        f"/admin/teams/locations/{loc.id}/teams",
+        data={"team_id": str(team.id)},
+    )
+    assert resp.status_code == 403
+
+
+def test_drawer_renders_active_team_assigns(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Standort-Drawer zeigt aktive Team-Zuordnungen im Teams-Block."""
+    loc = _make_location(session, project)
+    team = _make_team(session, project, "TeamInDrawer")
+    tla = TeamLocationAssign(location_of_work=loc, team=team, start=date.today())
+    session.add(tla)
+    session.commit()
+
+    resp = as_admin.get(f"/admin/teams/locations/{loc.id}/drawer")
+    assert resp.status_code == 200
+    assert "TeamInDrawer" in resp.text
+    assert "Teams (1)" in resp.text
+
+
+def test_drawer_renders_future_team_assigns_separately(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Future-TLAs erscheinen unter eigener ‚Zukuenftig‘-Headline."""
+    loc = _make_location(session, project)
+    team = _make_team(session, project, "TeamInFuture")
+    future = date.today() + timedelta(days=30)
+    tla = TeamLocationAssign(location_of_work=loc, team=team, start=future)
+    session.add(tla)
+    session.commit()
+
+    resp = as_admin.get(f"/admin/teams/locations/{loc.id}/drawer")
+    assert resp.status_code == 200
+    assert "TeamInFuture" in resp.text
+    # Active-Count ist 0, Future-Count ist 1
+    assert "Teams (0)" in resp.text
+    assert "Zuk" in resp.text  # "Zukünftig (1)" — Umlaut kann je nach Encoding entkommen werden
+    assert "(1)" in resp.text

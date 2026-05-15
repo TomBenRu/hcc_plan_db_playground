@@ -1,0 +1,37 @@
+{# Search-Result-Liste fuer den Team-Selector im Standort-Drawer.
+
+   Aufruf: GET /admin/teams/locations/{location_id}/team-search?q=
+   Container: <div id="location-team-search-results"> im Location-Drawer. #}
+
+{% if candidates %}
+<ul class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700
+           rounded-lg shadow-sm divide-y divide-slate-100 dark:divide-slate-700/50
+           text-sm max-h-60 overflow-y-auto">
+    {% for team in candidates %}
+    <li class="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 dark:hover:bg-slate-700/40">
+        <div class="flex-1 min-w-0">
+            <span class="font-medium text-slate-800 dark:text-slate-100">{{ team.name }}</span>
+            {% if team.dispatcher %}
+            <span class="block text-xs text-slate-400 truncate">
+                Dispatcher: {{ team.dispatcher.f_name }} {{ team.dispatcher.l_name }}
+            </span>
+            {% endif %}
+        </div>
+        <form hx-post="/admin/teams/locations/{{ location_id }}/teams"
+              hx-target="#location-drawer" hx-swap="innerHTML"
+              class="flex items-center gap-1.5">
+            <input type="hidden" name="team_id" value="{{ team.id }}">
+            <input type="date" name="start"
+                   class="px-2 py-1 rounded border bg-white dark:bg-slate-700/40
+                          border-slate-200 dark:border-slate-700 text-xs">
+            <button type="submit"
+                    class="px-2 py-1 rounded bg-sky-500 hover:bg-sky-600 text-white text-xs">
+                Zuweisen
+            </button>
+        </form>
+    </li>
+    {% endfor %}
+</ul>
+{% else %}
+<p class="text-xs text-slate-400 italic px-3 py-2">Keine passenden Teams gefunden.</p>
+{% endif %}

@@ -102,7 +102,7 @@ class PersonCreate(BaseModel):
     f_name: str
     l_name: str
     email: EmailStr
-    gender: Gender = Gender.divers
+    gender: Gender | None = None
     phone_nr: str | None = None
     username: str
     password: str
@@ -182,7 +182,7 @@ class PersonForMasterData(BaseModel):
     f_name: str
     l_name: str
     email: str
-    gender: Gender
+    gender: Gender | None = None
     phone_nr: Optional[str] = None
     address: Optional['AddressForTable'] = None
     prep_delete: Optional[datetime.datetime] = None

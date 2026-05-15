@@ -231,7 +231,8 @@ class TablePersons(QTableWidget):
             self.setItem(row, 0, item_f_name)
             self.setItem(row, 1, QTableWidgetItem(p.l_name))
             self.setItem(row, 2, QTableWidgetItem(p.email))
-            self.setItem(row, 3, QTableWidgetItem(self.gender_visible_strings[p.gender.value]))
+            self.setItem(row, 3, QTableWidgetItem(
+                self.gender_visible_strings[p.gender.value] if p.gender else ''))
             self.setItem(row, 4, QTableWidgetItem(p.phone_nr))
             self.setItem(row, 5, QTableWidgetItem(p.address.street if p.address else ''))
             self.setItem(row, 6, QTableWidgetItem(p.address.postal_code if p.address else ''))
@@ -465,7 +466,7 @@ class DlgPersonModify(DlgPersonData):
         self.le_f_name.setText(self.person.f_name)
         self.le_l_name.setText(self.person.l_name)
         self.le_email.setText(self.person.email)
-        self.cb_gender.setCurrentText(self.person.gender.name)
+        self.cb_gender.setCurrentText(self.person.gender.name if self.person.gender else 'divers')
         self.le_phone_nr.setText(self.person.phone_nr)
 
     def fill_address_data(self):

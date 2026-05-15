@@ -54,7 +54,7 @@ Eine neue Web-UI unter `/admin/teams` mit **drei top-level Tabs**:
 
 **Zuordnungen** (Person↔Team, Standort↔Team) werden als **zeitabschnittsbasierte Mitgliedschaften** abgebildet, konsistent mit dem bestehenden Datenmodell (`TeamActorAssign.start/end`, `TeamLocationAssign.start/end`). Die UI unterscheidet drei Zustände: **Active** (`start <= today AND (end IS NULL OR end > today)`), **Future** (`start > today`), **Past** (`end <= today`). Active und Future sind editierbar, Past erscheint nur im einklappbaren Verlauf-Reiter.
 
-**Folge-Frage „APP anlegen?"** Nach erfolgreicher Anlage einer Team-Mitgliedschaft prüft der Server, ob offene Planperioden (`PlanPeriod.closed = False`) des Teams mit dem Mitgliedschafts-Zeitraum überlappen und die Person dort noch keinen `ActorPlanPeriod` hat. Bei Treffer wird statt des Drawer-Renders ein Dialog mit Checkbox-Liste (alle vorausgewählt) gezeigt. Submit erzeugt die `ActorPlanPeriod`s idempotent; Skip lädt den Quell-Drawer.
+**Folge-Frage „APP anlegen?" / „LPP anlegen?"** Nach erfolgreicher Anlage einer Team-Mitgliedschaft (TAA) bzw. Standort-Team-Zuordnung (TLA) prüft der Server, ob offene Planperioden (`PlanPeriod.closed = False`) des Teams mit dem Zeitraum überlappen und die Person bzw. der Standort dort noch keinen `ActorPlanPeriod` / `LocationPlanPeriod` hat. Bei Treffer wird statt des Drawer-Renders ein Dialog mit Checkbox-Liste (alle vorausgewählt) gezeigt. Submit erzeugt die `ActorPlanPeriod`s / `LocationPlanPeriod`s idempotent; Skip lädt den Quell-Drawer.
 
 ---
 
@@ -71,7 +71,7 @@ Eine neue Web-UI unter `/admin/teams` mit **drei top-level Tabs**:
 - Hard-Delete für soft-gelöschte Einträge (mit Vor-+Nachname-Bestätigung)
 - Tab-Drill-Down via `?team=<uuid>` (Standorte- und Mitglieder-Tab filterbar auf ein Team)
 - Team-Namen als Chips in Standorte- und Mitglieder-Liste (bis 3 + "+N"-Überlauf, Tooltip mit Vollliste)
-- APP-Anlage-Dialog: bei TAA-Anlage prüfen, ob offene PPs überlappen und ggf. `ActorPlanPeriod`s mit anlegen lassen
+- APP-Anlage-Dialog nach TAA-Anlage + LPP-Anlage-Dialog nach TLA-Anlage: bei offenen PPs Folge-Frage mit Checkbox-Liste
 - Verlauf-Reiter in jedem Drawer (einklappbar, vergangene Zuordnungen `end <= today`)
 - Strikte Admin-Beschränkung — keine Dispatcher-Pfade
 
@@ -248,6 +248,15 @@ Als Admin möchte ich nach der Anlage einer Team-Mitgliedschaft direkt entscheid
 - Submit von `POST /admin/teams/members/{taa_id}/apply-apps` erzeugt die `ActorPlanPeriod`s idempotent (kein Duplikat-APP). `return_drawer`-Form-Param entscheidet, ob anschließend Team- oder Mitglieder-Drawer gerendert wird.
 - Skip-Button im Dialog lädt den Quell-Drawer per GET — keine APPs werden erzeugt.
 
+### US-16b — Admin bekommt nach TLA-Anlage die Folge-Frage „LPP anlegen?"
+Spiegel zu US-16 für Standort↔Team-Zuordnungen. Erzeugt `LocationPlanPeriod`s statt `ActorPlanPeriod`s; sonst identisches Pattern.
+
+**Akzeptanzkriterien:**
+- Trigger: erfolgreicher Submit von `POST /admin/teams/teams/{team_id}/locations` ODER `POST /admin/teams/locations/{location_id}/teams`.
+- Server prüft offene PPs des Teams, Overlap mit TLA-Zeitraum, kein bestehendes LPP für den Standort.
+- Bei ≥1 Treffer: `apply_lpps_dialog.html` statt Drawer.
+- Submit von `POST /admin/teams/team-locations/{tla_id}/apply-lpps` erzeugt `LocationPlanPeriod`s idempotent. `return_drawer` ∈ {team, location} entscheidet die Antwort-Sicht.
+
 ### US-17 — Admin sieht historische Zuordnungen im einklappbaren Verlauf-Reiter
 Als Admin möchte ich pro Drawer einsehen können, welche Zuordnungen in der Vergangenheit lagen, damit ich Kontext habe ohne den primären Drawer-Inhalt zu überfrachten.
 
@@ -373,9 +382,10 @@ DELETE /admin/teams/person-teams/{assign_id}      → Future-TAA löschen (rende
 DELETE /admin/teams/location-teams/{assign_id}    → Future-TLA löschen (rendert Location-Drawer)
 ```
 
-**Folge-Dialog APP-Anlage:**
+**Folge-Dialoge (PP-Mit-Anlegen):**
 ```
-POST /admin/teams/members/{taa_id}/apply-apps     → ActorPlanPeriods erzeugen + return_drawer
+POST /admin/teams/members/{taa_id}/apply-apps           → ActorPlanPeriods erzeugen
+POST /admin/teams/team-locations/{tla_id}/apply-lpps    → LocationPlanPeriods erzeugen
 ```
 
 **Lifecycle (Soft-/Hard-Delete für Team, Standort, Person):**
@@ -464,6 +474,9 @@ Hinweis zu DELETE-Endpoints mit Confirm-Form: HTMX schickt Form-Werte bei `hx-de
 - `mutations.create_actor_plan_periods` ist idempotent (kein Duplikat-APP), validiert Project-Match.
 - Skip-Button (HTML-only): `hx-get`-Reload des Quell-Drawers — keine APPs erzeugt.
 
+### LPP-Anlage-Dialog (Trigger nach TLA-Anlage)
+Spiegel zum APP-Pfad — `assignments.list_open_overlapping_plan_periods_for_tla(tla)`, `apply_lpps_dialog.html`, `POST /admin/teams/team-locations/{tla_id}/apply-lpps`, `mutations.create_location_plan_periods`. `return_drawer` ∈ {team, location}.
+
 ### Address-Verlinkung beim Speichern
 - Speicher-Logik: Wenn die Adress-Felder im Drawer geändert wurden, prüfen, ob die alte `Address`-Zeile noch verknüpft ist. Je nach Eingabe (Autocomplete-Auswahl, manueller Edit, Leeren der Felder) wird:
     - eine **neue** `Address`-Zeile angelegt und mit dem Standort verlinkt (Autocomplete-Auswahl oder neuer Inhalt)
@@ -485,6 +498,7 @@ Bis die zentrale `audit_log`-Tabelle existiert (TODO `todo_audit_infrastructure_
 - **Zuordnungen TAA:** `team_member_added`, `team_member_ended`, `team_member_reactivated`, `team_actor_future_deleted`
 - **Zuordnungen TLA:** `team_location_added`, `team_location_ended`, `team_location_reactivated`, `team_location_future_deleted`
 - **APP-Anlage:** `actor_plan_period_created` (mit zusätzlichen `person_id` + `plan_period_id` im `extra`)
+- **LPP-Anlage:** `location_plan_period_created` (mit zusätzlichen `location_of_work_id` + `plan_period_id` im `extra`)
 
 Sobald die Audit-Infrastruktur kommt, wird `logger.info` durch `audit_log.write(...)` ersetzt — Logging-Calls bleiben strukturell identisch.
 

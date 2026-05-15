@@ -502,6 +502,48 @@ def test_dispatcher_cannot_soft_delete_person(
     assert resp.status_code == 403
 
 
+def test_hard_delete_confirm_inputs_use_data_attribute_not_inline_tojson(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Regression: das oninput-Attribut darf keinen rohen ``tojson``-String mit
+    ``"`` enthalten — der schloss das HTML-Attribut vorzeitig, und der
+    Confirm-Button blieb permanent disabled. Stattdessen wird der Erwartungs-
+    Wert ueber ``data-expected`` transportiert und im JS ueber
+    ``this.dataset.expected`` gelesen. Gilt fuer alle drei Drawer."""
+    from database.models import Gender
+
+    team = Team(
+        name="Confirm-Team", project=project,
+        prep_delete=datetime.datetime.now(datetime.timezone.utc),
+    )
+    loc = LocationOfWork(
+        name="Confirm-Loc", project=project,
+        prep_delete=datetime.datetime.now(datetime.timezone.utc),
+    )
+    person = Person(
+        f_name="Confirm", l_name="Person",
+        gender=Gender.female,
+        email="confirm@example.com", username="confirm-x",
+        password="dummy", project=project,
+        prep_delete=datetime.datetime.now(datetime.timezone.utc),
+    )
+    session.add_all([team, loc, person])
+    session.commit()
+
+    for url in (
+        f"/admin/teams/teams/{team.id}/drawer",
+        f"/admin/teams/locations/{loc.id}/drawer",
+        f"/admin/teams/persons/{person.id}/drawer",
+    ):
+        resp = as_admin.get(url)
+        assert resp.status_code == 200
+        # Neues Pattern via data-Attribut
+        assert "this.dataset.expected" in resp.text, f"{url} fehlt data.expected-Pattern"
+        assert 'data-expected="' in resp.text, f"{url} fehlt data-expected-Attribut"
+        # Altes Pattern darf nicht mehr drin sein
+        assert "!== \"" not in resp.text, f"{url} hat noch rohes tojson-Pattern"
+
+
 def test_member_drawer_shows_lifecycle_actions(
     as_admin, session: Session, project: Project
 ) -> None:

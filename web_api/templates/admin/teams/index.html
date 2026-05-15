@@ -51,9 +51,12 @@
 
     /* ── Tabelle ─ */
     .teams-table { font-variant-numeric: tabular-nums; }
+    /* text-align bewusst NICHT in der Basis-Regel — sonst ueberschreibt sie
+       die per-Header Tailwind-Klassen (text-center fuer numerische Spalten).
+       Per-th-Klassen entscheiden; Default ohne Klasse ist ``start`` (= links LTR). */
     .teams-table thead th {
         font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.06em;
-        font-weight: 600; color: #94a3b8; padding: 0.5rem 0.75rem; text-align: left; white-space: nowrap;
+        font-weight: 600; color: #94a3b8; padding: 0.5rem 0.75rem; white-space: nowrap;
     }
     [data-theme="dark"] .teams-table thead th { color: #64748b; }
     .teams-table tbody tr {

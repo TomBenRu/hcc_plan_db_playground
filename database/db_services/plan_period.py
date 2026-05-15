@@ -386,9 +386,7 @@ def create_with_children(plan_period: schemas.PlanPeriodCreate) -> schemas.PlanP
             person = session.get(models.Person, person_id)
             app = models.ActorPlanPeriod(plan_period=pp, person=person)
             session.add(app)
-            session.flush()
-            adg = models.AvailDayGroup(actor_plan_period=app)
-            session.add(adg)
+            session.flush()  # Master-AvailDayGroup wird vom Listener angelegt
 
         for location_id in location_ids:
             location = session.get(models.LocationOfWork, location_id)
@@ -496,8 +494,7 @@ def update(plan_period: schemas.PlanPeriod) -> schemas.PlanPeriodShow:
                 person = session.get(models.Person, person_id)
                 app = models.ActorPlanPeriod(plan_period=pp, person=person)
                 session.add(app)
-                session.flush()
-                session.add(models.AvailDayGroup(actor_plan_period=app))
+                session.flush()  # Master-AvailDayGroup wird vom Listener angelegt
 
             location_ids = _team_location_ids_in_range(
                 session, pp.team_id, plan_period.start, plan_period.end)

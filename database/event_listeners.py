@@ -18,6 +18,7 @@ from database.models import (
     ActorPlanPeriod,
     Appointment,
     AvailDay,
+    AvailDayGroup,
     EmployeeEvent,
     Event,
     EventGroup,
@@ -62,7 +63,7 @@ def _before_flush_handler(session: Session, _flush_context, _instances) -> None:
         elif isinstance(obj, LocationOfWork):
             _on_insert_location_of_work(obj)
         elif isinstance(obj, ActorPlanPeriod):
-            _on_insert_actor_plan_period(obj)
+            _on_insert_actor_plan_period(session, obj)
         elif isinstance(obj, LocationPlanPeriod):
             _on_insert_location_plan_period(obj)
         elif isinstance(obj, AvailDay):
@@ -154,13 +155,21 @@ def _on_insert_location_of_work(loc: LocationOfWork) -> None:
 #   self.time_of_day_standards.add(self.person.time_of_day_standards)
 #   self.actor_location_prefs_defaults.add(self.person.actor_location_prefs_defaults)
 
-def _on_insert_actor_plan_period(app: ActorPlanPeriod) -> None:
+def _on_insert_actor_plan_period(session: Session, app: ActorPlanPeriod) -> None:
     if app.person:
         _copy_m2m(app.combination_locations_possibles, app.person.combination_locations_possibles)
         _copy_m2m(app.actor_partner_location_prefs_defaults, app.person.actor_partner_location_prefs_defaults)
         _copy_m2m(app.time_of_days, app.person.time_of_days)
         _copy_m2m(app.time_of_day_standards, app.person.time_of_day_standards)
         _copy_m2m(app.actor_location_prefs_defaults, app.person.actor_location_prefs_defaults)
+
+    # Master-AvailDayGroup ist Pflicht — sonst schlaegt jeder spaetere
+    # AvailDay-Insert fehl (vgl. web_api/availability/service.py:create_avail_day).
+    # Aufrufer, die das frueher explizit gemacht haben (plan_period.create/update),
+    # koennen das jetzt der Listener ueberlassen; Idempotenz-Check schuetzt vor
+    # Doppel-Anlage bei Aufrufern, die das noch tun.
+    if app.avail_day_group is None:
+        session.add(AvailDayGroup(actor_plan_period=app))
 
 
 # ── LocationPlanPeriod ───────────────────────────────────────────────────────

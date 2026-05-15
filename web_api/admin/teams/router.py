@@ -161,17 +161,28 @@ def team_drawer(
     request: Request,
     team_id: uuid.UUID,
     user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
 ):
-    """Detail-Drawer fuer ein Team.
+    """Detail-Drawer fuer ein Team mit Mitglieder- und Standort-Zuordnungen.
 
     DB-Service oeffnet seine eigene Session via ``database.database.get_session()``
-    — daher kein explizites ``session``-Argument. Engine ist via Test-Setup
-    auf die Test-DB gepatcht.
+    — fuer den Team-Lookup; die ``session``-Dependency wird fuer die
+    Active/Future-Lookups im Drawer-Render benoetigt.
     """
     team = db_services.team.get(team_id, include_deleted=True)
+    if team is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Team nicht gefunden")
     return templates.TemplateResponse(
         "admin/teams/partials/team_drawer.html",
-        {"request": request, "user": user, "team": team},
+        {
+            "request": request,
+            "user": user,
+            "team": team,
+            "active_member_assigns": assignments.list_active_team_members(session, team.id),
+            "future_member_assigns": assignments.list_future_team_members(session, team.id),
+            "active_location_assigns": assignments.list_active_team_locations(session, team.id),
+            "future_location_assigns": assignments.list_future_team_locations(session, team.id),
+        },
     )
 
 
@@ -208,17 +219,31 @@ def _render_team_drawer(
     team: Team,
     user: WebUser,
     *,
+    session: Session,
     saved: bool = False,
     error: str | None = None,
 ) -> HTMLResponse:
     """Drawer fuer ein ``Team`` rendern. Hilfsfunktion, weil mehrere Mutations
-    denselben Render-Pfad teilen."""
+    denselben Render-Pfad teilen.
+
+    ``session`` ist zwingend, weil aktive und zukuenftige Mitglieder- und
+    Standort-Zuordnungen pro Render frisch geladen werden — analog zum
+    Location-Drawer-Render.
+    """
+    active_member_assigns = assignments.list_active_team_members(session, team.id)
+    future_member_assigns = assignments.list_future_team_members(session, team.id)
+    active_location_assigns = assignments.list_active_team_locations(session, team.id)
+    future_location_assigns = assignments.list_future_team_locations(session, team.id)
     response = templates.TemplateResponse(
         "admin/teams/partials/team_drawer.html",
         {
             "request": request,
             "user": user,
             "team": team,
+            "active_member_assigns": active_member_assigns,
+            "future_member_assigns": future_member_assigns,
+            "active_location_assigns": active_location_assigns,
+            "future_location_assigns": future_location_assigns,
             "saved": saved,
             "error": error,
         },
@@ -297,7 +322,7 @@ def create_team_endpoint(
             )
             return response
         raise
-    return _render_team_drawer(request, team, user, saved=True)
+    return _render_team_drawer(request, team, user, session=session, saved=True)
 
 
 @router.patch("/teams/{team_id}", response_class=HTMLResponse)
@@ -318,9 +343,9 @@ def update_team_endpoint(
         )
     except HTTPException as exc:
         if exc.status_code == status.HTTP_409_CONFLICT:
-            return _render_team_drawer(request, team, user, error=exc.detail)
+            return _render_team_drawer(request, team, user, session=session, error=exc.detail)
         raise
-    return _render_team_drawer(request, team, user, saved=True)
+    return _render_team_drawer(request, team, user, session=session, saved=True)
 
 
 @router.post("/teams/{team_id}/dispatcher", response_class=HTMLResponse)
@@ -338,7 +363,7 @@ def update_team_dispatcher_endpoint(
     team = mutations.update_team_dispatcher(
         session, team=team, dispatcher_id=dispatcher_uuid, actor=user
     )
-    return _render_team_drawer(request, team, user, saved=True)
+    return _render_team_drawer(request, team, user, session=session, saved=True)
 
 
 @router.get("/teams/{team_id}/dispatcher-search", response_class=HTMLResponse)
@@ -457,7 +482,7 @@ def add_team_member_endpoint(
                 status_code=status.HTTP_409_CONFLICT,
             )
         raise
-    return _render_team_drawer(request, team, user, saved=True)
+    return _render_team_drawer(request, team, user, session=session, saved=True)
 
 
 @router.patch("/members/{assign_id}", response_class=HTMLResponse)
@@ -477,7 +502,24 @@ def update_team_member_endpoint(
         session, assign=assign, end=parsed_end, actor=user
     )
     team = session.get(Team, assign.team_id)
-    return _render_team_drawer(request, team, user, saved=True)
+    return _render_team_drawer(request, team, user, session=session, saved=True)
+
+
+@router.delete("/members/{assign_id}", response_class=HTMLResponse)
+def delete_team_member_endpoint(
+    request: Request,
+    assign_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+):
+    """Future-TAA physisch loeschen — nur erlaubt fuer ``start > today``."""
+    assign = session.get(TeamActorAssign, assign_id)
+    if assign is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Mitgliedschaft nicht gefunden")
+    team_id = assign.team_id
+    assignments.delete_future_team_actor_assign(session, assign=assign, actor=user)
+    team = session.get(Team, team_id)
+    return _render_team_drawer(request, team, user, session=session, saved=True)
 
 
 @router.get("/teams/{team_id}/location-search", response_class=HTMLResponse)
@@ -532,7 +574,7 @@ def add_team_location_endpoint(
                 status_code=status.HTTP_409_CONFLICT,
             )
         raise
-    return _render_team_drawer(request, team, user, saved=True)
+    return _render_team_drawer(request, team, user, session=session, saved=True)
 
 
 @router.patch("/team-locations/{assign_id}", response_class=HTMLResponse)
@@ -551,7 +593,25 @@ def update_team_location_endpoint(
         session, assign=assign, end=parsed_end, actor=user
     )
     team = session.get(Team, assign.team_id)
-    return _render_team_drawer(request, team, user, saved=True)
+    return _render_team_drawer(request, team, user, session=session, saved=True)
+
+
+@router.delete("/team-locations/{assign_id}", response_class=HTMLResponse)
+def delete_team_location_endpoint(
+    request: Request,
+    assign_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+):
+    """Future-TLA physisch loeschen — Spiegel zu DELETE /location-teams/{id},
+    rendert aber den Team-Drawer (URL-Konvention zeigt die Drawer-Richtung)."""
+    assign = session.get(TeamLocationAssign, assign_id)
+    if assign is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Zuordnung nicht gefunden")
+    team_id = assign.team_id
+    assignments.delete_future_team_location(session, assign=assign, actor=user)
+    team = session.get(Team, team_id)
+    return _render_team_drawer(request, team, user, session=session, saved=True)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -673,9 +733,9 @@ def soft_delete_team_endpoint(
         team = mutations.soft_delete_team(session, team=team, actor=user)
     except HTTPException as exc:
         if exc.status_code == status.HTTP_409_CONFLICT:
-            return _render_team_drawer(request, team, user, error=exc.detail)
+            return _render_team_drawer(request, team, user, session=session, error=exc.detail)
         raise
-    return _render_team_drawer(request, team, user, saved=True)
+    return _render_team_drawer(request, team, user, session=session, saved=True)
 
 
 @router.post("/teams/{team_id}/restore", response_class=HTMLResponse)
@@ -689,7 +749,7 @@ def restore_team_endpoint(
     if team is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Team nicht gefunden")
     team = mutations.restore_team(session, team=team, actor=user)
-    return _render_team_drawer(request, team, user, saved=True)
+    return _render_team_drawer(request, team, user, session=session, saved=True)
 
 
 @router.delete("/teams/{team_id}", response_class=HTMLResponse)

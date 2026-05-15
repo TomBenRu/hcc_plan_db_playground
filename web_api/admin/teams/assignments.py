@@ -482,3 +482,30 @@ def delete_future_team_location(
             "target_id": assign_id_for_log,
         },
     )
+
+
+def delete_future_team_actor_assign(
+    session: Session,
+    *,
+    assign: TeamActorAssign,
+    actor: WebUser,
+) -> None:
+    """Loescht eine TAA — zulaessig nur, wenn ``start > today`` (Future-Eintrag).
+    Spiegel zu ``delete_future_team_location`` fuer Personen↔Team-Zuordnungen."""
+    today = date.today()
+    if assign.start <= today:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Nur zukuenftige Mitgliedschaften koennen geloescht werden.",
+        )
+    assign_id_for_log = str(assign.id)
+    session.delete(assign)
+    session.commit()
+    logger.info(
+        "teams_admin_action",
+        extra={
+            "action": "team_actor_future_deleted",
+            "actor_id": str(actor.id),
+            "target_id": assign_id_for_log,
+        },
+    )

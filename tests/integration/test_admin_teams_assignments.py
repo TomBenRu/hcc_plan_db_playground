@@ -18,6 +18,7 @@ from datetime import date, timedelta
 from sqlmodel import Session, select
 
 from database.models import (
+    Gender,
     LocationOfWork,
     Person,
     Project,
@@ -28,10 +29,14 @@ from database.models import (
 
 
 def _make_person(session: Session, project: Project, first: str = "Anna") -> Person:
+    # ``@example.com`` statt ``@test.local`` (RFC 6761 reserviert) +
+    # ``gender`` als Enum-Wert — TeamShow-Pydantic-Validation verlangt beides
+    # (siehe Memory ``feedback-orm-pass-relations-not-fk``).
     person = Person(
         f_name=first,
         l_name="Mit",
-        email=f"{first.lower()}@test.local",
+        gender=Gender.female,
+        email=f"{first.lower()}-{secrets.token_hex(3)}@example.com",
         username=f"{first.lower()}-{secrets.token_hex(3)}",
         password="dummy",
         project=project,
@@ -447,3 +452,155 @@ def test_drawer_renders_future_team_assigns_separately(
     assert "Teams (0)" in resp.text
     assert "Zuk" in resp.text  # "Zukünftig (1)" — Umlaut kann je nach Encoding entkommen werden
     assert "(1)" in resp.text
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Team-Drawer Mitglieder + Standorte (Future-DELETE + Drawer-Render)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def test_delete_future_team_member(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Future-TAA loeschen ist erlaubt."""
+    team = _make_team(session, project)
+    person = _make_person(session, project)
+    future = date.today() + timedelta(days=30)
+    taa = TeamActorAssign(person=person, team=team, start=future)
+    session.add(taa)
+    session.commit()
+    taa_id = taa.id
+
+    resp = as_admin.delete(f"/admin/teams/members/{taa_id}")
+    assert resp.status_code == 200
+    session.expire_all()
+    assert session.get(TeamActorAssign, taa_id) is None
+
+
+def test_delete_active_team_member_is_blocked(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Aktive TAA (start <= today) darf nicht physisch geloescht werden — 422."""
+    team = _make_team(session, project)
+    person = _make_person(session, project)
+    taa = TeamActorAssign(person=person, team=team, start=date.today())
+    session.add(taa)
+    session.commit()
+    taa_id = taa.id
+
+    resp = as_admin.delete(f"/admin/teams/members/{taa_id}")
+    assert resp.status_code == 422
+    session.expire_all()
+    assert session.get(TeamActorAssign, taa_id) is not None
+
+
+def test_delete_future_team_location_via_team_endpoint(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Future-TLA via Team-seitigem DELETE-Endpoint loeschen."""
+    team = _make_team(session, project)
+    loc = _make_location(session, project)
+    future = date.today() + timedelta(days=30)
+    tla = TeamLocationAssign(location_of_work=loc, team=team, start=future)
+    session.add(tla)
+    session.commit()
+    tla_id = tla.id
+
+    resp = as_admin.delete(f"/admin/teams/team-locations/{tla_id}")
+    assert resp.status_code == 200
+    session.expire_all()
+    assert session.get(TeamLocationAssign, tla_id) is None
+
+
+def test_delete_active_team_location_via_team_endpoint_is_blocked(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Aktive TLA via Team-seitigem DELETE — 422."""
+    team = _make_team(session, project)
+    loc = _make_location(session, project)
+    tla = TeamLocationAssign(location_of_work=loc, team=team, start=date.today())
+    session.add(tla)
+    session.commit()
+    tla_id = tla.id
+
+    resp = as_admin.delete(f"/admin/teams/team-locations/{tla_id}")
+    assert resp.status_code == 422
+    session.expire_all()
+    assert session.get(TeamLocationAssign, tla_id) is not None
+
+
+def test_team_drawer_renders_active_member_assigns(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Team-Drawer zeigt aktive Mitglieder mit Namen im Mitglieder-Block."""
+    team = _make_team(session, project)
+    person = _make_person(session, project, "DrawerAnna")
+    taa = TeamActorAssign(person=person, team=team, start=date.today())
+    session.add(taa)
+    session.commit()
+
+    resp = as_admin.get(f"/admin/teams/teams/{team.id}/drawer")
+    assert resp.status_code == 200
+    assert "DrawerAnna" in resp.text
+    assert "Mitglieder (1)" in resp.text
+    # Mitglieder-Search-Input vorhanden
+    assert "member-search-results" in resp.text
+
+
+def test_team_drawer_renders_future_member_assigns_separately(
+    as_admin, session: Session, project: Project
+) -> None:
+    team = _make_team(session, project)
+    person = _make_person(session, project, "FuturePerson")
+    future = date.today() + timedelta(days=21)
+    taa = TeamActorAssign(person=person, team=team, start=future)
+    session.add(taa)
+    session.commit()
+
+    resp = as_admin.get(f"/admin/teams/teams/{team.id}/drawer")
+    assert resp.status_code == 200
+    assert "FuturePerson" in resp.text
+    assert "Mitglieder (0)" in resp.text
+    # Future-Block hat eigenen Headline ("Zukünftig (1)")
+    assert "Zuk" in resp.text
+    assert "(1)" in resp.text
+
+
+def test_team_drawer_renders_active_location_assigns(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Team-Drawer zeigt aktive Standort-Zuordnungen im Standorte-Block."""
+    team = _make_team(session, project)
+    loc = _make_location(session, project, "DrawerLoc")
+    tla = TeamLocationAssign(location_of_work=loc, team=team, start=date.today())
+    session.add(tla)
+    session.commit()
+
+    resp = as_admin.get(f"/admin/teams/teams/{team.id}/drawer")
+    assert resp.status_code == 200
+    assert "DrawerLoc" in resp.text
+    assert "Standorte (1)" in resp.text
+    # Standort-Search-Input vorhanden
+    assert "location-search-results" in resp.text
+
+
+def test_team_drawer_inactive_team_hides_assignment_blocks(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Soft-geloeschtes Team blendet Mitglieder + Standorte aus."""
+    from datetime import datetime, timezone
+
+    team = Team(
+        name="InaktivTeam", project=project,
+        prep_delete=datetime.now(timezone.utc),
+    )
+    session.add(team)
+    session.commit()
+
+    resp = as_admin.get(f"/admin/teams/teams/{team.id}/drawer")
+    assert resp.status_code == 200
+    # Hinweis-Banner sichtbar
+    assert "Zuordnungen werden ausgeblendet" in resp.text
+    # Mitglieder-/Standorte-Sections nicht gerendert → Search-IDs nicht im Text
+    assert "member-search-results" not in resp.text
+    assert "location-search-results" not in resp.text

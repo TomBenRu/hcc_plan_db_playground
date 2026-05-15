@@ -502,6 +502,39 @@ def test_dispatcher_cannot_soft_delete_person(
     assert resp.status_code == 403
 
 
+def test_hard_delete_accepts_name_confirmation_from_query_param(
+    as_admin, session: Session, project: Project
+) -> None:
+    """HTMX schickt bei ``hx-delete`` Form-Werte als URL-Query-Parameter, nicht
+    im Body. Der Endpoint muss beide Quellen akzeptieren — sonst kommt
+    'stimmt nicht ueberein' im Browser, obwohl der Confirm-String stimmt.
+    Stellvertretend nur fuer den Person-Pfad — Team/Location nutzen den
+    gleichen Helper."""
+    from database.models import Gender
+
+    person = Person(
+        f_name="Query", l_name="Confirm",
+        gender=Gender.female,
+        email="q@example.com", username="q-x",
+        password="dummy", project=project,
+        prep_delete=datetime.datetime.now(datetime.timezone.utc),
+    )
+    session.add(person)
+    session.commit()
+    person_id = person.id
+
+    # 1) Korrekter Name als URL-Query-Param (Browser/HTMX-Pfad)
+    resp_ok = as_admin.request(
+        "DELETE",
+        f"/admin/teams/persons/{person_id}",
+        params={"name_confirmation": "Query Confirm"},
+    )
+    assert resp_ok.status_code == 200
+    assert resp_ok.headers.get("HX-Trigger") == "members-list-changed"
+    session.expire_all()
+    assert session.get(Person, person_id) is None
+
+
 def test_hard_delete_confirm_inputs_use_data_attribute_not_inline_tojson(
     as_admin, session: Session, project: Project
 ) -> None:

@@ -42,6 +42,24 @@ def _parse_optional_date(raw: str | None) -> date | None:
             status.HTTP_422_UNPROCESSABLE_ENTITY, detail=f"Ungültiges Datum: {raw}"
         ) from exc
 
+
+async def _read_name_confirmation(request: Request) -> str:
+    """Liest ``name_confirmation`` aus URL-Query ODER form-encoded Body.
+
+    Hintergrund: HTMX (1.x) sendet bei ``hx-delete`` die Form-Werte als
+    URL-Query-Parameter, nicht im Body. Die Tests/Tools (httpx ``data=``)
+    schicken dagegen einen form-encoded Body. Damit beide Pfade laufen,
+    pruefen wir beide Quellen.
+    """
+    val = request.query_params.get("name_confirmation", "") or ""
+    if val:
+        return val
+    try:
+        form = await request.form()
+        return str(form.get("name_confirmation") or "")
+    except Exception:
+        return ""
+
 router = APIRouter(prefix="/admin/teams", tags=["admin-teams"])
 
 
@@ -1117,13 +1135,13 @@ def restore_person_endpoint(
 
 
 @router.delete("/persons/{person_id}", response_class=HTMLResponse)
-def hard_delete_person_endpoint(
+async def hard_delete_person_endpoint(
     request: Request,
     person_id: uuid.UUID,
     user: WebUser = require_role(WebUserRole.admin),
     session: Session = Depends(get_db_session),
-    name_confirmation: str = Form(default=""),
 ):
+    name_confirmation = await _read_name_confirmation(request)
     person = session.get(Person, person_id)
     if person is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Person nicht gefunden")
@@ -1183,13 +1201,13 @@ def restore_team_endpoint(
 
 
 @router.delete("/teams/{team_id}", response_class=HTMLResponse)
-def hard_delete_team_endpoint(
+async def hard_delete_team_endpoint(
     request: Request,
     team_id: uuid.UUID,
     user: WebUser = require_role(WebUserRole.admin),
     session: Session = Depends(get_db_session),
-    name_confirmation: str = Form(default=""),
 ):
+    name_confirmation = await _read_name_confirmation(request)
     team = session.get(Team, team_id)
     if team is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Team nicht gefunden")
@@ -1238,13 +1256,13 @@ def restore_location_endpoint(
 
 
 @router.delete("/locations/{location_id}", response_class=HTMLResponse)
-def hard_delete_location_endpoint(
+async def hard_delete_location_endpoint(
     request: Request,
     location_id: uuid.UUID,
     user: WebUser = require_role(WebUserRole.admin),
     session: Session = Depends(get_db_session),
-    name_confirmation: str = Form(default=""),
 ):
+    name_confirmation = await _read_name_confirmation(request)
     location = session.get(LocationOfWork, location_id)
     if location is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Standort nicht gefunden")

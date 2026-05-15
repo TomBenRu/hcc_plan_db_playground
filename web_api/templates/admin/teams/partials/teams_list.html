@@ -23,8 +23,8 @@
             <tr>
                 <th>Name</th>
                 <th>Dispatcher</th>
-                <th class="text-right">Mitglieder</th>
-                <th class="text-right">Standorte</th>
+                <th class="text-center">Mitglieder</th>
+                <th class="text-center">Standorte</th>
                 <th class="pr-4">Status</th>
             </tr>
         </thead>
@@ -45,8 +45,8 @@
                         </span>
                     {% endif %}
                 </td>
-                <td class="text-right text-slate-600 dark:text-slate-300">{{ row.member_count }}</td>
-                <td class="text-right text-slate-600 dark:text-slate-300">{{ row.location_count }}</td>
+                <td class="text-center text-slate-600 dark:text-slate-300">{{ row.member_count }}</td>
+                <td class="text-center text-slate-600 dark:text-slate-300">{{ row.location_count }}</td>
                 <td class="pr-4">
                     {% if row.prep_delete %}
                     <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1

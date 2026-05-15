@@ -36,7 +36,7 @@
             <tr>
                 <th>Name</th>
                 <th>Adresse</th>
-                <th class="text-right">Soll-Besetzung</th>
+                <th class="text-center">Soll-Besetzung</th>
                 <th>Teams</th>
                 <th class="pr-4">Status</th>
             </tr>
@@ -51,7 +51,7 @@
                     {% if row.address_summary %}{{ row.address_summary }}
                     {% else %}<span class="text-slate-400 text-xs">keine Adresse</span>{% endif %}
                 </td>
-                <td class="text-right text-slate-600 dark:text-slate-300">{{ row.nr_actors }}</td>
+                <td class="text-center text-slate-600 dark:text-slate-300">{{ row.nr_actors }}</td>
                 <td class="text-slate-600 dark:text-slate-300">
                     {% if row.active_team_names %}
                     <div class="flex flex-wrap gap-1"

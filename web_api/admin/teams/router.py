@@ -474,55 +474,6 @@ def create_location_endpoint(
     return _render_location_drawer(request, loc, user, saved=True, session=session)
 
 
-@router.patch("/locations/{location_id}/plan-konfig", response_class=HTMLResponse)
-def update_location_plan_config_endpoint(
-    request: Request,
-    location_id: uuid.UUID,
-    user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
-    session: Session = Depends(get_db_session),
-    nr_actors: int = Form(default=2, ge=0, le=255),
-    fixed_cast: str | None = Form(default=None),
-    fixed_cast_only_if_available: str | None = Form(default=None),
-    notes: str | None = Form(default=None),
-):
-    """Dispatcher-Felder am Standort. Nur editierbar, wer **Dispatcher des
-    Standorts** ist — unabhaengig von der Admin-Rolle. Stammdaten bleiben
-    Admin-only (separater Endpoint).
-
-    Konsistente Regel: Plan-Konfig folgt der Dispatcher-Verantwortung. Auch ein
-    User mit beiden Rollen (Admin + Dispatcher) darf nur die Standorte
-    bearbeiten, fuer die er als Dispatcher zustaendig ist. Ein reiner Admin
-    (ohne Dispatcher-Rolle) darf gar nicht editieren — die Plan-Konfig ist
-    Dispatcher-Domaene.
-
-    ``fixed_cast_only_if_available`` kommt als Checkbox — Formularkonvention: vorhanden
-    (egal welcher Wert) = True, fehlend = False.
-    """
-    location = session.get(LocationOfWork, location_id)
-    if location is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Standort nicht gefunden")
-    responsible = user.person_id is not None and service.is_dispatcher_responsible_for_location(
-        session,
-        dispatcher_person_id=user.person_id,
-        location_id=location_id,
-    )
-    if not responsible:
-        raise HTTPException(
-            status.HTTP_403_FORBIDDEN,
-            detail="Sie sind nicht Dispatcher dieses Standorts.",
-        )
-    location = mutations.update_location_plan_config(
-        session,
-        location=location,
-        nr_actors=nr_actors,
-        fixed_cast=fixed_cast,
-        fixed_cast_only_if_available=fixed_cast_only_if_available is not None,
-        notes=notes,
-        actor=user,
-    )
-    return _render_location_drawer(request, location, user, saved=True, session=session)
-
-
 # ═══════════════════════════════════════════════════════════════════════════════
 # Phase 1.3 — Zuordnungen (Mitglieder + Standorte zum Team)
 # ═══════════════════════════════════════════════════════════════════════════════

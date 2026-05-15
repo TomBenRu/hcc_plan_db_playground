@@ -136,7 +136,7 @@ def test_location_drawer_returns_partial(
     resp = as_admin.get(f"/admin/teams/locations/{loc.id}/drawer")
     assert resp.status_code == 200
     assert "DrawerTestStandort" in resp.text
-    assert "Plan-Konfiguration" in resp.text
+    assert "Stammdaten" in resp.text
 
 
 def test_htmx_request_returns_oob_partial(as_admin, session: Session, project: Project) -> None:

@@ -930,6 +930,69 @@ def update_person_name_endpoint(
     return _render_member_drawer(request, person, user, session=session, saved=True)
 
 
+@router.post("/persons/{person_id}/soft-delete", response_class=HTMLResponse)
+def soft_delete_person_endpoint(
+    request: Request,
+    person_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+):
+    person = session.get(Person, person_id)
+    if person is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Person nicht gefunden")
+    try:
+        person = mutations.soft_delete_person(session, person=person, actor=user)
+    except HTTPException as exc:
+        if exc.status_code == status.HTTP_409_CONFLICT:
+            return _render_member_drawer(
+                request, person, user, session=session, error=exc.detail
+            )
+        raise
+    return _render_member_drawer(request, person, user, session=session, saved=True)
+
+
+@router.post("/persons/{person_id}/restore", response_class=HTMLResponse)
+def restore_person_endpoint(
+    request: Request,
+    person_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+):
+    person = session.get(Person, person_id)
+    if person is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Person nicht gefunden")
+    person = mutations.restore_person(session, person=person, actor=user)
+    return _render_member_drawer(request, person, user, session=session, saved=True)
+
+
+@router.delete("/persons/{person_id}", response_class=HTMLResponse)
+def hard_delete_person_endpoint(
+    request: Request,
+    person_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    name_confirmation: str = Form(default=""),
+):
+    person = session.get(Person, person_id)
+    if person is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Person nicht gefunden")
+    try:
+        mutations.hard_delete_person(
+            session, person=person, name_confirmation=name_confirmation, actor=user
+        )
+    except HTTPException as exc:
+        if exc.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY:
+            return _render_member_drawer(
+                request, person, user, session=session, error=exc.detail
+            )
+        raise
+    from fastapi.responses import Response
+
+    resp = Response(status_code=status.HTTP_200_OK)
+    resp.headers["HX-Trigger"] = "members-list-changed"
+    return resp
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Phase 1.5 — Soft-Delete + Hard-Delete-Pfad
 # ═══════════════════════════════════════════════════════════════════════════════

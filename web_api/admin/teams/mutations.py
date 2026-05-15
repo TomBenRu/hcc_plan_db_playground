@@ -545,6 +545,118 @@ def hard_delete_location(
     )
 
 
+def _cleanup_open_assigns_for_person(
+    session: Session, *, person_id: uuid.UUID
+) -> None:
+    """Spiegel zu ``_cleanup_open_assigns_for_team``: vor Soft-Delete einer
+    Person offene Mitgliedschaften mit ``end=today`` schliessen, Future-
+    Eintraege loeschen.
+    """
+    today = date.today()
+    open_taas = session.exec(
+        select(TeamActorAssign).where(
+            TeamActorAssign.person_id == person_id,
+            or_(TeamActorAssign.end.is_(None), TeamActorAssign.end > today),  # type: ignore[union-attr]
+        )
+    ).all()
+    for taa in open_taas:
+        if taa.start > today:
+            session.delete(taa)
+        elif taa.end is None or taa.end > today:
+            taa.end = today
+
+
+def soft_delete_person(
+    session: Session, *, person: Person, actor: WebUser
+) -> Person:
+    """Soft-Delete einer Person: prep_delete setzen + offene TAAs schliessen.
+
+    Blockiert bei vorhandener ``ActorPlanPeriod`` — die Person ist noch in
+    Planung, ein soft-delete waere im UI ueberraschend (Planungs-Daten wuerden
+    weiterhin auf eine 'inaktive' Person zeigen).
+    """
+    if person.prep_delete is not None:
+        return person  # idempotent
+    app_count = guards.count_active_actor_plan_periods(session, person.id)
+    if app_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=(
+                f"Person kann nicht entfernt werden — {app_count} aktive "
+                "Planungs-Eintraege (ActorPlanPeriod) existieren."
+            ),
+        )
+    _cleanup_open_assigns_for_person(session, person_id=person.id)
+    person.prep_delete = datetime.now(timezone.utc)
+    session.commit()
+    session.refresh(person)
+    logger.info(
+        "teams_admin_action",
+        extra={
+            "action": "person_soft_deleted",
+            "actor_id": str(actor.id),
+            "target_id": str(person.id),
+        },
+    )
+    return person
+
+
+def restore_person(
+    session: Session, *, person: Person, actor: WebUser
+) -> Person:
+    person.prep_delete = None
+    session.commit()
+    session.refresh(person)
+    logger.info(
+        "teams_admin_action",
+        extra={
+            "action": "person_restored",
+            "actor_id": str(actor.id),
+            "target_id": str(person.id),
+        },
+    )
+    return person
+
+
+def hard_delete_person(
+    session: Session,
+    *,
+    person: Person,
+    name_confirmation: str,
+    actor: WebUser,
+) -> None:
+    """Endgueltiges DELETE. Erfordert die exakte ``Vorname Nachname``-Eingabe
+    als Bestaetigung. Blockiert bei JEDER ``ActorPlanPeriod`` — historische
+    Plaene wuerden sonst per Cascade mitgeloescht."""
+    expected = f"{person.f_name} {person.l_name}".strip()
+    if name_confirmation.strip() != expected:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Name-Bestätigung stimmt nicht überein.",
+        )
+    app_count = guards.count_any_actor_plan_periods(session, person.id)
+    if app_count > 0:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail=(
+                f"Endgültiges Löschen nicht möglich — {app_count} Planungs-"
+                "Eintrag(e) existieren (auch historische). Eintrag bleibt im "
+                "Inaktiv-Filter."
+            ),
+        )
+    person_id_for_log = str(person.id)
+    session.delete(person)
+    session.commit()
+    logger.info(
+        "teams_admin_action",
+        extra={
+            "action": "person_hard_deleted",
+            "actor_id": str(actor.id),
+            "target_id": person_id_for_log,
+        },
+    )
+
+
 def update_person_names(
     session: Session,
     *,

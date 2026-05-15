@@ -311,3 +311,225 @@ def test_admin_drawer_shows_location_actions(
     assert "Wiederherstellen" in resp_inactive.text
     assert "Endgültig löschen" in resp_inactive.text
     assert "name_confirmation" in resp_inactive.text
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Soft-/Hard-Delete für Personen (Phase 1.5b)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def _make_person_with_taa(
+    session: Session, project: Project, team: Team, *, first: str = "Pat"
+) -> tuple[Person, TeamActorAssign]:
+    """Helper: aktive Person + offene Mitgliedschaft im Team."""
+    from database.models import Gender
+    import secrets
+
+    person = Person(
+        f_name=first,
+        l_name="Member",
+        gender=Gender.female,
+        email=f"{first.lower()}-{secrets.token_hex(3)}@example.com",
+        username=f"{first.lower()}-{secrets.token_hex(3)}",
+        password="dummy",
+        project=project,
+    )
+    session.add(person)
+    session.commit()
+    session.refresh(person)
+    taa = TeamActorAssign(person=person, team=team, start=date.today())
+    session.add(taa)
+    session.commit()
+    return person, taa
+
+
+def test_soft_delete_person_happy(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Person ohne aktive APP wird soft-deletet; offene TAA wird auf end=today
+    geschlossen."""
+    team = Team(name="TeamForSoftDel", project=project)
+    session.add(team)
+    session.commit()
+    person, taa = _make_person_with_taa(session, project, team)
+
+    resp = as_admin.post(f"/admin/teams/persons/{person.id}/soft-delete")
+    assert resp.status_code == 200
+    session.expire_all()
+    fresh = session.get(Person, person.id)
+    assert fresh.prep_delete is not None
+    # Offene TAA geschlossen auf heute
+    fresh_taa = session.get(TeamActorAssign, taa.id)
+    assert fresh_taa.end == date.today()
+
+
+def test_soft_delete_person_blocked_by_active_actor_plan_period(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Aktive APP blockiert Soft-Delete — Drawer wird mit Error gerendert."""
+    from database.models import ActorPlanPeriod
+
+    team = Team(name="TeamWithPP", project=project)
+    session.add(team)
+    session.commit()
+    person, _ = _make_person_with_taa(session, project, team)
+
+    pp = PlanPeriod(
+        team=team,
+        start=date.today(),
+        end=date.today() + timedelta(days=14),
+    )
+    session.add(pp)
+    session.commit()
+    app = ActorPlanPeriod(plan_period=pp, person=person)
+    session.add(app)
+    session.commit()
+
+    resp = as_admin.post(f"/admin/teams/persons/{person.id}/soft-delete")
+    assert resp.status_code == 200
+    assert "kann nicht entfernt werden" in resp.text
+    session.expire_all()
+    assert session.get(Person, person.id).prep_delete is None
+
+
+def test_restore_person(as_admin, session: Session, project: Project) -> None:
+    person = Person(
+        f_name="ToRestore", l_name="Person",
+        gender=__import__("database.models", fromlist=["Gender"]).Gender.female,
+        email="restore@example.com", username="restore-x",
+        password="dummy", project=project,
+        prep_delete=datetime.datetime.now(datetime.timezone.utc),
+    )
+    session.add(person)
+    session.commit()
+
+    resp = as_admin.post(f"/admin/teams/persons/{person.id}/restore")
+    assert resp.status_code == 200
+    session.expire_all()
+    assert session.get(Person, person.id).prep_delete is None
+
+
+def test_hard_delete_person_requires_full_name(
+    as_admin, session: Session, project: Project
+) -> None:
+    from database.models import Gender
+
+    person = Person(
+        f_name="HardDel", l_name="Person",
+        gender=Gender.female,
+        email="hard@example.com", username="hard-x",
+        password="dummy", project=project,
+        prep_delete=datetime.datetime.now(datetime.timezone.utc),
+    )
+    session.add(person)
+    session.commit()
+    person_id = person.id  # ID festhalten, weil Person nach Hard-Delete weg ist
+
+    # Falscher Name → 200 mit Error im Drawer
+    resp_wrong = as_admin.request(
+        "DELETE",
+        f"/admin/teams/persons/{person_id}",
+        data={"name_confirmation": "HardDel"},
+    )
+    assert resp_wrong.status_code == 200
+    assert "stimmt nicht überein" in resp_wrong.text
+    session.expire_all()
+    assert session.get(Person, person_id) is not None
+
+    # Korrekter Name → 200 mit leerem Body + HX-Trigger
+    resp_ok = as_admin.request(
+        "DELETE",
+        f"/admin/teams/persons/{person_id}",
+        data={"name_confirmation": "HardDel Person"},
+    )
+    assert resp_ok.status_code == 200
+    assert resp_ok.headers.get("HX-Trigger") == "members-list-changed"
+    session.expire_all()
+    assert session.get(Person, person_id) is None
+
+
+def test_hard_delete_person_blocked_by_any_actor_plan_period(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Auch eine historische APP blockt Hard-Delete (Cascade-Schutz)."""
+    from database.models import ActorPlanPeriod, Gender
+
+    team = Team(name="TeamHistAPP", project=project)
+    session.add(team)
+    session.commit()
+    person = Person(
+        f_name="Block", l_name="HardDel",
+        gender=Gender.female,
+        email="block@example.com", username="block-x",
+        password="dummy", project=project,
+        prep_delete=datetime.datetime.now(datetime.timezone.utc),
+    )
+    session.add(person)
+    session.commit()
+    pp = PlanPeriod(team=team, start=date.today(), end=date.today() + timedelta(days=7))
+    session.add(pp)
+    session.commit()
+    app = ActorPlanPeriod(plan_period=pp, person=person)
+    session.add(app)
+    session.commit()
+
+    resp = as_admin.request(
+        "DELETE",
+        f"/admin/teams/persons/{person.id}",
+        data={"name_confirmation": "Block HardDel"},
+    )
+    assert resp.status_code == 200
+    assert "Endgültiges Löschen nicht möglich" in resp.text
+    session.expire_all()
+    assert session.get(Person, person.id) is not None
+
+
+def test_dispatcher_cannot_soft_delete_person(
+    as_dispatcher, session: Session, project: Project
+) -> None:
+    from database.models import Gender
+
+    person = Person(
+        f_name="Protected", l_name="Person",
+        gender=Gender.female,
+        email="prot@example.com", username="prot-x",
+        password="dummy", project=project,
+    )
+    session.add(person)
+    session.commit()
+
+    resp = as_dispatcher.post(f"/admin/teams/persons/{person.id}/soft-delete")
+    assert resp.status_code == 403
+
+
+def test_member_drawer_shows_lifecycle_actions(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Drawer rendert die Aktionen-Section abhängig vom prep_delete-Status."""
+    from database.models import Gender
+
+    active = Person(
+        f_name="DrawerAct", l_name="Person",
+        gender=Gender.female,
+        email="da@example.com", username="da-x",
+        password="dummy", project=project,
+    )
+    inactive = Person(
+        f_name="DrawerInact", l_name="Person",
+        gender=Gender.female,
+        email="di@example.com", username="di-x",
+        password="dummy", project=project,
+        prep_delete=datetime.datetime.now(datetime.timezone.utc),
+    )
+    session.add_all([active, inactive])
+    session.commit()
+
+    resp_active = as_admin.get(f"/admin/teams/persons/{active.id}/drawer")
+    assert "In Inaktiv verschieben" in resp_active.text
+    assert "Endgültig löschen" not in resp_active.text
+
+    resp_inactive = as_admin.get(f"/admin/teams/persons/{inactive.id}/drawer")
+    assert "Wiederherstellen" in resp_inactive.text
+    assert "Endgültig löschen" in resp_inactive.text
+    # Confirm-Input mit Vor- und Nachname als Placeholder
+    assert "DrawerInact Person" in resp_inactive.text

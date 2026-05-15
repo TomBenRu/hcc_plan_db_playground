@@ -45,9 +45,12 @@
         {% if filters.tab == "teams" %}
             {% if key == "active" %}{{ sidebar_counts.teams_active }}
             {% else %}{{ sidebar_counts.teams_inactive }}{% endif %}
-        {% else %}
+        {% elif filters.tab == "locations" %}
             {% if key == "active" %}{{ sidebar_counts.locations_active }}
             {% else %}{{ sidebar_counts.locations_inactive }}{% endif %}
+        {% else %}
+            {% if key == "active" %}{{ sidebar_counts.members_active }}
+            {% else %}{{ sidebar_counts.members_inactive }}{% endif %}
         {% endif %}
     </span>
 </a>

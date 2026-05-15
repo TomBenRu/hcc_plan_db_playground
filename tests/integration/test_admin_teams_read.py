@@ -14,7 +14,7 @@ from datetime import datetime, timezone
 
 from sqlmodel import Session
 
-from database.models import LocationOfWork, Project, Team
+from database.models import LocationOfWork, Person, Project, Team
 
 
 def _add_team(session: Session, project: Project, name: str, prep_delete: datetime | None = None) -> Team:
@@ -135,3 +135,64 @@ def test_dispatcher_dashboard_has_no_admin_teams_tile(as_dispatcher) -> None:
     resp = as_dispatcher.get("/dashboard")
     assert resp.status_code == 200
     assert "/admin/teams" not in resp.text
+
+
+def test_status_filter_counts_match_active_tab(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Regression: Sidebar-Status-Counts müssen zur aktiven Tab passen.
+
+    Vorher bei tab=members fiel der else-Zweig auf locations_active zurück
+    und zeigte falsche Zahlen. Aktuelle Datenlage: 2 Teams, 3 Standorte,
+    4 Personen → der Mitglieder-Tab zeigt 'Aktiv 4', nicht 'Aktiv 3'."""
+    import re
+    import secrets
+    from database.models import Gender
+
+    # 2 Teams, 3 Standorte, 4 Personen mit unterschiedlichen Counts pro Typ,
+    # damit das Fallback auf den falschen Count auch sichtbar wäre.
+    for i in range(2):
+        _add_team(session, project, f"StatT-{i}")
+    for i in range(3):
+        _add_location(session, project, f"StatL-{i}")
+    for i in range(4):
+        session.add(
+            Person(
+                f_name=f"StatP{i}",
+                l_name="Cnt",
+                gender=Gender.female,
+                email=f"stat-{i}-{secrets.token_hex(3)}@example.com",
+                username=f"stat-{i}-{secrets.token_hex(3)}",
+                password="x",
+                project=project,
+            )
+        )
+    session.commit()
+
+    def _aktiv_count_in_status_block(html: str) -> str | None:
+        """Isoliert den ``Status``-Filter-Block in der Sidebar und extrahiert
+        den Aktiv-Count daraus. Vermeidet Verwechslung mit den ``Bereich``-
+        Counts (Teams/Standorte/Mitglieder), die das Wort 'Aktiv' nicht
+        enthalten — aber sicherer ist's, im Status-Subtree zu suchen."""
+        status_idx = html.find(">\n    Status")
+        if status_idx < 0:
+            status_idx = html.find("Status\n")
+        sub = html[status_idx:status_idx + 2000] if status_idx >= 0 else html
+        m = re.search(r"Aktiv\s*<span class=\"filter-count\">\s*(\d+)", sub)
+        return m.group(1) if m else None
+
+    # Status-Aktiv soll pro Tab den Bereich-Count des gleichen Tabs spiegeln —
+    # nicht den Count des nachfolgenden Tabs (= alte Bug-Falle).
+    resp_m = as_admin.get("/admin/teams?tab=members")
+    assert resp_m.status_code == 200
+    m_count = _aktiv_count_in_status_block(resp_m.text)
+    # Mindestens unsere 4 plus ggf. ein Admin-Fixture-Person
+    assert m_count is not None and int(m_count) >= 4
+    # Cross-Check: Mitglieder-Count darf NICHT gleich Locations-Count (3) sein
+    assert m_count != "3", "Bug: Members-Tab fällt auf Locations-Count zurück"
+
+    resp_l = as_admin.get("/admin/teams?tab=locations")
+    assert _aktiv_count_in_status_block(resp_l.text) == "3"
+
+    resp_t = as_admin.get("/admin/teams?tab=teams")
+    assert _aktiv_count_in_status_block(resp_t.text) == "2"

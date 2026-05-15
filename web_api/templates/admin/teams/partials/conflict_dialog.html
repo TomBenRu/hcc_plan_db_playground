@@ -9,9 +9,10 @@
      - "member"   → Person ↔ Team (Team-Drawer)
      - "location" → Standort ↔ Team (Team-Drawer)
      - "team"     → Team ↔ Standort (Standort-Drawer)
+     - "person"   → Person ↔ Team (Mitglieder-Drawer)
 
-   Wenn ``drawer_target``/``drawer_reload_url`` gesetzt sind (Team-Kind),
-   re-laedt der Schliessen-Button den Location-Drawer; sonst fallback auf
+   Wenn ``drawer_target``/``drawer_reload_url`` gesetzt sind (team/person),
+   re-laedt der Schliessen-Button den passenden Drawer; sonst fallback auf
    den Team-Drawer via ``team_id``. #}
 
 <div class="p-4 bg-amber-50 dark:bg-amber-900/30 border border-amber-200
@@ -25,6 +26,8 @@
         <div class="text-sm text-amber-800 dark:text-amber-200">
             {% if kind == "member" %}
             Diese Person hat bereits eine offene Mitgliedschaft in diesem Team.
+            {% elif kind == "person" %}
+            Diese Person ist diesem Team bereits zugeordnet.
             {% elif kind == "team" %}
             Dieses Team ist diesem Standort bereits zugeordnet.
             {% else %}

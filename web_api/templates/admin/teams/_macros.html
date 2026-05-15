@@ -5,9 +5,10 @@
    ausgelagert, damit `{% import %}` nicht das gesamte index.html mitrendert
    und damit auch keinen `{% block nav %}`-Kontext braucht. #}
 
-{%- macro qs(tab=None, status=None, search=None) -%}
+{%- macro qs(tab=None, status=None, search=None, team=None) -%}
 {%- set t = tab if tab is not none else filters.tab -%}
 {%- set s = status if status is not none else filters.status -%}
 {%- set q = search if search is not none else filters.search -%}
-tab={{ t }}&status={{ s }}&search={{ q | urlencode }}
+{%- set tm = team if team is not none else (filters.team_filter_id or '') -%}
+tab={{ t }}&status={{ s }}&search={{ q | urlencode }}{% if tm %}&team={{ tm }}{% endif %}
 {%- endmacro -%}

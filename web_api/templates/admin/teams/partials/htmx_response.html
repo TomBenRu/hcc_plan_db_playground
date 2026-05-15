@@ -7,6 +7,8 @@
 {# Hauptcontent: passende Liste je Tab #}
 {% if filters.tab == "locations" %}
     {% include "admin/teams/partials/locations_list.html" %}
+{% elif filters.tab == "members" %}
+    {% include "admin/teams/partials/members_list.html" %}
 {% else %}
     {% include "admin/teams/partials/teams_list.html" %}
 {% endif %}

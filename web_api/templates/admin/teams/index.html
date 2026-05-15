@@ -2,7 +2,7 @@
 {% from "_macros/branding.html" import role_kicker %}
 {% from "admin/teams/_macros.html" import qs with context %}
 
-{% block title %}Teams &amp; Standorte – hcc plan{% endblock %}
+{% block title %}Teams &amp; Zuordnungen – hcc plan{% endblock %}
 
 {% block head %}
 <style>
@@ -102,10 +102,10 @@
                 {{ role_kicker("admin") }}
             </div>
             <h1 class="font-display text-white text-2xl font-semibold leading-tight tracking-tight">
-                Teams &amp; Standorte
+                Teams &amp; Zuordnungen
             </h1>
             <p class="font-sans text-xs text-slate-500 mt-1.5">
-                Organisationsstruktur und Zuweisungen pflegen.
+                Struktur, Standorte und Mitgliedschaften pflegen.
             </p>
         </div>
 
@@ -169,6 +169,8 @@
             <div id="main-content">
                 {% if filters.tab == "locations" %}
                     {% include "admin/teams/partials/locations_list.html" %}
+                {% elif filters.tab == "members" %}
+                    {% include "admin/teams/partials/members_list.html" %}
                 {% else %}
                     {% include "admin/teams/partials/teams_list.html" %}
                 {% endif %}
@@ -183,6 +185,7 @@
 {# ── Drawer-Container ────────────────────────────────────────────────────── #}
 <div id="team-drawer-wrap" class="drawer-wrap"><div class="drawer-panel" id="team-drawer"></div></div>
 <div id="location-drawer-wrap" class="drawer-wrap"><div class="drawer-panel" id="location-drawer"></div></div>
+<div id="member-drawer-wrap" class="drawer-wrap"><div class="drawer-panel" id="member-drawer"></div></div>
 <div class="drawer-backdrop"
      onclick="document.querySelectorAll('.drawer-wrap').forEach(d => d.classList.remove('open'));"></div>
 
@@ -193,6 +196,8 @@
             document.getElementById('team-drawer-wrap').classList.add('open');
         } else if (evt.detail.target.id === 'location-drawer') {
             document.getElementById('location-drawer-wrap').classList.add('open');
+        } else if (evt.detail.target.id === 'member-drawer') {
+            document.getElementById('member-drawer-wrap').classList.add('open');
         }
     });
 </script>

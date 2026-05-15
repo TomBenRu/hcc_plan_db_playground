@@ -529,10 +529,11 @@ def test_delete_active_team_location_via_team_endpoint_is_blocked(
     assert session.get(TeamLocationAssign, tla_id) is not None
 
 
-def test_team_drawer_renders_active_member_assigns(
+def test_team_drawer_shows_member_link_with_active_count(
     as_admin, session: Session, project: Project
 ) -> None:
-    """Team-Drawer zeigt aktive Mitglieder mit Namen im Mitglieder-Block."""
+    """Team-Drawer enthaelt seit 2026-05-15 keine inline-Mitgliederliste mehr,
+    sondern zwei Links auf die Tabs (gefiltert auf das Team) mit aktivem Count."""
     team = _make_team(session, project)
     person = _make_person(session, project, "DrawerAnna")
     taa = TeamActorAssign(person=person, team=team, start=date.today())
@@ -541,35 +542,18 @@ def test_team_drawer_renders_active_member_assigns(
 
     resp = as_admin.get(f"/admin/teams/teams/{team.id}/drawer")
     assert resp.status_code == 200
-    assert "DrawerAnna" in resp.text
-    assert "Mitglieder (1)" in resp.text
-    # Mitglieder-Search-Input vorhanden
-    assert "member-search-results" in resp.text
+    # Kein inline-Render mehr der Person
+    assert "DrawerAnna" not in resp.text
+    # Stattdessen: Link zum Mitglieder-Tab gefiltert auf dieses Team
+    assert f"/admin/teams?tab=members&amp;team={team.id}" in resp.text
+    # Count-Text "1 aktives Mitglied"
+    assert "1</strong>" in resp.text
+    assert "aktives Mitglied" in resp.text
 
 
-def test_team_drawer_renders_future_member_assigns_separately(
+def test_team_drawer_shows_location_link_with_active_count(
     as_admin, session: Session, project: Project
 ) -> None:
-    team = _make_team(session, project)
-    person = _make_person(session, project, "FuturePerson")
-    future = date.today() + timedelta(days=21)
-    taa = TeamActorAssign(person=person, team=team, start=future)
-    session.add(taa)
-    session.commit()
-
-    resp = as_admin.get(f"/admin/teams/teams/{team.id}/drawer")
-    assert resp.status_code == 200
-    assert "FuturePerson" in resp.text
-    assert "Mitglieder (0)" in resp.text
-    # Future-Block hat eigenen Headline ("Zukünftig (1)")
-    assert "Zuk" in resp.text
-    assert "(1)" in resp.text
-
-
-def test_team_drawer_renders_active_location_assigns(
-    as_admin, session: Session, project: Project
-) -> None:
-    """Team-Drawer zeigt aktive Standort-Zuordnungen im Standorte-Block."""
     team = _make_team(session, project)
     loc = _make_location(session, project, "DrawerLoc")
     tla = TeamLocationAssign(location_of_work=loc, team=team, start=date.today())
@@ -578,16 +562,15 @@ def test_team_drawer_renders_active_location_assigns(
 
     resp = as_admin.get(f"/admin/teams/teams/{team.id}/drawer")
     assert resp.status_code == 200
-    assert "DrawerLoc" in resp.text
-    assert "Standorte (1)" in resp.text
-    # Standort-Search-Input vorhanden
-    assert "location-search-results" in resp.text
+    assert "DrawerLoc" not in resp.text  # keine inline-Liste mehr
+    assert f"/admin/teams?tab=locations&amp;team={team.id}" in resp.text
+    assert "aktiver Standort" in resp.text
 
 
-def test_team_drawer_inactive_team_hides_assignment_blocks(
+def test_team_drawer_inactive_team_hides_assignment_links(
     as_admin, session: Session, project: Project
 ) -> None:
-    """Soft-geloeschtes Team blendet Mitglieder + Standorte aus."""
+    """Soft-geloeschtes Team blendet die Zuordnungs-Links aus."""
     from datetime import datetime, timezone
 
     team = Team(
@@ -599,8 +582,175 @@ def test_team_drawer_inactive_team_hides_assignment_blocks(
 
     resp = as_admin.get(f"/admin/teams/teams/{team.id}/drawer")
     assert resp.status_code == 200
-    # Hinweis-Banner sichtbar
     assert "Zuordnungen werden ausgeblendet" in resp.text
-    # Mitglieder-/Standorte-Sections nicht gerendert → Search-IDs nicht im Text
-    assert "member-search-results" not in resp.text
-    assert "location-search-results" not in resp.text
+    # Keine Tab-Links bei inaktivem Team
+    assert "tab=members&amp;team=" not in resp.text
+    assert "tab=locations&amp;team=" not in resp.text
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Mitglieder-Tab + Person-Drawer (Phase 1.3c)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def test_members_tab_lists_all_active_persons(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Pool = alle aktiven Personen, auch ohne Team-Zuordnung."""
+    _make_person(session, project, "Aaron")  # ohne Team
+    _make_person(session, project, "Bea")    # ohne Team
+    resp = as_admin.get("/admin/teams?tab=members")
+    assert resp.status_code == 200
+    assert "Aaron" in resp.text
+    assert "Bea" in resp.text
+
+
+def test_members_tab_team_filter_narrows_list(
+    as_admin, session: Session, project: Project
+) -> None:
+    """team-Filter zeigt nur Personen mit aktiver TAA zum Team."""
+    team = _make_team(session, project, "FilterTeam")
+    in_team = _make_person(session, project, "InTeam")
+    _make_person(session, project, "NotInTeam")
+    session.add(TeamActorAssign(person=in_team, team=team, start=date.today()))
+    session.commit()
+
+    resp = as_admin.get(f"/admin/teams?tab=members&team={team.id}")
+    assert resp.status_code == 200
+    assert "InTeam" in resp.text
+    assert "NotInTeam" not in resp.text
+    # Filter-Banner sichtbar
+    assert "FilterTeam" in resp.text
+    assert "Filter aufheben" in resp.text
+
+
+def test_locations_tab_team_filter_narrows_list(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Analog fuer Standorte-Tab mit ?team=<id>."""
+    team = _make_team(session, project, "FT-Loc")
+    loc_in = _make_location(session, project, "LocInTeam")
+    _make_location(session, project, "LocNotInTeam")
+    session.add(TeamLocationAssign(location_of_work=loc_in, team=team, start=date.today()))
+    session.commit()
+
+    resp = as_admin.get(f"/admin/teams?tab=locations&team={team.id}")
+    assert resp.status_code == 200
+    assert "LocInTeam" in resp.text
+    assert "LocNotInTeam" not in resp.text
+
+
+def test_member_drawer_renders_with_stammdaten(
+    as_admin, session: Session, project: Project
+) -> None:
+    person = _make_person(session, project, "DrawerPerson")
+    resp = as_admin.get(f"/admin/teams/persons/{person.id}/drawer")
+    assert resp.status_code == 200
+    assert "DrawerPerson" in resp.text
+    # Stammdaten read-only-Hinweis
+    assert "Pflege im Desktop" in resp.text
+
+
+def test_member_drawer_renders_active_team_memberships(
+    as_admin, session: Session, project: Project
+) -> None:
+    person = _make_person(session, project, "WithTeam")
+    team = _make_team(session, project, "PersonTeam")
+    session.add(TeamActorAssign(person=person, team=team, start=date.today()))
+    session.commit()
+
+    resp = as_admin.get(f"/admin/teams/persons/{person.id}/drawer")
+    assert resp.status_code == 200
+    assert "PersonTeam" in resp.text
+    assert "Team-Mitgliedschaften (1)" in resp.text
+
+
+def test_add_person_team_default_start(
+    as_admin, session: Session, project: Project
+) -> None:
+    person = _make_person(session, project, "AddTarget")
+    team = _make_team(session, project, "TargetTeam")
+    resp = as_admin.post(
+        f"/admin/teams/persons/{person.id}/teams",
+        data={"team_id": str(team.id)},
+    )
+    assert resp.status_code == 200
+    taa = session.exec(
+        select(TeamActorAssign).where(TeamActorAssign.person_id == person.id)
+    ).one()
+    assert taa.team_id == team.id
+    assert taa.start == date.today()
+
+
+def test_add_person_team_conflict_returns_dialog(
+    as_admin, session: Session, project: Project
+) -> None:
+    person = _make_person(session, project, "Conflict")
+    team = _make_team(session, project, "ConflictTeam")
+    as_admin.post(
+        f"/admin/teams/persons/{person.id}/teams",
+        data={"team_id": str(team.id)},
+    )
+    resp = as_admin.post(
+        f"/admin/teams/persons/{person.id}/teams",
+        data={"team_id": str(team.id)},
+    )
+    assert resp.status_code == 409
+    assert "bereits zugeordnet" in resp.text
+    # Schliessen-Button zeigt auf member-drawer (nicht team-drawer)
+    assert "member-drawer" in resp.text
+
+
+def test_end_person_team(
+    as_admin, session: Session, project: Project
+) -> None:
+    person = _make_person(session, project, "Ender")
+    team = _make_team(session, project, "EndTeam")
+    taa = TeamActorAssign(person=person, team=team, start=date.today())
+    session.add(taa)
+    session.commit()
+    future = date.today() + timedelta(days=14)
+
+    resp = as_admin.patch(
+        f"/admin/teams/person-teams/{taa.id}",
+        data={"end": future.isoformat()},
+    )
+    assert resp.status_code == 200
+    session.expire_all()
+    fresh = session.get(TeamActorAssign, taa.id)
+    assert fresh.end == future
+
+
+def test_delete_future_person_team(
+    as_admin, session: Session, project: Project
+) -> None:
+    person = _make_person(session, project, "FutureDel")
+    team = _make_team(session, project, "FD-Team")
+    future = date.today() + timedelta(days=30)
+    taa = TeamActorAssign(person=person, team=team, start=future)
+    session.add(taa)
+    session.commit()
+    taa_id = taa.id
+
+    resp = as_admin.delete(f"/admin/teams/person-teams/{taa_id}")
+    assert resp.status_code == 200
+    session.expire_all()
+    assert session.get(TeamActorAssign, taa_id) is None
+
+
+def test_person_team_search_returns_teams(
+    as_admin, session: Session, project: Project
+) -> None:
+    person = _make_person(session, project, "Searcher")
+    _make_team(session, project, "FindMe")
+    resp = as_admin.get(f"/admin/teams/persons/{person.id}/team-search?q=Find")
+    assert resp.status_code == 200
+    assert "FindMe" in resp.text
+
+
+def test_dispatcher_cannot_open_member_drawer(
+    as_dispatcher, session: Session, project: Project
+) -> None:
+    person = _make_person(session, project, "Hidden")
+    resp = as_dispatcher.get(f"/admin/teams/persons/{person.id}/drawer")
+    assert resp.status_code == 403

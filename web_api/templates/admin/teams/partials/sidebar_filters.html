@@ -1,10 +1,13 @@
-{# ── Tab-Auswahl Teams/Standorte ──────────────────────────────────────── #}
+{# ── Tab-Auswahl Teams / Standorte / Mitglieder ──────────────────────── #}
 <p class="hidden lg:block text-xs font-semibold tracking-widest uppercase text-slate-500 mb-2 font-sans">
     Bereich
 </p>
 {% for key, dot, label in [("teams", "bg-sky-400", "Teams"),
-                            ("locations", "bg-emerald-400", "Standorte")] %}
-<a href="?{{ qs(tab=key, search='') }}"
+                            ("locations", "bg-emerald-400", "Standorte"),
+                            ("members", "bg-violet-400", "Mitglieder")] %}
+{# Tab-Wechsel raeumt den Team-Filter auf — er gilt nur fuer den gerade
+   geoeffneten Drill-Down. #}
+<a href="?{{ qs(tab=key, search='', team='') }}"
    class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
           border-transparent text-sm font-sans text-slate-400
           {% if filters.tab == key %}active{% endif %}">
@@ -14,9 +17,12 @@
         {% if key == "teams" %}
             {% if filters.status == "inactive" %}{{ sidebar_counts.teams_inactive }}
             {% else %}{{ sidebar_counts.teams_active }}{% endif %}
-        {% else %}
+        {% elif key == "locations" %}
             {% if filters.status == "inactive" %}{{ sidebar_counts.locations_inactive }}
             {% else %}{{ sidebar_counts.locations_active }}{% endif %}
+        {% else %}
+            {% if filters.status == "inactive" %}{{ sidebar_counts.members_inactive }}
+            {% else %}{{ sidebar_counts.members_active }}{% endif %}
         {% endif %}
     </span>
 </a>

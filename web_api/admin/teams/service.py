@@ -84,6 +84,20 @@ class LocationListRow:
     prep_delete: datetime | None
 
 
+@dataclass(slots=True)
+class MemberListRow:
+    """Zeile fuer die Mitglieder-Liste. ``team_count`` bedeutet aktive Team-
+    Mitgliedschaften der Person; Personen ohne aktive Zuordnung erscheinen
+    weiterhin (Pool = alle aktiven Personen des Projekts)."""
+
+    id: uuid.UUID
+    f_name: str
+    l_name: str
+    email: str | None
+    team_count: int
+    prep_delete: datetime | None
+
+
 # ─── Read-Queries ─────────────────────────────────────────────────────────────
 
 
@@ -151,12 +165,45 @@ def list_teams_view(
     return rows
 
 
+def _active_team_assign_subquery_for_locations(team_id: uuid.UUID):
+    """Subquery: location_of_work_ids mit aktiver TLA zum gegebenen Team."""
+    today = date.today()
+    return (
+        select(TeamLocationAssign.location_of_work_id)
+        .where(
+            TeamLocationAssign.team_id == team_id,
+            TeamLocationAssign.start <= today,
+            or_(
+                TeamLocationAssign.end.is_(None),  # type: ignore[union-attr]
+                TeamLocationAssign.end > today,  # type: ignore[union-attr]
+            ),
+        )
+    )
+
+
+def _active_team_assign_subquery_for_persons(team_id: uuid.UUID):
+    """Subquery: person_ids mit aktiver TAA zum gegebenen Team."""
+    today = date.today()
+    return (
+        select(TeamActorAssign.person_id)
+        .where(
+            TeamActorAssign.team_id == team_id,
+            TeamActorAssign.start <= today,
+            or_(
+                TeamActorAssign.end.is_(None),  # type: ignore[union-attr]
+                TeamActorAssign.end > today,  # type: ignore[union-attr]
+            ),
+        )
+    )
+
+
 def list_locations_view(
     session: Session,
     project_id: uuid.UUID,
     *,
     only_inactive: bool,
     search: str,
+    team_filter_id: uuid.UUID | None = None,
 ) -> list[LocationListRow]:
     """Standorte projektweit mit Adress-Zusammenfassung + Team-Count.
 
@@ -164,6 +211,9 @@ def list_locations_view(
     soft-deleted aus und bietet keinen Schalter — wir bauen die Query daher
     direkt hier, um den Inaktiv-Filter abzubilden. Semantik wie bei
     ``list_teams_view``: ``only_inactive`` zerteilt streng nach ``prep_delete``.
+
+    ``team_filter_id`` schraenkt die Liste auf Standorte mit aktiver TLA zum
+    gegebenen Team ein — fuer den Link aus dem Team-Drawer.
     """
     stmt = (
         select(LocationOfWork)
@@ -177,6 +227,12 @@ def list_locations_view(
         stmt = stmt.where(LocationOfWork.prep_delete.is_(None))  # type: ignore[union-attr]
     if search:
         stmt = stmt.where(LocationOfWork.name.ilike(f"%{search}%"))  # type: ignore[union-attr]
+    if team_filter_id is not None:
+        stmt = stmt.where(
+            LocationOfWork.id.in_(  # type: ignore[union-attr]
+                _active_team_assign_subquery_for_locations(team_filter_id)
+            )
+        )
 
     locations = session.exec(stmt).all()
     today = date.today()
@@ -206,6 +262,97 @@ def list_locations_view(
             )
         )
     return rows
+
+
+def list_members_view(
+    session: Session,
+    project_id: uuid.UUID,
+    *,
+    only_inactive: bool,
+    search: str,
+    team_filter_id: uuid.UUID | None = None,
+) -> list[MemberListRow]:
+    """Personen-Pool des Projekts mit aktivem Team-Mitgliedschafts-Count.
+
+    ``only_inactive`` interpretiert ``Person.prep_delete`` (analog zu Teams/
+    Standorten). ``search`` matcht in ``f_name``, ``l_name``, ``email``.
+    ``team_filter_id`` schraenkt auf Personen mit aktiver TAA zum Team ein.
+
+    Personen ohne aktive Team-Zuordnung erscheinen weiterhin in der Liste
+    (Pool = alle aktiven Personen, nicht nur ``team_actor_assigns``-haltige).
+    """
+    stmt = (
+        select(Person)
+        .where(Person.project_id == project_id)
+        .order_by(Person.l_name, Person.f_name)
+    )
+    if only_inactive:
+        stmt = stmt.where(Person.prep_delete.is_not(None))  # type: ignore[union-attr]
+    else:
+        stmt = stmt.where(Person.prep_delete.is_(None))  # type: ignore[union-attr]
+    if search:
+        pattern = f"%{search}%"
+        stmt = stmt.where(
+            (Person.f_name.ilike(pattern))  # type: ignore[union-attr]
+            | (Person.l_name.ilike(pattern))  # type: ignore[union-attr]
+            | (Person.email.ilike(pattern))  # type: ignore[union-attr]
+        )
+    if team_filter_id is not None:
+        stmt = stmt.where(
+            Person.id.in_(  # type: ignore[union-attr]
+                _active_team_assign_subquery_for_persons(team_filter_id)
+            )
+        )
+
+    persons = session.exec(stmt).all()
+    today = date.today()
+    rows: list[MemberListRow] = []
+    for person in persons:
+        team_count = session.execute(
+            select(func.count())
+            .select_from(TeamActorAssign)
+            .where(
+                TeamActorAssign.person_id == person.id,
+                TeamActorAssign.start <= today,
+                or_(TeamActorAssign.end.is_(None), TeamActorAssign.end > today),  # type: ignore[union-attr]
+            )
+        ).scalar_one()
+        rows.append(
+            MemberListRow(
+                id=person.id,
+                f_name=person.f_name,
+                l_name=person.l_name,
+                email=person.email,
+                team_count=team_count,
+                prep_delete=person.prep_delete,
+            )
+        )
+    return rows
+
+
+def count_members(
+    session: Session,
+    project_id: uuid.UUID,
+    *,
+    only_inactive: bool,
+    team_filter_id: uuid.UUID | None = None,
+) -> int:
+    stmt = (
+        select(func.count())
+        .select_from(Person)
+        .where(Person.project_id == project_id)
+    )
+    if only_inactive:
+        stmt = stmt.where(Person.prep_delete.is_not(None))  # type: ignore[union-attr]
+    else:
+        stmt = stmt.where(Person.prep_delete.is_(None))  # type: ignore[union-attr]
+    if team_filter_id is not None:
+        stmt = stmt.where(
+            Person.id.in_(  # type: ignore[union-attr]
+                _active_team_assign_subquery_for_persons(team_filter_id)
+            )
+        )
+    return session.execute(stmt).scalar_one()
 
 
 def address_suggest(
@@ -258,6 +405,7 @@ def count_locations(
     project_id: uuid.UUID,
     *,
     only_inactive: bool,
+    team_filter_id: uuid.UUID | None = None,
 ) -> int:
     stmt = (
         select(func.count())
@@ -268,4 +416,10 @@ def count_locations(
         stmt = stmt.where(LocationOfWork.prep_delete.is_not(None))  # type: ignore[union-attr]
     else:
         stmt = stmt.where(LocationOfWork.prep_delete.is_(None))  # type: ignore[union-attr]
+    if team_filter_id is not None:
+        stmt = stmt.where(
+            LocationOfWork.id.in_(  # type: ignore[union-attr]
+                _active_team_assign_subquery_for_locations(team_filter_id)
+            )
+        )
     return session.execute(stmt).scalar_one()

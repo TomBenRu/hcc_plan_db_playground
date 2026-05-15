@@ -106,6 +106,39 @@ def list_future_team_members(session: Session, team_id: uuid.UUID) -> list[TeamA
     return list(session.exec(stmt).all())
 
 
+def list_active_person_teams(
+    session: Session, person_id: uuid.UUID
+) -> list[TeamActorAssign]:
+    """Aktive TAAs einer Person (Spiegel zu ``list_active_team_members``)."""
+    today = date.today()
+    stmt = (
+        select(TeamActorAssign)
+        .where(
+            TeamActorAssign.person_id == person_id,
+            TeamActorAssign.start <= today,
+            or_(
+                TeamActorAssign.end.is_(None),  # type: ignore[union-attr]
+                TeamActorAssign.end > today,  # type: ignore[union-attr]
+            ),
+        )
+        .order_by(TeamActorAssign.start)
+    )
+    return list(session.exec(stmt).all())
+
+
+def list_future_person_teams(
+    session: Session, person_id: uuid.UUID
+) -> list[TeamActorAssign]:
+    """Future-TAAs einer Person."""
+    today = date.today()
+    stmt = (
+        select(TeamActorAssign)
+        .where(TeamActorAssign.person_id == person_id, TeamActorAssign.start > today)
+        .order_by(TeamActorAssign.start)
+    )
+    return list(session.exec(stmt).all())
+
+
 # ─── TeamLocationAssign-Helper ────────────────────────────────────────────────
 
 
@@ -450,6 +483,21 @@ def search_teams_for_location(
     if q.strip():
         stmt = stmt.where(Team.name.ilike(pattern))  # type: ignore[union-attr]
     return list(session.exec(stmt).all())
+
+
+def search_teams_for_person(
+    session: Session,
+    *,
+    project_id: uuid.UUID,
+    q: str,
+    limit: int = 20,
+) -> list[Team]:
+    """Aktive Teams im Projekt — Pool fuer den Team-Selector im Mitglieder-Drawer.
+
+    Identisch zu ``search_teams_for_location`` — die getrennte Funktion existiert
+    nur fuer Lesbarkeit am Aufruf-Ort.
+    """
+    return search_teams_for_location(session, project_id=project_id, q=q, limit=limit)
 
 
 def delete_future_team_location(

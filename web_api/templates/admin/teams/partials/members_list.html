@@ -1,33 +1,24 @@
+{# Mitglieder-Liste — Pool: alle aktiven Personen des Projekts.
+
+   Anders als Teams- und Standorte-Liste: Personen werden nicht hier
+   angelegt (das passiert im Desktop). Daher kein „Neue Person"-Button.
+   Die Pflege beschraenkt sich auf Team-Mitgliedschaften, die im Drawer
+   editierbar sind. #}
+
 {% if filter_team_name %}
 <div class="mb-4 px-3 py-2 rounded-lg bg-sky-50 dark:bg-sky-900/20
             border border-sky-200 dark:border-sky-700/40
             text-sm text-sky-800 dark:text-sky-200
             flex items-center justify-between gap-2 anim">
-    <span>Gefiltert auf Team „<strong>{{ filter_team_name }}</strong>" — nur Standorte mit aktiver Zuordnung.</span>
-    <a href="?tab=locations&amp;status={{ filters.status }}"
+    <span>Gefiltert auf Team „<strong>{{ filter_team_name }}</strong>" — nur Mitglieder mit aktiver Zuordnung.</span>
+    <a href="?tab=members&amp;status={{ filters.status }}"
        class="px-2 py-1 rounded bg-white dark:bg-slate-800 text-xs hover:bg-sky-100 dark:hover:bg-slate-700">
         Filter aufheben
     </a>
 </div>
 {% endif %}
 
-<div class="mb-4 flex justify-end">
-    <button type="button"
-            hx-get="/admin/teams/locations/new"
-            hx-target="#location-drawer"
-            hx-swap="innerHTML"
-            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg
-                   bg-emerald-500 hover:bg-emerald-600 text-white text-sm font-medium
-                   shadow-sm transition-colors">
-        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                  d="M12 4v16m8-8H4"/>
-        </svg>
-        Neuer Standort
-    </button>
-</div>
-
-{% if locations_rows %}
+{% if members_rows %}
 <div class="bg-white dark:bg-slate-800 rounded-xl border
             border-slate-100 dark:border-slate-700/50 shadow-sm overflow-hidden
             anim" style="animation-delay: 0.1s;">
@@ -35,23 +26,23 @@
         <thead class="bg-slate-50/60 dark:bg-slate-900/40">
             <tr>
                 <th>Name</th>
-                <th>Adresse</th>
-                <th class="text-right">Soll-Besetzung</th>
+                <th>E-Mail</th>
                 <th class="text-right">Teams</th>
                 <th class="text-right pr-4">Status</th>
             </tr>
         </thead>
         <tbody>
-            {% for row in locations_rows %}
-            <tr hx-get="/admin/teams/locations/{{ row.id }}/drawer"
-                hx-target="#location-drawer"
+            {% for row in members_rows %}
+            <tr hx-get="/admin/teams/persons/{{ row.id }}/drawer"
+                hx-target="#member-drawer"
                 hx-swap="innerHTML">
-                <td class="font-medium text-slate-800 dark:text-slate-100">{{ row.name }}</td>
-                <td class="text-slate-500 dark:text-slate-400">
-                    {% if row.address_summary %}{{ row.address_summary }}
-                    {% else %}<span class="text-slate-400 text-xs">keine Adresse</span>{% endif %}
+                <td class="font-medium text-slate-800 dark:text-slate-100">
+                    {{ row.l_name }}, {{ row.f_name }}
                 </td>
-                <td class="text-right text-slate-600 dark:text-slate-300">{{ row.nr_actors }}</td>
+                <td class="text-slate-500 dark:text-slate-400">
+                    {% if row.email %}{{ row.email }}
+                    {% else %}<span class="text-slate-400 text-xs">—</span>{% endif %}
+                </td>
                 <td class="text-right text-slate-600 dark:text-slate-300">{{ row.team_count }}</td>
                 <td class="text-right pr-4">
                     {% if row.prep_delete %}
@@ -62,8 +53,8 @@
                     </span>
                     {% else %}
                     <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1
-                                 bg-emerald-50 text-emerald-700 ring-emerald-200
-                                 dark:bg-emerald-900/30 dark:text-emerald-400 dark:ring-emerald-700/50">
+                                 bg-violet-50 text-violet-700 ring-violet-200
+                                 dark:bg-violet-900/30 dark:text-violet-400 dark:ring-violet-700/50">
                         Aktiv
                     </span>
                     {% endif %}
@@ -74,7 +65,7 @@
     </table>
 </div>
 <p class="text-xs text-slate-400 mt-3 font-sans">
-    {{ locations_rows | length }} {{ "Standort" if locations_rows | length == 1 else "Standorte" }} angezeigt
+    {{ members_rows | length }} {{ "Mitglied" if members_rows | length == 1 else "Mitglieder" }} angezeigt
 </p>
 {% else %}
 <div class="anim flex flex-col items-center justify-center py-16 text-slate-400"
@@ -83,9 +74,9 @@
                 dark:border-slate-700/50 shadow-sm flex items-center justify-center mb-4">
         <svg class="w-7 h-7 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                  d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5"/>
+                  d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-2.13a4 4 0 11-8 0 4 4 0 018 0zm6 0a4 4 0 11-8 0 4 4 0 018 0z"/>
         </svg>
     </div>
-    <p class="text-sm">Keine Standorte gefunden.</p>
+    <p class="text-sm">Keine Mitglieder gefunden.</p>
 </div>
 {% endif %}

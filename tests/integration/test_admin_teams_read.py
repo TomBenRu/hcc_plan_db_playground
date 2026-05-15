@@ -40,7 +40,7 @@ def test_admin_sees_teams_tab_by_default(as_admin, session: Session, project: Pr
     resp = as_admin.get("/admin/teams")
     assert resp.status_code == 200
     assert "Hamburg" in resp.text
-    assert "Teams &amp; Standorte" in resp.text
+    assert "Teams &amp; Zuordnungen" in resp.text
 
 
 def test_admin_can_switch_to_locations_tab(as_admin, session: Session, project: Project) -> None:
@@ -57,7 +57,7 @@ def test_dispatcher_has_no_access(as_dispatcher) -> None:
     assert resp.status_code == 403
 
 
-def test_admin_keeps_full_branding_and_both_tabs(
+def test_admin_keeps_full_branding_and_three_tabs(
     as_admin, session: Session, project: Project
 ) -> None:
     _add_team(session, project, "AdmTeam")
@@ -65,12 +65,14 @@ def test_admin_keeps_full_branding_and_both_tabs(
     resp = as_admin.get("/admin/teams")
     assert resp.status_code == 200
     # Admin-Branding bleibt
-    assert "Teams &amp; Standorte" in resp.text
-    assert "Organisationsstruktur" in resp.text
+    assert "Teams &amp; Zuordnungen" in resp.text
     assert "ADMINISTRATION" in resp.text or "Administration" in resp.text
-    # Beide Tabs erreichbar — Tab 'Teams' steht im Sidebar als Filter
-    # (Default-Tab Teams zeigt das Team)
+    # Default-Tab Teams zeigt das Team
     assert "AdmTeam" in resp.text
+    # Alle drei Tab-Labels in der Sidebar sichtbar
+    assert "Teams" in resp.text
+    assert "Standorte" in resp.text
+    assert "Mitglieder" in resp.text
 
 
 def test_inactive_filter_shows_only_soft_deleted_teams(

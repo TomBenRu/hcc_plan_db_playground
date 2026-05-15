@@ -16,7 +16,13 @@ from sqlmodel import Session
 from datetime import date
 
 from database import db_services
-from database.models import LocationOfWork, Team, TeamActorAssign, TeamLocationAssign
+from database.models import (
+    LocationOfWork,
+    Person,
+    Team,
+    TeamActorAssign,
+    TeamLocationAssign,
+)
 from web_api.admin.teams import assignments, guards, mutations, service
 from web_api.auth.dependencies import require_role
 from web_api.dependencies import get_db_session
@@ -41,23 +47,37 @@ router = APIRouter(prefix="/admin/teams", tags=["admin-teams"])
 # ─── Hilfsfunktionen ──────────────────────────────────────────────────────────
 
 
+_VALID_TABS = ("teams", "locations", "members")
+
+
 def _normalize_tab(raw: str | None) -> str:
-    return "locations" if raw == "locations" else "teams"
+    return raw if raw in _VALID_TABS else "teams"
 
 
 def _normalize_status(raw: str | None) -> str:
     return "inactive" if raw == "inactive" else "active"
 
 
+def _parse_optional_uuid(raw: str | None) -> uuid.UUID | None:
+    if not raw or not raw.strip():
+        return None
+    try:
+        return uuid.UUID(raw.strip())
+    except (ValueError, AttributeError):
+        return None
+
+
 def _build_filters(
     tab: str | None,
     status: str | None,
     search: str | None,
+    team: str | None,
 ) -> dict:
     return {
         "tab": _normalize_tab(tab),
         "status": _normalize_status(status),
         "search": (search or "").strip(),
+        "team_filter_id": _parse_optional_uuid(team),
     }
 
 
@@ -69,6 +89,7 @@ def _build_view_context(
 ) -> dict:
     project = service.get_session_project(session, user)
     only_inactive = filters["status"] == "inactive"
+    team_filter_id = filters.get("team_filter_id")
 
     teams_rows = service.list_teams_view(
         session,
@@ -81,6 +102,14 @@ def _build_view_context(
         project.id,
         only_inactive=only_inactive,
         search=filters["search"] if filters["tab"] == "locations" else "",
+        team_filter_id=team_filter_id if filters["tab"] == "locations" else None,
+    )
+    members_rows = service.list_members_view(
+        session,
+        project.id,
+        only_inactive=only_inactive,
+        search=filters["search"] if filters["tab"] == "members" else "",
+        team_filter_id=team_filter_id if filters["tab"] == "members" else None,
     )
 
     sidebar_counts = {
@@ -92,7 +121,21 @@ def _build_view_context(
         "locations_inactive": service.count_locations(
             session, project.id, only_inactive=True
         ),
+        "members_active": service.count_members(
+            session, project.id, only_inactive=False
+        ),
+        "members_inactive": service.count_members(
+            session, project.id, only_inactive=True
+        ),
     }
+
+    # Wenn ein team_filter aktiv ist, brauchen wir den Team-Namen fuer den
+    # Banner ueber der gefilterten Liste.
+    filter_team_name: str | None = None
+    if team_filter_id is not None:
+        team_for_filter = session.get(Team, team_filter_id)
+        if team_for_filter is not None:
+            filter_team_name = team_for_filter.name
 
     return {
         "request": request,
@@ -100,7 +143,9 @@ def _build_view_context(
         "filters": filters,
         "teams_rows": teams_rows,
         "locations_rows": locations_rows,
+        "members_rows": members_rows,
         "sidebar_counts": sidebar_counts,
+        "filter_team_name": filter_team_name,
     }
 
 
@@ -115,13 +160,18 @@ def teams_index(
     tab: str | None = None,
     status: str | None = None,
     search: str | None = None,
+    team: str | None = None,
 ):
-    """Hauptseite mit Sidebar + Tab-Switch Teams/Standorte.
+    """Hauptseite mit Sidebar + Tab-Switch Teams/Standorte/Mitglieder.
 
     Vollseiten-Render fuer GET ohne ``HX-Request``; OOB-Response-Partial
     fuer HTMX-Calls (Liste + Sidebar-Counts + Hidden-State austauschen).
+
+    ``team``-Param: UUID eines Teams; wenn gesetzt, filtert die Standorte-
+    bzw. Mitglieder-Liste auf aktive Zuordnungen zu diesem Team. Diese
+    Links kommen aus dem Team-Drawer.
     """
-    filters = _build_filters(tab, status, search)
+    filters = _build_filters(tab, status, search, team)
     ctx = _build_view_context(request, user, session, filters)
 
     template_name = (
@@ -163,12 +213,8 @@ def team_drawer(
     user: WebUser = require_role(WebUserRole.admin),
     session: Session = Depends(get_db_session),
 ):
-    """Detail-Drawer fuer ein Team mit Mitglieder- und Standort-Zuordnungen.
-
-    DB-Service oeffnet seine eigene Session via ``database.database.get_session()``
-    — fuer den Team-Lookup; die ``session``-Dependency wird fuer die
-    Active/Future-Lookups im Drawer-Render benoetigt.
-    """
+    """Detail-Drawer fuer ein Team — Stammdaten + Dispatcher + Counts/Links zu
+    Mitglieder- und Standorte-Tabs."""
     team = db_services.team.get(team_id, include_deleted=True)
     if team is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Team nicht gefunden")
@@ -178,10 +224,8 @@ def team_drawer(
             "request": request,
             "user": user,
             "team": team,
-            "active_member_assigns": assignments.list_active_team_members(session, team.id),
-            "future_member_assigns": assignments.list_future_team_members(session, team.id),
-            "active_location_assigns": assignments.list_active_team_locations(session, team.id),
-            "future_location_assigns": assignments.list_future_team_locations(session, team.id),
+            "active_member_count": len(assignments.list_active_team_members(session, team.id)),
+            "active_location_count": len(assignments.list_active_team_locations(session, team.id)),
         },
     )
 
@@ -226,24 +270,21 @@ def _render_team_drawer(
     """Drawer fuer ein ``Team`` rendern. Hilfsfunktion, weil mehrere Mutations
     denselben Render-Pfad teilen.
 
-    ``session`` ist zwingend, weil aktive und zukuenftige Mitglieder- und
-    Standort-Zuordnungen pro Render frisch geladen werden — analog zum
-    Location-Drawer-Render.
+    Seit 2026-05-15 zeigt der Team-Drawer nur Counts + Links zu den
+    Mitglieder-/Standorte-Tabs (gefiltert auf das Team). Die Detail-Pflege
+    erfolgt in den jeweiligen Tabs. ``session`` ist trotzdem noetig fuer die
+    Counts.
     """
-    active_member_assigns = assignments.list_active_team_members(session, team.id)
-    future_member_assigns = assignments.list_future_team_members(session, team.id)
-    active_location_assigns = assignments.list_active_team_locations(session, team.id)
-    future_location_assigns = assignments.list_future_team_locations(session, team.id)
+    active_member_count = len(assignments.list_active_team_members(session, team.id))
+    active_location_count = len(assignments.list_active_team_locations(session, team.id))
     response = templates.TemplateResponse(
         "admin/teams/partials/team_drawer.html",
         {
             "request": request,
             "user": user,
             "team": team,
-            "active_member_assigns": active_member_assigns,
-            "future_member_assigns": future_member_assigns,
-            "active_location_assigns": active_location_assigns,
-            "future_location_assigns": future_location_assigns,
+            "active_member_count": active_member_count,
+            "active_location_count": active_location_count,
             "saved": saved,
             "error": error,
         },
@@ -282,6 +323,38 @@ def _render_location_drawer(
         },
     )
     response.headers["HX-Trigger"] = "locations-list-changed"
+    return response
+
+
+def _render_member_drawer(
+    request: Request,
+    person: Person,
+    user: WebUser,
+    *,
+    session: Session,
+    saved: bool = False,
+    error: str | None = None,
+) -> HTMLResponse:
+    """Mitglieder-Drawer rendern inkl. Team-Mitgliedschaften.
+
+    Stammdaten der Person sind im Web read-only (Desktop ist die Wahrheit).
+    Pflegbar sind nur die TAA-Zuordnungen.
+    """
+    active_team_assigns = assignments.list_active_person_teams(session, person.id)
+    future_team_assigns = assignments.list_future_person_teams(session, person.id)
+    response = templates.TemplateResponse(
+        "admin/teams/partials/member_drawer.html",
+        {
+            "request": request,
+            "user": user,
+            "person": person,
+            "active_team_assigns": active_team_assigns,
+            "future_team_assigns": future_team_assigns,
+            "saved": saved,
+            "error": error,
+        },
+    )
+    response.headers["HX-Trigger"] = "members-list-changed"
     return response
 
 
@@ -712,6 +785,121 @@ def delete_location_team_endpoint(
     assignments.delete_future_team_location(session, assign=assign, actor=user)
     location = session.get(LocationOfWork, location_id)
     return _render_location_drawer(request, location, user, session=session, saved=True)
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Phase 1.3c — Mitglieder-Tab: Person-Drawer + Team-Zuordnung von der Person-Seite
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+@router.get("/persons/{person_id}/drawer", response_class=HTMLResponse)
+def member_drawer_endpoint(
+    request: Request,
+    person_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+):
+    """Detail-Drawer fuer eine Person. Stammdaten sind read-only (Desktop-
+    pflege); editierbar sind nur die Team-Mitgliedschaften."""
+    person = session.get(Person, person_id)
+    if person is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Person nicht gefunden")
+    return _render_member_drawer(request, person, user, session=session)
+
+
+@router.get("/persons/{person_id}/team-search", response_class=HTMLResponse)
+def person_team_search_endpoint(
+    request: Request,
+    person_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    q: str = "",
+):
+    project = service.get_session_project(session, user)
+    candidates = assignments.search_teams_for_person(
+        session, project_id=project.id, q=q
+    )
+    return templates.TemplateResponse(
+        "admin/teams/partials/person_team_search_results.html",
+        {"request": request, "person_id": person_id, "candidates": candidates},
+    )
+
+
+@router.post("/persons/{person_id}/teams", response_class=HTMLResponse)
+def add_person_team_endpoint(
+    request: Request,
+    person_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    team_id: uuid.UUID = Form(...),
+    start: str | None = Form(default=None),
+):
+    person = session.get(Person, person_id)
+    if person is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Person nicht gefunden")
+    team = session.get(Team, team_id)
+    if team is None or team.project_id != person.project_id:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Team nicht gefunden")
+    parsed_start = _parse_optional_date(start)
+    try:
+        assignments.add_team_member(
+            session, team=team, person_id=person.id, start=parsed_start, actor=user
+        )
+    except HTTPException as exc:
+        if exc.status_code == status.HTTP_409_CONFLICT and isinstance(
+            exc.detail, assignments.AssignConflict
+        ):
+            return templates.TemplateResponse(
+                "admin/teams/partials/conflict_dialog.html",
+                {
+                    "request": request,
+                    "kind": "person",
+                    "drawer_target": "member-drawer",
+                    "drawer_reload_url": f"/admin/teams/persons/{person_id}/drawer",
+                    "conflict": exc.detail,
+                },
+                status_code=status.HTTP_409_CONFLICT,
+            )
+        raise
+    return _render_member_drawer(request, person, user, session=session, saved=True)
+
+
+@router.patch("/person-teams/{assign_id}", response_class=HTMLResponse)
+def update_person_team_endpoint(
+    request: Request,
+    assign_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    end: str | None = Form(default=None),
+):
+    """End-Datum einer Person↔Team-Zuordnung setzen oder revertieren. Spiegel
+    zu ``update_team_member_endpoint``, rendert aber den Mitglieder-Drawer."""
+    assign = session.get(TeamActorAssign, assign_id)
+    if assign is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Mitgliedschaft nicht gefunden")
+    parsed_end = _parse_optional_date(end)
+    assign = assignments.set_team_member_end(
+        session, assign=assign, end=parsed_end, actor=user
+    )
+    person = session.get(Person, assign.person_id)
+    return _render_member_drawer(request, person, user, session=session, saved=True)
+
+
+@router.delete("/person-teams/{assign_id}", response_class=HTMLResponse)
+def delete_person_team_endpoint(
+    request: Request,
+    assign_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+):
+    """Future-TAA von der Person-Seite physisch loeschen."""
+    assign = session.get(TeamActorAssign, assign_id)
+    if assign is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Mitgliedschaft nicht gefunden")
+    person_id = assign.person_id
+    assignments.delete_future_team_actor_assign(session, assign=assign, actor=user)
+    person = session.get(Person, person_id)
+    return _render_member_drawer(request, person, user, session=session, saved=True)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════

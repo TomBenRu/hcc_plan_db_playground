@@ -97,7 +97,23 @@ def send_test_email(smtp_config: SmtpConfig, recipient_email: str) -> None:
 
 
 def _send_one_smtp(payload: EmailPayload, smtp_config: SmtpConfig) -> None:
-    """Sendet eine einzelne E-Mail. Wirft bei Fehler — Logging im Caller."""
+    """Sendet eine einzelne E-Mail. Wirft bei Fehler — Logging im Caller.
+
+    Choke-Point: ALLE Mail-Versendungen laufen am Ende hier durch — sowohl der
+    Web-API-BackgroundTask-Pfad (`schedule_emails` → `_send_emails_with_config`
+    → `_send_one_smtp`) als auch der Scheduler-/Desktop-Pfad
+    (`email_to_users.EmailService._send_one` → `_send_one_smtp`). Der
+    SUPPRESS_NOTIFICATIONS-Check muss daher hier sitzen, sonst rutschen die
+    Scheduler-Reminder durch (vgl. Vorfall 2026-05-16: Catchup-Mails wurden
+    versendet, obwohl Inbox-Hub bereits unterdrueckt war).
+    """
+    if get_settings().SUPPRESS_NOTIFICATIONS:
+        logger.warning(
+            "SUPPRESS_NOTIFICATIONS aktiv — E-Mail NICHT versendet "
+            "(to=%s subject=%s)",
+            payload.to, payload.subject,
+        )
+        return
     msg = MIMEMultipart("alternative")
     msg["Subject"] = payload.subject
     msg["From"] = smtp_config.from_header

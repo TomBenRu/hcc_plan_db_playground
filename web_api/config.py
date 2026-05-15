@@ -27,6 +27,13 @@ class Settings(BaseSettings):
     # Generierung: python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
     EMAIL_ENCRYPTION_KEY: str = ""
 
+    # Notification-Kill-Switch: wenn True werden weder E-Mails noch
+    # Inbox-Messages erzeugt. Fuer administrative Aktionen, die ohne
+    # Benachrichtigung der User stattfinden sollen (z. B. Datenkorrekturen).
+    # Auf Render via Environment-Variable setzen und nach Abschluss der
+    # Aktionen wieder auf False (oder Variable loeschen) plus Redeploy.
+    SUPPRESS_NOTIFICATIONS: bool = False
+
 
 def get_settings() -> Settings:
     """Factory — kann in Tests via dependency_overrides ersetzt werden."""

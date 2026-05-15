@@ -25,6 +25,7 @@ from email.mime.text import MIMEText
 from fastapi import BackgroundTasks
 from sqlmodel import Session
 
+from web_api.config import get_settings
 from web_api.email.config_loader import SmtpConfig, load_smtp_config
 
 logger = logging.getLogger(__name__)
@@ -51,6 +52,15 @@ def schedule_emails(
     schlägt das fehl, propagiert die Exception in den Handler.
     """
     if not payloads:
+        return
+    if get_settings().SUPPRESS_NOTIFICATIONS:
+        logger.warning(
+            "SUPPRESS_NOTIFICATIONS aktiv — %d E-Mail(s) NICHT versendet "
+            "(to=%s, subjects=%s)",
+            len(payloads),
+            [p.to for p in payloads],
+            [p.subject for p in payloads],
+        )
         return
     smtp_config = load_smtp_config(session)
     background_tasks.add_task(_send_emails_with_config, payloads, smtp_config)

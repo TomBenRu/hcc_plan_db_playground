@@ -61,6 +61,11 @@ async def lifespan(app: FastAPI):
     und db_services-Hooks Reminder-Job-Registration sauber skippen.
     """
     settings = get_settings()
+    if settings.SUPPRESS_NOTIFICATIONS:
+        logging.getLogger(__name__).warning(
+            "SUPPRESS_NOTIFICATIONS=true — E-Mails und Inbox-Messages sind "
+            "deaktiviert. Nach administrativer Aktion auf False zuruecksetzen."
+        )
     lock_handle = acquire_scheduler_lock(settings.DATABASE_URL)
     scheduler = None
     if lock_handle.acquired:

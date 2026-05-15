@@ -1,5 +1,6 @@
 """Inbox-Service: InboxMessages erstellen, lesen, als gelesen markieren."""
 
+import logging
 import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -9,12 +10,15 @@ from sqlalchemy import or_, select as sa_select
 from sqlmodel import Session
 
 from database.models import ActorPlanPeriod, Appointment, Plan, PlanPeriod
+from web_api.config import get_settings
 from web_api.models.web_models import (
     CancellationRequest,
     CancellationStatus,
     InboxMessage,
     InboxMessageType,
 )
+
+logger = logging.getLogger(__name__)
 
 
 # Zusammengesetzte Filter-Gruppen (mehrere Types hinter einem Filter-Key)
@@ -91,7 +95,14 @@ def create_inbox_message(
     reference_id: uuid.UUID,
     reference_type: str,
     snapshot_data: dict,
-) -> InboxMessage:
+) -> InboxMessage | None:
+    if get_settings().SUPPRESS_NOTIFICATIONS:
+        logger.warning(
+            "SUPPRESS_NOTIFICATIONS aktiv — Inbox-Message NICHT erzeugt "
+            "(type=%s recipient=%s reference=%s/%s)",
+            msg_type, recipient_id, reference_type, reference_id,
+        )
+        return None
     msg = InboxMessage(
         recipient_web_user_id=recipient_id,
         type=msg_type,

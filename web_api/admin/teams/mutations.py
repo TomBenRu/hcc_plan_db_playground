@@ -23,10 +23,12 @@ from sqlalchemy import func, or_
 from sqlmodel import Session, select
 
 from database.models import (
+    ActorPlanPeriod,
     Address,
     Gender,
     LocationOfWork,
     Person,
+    PlanPeriod,
     Project,
     Team,
     TeamActorAssign,
@@ -831,3 +833,54 @@ def update_location_admin_fields(
             },
         )
     return location
+
+
+def create_actor_plan_periods(
+    session: Session,
+    *,
+    person: Person,
+    plan_periods: list[PlanPeriod],
+    actor: WebUser,
+) -> list[ActorPlanPeriod]:
+    """Erzeugt ActorPlanPeriods fuer ``person`` ueber die gegebenen ``plan_periods``.
+
+    Idempotent: falls bereits ein APP fuer (person, pp) existiert, wird das
+    Duplikat uebersprungen. Project-Match wird geprueft, damit beim Bulk-Submit
+    keine fremden PPs durchrutschen koennen.
+    """
+    created: list[ActorPlanPeriod] = []
+    if not plan_periods:
+        return created
+    for pp in plan_periods:
+        if pp.team.project_id != person.project_id:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="PlanPeriod gehoert nicht zum Projekt der Person.",
+            )
+        # Idempotenz-Check
+        existing = session.exec(
+            select(ActorPlanPeriod).where(
+                ActorPlanPeriod.plan_period_id == pp.id,
+                ActorPlanPeriod.person_id == person.id,
+            )
+        ).first()
+        if existing is not None:
+            continue
+        app = ActorPlanPeriod(plan_period=pp, person=person)
+        session.add(app)
+        created.append(app)
+    if created:
+        session.commit()
+        for app in created:
+            session.refresh(app)
+            logger.info(
+                "teams_admin_action",
+                extra={
+                    "action": "actor_plan_period_created",
+                    "actor_id": str(actor.id),
+                    "target_id": str(app.id),
+                    "person_id": str(person.id),
+                    "plan_period_id": str(app.plan_period_id),
+                },
+            )
+    return created

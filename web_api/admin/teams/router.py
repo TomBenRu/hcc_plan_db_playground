@@ -11,7 +11,7 @@ import uuid
 
 from fastapi import APIRouter, Depends, Form, HTTPException, Request, status
 from fastapi.responses import HTMLResponse
-from sqlmodel import Session
+from sqlmodel import Session, select
 
 from datetime import date
 
@@ -19,6 +19,7 @@ from database import db_services
 from database.models import (
     LocationOfWork,
     Person,
+    PlanPeriod,
     Team,
     TeamActorAssign,
     TeamLocationAssign,
@@ -535,7 +536,7 @@ def add_team_member_endpoint(
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Team nicht gefunden")
     parsed_start = _parse_optional_date(start)
     try:
-        assignments.add_team_member(
+        taa = assignments.add_team_member(
             session, team=team, person_id=person_id, start=parsed_start, actor=user
         )
     except HTTPException as exc:
@@ -555,6 +556,21 @@ def add_team_member_endpoint(
                 status_code=status.HTTP_409_CONFLICT,
             )
         raise
+    # Folge-Frage: gibt's offene PPs, die sich mit der TAA ueberschneiden und
+    # noch kein APP der Person tragen? Dann den APP-Dialog statt Drawer rendern.
+    overlap_pps = assignments.list_open_overlapping_plan_periods_for_taa(session, taa=taa)
+    if overlap_pps:
+        return templates.TemplateResponse(
+            "admin/teams/partials/apply_apps_dialog.html",
+            {
+                "request": request,
+                "taa": taa,
+                "plan_periods": overlap_pps,
+                "drawer_target": "team-drawer",
+                "drawer_reload_url": f"/admin/teams/teams/{team_id}/drawer",
+                "return_drawer": "team",
+            },
+        )
     return _render_team_drawer(request, team, user, session=session, saved=True)
 
 
@@ -922,7 +938,7 @@ def add_person_team_endpoint(
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Team nicht gefunden")
     parsed_start = _parse_optional_date(start)
     try:
-        assignments.add_team_member(
+        taa = assignments.add_team_member(
             session, team=team, person_id=person.id, start=parsed_start, actor=user
         )
     except HTTPException as exc:
@@ -941,6 +957,20 @@ def add_person_team_endpoint(
                 status_code=status.HTTP_409_CONFLICT,
             )
         raise
+    # Symmetrisch zu add_team_member_endpoint: offene PPs → APP-Dialog.
+    overlap_pps = assignments.list_open_overlapping_plan_periods_for_taa(session, taa=taa)
+    if overlap_pps:
+        return templates.TemplateResponse(
+            "admin/teams/partials/apply_apps_dialog.html",
+            {
+                "request": request,
+                "taa": taa,
+                "plan_periods": overlap_pps,
+                "drawer_target": "member-drawer",
+                "drawer_reload_url": f"/admin/teams/persons/{person_id}/drawer",
+                "return_drawer": "member",
+            },
+        )
     return _render_member_drawer(request, person, user, session=session, saved=True)
 
 
@@ -980,6 +1010,47 @@ def delete_person_team_endpoint(
     assignments.delete_future_team_actor_assign(session, assign=assign, actor=user)
     person = session.get(Person, person_id)
     return _render_member_drawer(request, person, user, session=session, saved=True)
+
+
+@router.post("/members/{assign_id}/apply-apps", response_class=HTMLResponse)
+def apply_actor_plan_periods_endpoint(
+    request: Request,
+    assign_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    plan_period_ids: list[uuid.UUID] = Form(default=[]),
+    return_drawer: str = Form(default="team"),
+):
+    """Verarbeitet die Auswahl aus ``apply_apps_dialog.html``: erzeugt APPs
+    fuer die ausgewaehlten offenen PPs und rendert den Quell-Drawer
+    (``return_drawer`` = 'team' oder 'member')."""
+    assign = session.get(TeamActorAssign, assign_id)
+    if assign is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Mitgliedschaft nicht gefunden")
+    person = session.get(Person, assign.person_id)
+    team = session.get(Team, assign.team_id)
+    if person is None or team is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Person oder Team nicht gefunden")
+
+    # PPs laden + Project-Match-Filter (Mutation prueft nochmal, aber wir wollen
+    # auch fremde IDs aus manipulierten Forms hier abfangen).
+    plan_periods: list[PlanPeriod] = []
+    if plan_period_ids:
+        plan_periods = list(
+            session.exec(
+                select(PlanPeriod).where(
+                    PlanPeriod.id.in_(plan_period_ids),  # type: ignore[union-attr]
+                    PlanPeriod.team_id == team.id,
+                )
+            ).all()
+        )
+    mutations.create_actor_plan_periods(
+        session, person=person, plan_periods=plan_periods, actor=user
+    )
+
+    if return_drawer == "member":
+        return _render_member_drawer(request, person, user, session=session, saved=True)
+    return _render_team_drawer(request, team, user, session=session, saved=True)
 
 
 @router.patch("/persons/{person_id}/name", response_class=HTMLResponse)

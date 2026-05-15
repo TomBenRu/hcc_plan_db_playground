@@ -18,9 +18,11 @@ from datetime import date, timedelta
 from sqlmodel import Session, select
 
 from database.models import (
+    ActorPlanPeriod,
     Gender,
     LocationOfWork,
     Person,
+    PlanPeriod,
     Project,
     Team,
     TeamActorAssign,
@@ -964,3 +966,254 @@ def test_list_chips_overflow_shows_plus_n(
     # vierter/fünfter Team-Name nicht direkt als Chip (nur im title-Tooltip)
     # — Plus-N-Hinweis muss erscheinen
     assert "+2" in resp.text
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Add-Member-Folge: APP-Anlage-Dialog bei offenen PPs (Phase 1.3d)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def _open_plan_period(
+    session: Session,
+    team: Team,
+    *,
+    start: date | None = None,
+    end: date | None = None,
+    closed: bool = False,
+) -> PlanPeriod:
+    pp = PlanPeriod(
+        team=team,
+        start=start or date.today(),
+        end=end or (date.today() + timedelta(days=14)),
+        closed=closed,
+    )
+    session.add(pp)
+    session.commit()
+    session.refresh(pp)
+    return pp
+
+
+def test_add_member_with_open_overlap_pp_renders_app_dialog(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Wenn ein TAA mit einer offenen PP des Teams ueberschneidet, kommt der
+    APP-Anlage-Dialog statt des Team-Drawer-Renders."""
+    team = _make_team(session, project, "WithOpenPP")
+    person = _make_person(session, project, "Joiner")
+    _open_plan_period(session, team)
+
+    resp = as_admin.post(
+        f"/admin/teams/teams/{team.id}/members",
+        data={"person_id": str(person.id)},
+    )
+    assert resp.status_code == 200
+    assert "Planperioden anlegen" in resp.text
+    assert "Joiner" in resp.text
+    # Submit-Form-URL zur apply-apps-Route
+    taa = session.exec(
+        select(TeamActorAssign).where(TeamActorAssign.person_id == person.id)
+    ).one()
+    assert f"/admin/teams/members/{taa.id}/apply-apps" in resp.text
+    # Checkbox vorausgewaehlt
+    assert "checked" in resp.text
+
+
+def test_add_member_without_overlap_renders_drawer_directly(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Kein Dialog, wenn das Team keine offenen PPs hat."""
+    team = _make_team(session, project, "NoOpenPP")
+    person = _make_person(session, project, "Direct")
+
+    resp = as_admin.post(
+        f"/admin/teams/teams/{team.id}/members",
+        data={"person_id": str(person.id)},
+    )
+    assert resp.status_code == 200
+    assert "Planperioden anlegen" not in resp.text
+
+
+def test_add_member_skips_dialog_for_closed_or_softdeleted_pps(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Geschlossene oder soft-deletete PPs zaehlen nicht."""
+    team = _make_team(session, project, "ClosedPPs")
+    person = _make_person(session, project, "Skipper")
+    # Geschlossene PP
+    _open_plan_period(session, team, closed=True)
+    # Soft-deletete PP
+    soft = _open_plan_period(session, team)
+    soft.prep_delete = __import__("datetime").datetime.now(__import__("datetime").timezone.utc)
+    session.commit()
+
+    resp = as_admin.post(
+        f"/admin/teams/teams/{team.id}/members",
+        data={"person_id": str(person.id)},
+    )
+    assert resp.status_code == 200
+    assert "Planperioden anlegen" not in resp.text
+
+
+def test_add_member_skips_dialog_when_taa_after_pp_end(
+    as_admin, session: Session, project: Project
+) -> None:
+    """TAA-Start liegt nach PP-Ende → kein Overlap."""
+    team = _make_team(session, project, "AfterPP")
+    person = _make_person(session, project, "Late")
+    yesterday_pp = _open_plan_period(
+        session, team,
+        start=date.today() - timedelta(days=30),
+        end=date.today() - timedelta(days=1),  # PP endete gestern
+    )
+
+    future = date.today() + timedelta(days=30)
+    resp = as_admin.post(
+        f"/admin/teams/teams/{team.id}/members",
+        data={"person_id": str(person.id), "start": future.isoformat()},
+    )
+    assert resp.status_code == 200
+    assert "Planperioden anlegen" not in resp.text
+
+
+def test_add_member_skips_dialog_when_app_already_exists(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Person hat bereits ein APP fuer die PP → wird im Dialog nicht aufgefuehrt."""
+    team = _make_team(session, project, "AppExists")
+    person = _make_person(session, project, "PreExisting")
+    pp = _open_plan_period(session, team)
+    session.add(ActorPlanPeriod(plan_period=pp, person=person))
+    session.commit()
+
+    resp = as_admin.post(
+        f"/admin/teams/teams/{team.id}/members",
+        data={"person_id": str(person.id)},
+    )
+    assert resp.status_code == 200
+    # APP existiert schon → kein Dialog
+    assert "Planperioden anlegen" not in resp.text
+
+
+def test_apply_apps_creates_actor_plan_periods(
+    as_admin, session: Session, project: Project
+) -> None:
+    team = _make_team(session, project, "ApplyTeam")
+    person = _make_person(session, project, "Applicator")
+    pp1 = _open_plan_period(session, team)
+    pp2 = _open_plan_period(
+        session, team,
+        start=date.today() + timedelta(days=20),
+        end=date.today() + timedelta(days=40),
+    )
+    taa = TeamActorAssign(person=person, team=team, start=date.today())
+    session.add(taa)
+    session.commit()
+    session.refresh(taa)
+
+    resp = as_admin.post(
+        f"/admin/teams/members/{taa.id}/apply-apps",
+        data={
+            "plan_period_ids": [str(pp1.id), str(pp2.id)],
+            "return_drawer": "team",
+        },
+    )
+    assert resp.status_code == 200
+    session.expire_all()
+    apps = session.exec(
+        select(ActorPlanPeriod).where(ActorPlanPeriod.person_id == person.id)
+    ).all()
+    assert len(apps) == 2
+    pp_ids = {app.plan_period_id for app in apps}
+    assert pp_ids == {pp1.id, pp2.id}
+
+
+def test_apply_apps_empty_selection_creates_nothing(
+    as_admin, session: Session, project: Project
+) -> None:
+    """User hat alle Checkboxes abgewaehlt → keine APPs erzeugt, aber kein Fehler."""
+    team = _make_team(session, project, "EmptyApply")
+    person = _make_person(session, project, "NoneSelected")
+    _open_plan_period(session, team)
+    taa = TeamActorAssign(person=person, team=team, start=date.today())
+    session.add(taa)
+    session.commit()
+
+    resp = as_admin.post(
+        f"/admin/teams/members/{taa.id}/apply-apps",
+        data={"return_drawer": "team"},
+    )
+    assert resp.status_code == 200
+    session.expire_all()
+    apps = session.exec(
+        select(ActorPlanPeriod).where(ActorPlanPeriod.person_id == person.id)
+    ).all()
+    assert apps == []
+
+
+def test_apply_apps_idempotent_on_existing_app(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Wird der Dialog versehentlich ein zweites Mal submittet, entsteht kein
+    Duplikat-APP."""
+    team = _make_team(session, project, "Idempotent")
+    person = _make_person(session, project, "Twice")
+    pp = _open_plan_period(session, team)
+    taa = TeamActorAssign(person=person, team=team, start=date.today())
+    session.add(taa)
+    session.commit()
+
+    # Erster Submit erzeugt APP
+    as_admin.post(
+        f"/admin/teams/members/{taa.id}/apply-apps",
+        data={"plan_period_ids": [str(pp.id)], "return_drawer": "team"},
+    )
+    # Zweiter Submit ist no-op
+    as_admin.post(
+        f"/admin/teams/members/{taa.id}/apply-apps",
+        data={"plan_period_ids": [str(pp.id)], "return_drawer": "team"},
+    )
+
+    session.expire_all()
+    apps = session.exec(
+        select(ActorPlanPeriod).where(ActorPlanPeriod.person_id == person.id)
+    ).all()
+    assert len(apps) == 1
+
+
+def test_apply_apps_from_person_side_returns_member_drawer(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Wenn der Dialog aus dem Mitglieder-Drawer kam, soll der Submit auch
+    den Mitglieder-Drawer rendern (nicht den Team-Drawer)."""
+    team = _make_team(session, project, "FromPersonSide")
+    person = _make_person(session, project, "MemberCaller")
+    pp = _open_plan_period(session, team)
+    taa = TeamActorAssign(person=person, team=team, start=date.today())
+    session.add(taa)
+    session.commit()
+
+    resp = as_admin.post(
+        f"/admin/teams/members/{taa.id}/apply-apps",
+        data={"plan_period_ids": [str(pp.id)], "return_drawer": "member"},
+    )
+    assert resp.status_code == 200
+    # Member-Drawer rendert „Mitglied" als Header-Label
+    assert "Mitglied" in resp.text
+
+
+def test_add_person_team_with_open_pp_renders_dialog(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Spiegel: aus dem Mitglieder-Drawer ein Team zuweisen → ebenfalls Dialog."""
+    team = _make_team(session, project, "PersonSidePP")
+    person = _make_person(session, project, "PersonSide")
+    _open_plan_period(session, team)
+
+    resp = as_admin.post(
+        f"/admin/teams/persons/{person.id}/teams",
+        data={"team_id": str(team.id)},
+    )
+    assert resp.status_code == 200
+    assert "Planperioden anlegen" in resp.text
+    # Drawer-Target ist Member-Drawer
+    assert "member-drawer" in resp.text

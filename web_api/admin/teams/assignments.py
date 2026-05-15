@@ -21,8 +21,10 @@ from sqlalchemy import or_
 from sqlmodel import Session, select
 
 from database.models import (
+    ActorPlanPeriod,
     LocationOfWork,
     Person,
+    PlanPeriod,
     Team,
     TeamActorAssign,
     TeamLocationAssign,
@@ -557,3 +559,43 @@ def delete_future_team_actor_assign(
             "target_id": assign_id_for_log,
         },
     )
+
+
+# ─── Overlap-Detection fuer APP-Anlage nach TAA-Anlage ────────────────────────
+
+
+def list_open_overlapping_plan_periods_for_taa(
+    session: Session, *, taa: TeamActorAssign
+) -> list[PlanPeriod]:
+    """Liefert die offenen PlanPerioden des TAA-Teams, deren Zeitraum sich
+    mit der TAA-Mitgliedschaft ueberschneidet und fuer die noch **kein** APP
+    der Person existiert.
+
+    Definitionen:
+    - "offen" = ``PlanPeriod.closed = False AND prep_delete IS NULL``
+    - Overlap = ``taa.start <= pp.end`` UND (``taa.end IS NULL`` ODER
+      ``pp.start <= taa.end``); ``end`` ist beidseitig inklusiv (Datum)
+    - "noch kein APP" = LEFT JOIN auf ``ActorPlanPeriod`` mit
+      ``person_id=taa.person_id`` ergibt NULL
+
+    Sortierung: ``pp.start`` aufsteigend, fuer stabile Reihenfolge im Dialog.
+    """
+    stmt = (
+        select(PlanPeriod)
+        .outerjoin(
+            ActorPlanPeriod,
+            (ActorPlanPeriod.plan_period_id == PlanPeriod.id)
+            & (ActorPlanPeriod.person_id == taa.person_id),
+        )
+        .where(
+            PlanPeriod.team_id == taa.team_id,
+            PlanPeriod.closed.is_(False),  # type: ignore[union-attr]
+            PlanPeriod.prep_delete.is_(None),  # type: ignore[union-attr]
+            ActorPlanPeriod.id.is_(None),  # type: ignore[union-attr]
+            taa.start <= PlanPeriod.end,
+        )
+        .order_by(PlanPeriod.start)
+    )
+    if taa.end is not None:
+        stmt = stmt.where(PlanPeriod.start <= taa.end)
+    return list(session.exec(stmt).all())

@@ -1,0 +1,80 @@
+{# Dialog nach erfolgreicher Anlage einer Team-Mitgliedschaft (TAA).
+
+   Fragt, ob fuer offene Planperioden, die sich mit dem TAA-Zeitraum
+   ueberschneiden, ActorPlanPeriods angelegt werden sollen — die Person
+   waere damit dort verplanbar.
+
+   Erwartet:
+     taa                Die frisch angelegte TeamActorAssign (mit person/team)
+     plan_periods       Liste der offenen, ueberlappenden PPs ohne APP
+     drawer_target      DOM-ID des Quell-Drawers (z.B. "team-drawer")
+     drawer_reload_url  GET-URL, um den Drawer wieder zu rendern (Skip-Button)
+     return_drawer      "team" oder "member" — entscheidet, welcher Drawer
+                        nach dem Submit gerendert wird. #}
+
+<div class="p-4 bg-sky-50 dark:bg-sky-900/20 border border-sky-200
+            dark:border-sky-700/40 rounded-lg space-y-3">
+    <div class="flex items-start gap-2">
+        <svg class="w-5 h-5 text-sky-600 dark:text-sky-400 flex-shrink-0 mt-0.5"
+             fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
+        </svg>
+        <div class="text-sm text-sky-800 dark:text-sky-200">
+            <p class="font-medium">
+                {{ taa.person.f_name }} {{ taa.person.l_name }} ist jetzt im Team
+                „{{ taa.team.name }}" — offene Planperioden anlegen?
+            </p>
+            <p class="text-xs mt-1 text-sky-700 dark:text-sky-300">
+                Für jede markierte Planperiode wird ein Planungs-Eintrag
+                (ActorPlanPeriod) erzeugt, damit die Person dort verplant
+                werden kann. Bestehende Einträge werden nicht doppelt angelegt.
+            </p>
+        </div>
+    </div>
+
+    <form hx-post="/admin/teams/members/{{ taa.id }}/apply-apps"
+          hx-target="#{{ drawer_target }}" hx-swap="innerHTML"
+          class="space-y-2">
+        <input type="hidden" name="return_drawer" value="{{ return_drawer }}">
+
+        <ul class="bg-white dark:bg-slate-800 rounded-md border border-sky-200
+                   dark:border-sky-700/40 divide-y divide-slate-100 dark:divide-slate-700/50
+                   max-h-60 overflow-y-auto">
+            {% for pp in plan_periods %}
+            <li class="px-3 py-2">
+                <label class="flex items-start gap-2 cursor-pointer text-sm">
+                    <input type="checkbox" name="plan_period_ids" value="{{ pp.id }}"
+                           checked
+                           class="mt-0.5 accent-sky-500">
+                    <span class="flex-1 min-w-0">
+                        <span class="font-medium text-slate-800 dark:text-slate-100">
+                            {{ pp.start.strftime("%Y-%m-%d") }} – {{ pp.end.strftime("%Y-%m-%d") }}
+                        </span>
+                        {% if pp.notes %}
+                        <span class="block text-xs text-slate-500 dark:text-slate-400 truncate">
+                            {{ pp.notes }}
+                        </span>
+                        {% endif %}
+                    </span>
+                </label>
+            </li>
+            {% endfor %}
+        </ul>
+
+        <div class="flex items-center gap-2 pt-1">
+            <button type="submit"
+                    class="px-3 py-1.5 rounded bg-sky-500 hover:bg-sky-600
+                           text-white text-xs font-medium">
+                Planungs-Einträge anlegen
+            </button>
+            <button type="button"
+                    hx-get="{{ drawer_reload_url }}"
+                    hx-target="#{{ drawer_target }}" hx-swap="innerHTML"
+                    class="px-3 py-1.5 rounded bg-slate-200 dark:bg-slate-700
+                           text-slate-700 dark:text-slate-200 text-xs">
+                Überspringen
+            </button>
+        </div>
+    </form>
+</div>

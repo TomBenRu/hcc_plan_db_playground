@@ -1,9 +1,25 @@
 {# Mitglieder-Liste — Pool: alle aktiven Personen des Projekts.
 
-   Anders als Teams- und Standorte-Liste: Personen werden nicht hier
-   angelegt (das passiert im Desktop). Daher kein „Neue Person"-Button.
-   Die Pflege beschraenkt sich auf Team-Mitgliedschaften, die im Drawer
-   editierbar sind. #}
+   Neue Personen koennen im Web angelegt werden (Pflichtfelder Vor-/Nachname
+   + E-Mail; Username/Password werden auto-generiert, das eigentliche
+   Desktop-Login bekommt die Person erst nach Pflege im Desktop oder via
+   WebUser-Anlage in ``/admin/users``). #}
+
+<div class="mb-4 flex justify-end">
+    <button type="button"
+            hx-get="/admin/teams/persons/new"
+            hx-target="#member-drawer"
+            hx-swap="innerHTML"
+            class="inline-flex items-center gap-1.5 px-3 py-2 rounded-lg
+                   bg-violet-500 hover:bg-violet-600 text-white text-sm font-medium
+                   shadow-sm transition-colors">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                  d="M12 4v16m8-8H4"/>
+        </svg>
+        Neue Person
+    </button>
+</div>
 
 {% if filter_team_name %}
 <div class="mb-4 px-3 py-2 rounded-lg bg-sky-50 dark:bg-sky-900/20
@@ -25,10 +41,10 @@
     <table class="teams-table w-full text-sm">
         <thead class="bg-slate-50/60 dark:bg-slate-900/40">
             <tr>
-                <th>Name</th>
-                <th>E-Mail</th>
-                <th>Teams</th>
-                <th class="pr-4">Status</th>
+                <th class="text-left">Name</th>
+                <th class="text-left">E-Mail</th>
+                <th class="text-left">Teams</th>
+                <th class="text-left pr-4">Status</th>
             </tr>
         </thead>
         <tbody>

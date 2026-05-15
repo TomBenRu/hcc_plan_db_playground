@@ -835,6 +835,116 @@ def test_members_list_shows_team_name_chips(
     assert "ChipTeam" in resp.text
 
 
+# ═══════════════════════════════════════════════════════════════════════════════
+# Person-Anlage im Mitglieder-Drawer
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def test_new_member_drawer_returns_create_form(
+    as_admin
+) -> None:
+    """GET /admin/teams/persons/new liefert ein leeres Mitglieder-Drawer-Form."""
+    resp = as_admin.get("/admin/teams/persons/new")
+    assert resp.status_code == 200
+    assert "Neue Person" in resp.text
+    # Form-Felder vorhanden
+    assert 'name="f_name"' in resp.text
+    assert 'name="l_name"' in resp.text
+    assert 'name="email"' in resp.text
+    assert 'name="gender"' in resp.text
+    # Hinweis auf Auto-Erzeugung der Login-Felder
+    assert "automatisch" in resp.text
+
+
+def test_create_person_happy_path(
+    as_admin, session: Session, project: Project
+) -> None:
+    resp = as_admin.post(
+        "/admin/teams/persons",
+        data={
+            "f_name": "Neu",
+            "l_name": "Person",
+            "email": "neu@example.com",
+            "gender": "female",
+        },
+    )
+    assert resp.status_code == 200, resp.text
+    person = session.exec(
+        select(Person).where(
+            Person.f_name == "Neu", Person.l_name == "Person",
+            Person.project_id == project.id,
+        )
+    ).one()
+    assert person.email == "neu@example.com"
+    # Auto-Felder gesetzt
+    assert person.username.startswith("person.neu-")
+    assert len(person.password) >= 16  # token_urlsafe(24)
+
+
+def test_create_person_gender_optional(
+    as_admin, session: Session, project: Project
+) -> None:
+    resp = as_admin.post(
+        "/admin/teams/persons",
+        data={"f_name": "NoGender", "l_name": "Person", "email": "ng@example.com"},
+    )
+    assert resp.status_code == 200
+    person = session.exec(
+        select(Person).where(Person.f_name == "NoGender")
+    ).one()
+    assert person.gender is None
+
+
+def test_create_person_duplicate_name_returns_409(
+    as_admin, session: Session, project: Project
+) -> None:
+    # Erste Person anlegen
+    as_admin.post(
+        "/admin/teams/persons",
+        data={"f_name": "Dup", "l_name": "Test", "email": "dup1@example.com"},
+    )
+    # Zweite mit gleichem Namen → 409 + Drawer mit Error
+    resp = as_admin.post(
+        "/admin/teams/persons",
+        data={"f_name": "Dup", "l_name": "Test", "email": "dup2@example.com"},
+    )
+    assert resp.status_code == 409
+    assert "existiert bereits" in resp.text
+    # Form-Werte wurden vorbelegt (User muss nicht neu tippen)
+    assert "dup2@example.com" in resp.text
+
+
+def test_create_person_rejects_empty_required_field(
+    as_admin, project: Project
+) -> None:
+    resp = as_admin.post(
+        "/admin/teams/persons",
+        data={"f_name": "  ", "l_name": "Person", "email": "x@example.com"},
+    )
+    assert resp.status_code == 422
+    assert "Pflichtfeld" in resp.text
+
+
+def test_dispatcher_cannot_create_person(as_dispatcher) -> None:
+    resp = as_dispatcher.post(
+        "/admin/teams/persons",
+        data={"f_name": "X", "l_name": "Y", "email": "xy@example.com"},
+    )
+    assert resp.status_code == 403
+
+
+def test_members_list_shows_new_person_button(
+    as_admin, project: Project
+) -> None:
+    resp = as_admin.get("/admin/teams?tab=members")
+    assert resp.status_code == 200
+    assert "Neue Person" in resp.text
+    assert "/admin/teams/persons/new" in resp.text
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
 def test_list_chips_overflow_shows_plus_n(
     as_admin, session: Session, project: Project
 ) -> None:

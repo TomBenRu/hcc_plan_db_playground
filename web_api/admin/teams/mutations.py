@@ -13,6 +13,7 @@ strukturiertem ``extra``-Dict.
 from __future__ import annotations
 
 import logging
+import secrets
 import uuid
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
@@ -23,6 +24,7 @@ from sqlmodel import Session, select
 
 from database.models import (
     Address,
+    Gender,
     LocationOfWork,
     Person,
     Project,
@@ -93,7 +95,7 @@ class DuplicateNameError(HTTPException):
     def __init__(self, entity: str, name: str):
         super().__init__(
             status_code=status.HTTP_409_CONFLICT,
-            detail=f"Ein {entity} mit dem Namen «{name}» existiert bereits.",
+            detail=f"{entity} «{name}» existiert bereits.",
         )
 
 
@@ -543,6 +545,89 @@ def hard_delete_location(
             "target_id": loc_id_for_log,
         },
     )
+
+
+def _ensure_unique_person_name(
+    session: Session,
+    project_id: uuid.UUID,
+    f_name: str,
+    l_name: str,
+    exclude_id: uuid.UUID | None,
+) -> None:
+    """UniqueConstraint ist ``(f_name, l_name, project_id)`` — gleicher Vor-/
+    Nachname pro Projekt nur einmal."""
+    stmt = select(func.count()).select_from(Person).where(
+        Person.project_id == project_id,
+        func.lower(Person.f_name) == f_name.lower(),
+        func.lower(Person.l_name) == l_name.lower(),
+    )
+    if exclude_id is not None:
+        stmt = stmt.where(Person.id != exclude_id)
+    count = session.execute(stmt).scalar_one()
+    if count > 0:
+        raise DuplicateNameError("Person", f"{f_name} {l_name}")
+
+
+def _generate_person_username(f_name: str, l_name: str) -> str:
+    """Auto-Username fuer web-angelegte Personen. Format:
+    ``<l>.<f>-<6-hex>`` (max 50 Zeichen).
+
+    Eindeutigkeit ist DB-seitig per UNIQUE-Constraint garantiert; bei extrem
+    unwahrscheinlicher Kollision wuerde der Commit fehlschlagen — kein Retry
+    in dieser ersten Version.
+    """
+    base = f"{l_name.strip().lower()}.{f_name.strip().lower()}"
+    base = "".join(ch for ch in base if ch.isalnum() or ch in ".-_")[:40]
+    return f"{base}-{secrets.token_hex(3)}"
+
+
+def create_person(
+    session: Session,
+    *,
+    project: Project,
+    f_name: str,
+    l_name: str,
+    email: str,
+    gender: Gender | None,
+    actor: WebUser,
+) -> Person:
+    """Legt eine neue Person an. Pflichtfelder im Modell, die hier nicht aus
+    dem Form kommen (``username``, ``password``), werden automatisch generiert:
+    Username deterministisch aus dem Namen + 6-stelliges Hex, Password als
+    Random-Token (Desktop-Login bleibt funktional, sobald sie dort ein neues
+    Password vergeben — Web-Login laeuft ueber WebUser/``/admin/users``)."""
+    f_name = f_name.strip()
+    l_name = l_name.strip()
+    email = email.strip()
+    if not f_name:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Vorname ist Pflichtfeld")
+    if not l_name:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Nachname ist Pflichtfeld")
+    if not email:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail="E-Mail ist Pflichtfeld")
+    _ensure_unique_person_name(session, project.id, f_name, l_name, exclude_id=None)
+
+    person = Person(
+        f_name=f_name,
+        l_name=l_name,
+        gender=gender,
+        email=email,
+        username=_generate_person_username(f_name, l_name),
+        password=secrets.token_urlsafe(24),
+        project=project,
+    )
+    session.add(person)
+    session.commit()
+    session.refresh(person)
+    logger.info(
+        "teams_admin_action",
+        extra={
+            "action": "person_created",
+            "actor_id": str(actor.id),
+            "target_id": str(person.id),
+        },
+    )
+    return person
 
 
 def _cleanup_open_assigns_for_person(

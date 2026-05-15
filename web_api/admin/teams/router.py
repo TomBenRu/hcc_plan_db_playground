@@ -792,6 +792,86 @@ def delete_location_team_endpoint(
 # ═══════════════════════════════════════════════════════════════════════════════
 
 
+@router.get("/persons/new", response_class=HTMLResponse)
+def new_member_drawer(
+    request: Request,
+    user: WebUser = require_role(WebUserRole.admin),
+):
+    """Liefert einen leeren Mitglieder-Drawer (Anlage-Form). Pflichtfelder
+    Vorname/Nachname/E-Mail; ``gender`` ist optional."""
+    return templates.TemplateResponse(
+        "admin/teams/partials/member_drawer.html",
+        {"request": request, "user": user, "person": None},
+    )
+
+
+@router.post("/persons", response_class=HTMLResponse)
+def create_person_endpoint(
+    request: Request,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    f_name: str = Form(...),
+    l_name: str = Form(...),
+    email: str = Form(...),
+    gender: str | None = Form(default=None),
+):
+    from database.models import Gender as _Gender
+
+    project = service.get_session_project(session, user)
+    parsed_gender: _Gender | None = None
+    if gender and gender.strip():
+        try:
+            parsed_gender = _Gender(gender.strip())
+        except ValueError:
+            parsed_gender = None  # ungueltige Werte still ignorieren
+    try:
+        person = mutations.create_person(
+            session,
+            project=project,
+            f_name=f_name,
+            l_name=l_name,
+            email=email,
+            gender=parsed_gender,
+            actor=user,
+        )
+    except mutations.DuplicateNameError as exc:
+        return templates.TemplateResponse(
+            "admin/teams/partials/member_drawer.html",
+            {
+                "request": request,
+                "user": user,
+                "person": None,
+                "saved": False,
+                "error": exc.detail,
+                # Form-Vorbelegung, damit der Nutzer nicht neu tippen muss
+                "form_f_name": f_name,
+                "form_l_name": l_name,
+                "form_email": email,
+                "form_gender": gender,
+            },
+            status_code=status.HTTP_409_CONFLICT,
+        )
+    except HTTPException as exc:
+        if exc.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY:
+            return templates.TemplateResponse(
+                "admin/teams/partials/member_drawer.html",
+                {
+                    "request": request,
+                    "user": user,
+                    "person": None,
+                    "saved": False,
+                    "error": exc.detail,
+                    "form_f_name": f_name,
+                    "form_l_name": l_name,
+                    "form_email": email,
+                    "form_gender": gender,
+                },
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        raise
+    return _render_member_drawer(request, person, user, session=session, saved=True)
+
+
 @router.get("/persons/{person_id}/drawer", response_class=HTMLResponse)
 def member_drawer_endpoint(
     request: Request,

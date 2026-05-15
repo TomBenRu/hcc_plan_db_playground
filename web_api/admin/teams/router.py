@@ -902,6 +902,34 @@ def delete_person_team_endpoint(
     return _render_member_drawer(request, person, user, session=session, saved=True)
 
 
+@router.patch("/persons/{person_id}/name", response_class=HTMLResponse)
+def update_person_name_endpoint(
+    request: Request,
+    person_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    f_name: str = Form(...),
+    l_name: str = Form(...),
+):
+    """Aendert Vor- und Nachname einer Person. Restliche Stammdaten (E-Mail,
+    Telefon, Gender, etc.) bleiben Desktop-Pflege — bewusste Begrenzung des
+    Web-Scopes auf das, was im Web haeufig zu korrigieren ist."""
+    person = session.get(Person, person_id)
+    if person is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Person nicht gefunden")
+    try:
+        person = mutations.update_person_names(
+            session, person=person, f_name=f_name, l_name=l_name, actor=user
+        )
+    except HTTPException as exc:
+        if exc.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY:
+            return _render_member_drawer(
+                request, person, user, session=session, error=exc.detail
+            )
+        raise
+    return _render_member_drawer(request, person, user, session=session, saved=True)
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Phase 1.5 — Soft-Delete + Hard-Delete-Pfad
 # ═══════════════════════════════════════════════════════════════════════════════

@@ -754,3 +754,103 @@ def test_dispatcher_cannot_open_member_drawer(
     person = _make_person(session, project, "Hidden")
     resp = as_dispatcher.get(f"/admin/teams/persons/{person.id}/drawer")
     assert resp.status_code == 403
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Person-Name editierbar im Mitglieder-Drawer + Team-Chips in Listen
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def test_update_person_name_happy_path(
+    as_admin, session: Session, project: Project
+) -> None:
+    person = _make_person(session, project, "Alt")
+    resp = as_admin.patch(
+        f"/admin/teams/persons/{person.id}/name",
+        data={"f_name": "Neu", "l_name": "Geheissen"},
+    )
+    assert resp.status_code == 200
+    session.expire_all()
+    fresh = session.get(Person, person.id)
+    assert fresh.f_name == "Neu"
+    assert fresh.l_name == "Geheissen"
+
+
+def test_update_person_name_rejects_empty_f_name(
+    as_admin, session: Session, project: Project
+) -> None:
+    person = _make_person(session, project, "Stay")
+    resp = as_admin.patch(
+        f"/admin/teams/persons/{person.id}/name",
+        data={"f_name": "   ", "l_name": "Doe"},
+    )
+    # _render_member_drawer mit error rendert 200 — Validierung sichtbar im Markup
+    assert resp.status_code == 200
+    assert "Pflichtfeld" in resp.text
+    session.expire_all()
+    fresh = session.get(Person, person.id)
+    assert fresh.f_name == "Stay"  # unveraendert
+
+
+def test_update_person_name_dispatcher_blocked(
+    as_dispatcher, session: Session, project: Project
+) -> None:
+    person = _make_person(session, project, "Protected")
+    resp = as_dispatcher.patch(
+        f"/admin/teams/persons/{person.id}/name",
+        data={"f_name": "X", "l_name": "Y"},
+    )
+    assert resp.status_code == 403
+
+
+def test_locations_list_shows_team_name_chips(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Standort-Liste zeigt Team-Namen statt Counts in der Teams-Spalte."""
+    loc = _make_location(session, project, "ChipLoc")
+    team_a = _make_team(session, project, "Hamburg")
+    team_b = _make_team(session, project, "Berlin")
+    session.add(TeamLocationAssign(location_of_work=loc, team=team_a, start=date.today()))
+    session.add(TeamLocationAssign(location_of_work=loc, team=team_b, start=date.today()))
+    session.commit()
+
+    resp = as_admin.get("/admin/teams?tab=locations")
+    assert resp.status_code == 200
+    assert "ChipLoc" in resp.text
+    assert "Hamburg" in resp.text
+    assert "Berlin" in resp.text
+
+
+def test_members_list_shows_team_name_chips(
+    as_admin, session: Session, project: Project
+) -> None:
+    person = _make_person(session, project, "Chipper")
+    team = _make_team(session, project, "ChipTeam")
+    session.add(TeamActorAssign(person=person, team=team, start=date.today()))
+    session.commit()
+
+    resp = as_admin.get("/admin/teams?tab=members")
+    assert resp.status_code == 200
+    assert "Chipper" in resp.text
+    assert "ChipTeam" in resp.text
+
+
+def test_list_chips_overflow_shows_plus_n(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Ab 4 Teams: erste 3 Chips + '+N' Hinweis."""
+    person = _make_person(session, project, "Many")
+    for i in range(5):
+        team = _make_team(session, project, f"T{i:02d}")
+        session.add(TeamActorAssign(person=person, team=team, start=date.today()))
+    session.commit()
+
+    resp = as_admin.get("/admin/teams?tab=members")
+    assert resp.status_code == 200
+    # erste drei Teams sichtbar
+    assert "T00" in resp.text
+    assert "T01" in resp.text
+    assert "T02" in resp.text
+    # vierter/fünfter Team-Name nicht direkt als Chip (nur im title-Tooltip)
+    # — Plus-N-Hinweis muss erscheinen
+    assert "+2" in resp.text

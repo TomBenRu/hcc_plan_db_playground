@@ -545,6 +545,46 @@ def hard_delete_location(
     )
 
 
+def update_person_names(
+    session: Session,
+    *,
+    person: Person,
+    f_name: str,
+    l_name: str,
+    actor: WebUser,
+) -> Person:
+    """Aendert ``f_name`` und ``l_name`` einer Person. Restliche Felder bleiben
+    Desktop-Pflege; explizit kein E-Mail-/Telefon-Pfad in dieser Funktion."""
+    f_name = f_name.strip()
+    l_name = l_name.strip()
+    if not f_name:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Vorname ist Pflichtfeld",
+        )
+    if not l_name:
+        raise HTTPException(
+            status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="Nachname ist Pflichtfeld",
+        )
+
+    renamed = (f_name != person.f_name) or (l_name != person.l_name)
+    person.f_name = f_name
+    person.l_name = l_name
+    session.commit()
+    session.refresh(person)
+    if renamed:
+        logger.info(
+            "teams_admin_action",
+            extra={
+                "action": "person_renamed",
+                "actor_id": str(actor.id),
+                "target_id": str(person.id),
+            },
+        )
+    return person
+
+
 def update_location_admin_fields(
     session: Session,
     *,

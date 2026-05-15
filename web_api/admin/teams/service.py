@@ -74,12 +74,15 @@ class TeamListRow:
 
 @dataclass(slots=True)
 class LocationListRow:
-    """Analog zu ``TeamListRow``."""
+    """Analog zu ``TeamListRow``. ``active_team_names`` ist die alphabetisch
+    sortierte Liste der Team-Namen mit aktiver Zuordnung zu diesem Standort —
+    fuer die Chip-Darstellung in der Liste. ``team_count == len(active_team_names)``."""
 
     id: uuid.UUID
     name: str
     address_summary: str | None
     team_count: int
+    active_team_names: list[str]
     nr_actors: int
     prep_delete: datetime | None
 
@@ -95,6 +98,7 @@ class MemberListRow:
     l_name: str
     email: str | None
     team_count: int
+    active_team_names: list[str]
     prep_delete: datetime | None
 
 
@@ -163,6 +167,63 @@ def list_teams_view(
             )
         )
     return rows
+
+
+def _active_team_names_for_locations(
+    session: Session, location_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, list[str]]:
+    """Batch-Lookup: pro Standort die alphabetisch sortierten Namen aller Teams
+    mit aktiver TLA. Genau **eine** Query fuer den gesamten Pool — vermeidet
+    den N+1 in ``list_locations_view``.
+    """
+    if not location_ids:
+        return {}
+    today = date.today()
+    stmt = (
+        select(TeamLocationAssign.location_of_work_id, Team.name)
+        .join(Team, Team.id == TeamLocationAssign.team_id)
+        .where(
+            TeamLocationAssign.location_of_work_id.in_(location_ids),  # type: ignore[union-attr]
+            TeamLocationAssign.start <= today,
+            or_(
+                TeamLocationAssign.end.is_(None),  # type: ignore[union-attr]
+                TeamLocationAssign.end > today,  # type: ignore[union-attr]
+            ),
+            Team.prep_delete.is_(None),  # type: ignore[union-attr]
+        )
+        .order_by(Team.name)
+    )
+    result: dict[uuid.UUID, list[str]] = {lid: [] for lid in location_ids}
+    for loc_id, team_name in session.execute(stmt).all():
+        result[loc_id].append(team_name)
+    return result
+
+
+def _active_team_names_for_persons(
+    session: Session, person_ids: list[uuid.UUID]
+) -> dict[uuid.UUID, list[str]]:
+    """Spiegel zu ``_active_team_names_for_locations`` fuer Personen."""
+    if not person_ids:
+        return {}
+    today = date.today()
+    stmt = (
+        select(TeamActorAssign.person_id, Team.name)
+        .join(Team, Team.id == TeamActorAssign.team_id)
+        .where(
+            TeamActorAssign.person_id.in_(person_ids),  # type: ignore[union-attr]
+            TeamActorAssign.start <= today,
+            or_(
+                TeamActorAssign.end.is_(None),  # type: ignore[union-attr]
+                TeamActorAssign.end > today,  # type: ignore[union-attr]
+            ),
+            Team.prep_delete.is_(None),  # type: ignore[union-attr]
+        )
+        .order_by(Team.name)
+    )
+    result: dict[uuid.UUID, list[str]] = {pid: [] for pid in person_ids}
+    for person_id, team_name in session.execute(stmt).all():
+        result[person_id].append(team_name)
+    return result
 
 
 def _active_team_assign_subquery_for_locations(team_id: uuid.UUID):
@@ -234,19 +295,13 @@ def list_locations_view(
             )
         )
 
-    locations = session.exec(stmt).all()
-    today = date.today()
+    locations = list(session.exec(stmt).all())
+    team_names_by_loc = _active_team_names_for_locations(
+        session, [loc.id for loc in locations]
+    )
     rows: list[LocationListRow] = []
     for loc in locations:
-        team_count = session.execute(
-            select(func.count())
-            .select_from(TeamLocationAssign)
-            .where(
-                TeamLocationAssign.location_of_work_id == loc.id,
-                TeamLocationAssign.start <= today,
-                or_(TeamLocationAssign.end.is_(None), TeamLocationAssign.end > today),  # type: ignore[union-attr]
-            )
-        ).scalar_one()
+        names = team_names_by_loc.get(loc.id, [])
         address_summary = None
         if loc.address:
             parts = [p for p in (loc.address.street, loc.address.city) if p]
@@ -256,7 +311,8 @@ def list_locations_view(
                 id=loc.id,
                 name=loc.name,
                 address_summary=address_summary,
-                team_count=team_count,
+                team_count=len(names),
+                active_team_names=names,
                 nr_actors=loc.nr_actors,
                 prep_delete=loc.prep_delete,
             )
@@ -304,26 +360,21 @@ def list_members_view(
             )
         )
 
-    persons = session.exec(stmt).all()
-    today = date.today()
+    persons = list(session.exec(stmt).all())
+    team_names_by_person = _active_team_names_for_persons(
+        session, [person.id for person in persons]
+    )
     rows: list[MemberListRow] = []
     for person in persons:
-        team_count = session.execute(
-            select(func.count())
-            .select_from(TeamActorAssign)
-            .where(
-                TeamActorAssign.person_id == person.id,
-                TeamActorAssign.start <= today,
-                or_(TeamActorAssign.end.is_(None), TeamActorAssign.end > today),  # type: ignore[union-attr]
-            )
-        ).scalar_one()
+        names = team_names_by_person.get(person.id, [])
         rows.append(
             MemberListRow(
                 id=person.id,
                 f_name=person.f_name,
                 l_name=person.l_name,
                 email=person.email,
-                team_count=team_count,
+                team_count=len(names),
+                active_team_names=names,
                 prep_delete=person.prep_delete,
             )
         )

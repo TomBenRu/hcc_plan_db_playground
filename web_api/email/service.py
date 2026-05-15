@@ -53,15 +53,6 @@ def schedule_emails(
     """
     if not payloads:
         return
-    if get_settings().SUPPRESS_NOTIFICATIONS:
-        logger.warning(
-            "SUPPRESS_NOTIFICATIONS aktiv — %d E-Mail(s) NICHT versendet "
-            "(to=%s, subjects=%s)",
-            len(payloads),
-            [p.to for p in payloads],
-            [p.subject for p in payloads],
-        )
-        return
     smtp_config = load_smtp_config(session)
     background_tasks.add_task(_send_emails_with_config, payloads, smtp_config)
 

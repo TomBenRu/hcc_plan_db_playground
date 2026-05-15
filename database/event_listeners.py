@@ -65,7 +65,7 @@ def _before_flush_handler(session: Session, _flush_context, _instances) -> None:
         elif isinstance(obj, ActorPlanPeriod):
             _on_insert_actor_plan_period(session, obj)
         elif isinstance(obj, LocationPlanPeriod):
-            _on_insert_location_plan_period(obj)
+            _on_insert_location_plan_period(session, obj)
         elif isinstance(obj, AvailDay):
             _on_insert_avail_day(obj)
         elif isinstance(obj, Event):
@@ -180,13 +180,22 @@ def _on_insert_actor_plan_period(session: Session, app: ActorPlanPeriod) -> None
 #   self.fixed_cast = self.location_of_work.fixed_cast
 #   self.fixed_cast_only_if_available = self.location_of_work.fixed_cast_only_if_available
 
-def _on_insert_location_plan_period(lpp: LocationPlanPeriod) -> None:
+def _on_insert_location_plan_period(session: Session, lpp: LocationPlanPeriod) -> None:
     if lpp.location_of_work:
         lpp.nr_actors = lpp.location_of_work.nr_actors
         lpp.fixed_cast = lpp.location_of_work.fixed_cast
         lpp.fixed_cast_only_if_available = lpp.location_of_work.fixed_cast_only_if_available
         _copy_m2m(lpp.time_of_days, lpp.location_of_work.time_of_days)
         _copy_m2m(lpp.time_of_day_standards, lpp.location_of_work.time_of_day_standards)
+
+    # Master-EventGroup ist Pflicht (Docstring LocationPlanPeriod: "enthält
+    # genau 1 EventGroup (Root)") — sonst schlaegt der Last-Minute-Termin-Pfad
+    # mit HTTP 500 fehl (vgl. web_api/plan_adjustment/service.py:687-697).
+    # Aufrufer, die das frueher explizit gemacht haben (plan_period.create/update),
+    # koennen das jetzt der Listener ueberlassen; Idempotenz-Check schuetzt vor
+    # Doppel-Anlage bei Aufrufern, die das noch tun.
+    if lpp.event_group is None:
+        session.add(EventGroup(location_plan_period=lpp))
 
 
 # ── AvailDay ─────────────────────────────────────────────────────────────────

@@ -392,9 +392,7 @@ def create_with_children(plan_period: schemas.PlanPeriodCreate) -> schemas.PlanP
             location = session.get(models.LocationOfWork, location_id)
             lpp = models.LocationPlanPeriod(plan_period=pp, location_of_work=location)
             session.add(lpp)
-            session.flush()
-            eg = models.EventGroup(location_plan_period=lpp)
-            session.add(eg)
+            session.flush()  # Master-EventGroup wird vom Listener angelegt
 
         session.flush()
         return schemas.PlanPeriodShow.model_validate(pp)
@@ -503,8 +501,7 @@ def update(plan_period: schemas.PlanPeriod) -> schemas.PlanPeriodShow:
                 location = session.get(models.LocationOfWork, location_id)
                 lpp = models.LocationPlanPeriod(plan_period=pp, location_of_work=location)
                 session.add(lpp)
-                session.flush()
-                session.add(models.EventGroup(location_plan_period=lpp))
+                session.flush()  # Master-EventGroup wird vom Listener angelegt
 
         session.flush()
         if deadline_changed and pp.notification_group is not None:

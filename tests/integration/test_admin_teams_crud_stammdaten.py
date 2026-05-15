@@ -243,10 +243,71 @@ def test_dispatcher_cannot_change_stammdaten(
     assert resp.status_code == 403
 
 
-def test_new_team_drawer_via_get(as_admin) -> None:
-    """Drawer mit team=None rendert das 'Neues Team'-Form. Wir simulieren das,
-    indem wir GET auf den Detail-Endpoint mit einer nicht-existierenden UUID
-    machen → 404. Der eigentliche 'neu'-Flow laeuft ueber den POST mit Name."""
+def test_get_new_team_drawer_renders_anlegen_form(as_admin) -> None:
+    """Leerer Team-Drawer mit Anlegen-Form via GET /teams/new."""
+    resp = as_admin.get("/admin/teams/teams/new")
+    assert resp.status_code == 200
+    assert "Neues Team" in resp.text
+    assert 'hx-post="/admin/teams/teams"' in resp.text
+    # Aktions-Footer darf NICHT erscheinen (kein bestehendes Team)
+    assert "In Inaktiv verschieben" not in resp.text
+
+
+def test_get_new_location_drawer_renders_anlegen_form(as_admin) -> None:
+    resp = as_admin.get("/admin/teams/locations/new")
+    assert resp.status_code == 200
+    assert "Neuer Standort" in resp.text
+    assert 'hx-post="/admin/teams/locations"' in resp.text
+    # nr_actors-Eingabe nur beim Anlegen sichtbar
+    assert 'name="nr_actors"' in resp.text
+
+
+def test_dispatcher_cannot_get_new_team_drawer(as_dispatcher) -> None:
+    resp = as_dispatcher.get("/admin/teams/teams/new")
+    assert resp.status_code == 403
+
+
+def test_dispatcher_cannot_get_new_location_drawer(as_dispatcher) -> None:
+    resp = as_dispatcher.get("/admin/teams/locations/new")
+    assert resp.status_code == 403
+
+
+def test_teams_list_shows_neues_team_button_for_admin(
+    as_admin, session: Session, project: Project
+) -> None:
+    resp = as_admin.get("/admin/teams")
+    assert resp.status_code == 200
+    assert "Neues Team" in resp.text
+    assert 'hx-get="/admin/teams/teams/new"' in resp.text
+
+
+def test_locations_list_shows_neuer_standort_button_for_admin(
+    as_admin, session: Session, project: Project
+) -> None:
+    resp = as_admin.get("/admin/teams?tab=locations")
+    assert resp.status_code == 200
+    assert "Neuer Standort" in resp.text
+    assert 'hx-get="/admin/teams/locations/new"' in resp.text
+
+
+def test_dispatcher_does_not_see_new_buttons_in_list(
+    as_dispatcher, session: Session, project: Project, link_location_to_dispatcher
+) -> None:
+    loc = LocationOfWork(name="DispLoc", project=project)
+    session.add(loc)
+    session.commit()
+    session.refresh(loc)
+    link_location_to_dispatcher(loc)
+
+    resp = as_dispatcher.get("/admin/teams")
+    assert resp.status_code == 200
+    assert "Neuer Standort" not in resp.text  # kein Button
+    assert "Neues Team" not in resp.text
+
+
+def test_new_team_drawer_via_get_with_random_uuid_returns_404(as_admin) -> None:
+    """Sanity-Check: GET auf eine random UUID auf dem Detail-Endpoint liefert 404
+    (im Gegensatz zu /teams/new, der ein leeres Drawer rendert)."""
     import uuid
 
     resp = as_admin.get(f"/admin/teams/teams/{uuid.uuid4()}/drawer")

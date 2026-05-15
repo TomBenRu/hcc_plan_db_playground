@@ -158,6 +158,43 @@ def teams_index(
     return templates.TemplateResponse(template_name, ctx)
 
 
+@router.get("/teams/new", response_class=HTMLResponse)
+def new_team_drawer(
+    request: Request,
+    user: WebUser = require_role(WebUserRole.admin),
+):
+    """Liefert einen leeren Team-Drawer (Anlage-Form)."""
+    return templates.TemplateResponse(
+        "admin/teams/partials/team_drawer.html",
+        {
+            "request": request,
+            "user": user,
+            "team": None,
+            "is_admin": True,
+            "is_dispatcher": user.has_any_role(WebUserRole.dispatcher),
+        },
+    )
+
+
+@router.get("/locations/new", response_class=HTMLResponse)
+def new_location_drawer(
+    request: Request,
+    user: WebUser = require_role(WebUserRole.admin),
+):
+    """Liefert einen leeren Standort-Drawer (Anlage-Form)."""
+    return templates.TemplateResponse(
+        "admin/teams/partials/location_drawer.html",
+        {
+            "request": request,
+            "user": user,
+            "location": None,
+            "is_admin": True,
+            "is_dispatcher": user.has_any_role(WebUserRole.dispatcher),
+            "can_edit_plan_config": False,
+        },
+    )
+
+
 @router.get("/teams/{team_id}/drawer", response_class=HTMLResponse)
 def team_drawer(
     request: Request,

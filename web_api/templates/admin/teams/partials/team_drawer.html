@@ -169,8 +169,8 @@
     </section>
     {% endif %}
 
-    {# ── Aktionen (Admin only) ─────────────────────────────────────────── #}
-    {% if is_admin %}
+    {# ── Aktionen (Admin only, nur bei bestehendem Team) ───────────────── #}
+    {% if is_admin and team %}
     <section class="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700/50">
         <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-3">
             Aktionen

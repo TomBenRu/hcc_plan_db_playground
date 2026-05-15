@@ -1,4 +1,3 @@
-{% if is_admin %}
 <div class="mb-4 flex justify-end">
     <button type="button"
             hx-get="/admin/teams/teams/new"
@@ -14,7 +13,6 @@
         Neues Team
     </button>
 </div>
-{% endif %}
 
 {% if teams_rows %}
 <div class="bg-white dark:bg-slate-800 rounded-xl border

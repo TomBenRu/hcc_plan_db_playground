@@ -1,7 +1,7 @@
 """Integration-Tests fuer /admin/teams Read-Routes (Phase 1.0).
 
 Pruefen:
-- Admin und Dispatcher erreichen die Seite + beide Tabs
+- Admin erreicht die Seite + beide Tabs (Dispatcher hat 403, kein Zugang)
 - Liste enthaelt angelegte Teams / Standorte
 - Drawer-Endpoints liefern Detail-Markup
 - Aktiv/Inaktiv-Filter wirkt
@@ -50,42 +50,11 @@ def test_admin_can_switch_to_locations_tab(as_admin, session: Session, project: 
     assert "Spielstaette A" in resp.text
 
 
-def test_dispatcher_lands_on_locations_tab_with_dispatcher_branding(
-    as_dispatcher, session: Session, project: Project, link_location_to_dispatcher
-) -> None:
-    """Reiner Dispatcher wird auf den Standorte-Tab gezwungen und sieht das
-    DISPOSITION-Branding statt 'Administration'."""
-    loc = _add_location(session, project, "DispoLoc")
-    link_location_to_dispatcher(loc)
-    _add_team(session, project, "Hamburg-D")
-
+def test_dispatcher_has_no_access(as_dispatcher) -> None:
+    """Reiner Dispatcher (ohne Admin-Rolle) bekommt 403 — /admin/teams ist
+    strikte Admin-Domaene."""
     resp = as_dispatcher.get("/admin/teams")
-    assert resp.status_code == 200
-    # Standorte sichtbar (Dispatcher-Tab)
-    assert "DispoLoc" in resp.text
-    # Team nicht sichtbar — Teams-Tab fuer Dispatcher nicht aktiv
-    assert "Hamburg-D" not in resp.text
-    # Dispatcher-Branding statt Admin-Branding
-    assert "Standorte" in resp.text
-    assert "DISPOSITION" in resp.text or "Disposition" in resp.text
-    # Admin-spezifische Subzeile darf nicht erscheinen
-    assert "Organisationsstruktur" not in resp.text
-    # Sidebar-Titel ist nicht der Admin-Format-String — der Test prueft das,
-    # indem er nach dem H1-Marker schaut (nicht nach dem <title>-Tag im Head).
-    assert "Teams &amp; Standorte<" not in resp.text  # H1-Schlusstag
-
-
-def test_dispatcher_cannot_switch_to_teams_tab(
-    as_dispatcher, session: Session, project: Project, link_location_to_dispatcher
-) -> None:
-    """Auch wenn der Dispatcher URL-manuell ?tab=teams setzt, landet er auf locations."""
-    _add_team(session, project, "Hamburg-D2")
-    loc = _add_location(session, project, "DispoLoc2")
-    link_location_to_dispatcher(loc)
-    resp = as_dispatcher.get("/admin/teams?tab=teams")
-    assert resp.status_code == 200
-    assert "DispoLoc2" in resp.text
-    assert "Hamburg-D2" not in resp.text
+    assert resp.status_code == 403
 
 
 def test_admin_keeps_full_branding_and_both_tabs(
@@ -158,9 +127,9 @@ def test_search_filter_narrows_teams(as_admin, session: Session, project: Projec
     assert "Muenchen" not in resp.text
 
 
-def test_dispatcher_dashboard_shows_standorte_tile(as_dispatcher) -> None:
-    """Phase 1.0: neue Tile 'Standorte' im Dispatcher-Block muss sichtbar sein."""
+def test_dispatcher_dashboard_has_no_admin_teams_tile(as_dispatcher) -> None:
+    """Plan-Konfig auf Standort-Ebene wurde 2026-05-15 zurueck in den Desktop
+    geschoben; entsprechend faellt das Dispatcher-Tile auf /admin/teams weg."""
     resp = as_dispatcher.get("/dashboard")
     assert resp.status_code == 200
-    assert "Standorte" in resp.text
-    assert "/admin/teams?tab=locations" in resp.text
+    assert "/admin/teams" not in resp.text

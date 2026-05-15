@@ -52,18 +52,12 @@
     </div>
     {% endif %}
 
-    {# ── Stammdaten (Admin-Domaene: Name + Adresse) ───────────────────── #}
+    {# ── Stammdaten (Name + Adresse) ───────────────────────────────────── #}
     <section class="mb-6">
         <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-3">
             Stammdaten
-            {% if not is_admin %}
-            <span class="ml-2 normal-case tracking-normal text-[10px] text-slate-400 font-normal">
-                (nur Admin)
-            </span>
-            {% endif %}
         </p>
 
-        {% if is_admin %}
         <form {% if location %}hx-patch="/admin/teams/locations/{{ location.id }}/stammdaten"
               {% else %}hx-post="/admin/teams/locations"{% endif %}
               hx-target="#location-drawer" hx-swap="innerHTML" class="space-y-3">
@@ -140,25 +134,6 @@
                 {% if location %}Speichern{% else %}Anlegen{% endif %}
             </button>
         </form>
-        {% else %}
-        <dl class="space-y-3 text-sm">
-            <div>
-                <dt class="text-slate-500 dark:text-slate-400 text-xs">Name</dt>
-                <dd class="text-slate-800 dark:text-slate-100 mt-0.5">{{ location.name if location else '—' }}</dd>
-            </div>
-            <div>
-                <dt class="text-slate-500 dark:text-slate-400 text-xs">Adresse</dt>
-                <dd class="text-slate-800 dark:text-slate-100 mt-0.5">
-                    {% if location and location.address %}
-                        {{ location.address.street or "" }}{% if location.address.street and (location.address.postal_code or location.address.city) %}, {% endif %}
-                        {{ location.address.postal_code or "" }} {{ location.address.city or "" }}
-                    {% else %}
-                        —
-                    {% endif %}
-                </dd>
-            </div>
-        </dl>
-        {% endif %}
     </section>
 
     {% if location %}

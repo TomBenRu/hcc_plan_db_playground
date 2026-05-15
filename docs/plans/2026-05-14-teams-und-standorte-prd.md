@@ -1,10 +1,10 @@
-# PRD: Teams & Standorte (Admin- und Dispatcher-Verwaltung)
+# PRD: Teams & Standorte (Admin-Verwaltung)
 
-**Datum:** 2026-05-14
-**Status:** Anforderungen finalisiert, Implementierung ausstehend
+**Datum:** 2026-05-14 (aktualisiert 2026-05-15)
+**Status:** Phase 1.0–1.5 umgesetzt; Plan-Konfig-Pfad (Phase 1.2) am 2026-05-15 wieder zurueckgebaut
 **Bezug:** `database/models.py` (`Team`, `LocationOfWork`, `Address`, `TeamActorAssign`, `TeamLocationAssign`), `web_api/admin/`, `web_api/dashboard/router.py` (Tile `Teams & Standorte`)
 
-> **Architektur-Leitentscheidung:** Pflege von Teams und Standorten findet ab sofort **vorrangig** in der Web-API statt. Die Desktop-Pendants in `FrmMasterData` bleiben funktional, sollen aber nicht mehr weiterentwickelt werden. Konsistent mit der laufenden Desktop-API-Migration (`project_desktop_api_migration_plan`).
+> **Architektur-Leitentscheidung (Stand 2026-05-15):** Die Web-UI uebernimmt **organisatorische** Stellschrauben (Team-/Standort-Stammdaten, Adressen, Personen-/Standort-Zuordnungen, Dispatcher-Wechsel). **Plan-Intelligenz** (Besetzungsstaerke, TimesOfDay, FixedCast, SkillGroups auf allen Ebenen) bleibt vollstaendig im Desktop. Diese Trennlinie wurde am 2026-05-15 nach kurzer Plan-Konfig-Implementation auf Location-Ebene bewusst gezogen: konsistente Verantwortlichkeit ueber alle vier Konfig-Ebenen statt punktueller Teil-Migration. Eine eventuelle spaetere Voll-Portierung des Desktop-Editor-Pfads bleibt eigenstaendig zu planen.
 
 ---
 
@@ -30,12 +30,12 @@ Eine neue Web-UI unter `/admin/teams` mit zwei Hauptbereichen:
 │
 └── Standorte (Liste mit Detail-Drawer)
     • Name, Adresse, Team-Zugehörigkeit(en), nr_actors
-    • Detail: Stammdaten (Admin) + Plan-Konfig (Dispatcher)
+    • Detail: Stammdaten (Name + Adresse) + Soft-/Hard-Delete
 ```
 
-Beide Bereiche teilen sich denselben Detail-Drawer — Feld-Editierbarkeit wird **rollenabhängig** gesteuert. Admins sehen Stammdaten-Felder als editierbar, Plan-Konfig als read-only. Dispatcher umgekehrt. User mit beiden Rollen sehen alles editierbar.
+`/admin/teams` ist **strikt admin-only**. Beide Bereiche teilen sich denselben Detail-Drawer.
 
-**Dashboard-Zugang:** Admins erreichen die Seite über die bestehende Tile `Teams & Standorte` im Admin-Block. Dispatcher bekommen eine **eigene Tile `Standorte`** im Dispatcher-Block (Label: „Besetzungsstärke und Fix-Cast pflegen"), die auf dieselbe URL mit aktivem Standort-Tab zeigt (`/admin/teams?tab=locations`). Beide Eintrittspunkte landen im selben Code — die Route bleibt unter `/admin/teams`, die Tile-Duplizierung ist rein Navigations-Logik.
+**Dashboard-Zugang:** Admins erreichen die Seite über die bestehende Tile `Teams & Standorte` im Admin-Block. Es gibt **kein Dispatcher-Tile** auf `/admin/teams` — Dispatcher pflegen Plan-Konfig am Desktop.
 
 Zuordnungen (Person↔Team, Standort↔Team) werden als **zeitabschnittsbasierte Mitgliedschaften** abgebildet, konsistent mit dem bestehenden Datenmodell (`TeamActorAssign.start/end`, `TeamLocationAssign.start/end`). Die UI abstrahiert das primär auf den heutigen Zustand, erlaubt aber explizites Future-Dating und Future-Canceling.
 
@@ -46,16 +46,17 @@ Zuordnungen (Person↔Team, Standort↔Team) werden als **zeitabschnittsbasierte
 ### In Scope (Phase 1)
 - Liste + Filter (aktiv/inaktiv, Suche) für Teams und Standorte
 - CRUD für **Team**: anlegen, umbenennen, Dispatcher zuweisen/wechseln, Notes pflegen, soft-deleten
-- CRUD für **Standort**: anlegen, umbenennen, Adresse pflegen, Plan-Konfig (`nr_actors`, `fixed_cast`, `fixed_cast_only_if_available`, `notes`), soft-deleten
+- CRUD für **Standort**: anlegen, umbenennen, Adresse pflegen, soft-deleten
 - Personen-Zuordnung zu Teams (M:N, zeitabschnittsbasiert, Multi-Team erlaubt)
 - Standort-Zuordnung zu Teams (M:N, zeitabschnittsbasiert)
 - Adress-Autocomplete (Vorschlag bestehender Adressen während Inline-Eingabe)
 - Hard-Delete für soft-gelöschte Einträge (mit Name-Bestätigung)
-- Rollenabhängige Feld-Editierbarkeit (Admin vs. Dispatcher)
+- Strikte Admin-Beschränkung — keine Dispatcher-Pfade
 
 ### Out of Scope (bewusste Auslassungen)
-- **`notification_circle_restricted`** — lebt in `/dispatcher/notification-circles`, dort ist auch der Empfängerkreis-Pool definiert. Wird in dieser Seite nicht angeboten (nicht einmal read-only sichtbar), damit es keinen zweiten Schreibpfad gibt.
-- **Default-TimeOfDays** pro Standort — bleibt Desktop (`DlgTimeOfDay`). Eigene Web-UI im späteren PRD.
+- **Plan-Konfig auf Standort-Ebene** (`nr_actors`, `fixed_cast`, `fixed_cast_only_if_available`, Plan-`notes`) — **bleibt Desktop**. Eine kurzlebige Implementierung in Phase 1.2 (Commits `3f66a3a`, `20dea3d`, `7b3b673`) wurde am 2026-05-15 wieder zurueckgebaut: konsistente Trennlinie zwischen Plan-Intelligenz (Desktop) und Organisation (Web) statt punktueller Teil-Migration.
+- **`notification_circle_restricted`** — lebt in `/dispatcher/notification-circles`, dort ist auch der Empfängerkreis-Pool definiert.
+- **Default-TimeOfDays** pro Standort — bleibt Desktop (`DlgTimeOfDay`).
 - **`CombinationLocationsPossible`** — bleibt Desktop (`DlgCombLocPossibleEditList`).
 - **`ActorLocationPref`** — bleibt Desktop.
 - **`SkillGroup` pro Standort** — bleibt Desktop.
@@ -63,12 +64,12 @@ Zuordnungen (Person↔Team, Standort↔Team) werden als **zeitabschnittsbasierte
 - **Multi-Projekt-Verwaltung** — System ist Single-Tenant; das aktuelle Project wird via `get_admin_project()` gelöst.
 
 ### Phasen-Empfehlung
-1. **Phase 1.0** – Read-only-Liste + Detail-Drawer (Teams und Standorte sichtbar)
-2. **Phase 1.1** – Stammdaten-CRUD (Admin-Felder)
-3. **Phase 1.2** – Plan-Konfig-CRUD (Dispatcher-Felder)
-4. **Phase 1.3** – Zuordnungen (Personen↔Team, Standort↔Team) mit Future-Dating/Canceling
-5. **Phase 1.4** – Adress-Autocomplete
-6. **Phase 1.5** – Hard-Delete-Pfad aus Inaktiv-Filter
+1. **Phase 1.0** – Read-only-Liste + Detail-Drawer (Teams und Standorte sichtbar) ✓
+2. **Phase 1.1** – Stammdaten-CRUD (Admin-Felder) ✓
+3. ~~**Phase 1.2** – Plan-Konfig-CRUD (Dispatcher-Felder)~~ **verworfen 2026-05-15**
+4. **Phase 1.3** – Zuordnungen (Personen↔Team, Standort↔Team) mit Future-Dating/Canceling ✓
+5. **Phase 1.4** – Adress-Autocomplete ✓
+6. **Phase 1.5** – Hard-Delete-Pfad aus Inaktiv-Filter ✓
 
 ---
 
@@ -144,19 +145,13 @@ Als Admin möchte ich Name und Adresse eines Standorts ändern, damit Umbenennun
 - Modifikation an einer bestehenden Adresse desselben Standorts: in-place Update der vorhandenen `Address`-Zeile (kein Sharing-Risiko, da 1:1).
 - Bei Löschung der Address-Verknüpfung (Adresse-Felder werden geleert): `LocationOfWork.address_id = NULL`. Die alte `Address`-Zeile bleibt für die Autocomplete-Pool-Suche stehen, bis sie projektweit aufgeräumt wird (siehe Memory `project_general_db_cleanup_planned`).
 
-### US-09 — Dispatcher bearbeitet Plan-Konfig-Felder eines Standorts
-Als Dispatcher möchte ich `nr_actors`, `fixed_cast`, `fixed_cast_only_if_available` und `notes` eines Standorts anpassen, ohne den Admin oder den Desktop-Client zu bemühen.
+### ~~US-09 — Dispatcher bearbeitet Plan-Konfig-Felder eines Standorts~~ (verworfen 2026-05-15)
 
-**Akzeptanzkriterien:**
-- Dispatcher-Zugriff: derselbe Detail-Drawer wie der Admin, jedoch mit Admin-Feldern (Name, Adresse) als **read-only**.
-- `nr_actors`: Integer 0–255, Validierung serverseitig.
-- `fixed_cast`: Freitext, daneben ein Help-Icon mit Tooltip „Format-Beispiele" (kurze Inline-Hilfe, Format-Details lehnen sich an Desktop-`DlgFixedCast` an). Format-Validierung selbst wird in einem späteren PRD adressiert.
-- `fixed_cast_only_if_available`: Checkbox.
-- `notes`: Freitext.
-- Speichern via HTMX-Submit; Confirm-Toast nach Erfolg.
-- **`notification_circle_restricted` wird in diesem Drawer nicht angezeigt** (kein Schreib- und kein Lesepfad), Verwaltung erfolgt ausschließlich in `/dispatcher/notification-circles`.
+**Status:** umgesetzt in `3f66a3a` / `20dea3d` / `7b3b673`, am **2026-05-15** wieder zurueckgebaut.
 
-### US-10 — Admin/Dispatcher sieht Inaktiv-Filter (Soft-Delete)
+**Begruendung des Rueckbaus:** Plan-Konfig existiert auf vier Ebenen (Projekt, Location, PlanPeriod, PlanPeriod-Location). Nur die Location-Ebene ins Web zu portieren bricht die Konsistenz fuer Nutzer. Die Plan-Intelligenz bleibt deshalb komplett im Desktop; die Web-UI behaelt **rein organisatorische** Stellschrauben. Eine spaetere Voll-Portierung des Desktop-Editor-Pfads ist eine eigenstaendige Entscheidung.
+
+### US-10 — Admin sieht Inaktiv-Filter (Soft-Delete)
 Als Admin oder Dispatcher möchte ich soft-gelöschte Teams und Standorte unter einem „Inaktiv"-Filter wiederfinden, damit ich versehentlich entfernte Einträge reaktivieren kann.
 
 **Akzeptanzkriterien:**
@@ -208,6 +203,8 @@ Keine Schema-Änderungen geplant. Genutzte Tabellen:
 
 ## 6. Berechtigungen
 
+`/admin/teams` ist **strikt admin-only** (siehe Entscheidung 2026-05-15 im Header). Reiner Dispatcher: 403 auf jeden Endpoint. Doppel-Rollen-User (Admin + Dispatcher): voller Admin-Zugriff.
+
 | Aktion | Admin | Dispatcher |
 |---|:---:|:---:|
 | Team anlegen / löschen / umbenennen | ✓ | — |
@@ -217,16 +214,13 @@ Keine Schema-Änderungen geplant. Genutzte Tabellen:
 | Standort↔Team-Zuordnung | ✓ | — |
 | Standort anlegen / löschen | ✓ | — |
 | Standort-Name + Adresse pflegen | ✓ | — |
-| Standort-`nr_actors` / `fixed_cast` / `fixed_cast_only_if_available` / `notes` | — | ✓ |
-| Sicht auf Liste + Detail-Drawer (read-only) | ✓ | ✓ |
+| Sicht auf Liste + Detail-Drawer | ✓ | — |
 | Hard-Delete aus Inaktiv-Filter | ✓ | — |
 | Wiederherstellen aus Inaktiv-Filter | ✓ | — |
 
-**Plan-Konfig-Sonderregel (Update 2026-05-15):** Die Plan-Konfig-Felder (`nr_actors`, `fixed_cast`, `fixed_cast_only_if_available`, `notes`) sind **nur** für den Dispatcher des Standorts editierbar — d.h. die eingeloggte Person muss als `Team.dispatcher` eines Teams mit aktiver `TeamLocationAssign` auf den Standort verzeichnet sein. Das gilt **unabhängig** von der Admin-Rolle: auch ein User mit beiden Rollen (Admin + Dispatcher) darf nur eigene Standorte editieren; ein reiner Admin (ohne Dispatcher-Rolle) hat gar keinen Plan-Konfig-Zugriff. Stammdaten (Name, Adresse) bleiben hingegen reine Admin-Domäne, ohne Standort-Scope.
+Plan-Konfig-Felder (`nr_actors`, `fixed_cast`, `fixed_cast_only_if_available`, Plan-`notes`) sind in keinem Web-Pfad editierbar — Pflege ausschliesslich im Desktop (Begruendung: US-09).
 
-**Liste-Sichtbarkeit:** Reine Dispatcher sehen nur eigene Standorte (Filter im Service). Admins und Doppel-Rollen-User sehen alle Standorte — die Liste ist Admin-Sichtbarkeit; die Edit-Berechtigung greift erst am Drawer/Endpoint.
-
-Auf Endpoint-Ebene gilt: jede Mutation ist mit `require_role(...)` abgesichert, das Pattern folgt `web_api/admin/router.py:36`. Reine Read-Endpoints (Liste, Detail) sind für beide Rollen offen.
+Auf Endpoint-Ebene: jede Route hat `require_role(WebUserRole.admin)`. Es gibt keine `LoggedInUser`-typed Read-Endpoints in diesem Bereich.
 
 ---
 

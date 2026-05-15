@@ -51,18 +51,12 @@
     </div>
     {% endif %}
 
-    {# ── Stammdaten (Admin editierbar) ─────────────────────────────────── #}
+    {# ── Stammdaten ─────────────────────────────────────────────────────── #}
     <section class="mb-6">
         <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-3">
             Stammdaten
-            {% if not is_admin %}
-            <span class="ml-2 normal-case tracking-normal text-[10px] text-slate-400 font-normal">
-                (nur Admin)
-            </span>
-            {% endif %}
         </p>
 
-        {% if is_admin %}
         <form {% if team %}hx-patch="/admin/teams/teams/{{ team.id }}"
               {% else %}hx-post="/admin/teams/teams"{% endif %}
               hx-target="#team-drawer" hx-swap="innerHTML" class="space-y-3">
@@ -89,23 +83,10 @@
                 {% if team %}Speichern{% else %}Anlegen{% endif %}
             </button>
         </form>
-        {% else %}
-        <dl class="space-y-3 text-sm">
-            <div>
-                <dt class="text-slate-500 dark:text-slate-400 text-xs">Name</dt>
-                <dd class="text-slate-800 dark:text-slate-100 mt-0.5">{{ team.name if team else '—' }}</dd>
-            </div>
-            <div>
-                <dt class="text-slate-500 dark:text-slate-400 text-xs">Notes</dt>
-                <dd class="text-slate-800 dark:text-slate-100 mt-0.5">{{ team.notes if team and team.notes else '—' }}</dd>
-            </div>
-        </dl>
-        {% endif %}
     </section>
 
     {% if team %}
-    {# ── Dispatcher-Auswahl (Admin) ────────────────────────────────────── #}
-    {% if is_admin %}
+    {# ── Dispatcher-Auswahl ─────────────────────────────────────────────── #}
     <section class="mb-6">
         <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-3">
             Dispatcher
@@ -139,15 +120,6 @@
             <a href="/admin/users" class="underline">/admin/users</a>.
         </p>
     </section>
-    {% else %}
-    <section class="mb-6">
-        <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-3">Dispatcher</p>
-        <p class="text-sm text-slate-800 dark:text-slate-100">
-            {% if team.dispatcher %}{{ team.dispatcher.f_name }} {{ team.dispatcher.l_name }}
-            {% else %}<span class="text-amber-600 dark:text-amber-400">Kein Dispatcher</span>{% endif %}
-        </p>
-    </section>
-    {% endif %}
 
     {% if team.prep_delete %}
     <div class="bg-slate-50 dark:bg-slate-700/40 rounded-lg p-4 text-sm
@@ -169,8 +141,8 @@
     </section>
     {% endif %}
 
-    {# ── Aktionen (Admin only, nur bei bestehendem Team) ───────────────── #}
-    {% if is_admin and team %}
+    {# ── Aktionen (nur bei bestehendem Team) ──────────────────────────── #}
+    {% if team %}
     <section class="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700/50">
         <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-3">
             Aktionen

@@ -1,4 +1,3 @@
-{% if is_admin %}
 <div class="mb-4 flex justify-end">
     <button type="button"
             hx-get="/admin/teams/locations/new"
@@ -14,7 +13,6 @@
         Neuer Standort
     </button>
 </div>
-{% endif %}
 
 {% if locations_rows %}
 <div class="bg-white dark:bg-slate-800 rounded-xl border

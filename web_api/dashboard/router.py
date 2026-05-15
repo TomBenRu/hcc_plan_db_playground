@@ -100,12 +100,6 @@ _ROLE_SECTIONS: dict[WebUserRole, dict] = {
                 "url": "/offers/dispatcher",
                 "icon": "M9 11l3 3L22 4M21 12v7a2 2 0 01-2 2H5a2 2 0 01-2-2V5a2 2 0 012-2h11",
             },
-            {
-                "title": "Standorte",
-                "desc": "Besetzungsstärke und Fix-Cast pflegen",
-                "url": "/admin/teams?tab=locations",
-                "icon": "M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4",
-            },
         ],
     },
     WebUserRole.admin: {

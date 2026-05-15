@@ -2,7 +2,7 @@
 {% from "_macros/branding.html" import role_kicker %}
 {% from "admin/teams/_macros.html" import qs with context %}
 
-{% block title %}{% if is_admin %}Teams &amp; Standorte{% else %}Standorte{% endif %} – hcc plan{% endblock %}
+{% block title %}Teams &amp; Standorte – hcc plan{% endblock %}
 
 {% block head %}
 <style>
@@ -99,21 +99,13 @@
 
         <div class="sidebar-header mb-6">
             <div class="flex items-center gap-1.5 mb-2">
-                {# Dynamisches Branding: Admin -> ADMINISTRATION-Kicker + Vollformat-Titel.
-                   Reiner Dispatcher -> DISPOSITION-Kicker + Standort-Fokus. User mit
-                   Doppel-Rolle bekommen das Admin-Branding (volle Schreibrechte). #}
-                {% if is_admin %}
-                    {{ role_kicker("admin") }}
-                {% else %}
-                    {{ role_kicker("dispatcher") }}
-                {% endif %}
+                {{ role_kicker("admin") }}
             </div>
             <h1 class="font-display text-white text-2xl font-semibold leading-tight tracking-tight">
-                {% if is_admin %}Teams &amp; Standorte{% else %}Standorte{% endif %}
+                Teams &amp; Standorte
             </h1>
             <p class="font-sans text-xs text-slate-500 mt-1.5">
-                {% if is_admin %}Organisationsstruktur und Zuweisungen pflegen.
-                {% else %}Besetzungsstärke und Fix-Cast pflegen.{% endif %}
+                Organisationsstruktur und Zuweisungen pflegen.
             </p>
         </div>
 

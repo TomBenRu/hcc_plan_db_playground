@@ -276,18 +276,17 @@ def test_admin_drawer_shows_restore_and_delete_for_inactive_team(
     assert "In Inaktiv verschieben" not in resp.text
 
 
-def test_dispatcher_drawer_hides_action_buttons(
+def test_dispatcher_drawer_blocked(
     as_dispatcher, session: Session, project: Project
 ) -> None:
-    """Aktions-Footer ist Admin-only. Dispatcher sieht ihn nicht."""
-    team = Team(name="NoActionsForDisp", project=project)
+    """/admin/teams ist seit 2026-05-15 strikt admin-only — Dispatcher bekommt
+    403 auf jeden Drawer-Endpoint."""
+    team = Team(name="NoAccessForDisp", project=project)
     session.add(team)
     session.commit()
     session.refresh(team)
     resp = as_dispatcher.get(f"/admin/teams/teams/{team.id}/drawer")
-    assert resp.status_code == 200
-    assert "In Inaktiv verschieben" not in resp.text
-    assert "Endgültig löschen" not in resp.text
+    assert resp.status_code == 403
 
 
 def test_admin_drawer_shows_location_actions(

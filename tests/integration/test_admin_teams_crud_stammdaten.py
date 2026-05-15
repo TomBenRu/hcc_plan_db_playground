@@ -290,19 +290,11 @@ def test_locations_list_shows_neuer_standort_button_for_admin(
     assert 'hx-get="/admin/teams/locations/new"' in resp.text
 
 
-def test_dispatcher_does_not_see_new_buttons_in_list(
-    as_dispatcher, session: Session, project: Project, link_location_to_dispatcher
-) -> None:
-    loc = LocationOfWork(name="DispLoc", project=project)
-    session.add(loc)
-    session.commit()
-    session.refresh(loc)
-    link_location_to_dispatcher(loc)
-
+def test_dispatcher_blocked_from_list(as_dispatcher) -> None:
+    """/admin/teams ist seit 2026-05-15 strikt admin-only — reiner Dispatcher
+    bekommt 403."""
     resp = as_dispatcher.get("/admin/teams")
-    assert resp.status_code == 200
-    assert "Neuer Standort" not in resp.text  # kein Button
-    assert "Neues Team" not in resp.text
+    assert resp.status_code == 403
 
 
 def test_new_team_drawer_via_get_with_random_uuid_returns_404(as_admin) -> None:

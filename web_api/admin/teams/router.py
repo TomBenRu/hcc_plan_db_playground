@@ -18,7 +18,7 @@ from datetime import date
 from database import db_services
 from database.models import LocationOfWork, Team, TeamActorAssign, TeamLocationAssign
 from web_api.admin.teams import assignments, guards, mutations, service
-from web_api.auth.dependencies import LoggedInUser, require_role
+from web_api.auth.dependencies import require_role
 from web_api.dependencies import get_db_session
 from web_api.models.web_models import WebUser, WebUserRole
 from web_api.templating import templates
@@ -53,16 +53,9 @@ def _build_filters(
     tab: str | None,
     status: str | None,
     search: str | None,
-    *,
-    is_admin: bool,
 ) -> dict:
-    """Filter normalisieren. Reiner Dispatcher (kein Admin) wird auf
-    ``tab=locations`` gezwungen — der Teams-Tab ist fuer ihn nicht erreichbar."""
-    normalized_tab = _normalize_tab(tab)
-    if not is_admin:
-        normalized_tab = "locations"
     return {
-        "tab": normalized_tab,
+        "tab": _normalize_tab(tab),
         "status": _normalize_status(status),
         "search": (search or "").strip(),
     }
@@ -70,20 +63,12 @@ def _build_filters(
 
 def _build_view_context(
     request: Request,
-    user,  # WebUser, untyped fuer einfacheren Aufruf
+    user: WebUser,
     session: Session,
     filters: dict,
 ) -> dict:
     project = service.get_session_project(session, user)
     only_inactive = filters["status"] == "inactive"
-
-    is_admin = user.has_any_role(WebUserRole.admin)
-    is_dispatcher = user.has_any_role(WebUserRole.dispatcher)
-    # Reiner Dispatcher (kein Admin) sieht nur Standorte, fuer die er ueber
-    # Team-Zuordnung verantwortlich ist. Doppel-Rollen-User behalten Vollzugriff.
-    dispatcher_filter_person_id = (
-        user.person_id if (is_dispatcher and not is_admin) else None
-    )
 
     teams_rows = service.list_teams_view(
         session,
@@ -96,23 +81,16 @@ def _build_view_context(
         project.id,
         only_inactive=only_inactive,
         search=filters["search"] if filters["tab"] == "locations" else "",
-        dispatcher_filter_person_id=dispatcher_filter_person_id,
     )
 
     sidebar_counts = {
         "teams_active": service.count_teams(session, project.id, only_inactive=False),
         "teams_inactive": service.count_teams(session, project.id, only_inactive=True),
         "locations_active": service.count_locations(
-            session,
-            project.id,
-            only_inactive=False,
-            dispatcher_filter_person_id=dispatcher_filter_person_id,
+            session, project.id, only_inactive=False
         ),
         "locations_inactive": service.count_locations(
-            session,
-            project.id,
-            only_inactive=True,
-            dispatcher_filter_person_id=dispatcher_filter_person_id,
+            session, project.id, only_inactive=True
         ),
     }
 
@@ -123,8 +101,6 @@ def _build_view_context(
         "teams_rows": teams_rows,
         "locations_rows": locations_rows,
         "sidebar_counts": sidebar_counts,
-        "is_admin": is_admin,
-        "is_dispatcher": is_dispatcher,
     }
 
 
@@ -134,7 +110,7 @@ def _build_view_context(
 @router.get("", response_class=HTMLResponse)
 def teams_index(
     request: Request,
-    user: LoggedInUser,
+    user: WebUser = require_role(WebUserRole.admin),
     session: Session = Depends(get_db_session),
     tab: str | None = None,
     status: str | None = None,
@@ -145,9 +121,7 @@ def teams_index(
     Vollseiten-Render fuer GET ohne ``HX-Request``; OOB-Response-Partial
     fuer HTMX-Calls (Liste + Sidebar-Counts + Hidden-State austauschen).
     """
-    service.require_admin_or_dispatcher(user)
-    is_admin = user.has_any_role(WebUserRole.admin)
-    filters = _build_filters(tab, status, search, is_admin=is_admin)
+    filters = _build_filters(tab, status, search)
     ctx = _build_view_context(request, user, session, filters)
 
     template_name = (
@@ -166,13 +140,7 @@ def new_team_drawer(
     """Liefert einen leeren Team-Drawer (Anlage-Form)."""
     return templates.TemplateResponse(
         "admin/teams/partials/team_drawer.html",
-        {
-            "request": request,
-            "user": user,
-            "team": None,
-            "is_admin": True,
-            "is_dispatcher": user.has_any_role(WebUserRole.dispatcher),
-        },
+        {"request": request, "user": user, "team": None},
     )
 
 
@@ -184,14 +152,7 @@ def new_location_drawer(
     """Liefert einen leeren Standort-Drawer (Anlage-Form)."""
     return templates.TemplateResponse(
         "admin/teams/partials/location_drawer.html",
-        {
-            "request": request,
-            "user": user,
-            "location": None,
-            "is_admin": True,
-            "is_dispatcher": user.has_any_role(WebUserRole.dispatcher),
-            "can_edit_plan_config": False,
-        },
+        {"request": request, "user": user, "location": None},
     )
 
 
@@ -199,25 +160,18 @@ def new_location_drawer(
 def team_drawer(
     request: Request,
     team_id: uuid.UUID,
-    user: LoggedInUser,
+    user: WebUser = require_role(WebUserRole.admin),
 ):
-    """Detail-Drawer fuer ein Team (read-only in Phase 1.0).
+    """Detail-Drawer fuer ein Team.
 
     DB-Service oeffnet seine eigene Session via ``database.database.get_session()``
     — daher kein explizites ``session``-Argument. Engine ist via Test-Setup
     auf die Test-DB gepatcht.
     """
-    service.require_admin_or_dispatcher(user)
     team = db_services.team.get(team_id, include_deleted=True)
     return templates.TemplateResponse(
         "admin/teams/partials/team_drawer.html",
-        {
-            "request": request,
-            "user": user,
-            "team": team,
-            "is_admin": user.has_any_role(WebUserRole.admin),
-            "is_dispatcher": user.has_any_role(WebUserRole.dispatcher),
-        },
+        {"request": request, "user": user, "team": team},
     )
 
 
@@ -225,39 +179,13 @@ def team_drawer(
 def location_drawer(
     request: Request,
     location_id: uuid.UUID,
-    user: LoggedInUser,
-    session: Session = Depends(get_db_session),
+    user: WebUser = require_role(WebUserRole.admin),
 ):
-    """Detail-Drawer fuer einen Standort.
-
-    Reiner Dispatcher darf nur Plan-Konfig der eigenen Standorte bearbeiten —
-    sonst wird die Form ausgeblendet. ``can_edit_plan_config`` steuert das
-    Template.
-    """
-    service.require_admin_or_dispatcher(user)
+    """Detail-Drawer fuer einen Standort."""
     location = db_services.location_of_work.get(location_id)
-    is_admin = user.has_any_role(WebUserRole.admin)
-    is_dispatcher = user.has_any_role(WebUserRole.dispatcher)
-    # Plan-Konfig: strikt nach Dispatcher-Verantwortung. Admin-Rolle allein
-    # genuegt nicht; auch Doppel-Rollen-User braucht aktive Team-Zuordnung.
-    can_edit_plan_config = (
-        user.person_id is not None
-        and service.is_dispatcher_responsible_for_location(
-            session,
-            dispatcher_person_id=user.person_id,
-            location_id=location_id,
-        )
-    )
     return templates.TemplateResponse(
         "admin/teams/partials/location_drawer.html",
-        {
-            "request": request,
-            "user": user,
-            "location": location,
-            "is_admin": is_admin,
-            "is_dispatcher": is_dispatcher,
-            "can_edit_plan_config": can_edit_plan_config,
-        },
+        {"request": request, "user": user, "location": location},
     )
 
 
@@ -282,8 +210,6 @@ def _render_team_drawer(
             "request": request,
             "user": user,
             "team": team,
-            "is_admin": user.has_any_role(WebUserRole.admin),
-            "is_dispatcher": user.has_any_role(WebUserRole.dispatcher),
             "saved": saved,
             "error": error,
         },
@@ -299,29 +225,13 @@ def _render_location_drawer(
     *,
     saved: bool = False,
     error: str | None = None,
-    session: Session | None = None,
 ) -> HTMLResponse:
-    is_admin = user.has_any_role(WebUserRole.admin)
-    is_dispatcher = user.has_any_role(WebUserRole.dispatcher)
-    # Plan-Konfig-Editierung folgt strikt der Dispatcher-Verantwortung —
-    # auch ein Admin (mit oder ohne Dispatcher-Rolle) editiert nur, wenn er
-    # als Person Dispatcher des Standorts ist.
-    can_edit_plan_config = False
-    if session is not None and user.person_id is not None:
-        can_edit_plan_config = service.is_dispatcher_responsible_for_location(
-            session,
-            dispatcher_person_id=user.person_id,
-            location_id=location.id,
-        )
     response = templates.TemplateResponse(
         "admin/teams/partials/location_drawer.html",
         {
             "request": request,
             "user": user,
             "location": location,
-            "is_admin": is_admin,
-            "is_dispatcher": is_dispatcher,
-            "can_edit_plan_config": can_edit_plan_config,
             "saved": saved,
             "error": error,
         },
@@ -360,8 +270,6 @@ def create_team_endpoint(
                     "request": request,
                     "user": user,
                     "team": None,
-                    "is_admin": user.has_any_role(WebUserRole.admin),
-                    "is_dispatcher": user.has_any_role(WebUserRole.dispatcher),
                     "saved": False,
                     "error": exc.detail,
                 },
@@ -462,8 +370,6 @@ def create_location_endpoint(
                     "request": request,
                     "user": user,
                     "location": None,
-                    "is_admin": user.has_any_role(WebUserRole.admin),
-                    "is_dispatcher": user.has_any_role(WebUserRole.dispatcher),
                     "saved": False,
                     "error": exc.detail,
                 },
@@ -471,7 +377,7 @@ def create_location_endpoint(
             )
             return response
         raise
-    return _render_location_drawer(request, loc, user, saved=True, session=session)
+    return _render_location_drawer(request, loc, user, saved=True)
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -702,9 +608,9 @@ def soft_delete_location_endpoint(
         location = mutations.soft_delete_location(session, location=location, actor=user)
     except HTTPException as exc:
         if exc.status_code == status.HTTP_409_CONFLICT:
-            return _render_location_drawer(request, location, user, error=exc.detail, session=session)
+            return _render_location_drawer(request, location, user, error=exc.detail)
         raise
-    return _render_location_drawer(request, location, user, saved=True, session=session)
+    return _render_location_drawer(request, location, user, saved=True)
 
 
 @router.post("/locations/{location_id}/restore", response_class=HTMLResponse)
@@ -718,7 +624,7 @@ def restore_location_endpoint(
     if location is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Standort nicht gefunden")
     location = mutations.restore_location(session, location=location, actor=user)
-    return _render_location_drawer(request, location, user, saved=True, session=session)
+    return _render_location_drawer(request, location, user, saved=True)
 
 
 @router.delete("/locations/{location_id}", response_class=HTMLResponse)
@@ -791,6 +697,6 @@ def update_location_stammdaten_endpoint(
         )
     except HTTPException as exc:
         if exc.status_code == status.HTTP_409_CONFLICT:
-            return _render_location_drawer(request, location, user, error=exc.detail, session=session)
+            return _render_location_drawer(request, location, user, error=exc.detail)
         raise
-    return _render_location_drawer(request, location, user, saved=True, session=session)
+    return _render_location_drawer(request, location, user, saved=True)

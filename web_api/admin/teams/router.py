@@ -245,6 +245,8 @@ def team_drawer(
             "team": team,
             "active_member_count": len(assignments.list_active_team_members(session, team.id)),
             "active_location_count": len(assignments.list_active_team_locations(session, team.id)),
+            "past_member_assigns": assignments.list_past_team_members(session, team.id),
+            "past_location_assigns": assignments.list_past_team_locations(session, team.id),
         },
     )
 
@@ -268,6 +270,7 @@ def location_drawer(
             "location": location,
             "active_team_assigns": assignments.list_active_location_teams(session, location.id),
             "future_team_assigns": assignments.list_future_location_teams(session, location.id),
+            "past_team_assigns": assignments.list_past_location_teams(session, location.id),
         },
     )
 
@@ -292,10 +295,13 @@ def _render_team_drawer(
     Seit 2026-05-15 zeigt der Team-Drawer nur Counts + Links zu den
     Mitglieder-/Standorte-Tabs (gefiltert auf das Team). Die Detail-Pflege
     erfolgt in den jeweiligen Tabs. ``session`` ist trotzdem noetig fuer die
-    Counts.
+    Counts. Zusaetzlich werden vergangene Mitgliedschaften/Standort-Zuordnungen
+    fuer den einklappbaren ``Verlauf``-Block geladen.
     """
     active_member_count = len(assignments.list_active_team_members(session, team.id))
     active_location_count = len(assignments.list_active_team_locations(session, team.id))
+    past_member_assigns = assignments.list_past_team_members(session, team.id)
+    past_location_assigns = assignments.list_past_team_locations(session, team.id)
     response = templates.TemplateResponse(
         "admin/teams/partials/team_drawer.html",
         {
@@ -304,6 +310,8 @@ def _render_team_drawer(
             "team": team,
             "active_member_count": active_member_count,
             "active_location_count": active_location_count,
+            "past_member_assigns": past_member_assigns,
+            "past_location_assigns": past_location_assigns,
             "saved": saved,
             "error": error,
         },
@@ -329,6 +337,7 @@ def _render_location_drawer(
     """
     active_team_assigns = assignments.list_active_location_teams(session, location.id)
     future_team_assigns = assignments.list_future_location_teams(session, location.id)
+    past_team_assigns = assignments.list_past_location_teams(session, location.id)
     response = templates.TemplateResponse(
         "admin/teams/partials/location_drawer.html",
         {
@@ -337,6 +346,7 @@ def _render_location_drawer(
             "location": location,
             "active_team_assigns": active_team_assigns,
             "future_team_assigns": future_team_assigns,
+            "past_team_assigns": past_team_assigns,
             "saved": saved,
             "error": error,
         },
@@ -361,6 +371,7 @@ def _render_member_drawer(
     """
     active_team_assigns = assignments.list_active_person_teams(session, person.id)
     future_team_assigns = assignments.list_future_person_teams(session, person.id)
+    past_team_assigns = assignments.list_past_person_teams(session, person.id)
     response = templates.TemplateResponse(
         "admin/teams/partials/member_drawer.html",
         {
@@ -369,6 +380,7 @@ def _render_member_drawer(
             "person": person,
             "active_team_assigns": active_team_assigns,
             "future_team_assigns": future_team_assigns,
+            "past_team_assigns": past_team_assigns,
             "saved": saved,
             "error": error,
         },

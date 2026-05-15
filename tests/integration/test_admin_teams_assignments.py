@@ -1217,3 +1217,113 @@ def test_add_person_team_with_open_pp_renders_dialog(
     assert "Planperioden anlegen" in resp.text
     # Drawer-Target ist Member-Drawer
     assert "member-drawer" in resp.text
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# Verlauf-Reiter im Drawer (Phase 1.6 — historische Zuordnungen)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def test_member_drawer_renders_past_team_memberships(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Vergangene TAA (end <= today) erscheint im Verlauf, aktive nicht."""
+    person = _make_person(session, project, "Historiker")
+    past_team = _make_team(session, project, "PastTeam")
+    active_team = _make_team(session, project, "ActiveTeam")
+    # Vergangene Mitgliedschaft (vor 30 Tagen beendet)
+    session.add(TeamActorAssign(
+        person=person, team=past_team,
+        start=date.today() - timedelta(days=60),
+        end=date.today() - timedelta(days=30),
+    ))
+    # Aktive Mitgliedschaft
+    session.add(TeamActorAssign(
+        person=person, team=active_team, start=date.today()
+    ))
+    session.commit()
+
+    resp = as_admin.get(f"/admin/teams/persons/{person.id}/drawer")
+    assert resp.status_code == 200
+    # Verlauf-Block mit (1) ist sichtbar
+    assert "Verlauf (1)" in resp.text
+    assert "PastTeam" in resp.text
+    # Aktives Team erscheint in der Mitgliedschaften-Sektion, nicht im Verlauf
+    assert "ActiveTeam" in resp.text
+
+
+def test_member_drawer_no_history_section_when_empty(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Ohne vergangene TAAs wird die Verlauf-Section gar nicht gerendert."""
+    person = _make_person(session, project, "Neuling")
+    resp = as_admin.get(f"/admin/teams/persons/{person.id}/drawer")
+    assert resp.status_code == 200
+    assert "Verlauf (" not in resp.text
+
+
+def test_location_drawer_renders_past_team_assigns(
+    as_admin, session: Session, project: Project
+) -> None:
+    loc = _make_location(session, project, "Historisch")
+    past_team = _make_team(session, project, "EhemaligesTeam")
+    session.add(TeamLocationAssign(
+        location_of_work=loc, team=past_team,
+        start=date.today() - timedelta(days=60),
+        end=date.today() - timedelta(days=10),
+    ))
+    session.commit()
+
+    resp = as_admin.get(f"/admin/teams/locations/{loc.id}/drawer")
+    assert resp.status_code == 200
+    assert "Verlauf (1)" in resp.text
+    assert "EhemaligesTeam" in resp.text
+
+
+def test_team_drawer_renders_past_members_and_locations(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Team-Drawer zeigt beide Historien (Mitglieder + Standorte) im Verlauf."""
+    team = _make_team(session, project, "HistTeam")
+    person = _make_person(session, project, "AltMitglied")
+    loc = _make_location(session, project, "AltStandort")
+    session.add(TeamActorAssign(
+        person=person, team=team,
+        start=date.today() - timedelta(days=90),
+        end=date.today() - timedelta(days=5),
+    ))
+    session.add(TeamLocationAssign(
+        location_of_work=loc, team=team,
+        start=date.today() - timedelta(days=90),
+        end=date.today() - timedelta(days=2),
+    ))
+    session.commit()
+
+    resp = as_admin.get(f"/admin/teams/teams/{team.id}/drawer")
+    assert resp.status_code == 200
+    # Kombinierter Count im Summary
+    assert "Verlauf (2)" in resp.text
+    # Beide Sub-Headlines vorhanden
+    assert "Mitglieder (1)" in resp.text
+    assert "Standorte (1)" in resp.text
+    # Die Namen erscheinen
+    assert "AltMitglied" in resp.text
+    assert "AltStandort" in resp.text
+
+
+def test_team_drawer_history_excludes_active_assigns(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Aktive TAAs/TLAs werden NICHT im Verlauf gelistet, nur in den primaeren
+    Sektionen (die im entschlackten Team-Drawer aber nur als Counts erscheinen)."""
+    team = _make_team(session, project, "Lebende")
+    active_person = _make_person(session, project, "AktivMitglied")
+    session.add(TeamActorAssign(
+        person=active_person, team=team, start=date.today()
+    ))
+    session.commit()
+
+    resp = as_admin.get(f"/admin/teams/teams/{team.id}/drawer")
+    assert resp.status_code == 200
+    # Kein Verlauf-Summary, weil keine past-Eintraege
+    assert "Verlauf (" not in resp.text

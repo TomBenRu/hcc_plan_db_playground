@@ -108,6 +108,22 @@ def list_future_team_members(session: Session, team_id: uuid.UUID) -> list[TeamA
     return list(session.exec(stmt).all())
 
 
+def list_past_team_members(session: Session, team_id: uuid.UUID) -> list[TeamActorAssign]:
+    """Vergangene Mitgliedschaften (``end <= today``), zuletzt beendete zuerst.
+    Aktive (``end IS NULL`` oder ``end > today``) bleiben aussen vor."""
+    today = date.today()
+    stmt = (
+        select(TeamActorAssign)
+        .where(
+            TeamActorAssign.team_id == team_id,
+            TeamActorAssign.end.is_not(None),  # type: ignore[union-attr]
+            TeamActorAssign.end <= today,  # type: ignore[union-attr]
+        )
+        .order_by(TeamActorAssign.end.desc())  # type: ignore[union-attr]
+    )
+    return list(session.exec(stmt).all())
+
+
 def list_active_person_teams(
     session: Session, person_id: uuid.UUID
 ) -> list[TeamActorAssign]:
@@ -137,6 +153,24 @@ def list_future_person_teams(
         select(TeamActorAssign)
         .where(TeamActorAssign.person_id == person_id, TeamActorAssign.start > today)
         .order_by(TeamActorAssign.start)
+    )
+    return list(session.exec(stmt).all())
+
+
+def list_past_person_teams(
+    session: Session, person_id: uuid.UUID
+) -> list[TeamActorAssign]:
+    """Vergangene Team-Mitgliedschaften einer Person — Spiegel zu
+    ``list_past_team_members`` aus Person-Sicht."""
+    today = date.today()
+    stmt = (
+        select(TeamActorAssign)
+        .where(
+            TeamActorAssign.person_id == person_id,
+            TeamActorAssign.end.is_not(None),  # type: ignore[union-attr]
+            TeamActorAssign.end <= today,  # type: ignore[union-attr]
+        )
+        .order_by(TeamActorAssign.end.desc())  # type: ignore[union-attr]
     )
     return list(session.exec(stmt).all())
 
@@ -195,6 +229,23 @@ def list_future_team_locations(session: Session, team_id: uuid.UUID) -> list[Tea
     return list(session.exec(stmt).all())
 
 
+def list_past_team_locations(
+    session: Session, team_id: uuid.UUID
+) -> list[TeamLocationAssign]:
+    """Vergangene Standort-Zuordnungen eines Teams (``end <= today``)."""
+    today = date.today()
+    stmt = (
+        select(TeamLocationAssign)
+        .where(
+            TeamLocationAssign.team_id == team_id,
+            TeamLocationAssign.end.is_not(None),  # type: ignore[union-attr]
+            TeamLocationAssign.end <= today,  # type: ignore[union-attr]
+        )
+        .order_by(TeamLocationAssign.end.desc())  # type: ignore[union-attr]
+    )
+    return list(session.exec(stmt).all())
+
+
 def list_active_location_teams(
     session: Session, location_id: uuid.UUID
 ) -> list[TeamLocationAssign]:
@@ -227,6 +278,24 @@ def list_future_location_teams(
             TeamLocationAssign.start > today,
         )
         .order_by(TeamLocationAssign.start)
+    )
+    return list(session.exec(stmt).all())
+
+
+def list_past_location_teams(
+    session: Session, location_id: uuid.UUID
+) -> list[TeamLocationAssign]:
+    """Vergangene Team-Zuordnungen einer Location — Spiegel zu
+    ``list_past_team_locations`` aus Location-Sicht."""
+    today = date.today()
+    stmt = (
+        select(TeamLocationAssign)
+        .where(
+            TeamLocationAssign.location_of_work_id == location_id,
+            TeamLocationAssign.end.is_not(None),  # type: ignore[union-attr]
+            TeamLocationAssign.end <= today,  # type: ignore[union-attr]
+        )
+        .order_by(TeamLocationAssign.end.desc())  # type: ignore[union-attr]
     )
     return list(session.exec(stmt).all())
 

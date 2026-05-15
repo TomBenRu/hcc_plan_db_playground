@@ -253,6 +253,31 @@
     </section>
     {% endif %}
 
+    {# ── Verlauf (vergangene Mitgliedschaften) ───────────────────────────── #}
+    {% if past_team_assigns %}
+    <section class="mb-6">
+        <details>
+            <summary class="cursor-pointer text-xs font-semibold tracking-widest uppercase
+                            text-slate-400 hover:text-slate-600 dark:hover:text-slate-200
+                            select-none">
+                Verlauf ({{ past_team_assigns | length }})
+            </summary>
+            <ul class="mt-3 divide-y divide-slate-100 dark:divide-slate-700/50">
+                {% for taa in past_team_assigns %}
+                <li class="py-1.5 text-sm">
+                    <span class="font-medium text-slate-700 dark:text-slate-200">
+                        {{ taa.team.name }}
+                    </span>
+                    <span class="block text-xs text-slate-400">
+                        {{ taa.start.strftime("%d.%m.%Y") }} – {{ taa.end.strftime("%d.%m.%Y") }}
+                    </span>
+                </li>
+                {% endfor %}
+            </ul>
+        </details>
+    </section>
+    {% endif %}
+
     {# ── Aktionen (Soft- / Hard-Delete) ──────────────────────────────────── #}
     <section class="mt-8 pt-6 border-t border-slate-200 dark:border-slate-700/50">
         <p class="text-xs font-semibold tracking-widest uppercase text-slate-400 mb-3">

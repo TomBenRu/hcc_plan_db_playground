@@ -21,6 +21,7 @@ from database.models import (
     ActorPlanPeriod,
     Gender,
     LocationOfWork,
+    LocationPlanPeriod,
     Person,
     PlanPeriod,
     Project,
@@ -1327,3 +1328,202 @@ def test_team_drawer_history_excludes_active_assigns(
     assert resp.status_code == 200
     # Kein Verlauf-Summary, weil keine past-Eintraege
     assert "Verlauf (" not in resp.text
+
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# LPP-Anlage-Dialog nach Add-Team-Location (Spiegel zum APP-Dialog)
+# ═══════════════════════════════════════════════════════════════════════════════
+
+
+def test_add_team_location_with_open_pp_renders_lpp_dialog(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Symmetrisch zur TAA-Anlage: wenn der TLA-Zeitraum mit einer offenen PP
+    ueberlappt und keine LPP fuer den Standort existiert, kommt der Dialog."""
+    team = _make_team(session, project, "TLATeam")
+    loc = _make_location(session, project, "TLALoc")
+    _open_plan_period(session, team)
+
+    resp = as_admin.post(
+        f"/admin/teams/teams/{team.id}/locations",
+        data={"location_id": str(loc.id)},
+    )
+    assert resp.status_code == 200
+    assert "Planperioden anlegen" in resp.text
+    # Dialog enthaelt Submit-URL zum LPP-apply-Endpoint
+    tla = session.exec(
+        select(TeamLocationAssign).where(TeamLocationAssign.location_of_work_id == loc.id)
+    ).one()
+    assert f"/admin/teams/team-locations/{tla.id}/apply-lpps" in resp.text
+    # Checkbox vorausgewaehlt
+    assert "checked" in resp.text
+
+
+def test_add_team_location_without_overlap_renders_drawer_directly(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Kein Dialog, wenn das Team keine offenen PPs hat."""
+    team = _make_team(session, project, "NoTLAOpenPP")
+    loc = _make_location(session, project, "NoTLAOpenPPLoc")
+    resp = as_admin.post(
+        f"/admin/teams/teams/{team.id}/locations",
+        data={"location_id": str(loc.id)},
+    )
+    assert resp.status_code == 200
+    assert "Planperioden anlegen" not in resp.text
+
+
+def test_add_team_location_skips_dialog_for_closed_or_softdeleted_pps(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Geschlossene oder soft-deletete PPs zaehlen nicht."""
+    team = _make_team(session, project, "TLAClosed")
+    loc = _make_location(session, project, "TLAClosedLoc")
+    _open_plan_period(session, team, closed=True)
+    soft = _open_plan_period(session, team)
+    soft.prep_delete = __import__("datetime").datetime.now(__import__("datetime").timezone.utc)
+    session.commit()
+
+    resp = as_admin.post(
+        f"/admin/teams/teams/{team.id}/locations",
+        data={"location_id": str(loc.id)},
+    )
+    assert resp.status_code == 200
+    assert "Planperioden anlegen" not in resp.text
+
+
+def test_add_team_location_skips_dialog_when_lpp_already_exists(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Standort hat bereits eine LPP fuer die PP → wird im Dialog nicht aufgefuehrt."""
+    team = _make_team(session, project, "TLAExists")
+    loc = _make_location(session, project, "TLAExistsLoc")
+    pp = _open_plan_period(session, team)
+    session.add(LocationPlanPeriod(plan_period=pp, location_of_work=loc))
+    session.commit()
+
+    resp = as_admin.post(
+        f"/admin/teams/teams/{team.id}/locations",
+        data={"location_id": str(loc.id)},
+    )
+    assert resp.status_code == 200
+    assert "Planperioden anlegen" not in resp.text
+
+
+def test_apply_lpps_creates_location_plan_periods(
+    as_admin, session: Session, project: Project
+) -> None:
+    team = _make_team(session, project, "ApplyLPP")
+    loc = _make_location(session, project, "ApplyLPPLoc")
+    pp1 = _open_plan_period(session, team)
+    pp2 = _open_plan_period(
+        session, team,
+        start=date.today() + timedelta(days=20),
+        end=date.today() + timedelta(days=40),
+    )
+    tla = TeamLocationAssign(location_of_work=loc, team=team, start=date.today())
+    session.add(tla)
+    session.commit()
+    session.refresh(tla)
+
+    resp = as_admin.post(
+        f"/admin/teams/team-locations/{tla.id}/apply-lpps",
+        data={
+            "plan_period_ids": [str(pp1.id), str(pp2.id)],
+            "return_drawer": "team",
+        },
+    )
+    assert resp.status_code == 200
+    session.expire_all()
+    lpps = session.exec(
+        select(LocationPlanPeriod).where(LocationPlanPeriod.location_of_work_id == loc.id)
+    ).all()
+    assert len(lpps) == 2
+    pp_ids = {lpp.plan_period_id for lpp in lpps}
+    assert pp_ids == {pp1.id, pp2.id}
+
+
+def test_apply_lpps_empty_selection_is_no_op(
+    as_admin, session: Session, project: Project
+) -> None:
+    team = _make_team(session, project, "EmptyLPP")
+    loc = _make_location(session, project, "EmptyLPPLoc")
+    _open_plan_period(session, team)
+    tla = TeamLocationAssign(location_of_work=loc, team=team, start=date.today())
+    session.add(tla)
+    session.commit()
+
+    resp = as_admin.post(
+        f"/admin/teams/team-locations/{tla.id}/apply-lpps",
+        data={"return_drawer": "team"},
+    )
+    assert resp.status_code == 200
+    session.expire_all()
+    lpps = session.exec(
+        select(LocationPlanPeriod).where(LocationPlanPeriod.location_of_work_id == loc.id)
+    ).all()
+    assert lpps == []
+
+
+def test_apply_lpps_idempotent_on_existing_lpp(
+    as_admin, session: Session, project: Project
+) -> None:
+    team = _make_team(session, project, "IdemLPP")
+    loc = _make_location(session, project, "IdemLPPLoc")
+    pp = _open_plan_period(session, team)
+    tla = TeamLocationAssign(location_of_work=loc, team=team, start=date.today())
+    session.add(tla)
+    session.commit()
+
+    as_admin.post(
+        f"/admin/teams/team-locations/{tla.id}/apply-lpps",
+        data={"plan_period_ids": [str(pp.id)], "return_drawer": "team"},
+    )
+    as_admin.post(
+        f"/admin/teams/team-locations/{tla.id}/apply-lpps",
+        data={"plan_period_ids": [str(pp.id)], "return_drawer": "team"},
+    )
+
+    session.expire_all()
+    lpps = session.exec(
+        select(LocationPlanPeriod).where(LocationPlanPeriod.location_of_work_id == loc.id)
+    ).all()
+    assert len(lpps) == 1
+
+
+def test_apply_lpps_from_location_side_returns_location_drawer(
+    as_admin, session: Session, project: Project
+) -> None:
+    team = _make_team(session, project, "FromLocSide")
+    loc = _make_location(session, project, "LocCaller")
+    pp = _open_plan_period(session, team)
+    tla = TeamLocationAssign(location_of_work=loc, team=team, start=date.today())
+    session.add(tla)
+    session.commit()
+
+    resp = as_admin.post(
+        f"/admin/teams/team-locations/{tla.id}/apply-lpps",
+        data={"plan_period_ids": [str(pp.id)], "return_drawer": "location"},
+    )
+    assert resp.status_code == 200
+    # Location-Drawer rendert "Standort" als Header-Label
+    assert "Standort" in resp.text
+    # Der Location-Name muss sichtbar sein, weil's der Location-Drawer ist
+    assert "LocCaller" in resp.text
+
+
+def test_add_location_team_with_open_pp_renders_dialog(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Spiegel: aus dem Standort-Drawer ein Team zuweisen → ebenfalls Dialog."""
+    team = _make_team(session, project, "LocSidePP")
+    loc = _make_location(session, project, "LocSide")
+    _open_plan_period(session, team)
+
+    resp = as_admin.post(
+        f"/admin/teams/locations/{loc.id}/teams",
+        data={"team_id": str(team.id)},
+    )
+    assert resp.status_code == 200
+    assert "Planperioden anlegen" in resp.text
+    assert "location-drawer" in resp.text

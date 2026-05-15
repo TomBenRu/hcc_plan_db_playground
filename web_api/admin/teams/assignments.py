@@ -23,6 +23,7 @@ from sqlmodel import Session, select
 from database.models import (
     ActorPlanPeriod,
     LocationOfWork,
+    LocationPlanPeriod,
     Person,
     PlanPeriod,
     Team,
@@ -667,4 +668,35 @@ def list_open_overlapping_plan_periods_for_taa(
     )
     if taa.end is not None:
         stmt = stmt.where(PlanPeriod.start <= taa.end)
+    return list(session.exec(stmt).all())
+
+
+def list_open_overlapping_plan_periods_for_tla(
+    session: Session, *, tla: TeamLocationAssign
+) -> list[PlanPeriod]:
+    """Spiegel zu ``list_open_overlapping_plan_periods_for_taa`` fuer
+    Standort↔Team-Zuordnungen.
+
+    Liefert offene PPs des TLA-Teams (``closed=False AND prep_delete IS NULL``),
+    deren Zeitraum mit dem TLA-Zeitraum ueberschneidet und fuer die noch
+    **keine** LocationPlanPeriod fuer den Standort existiert.
+    """
+    stmt = (
+        select(PlanPeriod)
+        .outerjoin(
+            LocationPlanPeriod,
+            (LocationPlanPeriod.plan_period_id == PlanPeriod.id)
+            & (LocationPlanPeriod.location_of_work_id == tla.location_of_work_id),
+        )
+        .where(
+            PlanPeriod.team_id == tla.team_id,
+            PlanPeriod.closed.is_(False),  # type: ignore[union-attr]
+            PlanPeriod.prep_delete.is_(None),  # type: ignore[union-attr]
+            LocationPlanPeriod.id.is_(None),  # type: ignore[union-attr]
+            tla.start <= PlanPeriod.end,
+        )
+        .order_by(PlanPeriod.start)
+    )
+    if tla.end is not None:
+        stmt = stmt.where(PlanPeriod.start <= tla.end)
     return list(session.exec(stmt).all())

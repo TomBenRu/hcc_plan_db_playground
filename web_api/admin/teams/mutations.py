@@ -27,6 +27,7 @@ from database.models import (
     Address,
     Gender,
     LocationOfWork,
+    LocationPlanPeriod,
     Person,
     PlanPeriod,
     Project,
@@ -881,6 +882,54 @@ def create_actor_plan_periods(
                     "target_id": str(app.id),
                     "person_id": str(person.id),
                     "plan_period_id": str(app.plan_period_id),
+                },
+            )
+    return created
+
+
+def create_location_plan_periods(
+    session: Session,
+    *,
+    location: LocationOfWork,
+    plan_periods: list[PlanPeriod],
+    actor: WebUser,
+) -> list[LocationPlanPeriod]:
+    """Spiegel zu ``create_actor_plan_periods`` fuer Standort↔PP-Verknuepfungen.
+
+    Idempotent (kein Duplikat-LPP), Project-Match-Validation.
+    """
+    created: list[LocationPlanPeriod] = []
+    if not plan_periods:
+        return created
+    for pp in plan_periods:
+        if pp.team.project_id != location.project_id:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="PlanPeriod gehoert nicht zum Projekt des Standorts.",
+            )
+        existing = session.exec(
+            select(LocationPlanPeriod).where(
+                LocationPlanPeriod.plan_period_id == pp.id,
+                LocationPlanPeriod.location_of_work_id == location.id,
+            )
+        ).first()
+        if existing is not None:
+            continue
+        lpp = LocationPlanPeriod(plan_period=pp, location_of_work=location)
+        session.add(lpp)
+        created.append(lpp)
+    if created:
+        session.commit()
+        for lpp in created:
+            session.refresh(lpp)
+            logger.info(
+                "teams_admin_action",
+                extra={
+                    "action": "location_plan_period_created",
+                    "actor_id": str(actor.id),
+                    "target_id": str(lpp.id),
+                    "location_of_work_id": str(location.id),
+                    "plan_period_id": str(lpp.plan_period_id),
                 },
             )
     return created

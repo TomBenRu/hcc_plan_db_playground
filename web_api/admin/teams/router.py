@@ -673,7 +673,7 @@ def add_team_location_endpoint(
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Team nicht gefunden")
     parsed_start = _parse_optional_date(start)
     try:
-        assignments.add_team_location(
+        tla = assignments.add_team_location(
             session, team=team, location_id=location_id, start=parsed_start, actor=user
         )
     except HTTPException as exc:
@@ -693,6 +693,21 @@ def add_team_location_endpoint(
                 status_code=status.HTTP_409_CONFLICT,
             )
         raise
+    # Symmetrisch zu add_team_member: offene PPs ohne LPP fuer den Standort
+    # → LPP-Anlage-Dialog statt Drawer.
+    overlap_pps = assignments.list_open_overlapping_plan_periods_for_tla(session, tla=tla)
+    if overlap_pps:
+        return templates.TemplateResponse(
+            "admin/teams/partials/apply_lpps_dialog.html",
+            {
+                "request": request,
+                "tla": tla,
+                "plan_periods": overlap_pps,
+                "drawer_target": "team-drawer",
+                "drawer_reload_url": f"/admin/teams/teams/{team_id}/drawer",
+                "return_drawer": "team",
+            },
+        )
     return _render_team_drawer(request, team, user, session=session, saved=True)
 
 
@@ -773,7 +788,7 @@ def add_location_team_endpoint(
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Team nicht gefunden")
     parsed_start = _parse_optional_date(start)
     try:
-        assignments.add_team_location(
+        tla = assignments.add_team_location(
             session, team=team, location_id=location.id, start=parsed_start, actor=user
         )
     except HTTPException as exc:
@@ -792,6 +807,20 @@ def add_location_team_endpoint(
                 status_code=status.HTTP_409_CONFLICT,
             )
         raise
+    # Symmetrisch zur Team-Seite: offene PPs → LPP-Anlage-Dialog.
+    overlap_pps = assignments.list_open_overlapping_plan_periods_for_tla(session, tla=tla)
+    if overlap_pps:
+        return templates.TemplateResponse(
+            "admin/teams/partials/apply_lpps_dialog.html",
+            {
+                "request": request,
+                "tla": tla,
+                "plan_periods": overlap_pps,
+                "drawer_target": "location-drawer",
+                "drawer_reload_url": f"/admin/teams/locations/{location_id}/drawer",
+                "return_drawer": "location",
+            },
+        )
     return _render_location_drawer(request, location, user, session=session, saved=True)
 
 
@@ -1080,6 +1109,45 @@ def apply_actor_plan_periods_endpoint(
 
     if return_drawer == "member":
         return _render_member_drawer(request, person, user, session=session, saved=True)
+    return _render_team_drawer(request, team, user, session=session, saved=True)
+
+
+@router.post("/team-locations/{assign_id}/apply-lpps", response_class=HTMLResponse)
+def apply_location_plan_periods_endpoint(
+    request: Request,
+    assign_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    plan_period_ids: list[uuid.UUID] = Form(default=[]),
+    return_drawer: str = Form(default="team"),
+):
+    """Spiegel zu ``apply_actor_plan_periods_endpoint`` fuer Standort↔Team:
+    verarbeitet die Auswahl aus ``apply_lpps_dialog.html`` und rendert den
+    Quell-Drawer (``return_drawer`` = 'team' oder 'location')."""
+    assign = session.get(TeamLocationAssign, assign_id)
+    if assign is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Zuordnung nicht gefunden")
+    location = session.get(LocationOfWork, assign.location_of_work_id)
+    team = session.get(Team, assign.team_id)
+    if location is None or team is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Standort oder Team nicht gefunden")
+
+    plan_periods: list[PlanPeriod] = []
+    if plan_period_ids:
+        plan_periods = list(
+            session.exec(
+                select(PlanPeriod).where(
+                    PlanPeriod.id.in_(plan_period_ids),  # type: ignore[union-attr]
+                    PlanPeriod.team_id == team.id,
+                )
+            ).all()
+        )
+    mutations.create_location_plan_periods(
+        session, location=location, plan_periods=plan_periods, actor=user
+    )
+
+    if return_drawer == "location":
+        return _render_location_drawer(request, location, user, session=session, saved=True)
     return _render_team_drawer(request, team, user, session=session, saved=True)
 
 

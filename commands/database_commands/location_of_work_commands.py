@@ -1,42 +1,18 @@
 """Command-Klassen für LocationOfWork (Arbeitsort).
 
-Standort-Anlage (Create) läuft seit 2026-05-16 ausschließlich über
-`/admin/teams` im Web-UI. Hier verbleiben Plan-Intelligenz-Commands plus
-Soft-Delete (Desktop-Notausgang) und Team-Zuordnungen:
+Standort-Anlage, Löschung und Team-Zuordnungen laufen seit 2026-05-16
+ausschließlich über `/admin/teams` im Web-UI. Hier verbleiben die
+Plan-Intelligenz-Commands plus `Update` für Stammdaten-Patches, die der
+Desktop weiterhin braucht (z. B. `nr_actors`).
 
 - Einfache Feldupdates: Tageszeiten, fixed_cast, SkillGroups, Notes
-- `Update` / `Delete`: Stammdaten-Update + Soft-Delete mit Undo
-- `AssignToTeam`: Weist einen Standort ab einem Datum einem Team zu. Löscht dabei
-  spätere Zuordnungen und passt ggf. das Enddatum der vorherigen Zuweisung an.
-  Verwendet intern einen eigenen `ContrExecUndoRedo`-Controller, um alle
-  Unter-Commands als eine einzige Undo-Einheit zu kapseln.
-- `LeaveTeam`: Beendet die aktive Team-Zuweisung eines Standorts ab einem Datum;
-  verwendet denselben Controller-Mechanismus.
+- `Update`: Stammdaten-Update mit Undo
 """
-import datetime
 from uuid import UUID
 
 from database import db_services, schemas
-from commands.database_commands import team_location_assignment_commands
-from commands.command_base_classes import Command, ContrExecUndoRedo
+from commands.command_base_classes import Command
 from gui.api_client import location_of_work as api_low
-
-
-class Delete(Command):
-    """Soft-Delete mit Undo via undelete."""
-
-    def __init__(self, location_id: UUID):
-        super().__init__()
-        self.location_id = location_id
-
-    def execute(self):
-        api_low.delete(self.location_id)
-
-    def _undo(self):
-        api_low.undelete(self.location_id)
-
-    def _redo(self):
-        api_low.delete(self.location_id)
 
 
 class UpdateNotes(Command):
@@ -144,99 +120,6 @@ class RemoveTimeOfDayStandard(Command):
 
     def _redo(self):
         api_low.remove_time_of_day_standard(self.location_of_work_id, self.time_of_day_id)
-
-
-class AssignToTeam(Command):
-    def __init__(self, location_id: UUID, team_id: UUID, start: datetime.date):
-        super().__init__()
-        self.location_id = location_id
-        self.team_id = team_id
-        self.location = db_services.LocationOfWork.get(location_id)
-        self.start = start
-
-        self.controller = ContrExecUndoRedo()
-
-    def execute(self):
-        if assignments := self.get_assignments_later_than_start():
-            self.delete_assignments(assignments)
-
-        if latest_assignment := self.get_latest_assignment_before_start():
-            if latest_assignment.end is None or latest_assignment.end >= self.start:
-                if latest_assignment.team.id == self.team_id:
-                    self.change_assignm_end_date(latest_assignment.id, None)
-                else:
-                    self.create_assignment()
-                    self.change_assignm_end_date(latest_assignment.id, self.start)
-            else:
-                self.create_assignment()
-        else:
-            self.create_assignment()
-
-    def _undo(self):
-        self.controller.undo_all()
-
-    def _redo(self):
-        self.execute()
-
-    def get_assignments_later_than_start(self) -> list[schemas.TeamLocationAssign]:
-        return [a for a in self.location.team_location_assigns if a.start >= self.start]
-
-    def get_latest_assignment_before_start(self) -> schemas.TeamLocationAssign | None:
-        assignments_before_start = [a for a in self.location.team_location_assigns if a.start < self.start]
-        return max(assignments_before_start, key=lambda x: x.start) if assignments_before_start else None
-
-    def change_assignm_end_date(self, assignm_id: UUID, end_date: datetime.date | None):
-        command = team_location_assignment_commands.ChangeEndDate(assignm_id, end_date)
-        self.controller.execute(command)
-
-    def create_assignment(self):
-        command = team_location_assignment_commands.Create(self.location_id, self.team_id, self.start)
-        self.controller.execute(command)
-
-    def delete_assignments(self, assignments: list[schemas.TeamLocationAssign]):
-        for assignm in assignments:
-            delete_command = team_location_assignment_commands.Delete(assignm.id)
-            self.controller.execute(delete_command)
-
-
-class LeaveTeam(Command):
-    def __init__(self, location_id: UUID, start: datetime.date):
-        super().__init__()
-        self.location_id = location_id
-        self.location = db_services.LocationOfWork.get(location_id)
-        self.start = start
-
-        self.controller = ContrExecUndoRedo()
-
-    def execute(self):
-        if not self.location.team_location_assigns:
-            raise LookupError('Location ist keinem Team zugeordnet.')
-        self.delete_assignments(self.get_assignments_later_than_start())
-        latest_assignment = self.get_latest_assignment_before_start()
-        if latest_assignment and (latest_assignment.end is None or latest_assignment.end > self.start):
-            self.change_assignm_end_date(latest_assignment.id, self.start)
-
-    def _undo(self):
-        self.controller.undo_all()
-
-    def _redo(self):
-        self.execute()
-
-    def get_assignments_later_than_start(self) -> list[schemas.TeamLocationAssign]:
-        return [a for a in self.location.team_location_assigns if a.start >= self.start]
-
-    def get_latest_assignment_before_start(self) -> schemas.TeamLocationAssign | None:
-        assignments_before_start = [a for a in self.location.team_location_assigns if a.start < self.start]
-        return max(assignments_before_start, key=lambda x: x.start) if assignments_before_start else None
-
-    def delete_assignments(self, assignments: list[schemas.TeamLocationAssign]):
-        for assignm in assignments:
-            delete_command = team_location_assignment_commands.Delete(assignm.id)
-            self.controller.execute(delete_command)
-
-    def change_assignm_end_date(self, assignm_id: UUID, end_date: datetime.date | None):
-        command = team_location_assignment_commands.ChangeEndDate(assignm_id, end_date)
-        self.controller.execute(command)
 
 
 class UpdateFixedCast(Command):

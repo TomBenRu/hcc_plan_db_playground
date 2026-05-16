@@ -1,10 +1,12 @@
 """Command-Klassen für Person (Akteur / Mitarbeiter).
 
-Standard-CRUD (Create, Update, Delete), Notes-Patch, Admin-Wechsel pro Projekt
-sowie Präferenz-/Skill-/Flag-Verwaltung pro Person. Team-Zuordnungen (Anlegen,
-Multi-Team, Beenden) laufen seit 2026-05-16 ausschließlich über `/admin/teams`
-im Web-UI — die zugehörigen Commands (`AssignToTeam`, `AddToTeam`,
-`RemoveFromTeam`) wurden entfernt.
+Standard-Update + Notes-Patch + Admin-Wechsel pro Projekt sowie
+Präferenz-/Skill-/Flag-Verwaltung pro Person. Anlage, Löschung und
+Team-Zuordnungen (Single/Multi/End) laufen seit 2026-05-16 ausschließlich
+über `/admin/teams` im Web-UI — die zugehörigen Commands (`Create`,
+`Delete`, `AssignToTeam`, `AddToTeam`, `RemoveFromTeam`) wurden entfernt.
+Die `Create`-Klasse bleibt nur erhalten, weil Integration-Smoke-Skripte
+sie nutzen — kein neuer GUI-Pfad ruft sie auf.
 """
 from uuid import UUID
 
@@ -77,21 +79,6 @@ class UpdateNotes(Command):
 
     def _redo(self):
         api_person.update_notes(self.person_id, self.notes)
-
-
-class Delete(Command):
-    def __init__(self, person_id: UUID):
-        super().__init__()
-        self.person_id = person_id
-
-    def execute(self):
-        api_person.delete(self.person_id)
-
-    def _undo(self):
-        api_person.undelete(self.person_id)
-
-    def _redo(self):
-        api_person.delete(self.person_id)
 
 
 class UpdateAdminOfProject(Command):

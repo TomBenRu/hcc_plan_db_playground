@@ -88,15 +88,13 @@
 
         <h3>Employees-Tab (Mitarbeiter-Verwaltung)</h3>
         <ul class="feature-list">
-            <li><strong>"Edit Person"</strong> - Bearbeitet ausgewählten Mitarbeiter inkl. Plan-Konfiguration (alternativ: Doppelklick). Anlage neuer Mitarbeiter im Web-UI.</li>
-            <li><strong>"Delete Person"</strong> - Löscht ausgewählten Mitarbeiter nach Bestätigung</li>
+            <li><strong>"Edit Person"</strong> - Öffnet den Mitarbeiter zur Pflege der Plan-Konfiguration (alternativ: Doppelklick). Anlage, Löschung und Stammdaten-Bearbeitung erfolgen im Web-UI unter <code>/admin/teams</code> — der Dialog enthält einen Direktlink dorthin.</li>
             <li><strong>Mitarbeiter-Liste</strong> - Tabellarische Übersicht aller Personen mit Sortier- und Suchfunktion</li>
         </ul>
 
         <h3>Facilities-Tab (Einrichtungs-Management)</h3>
         <ul class="feature-list">
-            <li><strong>"Edit Facility"</strong> - Bearbeitet ausgewählten Standort inkl. Plan-Konfiguration. Anlage neuer Standorte im Web-UI.</li>
-            <li><strong>"Delete Facility"</strong> - Löschen der ausgewählten Einrichtung mit Sicherheitsabfrage</li>
+            <li><strong>"Edit Facility"</strong> - Öffnet den Standort zur Pflege der Plan-Konfiguration. Anlage, Löschung, Stammdaten und Team-Zuordnung erfolgen im Web-UI unter <code>/admin/teams</code> — der Dialog enthält einen Direktlink dorthin.</li>
             <li><strong>Einrichtungs-Liste</strong> - Übersicht aller Standorte mit Detail-Informationen</li>
         </ul>
 
@@ -127,18 +125,11 @@
 
         <h2>Häufige Probleme & Lösungen</h2>
 
-        <h3>Mitarbeiter kann nicht gelöscht werden</h3>
+        <h3>Mitarbeiter oder Standort kann nicht gelöscht werden</h3>
         <div class="warning-box">
-            <p><strong>Problem:</strong> "Delete Person" ist deaktiviert oder zeigt Fehlermeldung.</p>
-            <p><strong>Ursache:</strong> Mitarbeiter ist in aktiven Planungen oder Terminen zugewiesen.</p>
-            <p><strong>Lösung:</strong> Prüfen Sie alle aktiven Pläne und entfernen Sie den Mitarbeiter aus allen Zuweisungen, bevor Sie ihn löschen. Nutzen Sie die Suchfunktion in Planungsmodulen.</p>
-        </div>
-
-        <h3>Doppelte Benutzernamen</h3>
-        <div class="warning-box">
-            <p><strong>Problem:</strong> System akzeptiert neuen Mitarbeiter nicht wegen Benutzername-Konflikt.</p>
-            <p><strong>Ursache:</strong> Benutzernamen müssen systemweit eindeutig sein.</p>
-            <p><strong>Lösung:</strong> Verwenden Sie Kombinationen aus Vor- und Nachname (z.B. "max.mustermann") oder fügen Sie Zahlen hinzu (z.B. "mmustermann2"). Prüfen Sie die Mitarbeiterliste vorher.</p>
+            <p><strong>Problem:</strong> Im Desktop gibt es keinen "Delete"-Button mehr.</p>
+            <p><strong>Ursache:</strong> Löschung erfolgt seit 2026-05-16 ausschließlich im Web-UI unter <code>/admin/teams</code> — mit Soft-Delete + PlanPeriod-Schutz und bedingtem Hard-Delete-Pfad.</p>
+            <p><strong>Lösung:</strong> Im Web zum entsprechenden Datensatz navigieren und im Drawer die Löschung anstoßen. Versucht der Web-Pfad blockiert, weil noch aktive Pläne existieren, vorher in den Planungs-Modulen entfernen.</p>
         </div>
 
         <h3>Einrichtung wird in Planungen nicht angezeigt</h3>

@@ -1,30 +1,31 @@
 import datetime
 import functools
 import os
+import webbrowser
 from functools import partial
 from typing import TYPE_CHECKING
 from uuid import UUID
 
 from PySide6.QtCore import Qt, QCoreApplication
 from PySide6.QtGui import QGuiApplication, QIcon
-from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QMessageBox, QLabel, QLineEdit, QComboBox, \
+from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QMessageBox, QLineEdit, QComboBox, \
     QGroupBox, QPushButton, QDialogButtonBox, QTableWidget, QTableWidgetItem, QAbstractItemView, QHBoxLayout, QSpinBox, \
     QFormLayout, QHeaderView, QMainWindow
 
 from gui.frm_skill_groups import DlgSkillGroups
+from gui.api_client.client import get_api_client
 from database import db_services, schemas
 from database.enums import Gender
 from database.special_schema_requests import get_curr_team_of_person_at_date, \
     get_curr_team_of_location_at_date, get_next_assignment_of_location
 from gui import frm_time_of_day, frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, \
-    frm_assign_to_team, frm_skills
+    frm_skills
 from commands import command_base_classes
 from commands.database_commands import person_commands, location_of_work_commands, \
-    location_plan_period_commands, event_group_commands, address_commands, actor_partner_loc_pref_commands
+    actor_partner_loc_pref_commands
 from tools.helper_functions import date_to_string, setup_form_help
 from .frm_fixed_cast import DlgFixedCastBuilderLocationOfWork
 from gui.custom_widgets.tabbars import TabBar
-from gui.custom_widgets.qcombobox_find_data import QComboBoxToFindData
 
 if TYPE_CHECKING:
     from .main_window import MainWindow
@@ -73,8 +74,6 @@ class WidgetPerson(QWidget):
 
         self.project_id = project_id
 
-        self.controller = command_base_classes.ContrExecUndoRedo()
-
         self.persons = self.get_persons()
 
         self.table_persons = TablePersons(self.persons, self.project_id)
@@ -88,12 +87,7 @@ class WidgetPerson(QWidget):
         self.bt_edit.setFixedWidth(200)
         self.bt_edit.clicked.connect(self.edit_person)
 
-        self.bt_delete = QPushButton(QIcon(os.path.join(self.path_to_icons, 'user--minus.png')), self.tr('Delete Person'))
-        self.bt_delete.setFixedWidth(200)
-        self.bt_delete.clicked.connect(self.delete_person)
-
         self.layout_buttons.addWidget(self.bt_edit)
-        self.layout_buttons.addWidget(self.bt_delete)
 
     def get_persons(self) -> list[schemas.PersonForMasterData]:
         try:
@@ -119,26 +113,6 @@ class WidgetPerson(QWidget):
         dlg = DlgPersonModify(self, self.project_id, person)
         if dlg.exec():
             self.refresh_table()
-
-    def delete_person(self):
-        row = self.table_persons.currentRow()
-        if row == -1:
-            QMessageBox.information(self, self.tr('Delete'),
-                                  self.tr('Please select an entry first.\nClick on the corresponding row.'))
-            return
-        text_person = f'{self.table_persons.item(row, 0).text()} {self.table_persons.item(row, 1).text()}'
-        res = QMessageBox.warning(self, self.tr('Delete'),
-                                self.tr('Do you really want to permanently delete the data of...\n{}?').format(text_person),
-                                QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)
-        if res == QMessageBox.StandardButton.Yes:
-            person_id = self.table_persons.item(row, 0).data(Qt.ItemDataRole.UserRole)
-            try:
-                self.controller.execute(person_commands.Delete(person_id))
-                QMessageBox.information(self, self.tr('Delete'),
-                                        self.tr('Deleted:\n{}').format(text_person))
-            except Exception as e:
-                QMessageBox.critical(self, self.tr('Error'), self.tr('Error: {}').format(e))
-        self.refresh_table()
 
 
 class TablePersons(QTableWidget):
@@ -257,6 +231,12 @@ class DlgPersonData(QDialog):
         self.le_descriptive_name = QLineEdit()
         self.le_descriptive_name.setPlaceholderText(self.tr('Optional, e.g. "John Doe"'))
 
+        # Stammdaten werden im Web unter /admin/teams gepflegt — Anzeige read-only.
+        for w in (self.le_f_name, self.le_l_name, self.le_email, self.le_phone_nr,
+                  self.le_street, self.le_postal_code, self.le_city, self.le_descriptive_name):
+            w.setReadOnly(True)
+        self.cb_gender.setEnabled(False)
+
         self.group_person_data_layout.addRow(self.tr('First Name'), self.le_f_name)
         self.group_person_data_layout.addRow(self.tr('Last Name'), self.le_l_name)
         self.group_person_data_layout.addRow(self.tr('Email'), self.le_email)
@@ -306,41 +286,22 @@ class DlgPersonModify(DlgPersonData):
         self.group_specific_data_layout.addRow(self.tr('Employee Preferences'), self.bt_actor_partner_loc_prefs)
         self.group_specific_data_layout.addRow(self.tr('Skills'), self.bt_skills)
 
+        self.bt_edit_in_web = QPushButton(self.tr('Stammdaten im Web bearbeiten…'),
+                                          clicked=self._open_in_web)
+        self.group_person_data_layout.addRow('', self.bt_edit_in_web)
+
         self.layout.addWidget(self.button_box)
         self.button_box.rejected.connect(self.reject)
         self.autofill()
 
-    def accept(self):
-        street = self.le_street.text().strip()
-        postal_code = self.le_postal_code.text().strip()
-        city = self.le_city.text().strip()
-        descriptive_name = self.le_descriptive_name.text().strip()
-        person_address_is_set = street or postal_code or city or descriptive_name
-        self.person.f_name = self.le_f_name.text()
-        self.person.l_name = self.le_l_name.text()
-        self.person.email = self.le_email.text()
-        self.person.gender = Gender[self.cb_gender.currentText()]
-        self.person.phone_nr = self.le_phone_nr.text()
-        self.person.requested_assignments = self.spin_num_requested_assignments.value()
-        if person_address_is_set:
-            if self.person.address is None:
-                new_address = schemas.AddressCreate(project_id=self.project_id,
-                                                    street=street,
-                                                    postal_code=postal_code,
-                                                    city=city,
-                                                    name=descriptive_name)
-                create_address_command = address_commands.Create(new_address)
-                self.controller.execute(create_address_command)
-                created_address = create_address_command.created_address
-                self.person.address = created_address
-            else:
-                self.person.address.street = street
-                self.person.address.postal_code = postal_code
-                self.person.address.city = city
-                self.person.address.name = descriptive_name
-        else:
-            self.person.address = None
+    def _open_in_web(self):
+        webbrowser.open(f"{get_api_client().base_url}/admin/teams")
 
+    def accept(self):
+        # Stammdaten (Name, Email, Gender, Phone, Adresse) sind seit Schicht-B
+        # read-only — Bearbeitung erfolgt im Web /admin/teams. Hier nur noch
+        # die Plan-Konfig-Felder schreiben.
+        self.person.requested_assignments = self.spin_num_requested_assignments.value()
         update_person_command = person_commands.Update(self.person)
         self.controller.execute(update_person_command)
         updated_person = update_person_command.updated_person
@@ -458,7 +419,6 @@ class WidgetLocationsOfWork(QWidget):
         self.layout.addLayout(self.layout_buttons)
 
         self.project_id = project_id
-        self.controller = command_base_classes.ContrExecUndoRedo()
 
         self.locations = self.get_locations()
 
@@ -471,12 +431,8 @@ class WidgetLocationsOfWork(QWidget):
         self.bt_edit = QPushButton(QIcon(os.path.join(self.path_to_icons, 'store--pencil.png')), ' ' + self.tr('Edit Facility'))
         self.bt_edit.setFixedWidth(200)
         self.bt_edit.clicked.connect(self.edit_location)
-        self.bt_delete = QPushButton(QIcon(os.path.join(self.path_to_icons, 'store--minus.png')), ' ' + self.tr('Delete Facility'))
-        self.bt_delete.setFixedWidth(200)
-        self.bt_delete.clicked.connect(self.delete_location)
 
         self.layout_buttons.addWidget(self.bt_edit)
-        self.layout_buttons.addWidget(self.bt_delete)
 
     def get_locations(self) -> list[schemas.LocationOfWorkShow]:
         return db_services.LocationOfWork.get_all_from__project(self.project_id)
@@ -500,26 +456,6 @@ class WidgetLocationsOfWork(QWidget):
         dlg = DlgLocationModify(self, self.project_id, location_id)
         if dlg.exec():
             self.refresh_table()
-
-    def delete_location(self):
-        row = self.table_locations.currentRow()
-        if row == -1:
-            QMessageBox.information(self, self.tr('Delete'),
-                                  self.tr('You must first select an entry.\n'
-                                        'Click on the corresponding row.'))
-            return
-        text_location = f'{self.table_locations.item(row, 0).text()} {self.table_locations.item(row, 1).text()}'
-        res = QMessageBox.warning(self, self.tr('Delete'),
-                                self.tr('Do you really want to permanently delete the data of...\n{}?').format(text_location),
-                                QMessageBox.StandardButton.Yes, QMessageBox.StandardButton.No)
-        if res == QMessageBox.StandardButton.Yes:
-            # UUID liegt als UserRole-Data auf Spalte 0 (analog Person-Delete),
-            # NICHT als Text in der letzten Spalte — dort steht nr_actors.
-            location_id = self.table_locations.item(row, 0).data(Qt.ItemDataRole.UserRole)
-            self.controller.execute(location_of_work_commands.Delete(location_id))
-            QMessageBox.information(self, self.tr('Delete'),
-                                  self.tr('Deleted:\n{}').format(text_location))
-        self.refresh_table()
 
 
 class TableLocationsOfWork(QTableWidget):
@@ -607,6 +543,11 @@ class DlgLocationData(QDialog):
         self.le_descriptive_name = QLineEdit()
         self.le_descriptive_name.setPlaceholderText(self.tr('Optional, e.g. "Clinic XYZ"'))
 
+        # Stammdaten werden im Web unter /admin/teams gepflegt — Anzeige read-only.
+        for w in (self.le_name, self.le_street, self.le_postal_code,
+                  self.le_city, self.le_descriptive_name):
+            w.setReadOnly(True)
+
         self.group_location_data_layout.addRow(self.tr('Name'), self.le_name)
         self.group_address_data_layout.addRow(self.tr('Street'), self.le_street)
         self.group_address_data_layout.addRow(self.tr('ZIP Code'), self.le_postal_code)
@@ -641,23 +582,22 @@ class DlgLocationModify(DlgLocationData):
         self.le_id.setReadOnly(True)
         self.spin_nr_actors = QSpinBox()
         self.spin_nr_actors.setMinimum(1)
-        self.layout_teams = QVBoxLayout()
-        self.cb_teams = QComboBoxToFindData()
-        self.cb_teams.currentIndexChanged.connect(self.change_team)
-        self.lb_teams_info = QLabel()
-        self.layout_teams.addWidget(self.cb_teams)
-        self.layout_teams.addWidget(self.lb_teams_info)
         self.bt_time_of_days = QPushButton(self.tr('Edit...'), clicked=self.edit_time_of_days)
         self.bt_fixed_cast = QPushButton(self.tr('Edit...'), clicked=self.edit_fixed_cast)
         self.bt_skill_groups = QPushButton(self.tr('Edit...'), clicked=self.edit_skill_groups)
+        self.bt_edit_in_web = QPushButton(self.tr('Stammdaten im Web bearbeiten…'),
+                                          clicked=self._open_in_web)
 
         self.group_location_data_layout.addRow(self.tr('ID'), self.le_id)
+        self.group_location_data_layout.addRow('', self.bt_edit_in_web)
         self.layout_group_specific_data.addRow(self.tr('Staff Count'), self.spin_nr_actors)
         self.layout_group_specific_data.addRow(self.tr('Times of Day'), self.bt_time_of_days)
-        self.layout_group_specific_data.addRow(self.tr('Team'), self.layout_teams)
         self.layout_group_specific_data.addRow(self.tr('Desired Staff'), self.bt_fixed_cast)
         self.layout_group_specific_data.addRow(self.tr('Skill Groups'), self.bt_skill_groups)
         self.layout.addWidget(self.button_box)
+
+    def _open_in_web(self):
+        webbrowser.open(f"{get_api_client().base_url}/admin/teams?tab=locations")
 
     def _autofill_widgets(self):
         self.le_name.setText(self.location_of_work.name)
@@ -668,32 +608,11 @@ class DlgLocationModify(DlgLocationData):
             self.le_city.setText(self.location_of_work.address.city)
             self.le_descriptive_name.setText(self.location_of_work.address.name or '')
         self.spin_nr_actors.setValue(self.location_of_work.nr_actors)
-        self.fill_teams()
 
     def save_location(self):
-        street = self.le_street.text().strip()
-        postal_code = self.le_postal_code.text().strip()
-        city = self.le_city.text().strip()
-        descriptive_name = self.le_descriptive_name.text().strip()
-
-        address_is_set = street or postal_code or city or descriptive_name
-
-        self.location_of_work.name = self.le_name.text().strip()
-        if address_is_set:
-            if self.location_of_work.address is None:
-                address = schemas.AddressCreate(project_id=self.project_id, street=street, postal_code=postal_code, city=city, name=descriptive_name)
-                create_address_command = address_commands.Create(address)
-                self.controller.execute(create_address_command)
-                created_address = create_address_command.created_address
-                self.location_of_work.address = created_address
-            else:
-                self.location_of_work.address.street = street
-                self.location_of_work.address.postal_code = postal_code
-                self.location_of_work.address.city = city
-                self.location_of_work.address.name = descriptive_name
-
-        else:
-            self.location_of_work.address = None
+        # Stammdaten (Name, Adresse) und Team-Mitgliedschaft sind seit Schicht-B
+        # read-only — Bearbeitung erfolgt im Web /admin/teams. Hier nur noch die
+        # Plan-Konfig-Felder schreiben.
         self.location_of_work.nr_actors = self.spin_nr_actors.value()
         update_location_command = location_of_work_commands.Update(self.location_of_work)
         self.controller.execute(update_location_command)
@@ -716,63 +635,11 @@ class DlgLocationModify(DlgLocationData):
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             self.location_of_work = db_services.LocationOfWork.get(self.location_of_work.id)
 
-    def fill_teams(self):
-        self.cb_teams.blockSignals(True)
-        self.cb_teams.clear()
-        teams: list[schemas.Team] = sorted(self.get_teams(), key=lambda t: t.name)
-        self.cb_teams.addItem(QIcon(os.path.join(self.path_to_icons, 'users.png')), self.tr('No Team'), None)
-        for team in teams:
-            self.cb_teams.addItem(QIcon(os.path.join(self.path_to_icons, 'users.png')), team.name, team.id)
-        self.set_curr_team()
-        self.lb_teams_info.setText(self.get_team_info_text())
-        self.cb_teams.blockSignals(False)
-
-    def set_curr_team(self):
-        curr_team = get_curr_team_of_location_at_date(location=self.location_of_work)
-        curr_team_id = curr_team.id if curr_team else None
-        self.cb_teams.setCurrentIndex(self.cb_teams.findData(curr_team_id))
-
-    def get_team_info_text(self) -> str:
-        if not (next_assignment__date := get_next_assignment_of_location(self.location_of_work, datetime.date.today())):
-            return self.tr('No subsequent team assignment')
-        next_assignment, date = next_assignment__date
-        return self.tr('{team} from {date}').format(
-            team=next_assignment.team.name if next_assignment else self.tr('No Team'),
-            date=date_to_string(date))
-
     def edit_fixed_cast(self):
         dlg = DlgFixedCastBuilderLocationOfWork(self, self.location_of_work).build()
         if dlg.exec():
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             self.location_of_work = db_services.LocationOfWork.get(self.location_of_work.id)
-
-    def get_teams(self):
-        return db_services.Team.get_all_from__project(self.project_id)
-
-    def change_team(self):
-        curr_team_assign = db_services.TeamLocationAssign.get_at__date(self.location_id, datetime.date.today())
-
-        curr_team_id = curr_team_assign.team.id if curr_team_assign else None
-        new_team_id = self.cb_teams.currentData()
-        dlg = frm_assign_to_team.DlgAssignDate(self, curr_team_id, new_team_id)
-        if dlg.exec():
-            start_date = dlg.start_date_new_team
-            if new_team_id:
-                if not new_team_id and not curr_team_id:
-                    return
-                if (new_team_id == curr_team_id) and (start_date < curr_team_assign.end):
-                    return
-                command = location_of_work_commands.AssignToTeam(self.location_of_work.id, new_team_id, start_date)
-                self.create_new_location_plan_periods(start_date, new_team_id, self.location_id)
-            else:
-                command = location_of_work_commands.LeaveTeam(self.location_of_work.id, start_date)
-            self.controller.execute(command)
-            self.location_of_work = self.get_location_of_work()
-            self.fill_teams()
-        else:
-            self.cb_teams.blockSignals(True)
-            self.cb_teams.setCurrentIndex(self.cb_teams.findData(curr_team_id))
-            self.cb_teams.blockSignals(False)
 
     def edit_skill_groups(self):
         dlg = DlgSkillGroups(self, self.location_of_work)
@@ -781,10 +648,3 @@ class DlgLocationModify(DlgLocationData):
             self.location_of_work = self.get_location_of_work()
         else:
             dlg.controller.undo_all()
-
-    def create_new_location_plan_periods(self, start_date: datetime.date, team_id: UUID, location_id: UUID):
-        command = location_plan_period_commands.CreateLocationPlanPeriodsFromDate(start_date, location_id, team_id)
-        self.controller.execute(command)
-        for lpp in command.location_plan_periods:
-            command = event_group_commands.Create(loc_act_plan_period_id=lpp.id)
-            self.controller.execute(command)

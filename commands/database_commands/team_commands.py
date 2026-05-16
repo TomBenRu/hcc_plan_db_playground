@@ -1,9 +1,11 @@
 """Command-Klassen für Team.
 
-Enthält Commands für teamweite Konfigurationen:
-- `Create` / `Update` / `Delete`: Team-CRUD. Delete ist soft (prep_delete),
-  Undo via undelete.
+Enthält Commands für teamweite Konfigurationen, die im Desktop verbleiben
+(Plan-Intelligenz). Team-CRUD selbst (Create/Update/Delete) läuft seit
+2026-05-16 ausschließlich über `/admin/teams` im Web-UI.
+
 - `PutInCombLocPossible` / `RemoveCombLocPossible`: Standortkombinationen.
+- `ReplaceCombLocPossibles`: Bulk-Replace aller CLPs eines Teams.
 - `NewExcelExportSettings`: Erstellt neue Einstellungen und verknüpft sie;
   Undo schaltet auf die vorherigen Einstellungen zurück.
 - `PutInExcelExportSettings`: Verknüpft bestehende Einstellungen.
@@ -14,78 +16,6 @@ from uuid import UUID
 from database import db_services, schemas
 from commands.command_base_classes import Command
 from gui.api_client import team as api_team, excel_export_settings as api_excel_export_settings
-
-
-class Create(Command):
-    """Team-Erstellung. Undo soft-loescht (inkl. Cascade), Redo undelete restored
-    Team plus die im Undo-Schritt mit-cascade-deleteten PlanPeriods."""
-
-    def __init__(self, name: str, project_id: UUID, dispatcher_id: UUID | None = None):
-        super().__init__()
-        self.name = name
-        self.project_id = project_id
-        self.dispatcher_id = dispatcher_id
-        self.created_team: schemas.TeamShow | None = None
-        self._cascaded_pp_ids: list[UUID] = []
-
-    def execute(self):
-        self.created_team = api_team.create(self.name, self.project_id, self.dispatcher_id)
-
-    def _undo(self):
-        if self.created_team:
-            result = api_team.delete(self.created_team.id)
-            self._cascaded_pp_ids = result.cascaded_plan_period_ids
-
-    def _redo(self):
-        if self.created_team:
-            api_team.undelete(self.created_team.id,
-                              cascaded_plan_period_ids=self._cascaded_pp_ids)
-
-
-class Update(Command):
-    """Aktualisiert Name + Dispatcher (schemas.Team)."""
-
-    def __init__(self, team: schemas.Team):
-        super().__init__()
-        self.new_data = team.model_copy()
-        old = db_services.Team.get(team.id)
-        self.old_data = schemas.Team.model_validate(old.model_dump())
-
-    def execute(self):
-        api_team.update(self.new_data)
-
-    def _undo(self):
-        api_team.update(self.old_data)
-
-    def _redo(self):
-        api_team.update(self.new_data)
-
-
-class Delete(Command):
-    """Soft-Delete mit Undo via undelete.
-
-    Bei jedem `execute`/`_redo` wird die aktuelle Cascade-PP-Liste gespeichert,
-    damit der Undo-Pfad dieselben PlanPeriods restored, die der Delete
-    soft-gelöscht hat — auch wenn sich die PP-Lage zwischen Execute und Undo
-    ändert (z. B. weil zwischendrin eine andere PP soft-gelöscht wurde).
-    """
-
-    def __init__(self, team_id: UUID):
-        super().__init__()
-        self.team_id = team_id
-        self._cascaded_pp_ids: list[UUID] = []
-
-    def execute(self):
-        result = api_team.delete(self.team_id)
-        self._cascaded_pp_ids = result.cascaded_plan_period_ids
-
-    def _undo(self):
-        api_team.undelete(self.team_id,
-                          cascaded_plan_period_ids=self._cascaded_pp_ids)
-
-    def _redo(self):
-        result = api_team.delete(self.team_id)
-        self._cascaded_pp_ids = result.cascaded_plan_period_ids
 
 
 class PutInCombLocPossible(Command):

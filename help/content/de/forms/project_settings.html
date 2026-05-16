@@ -107,11 +107,8 @@
 
         <p><strong>Szenario 1 - Team-Restructuring:</strong></p>
         <ol>
-            <li>Teams-Bereich öffnen → "Neu/Bearbeiten/Löschen"</li>
-            <li>Bestehende Team-Struktur analysieren</li>
-            <li>Neue Teams anlegen oder bestehende umbenennen</li>
-            <li>Personen zwischen Teams verschieben</li>
-            <li>Änderungen bestätigen und Team-Listen aktualisieren</li>
+            <li>Team-Anlage, Umbenennen und Personen-Zuordnung erfolgen ausschließlich im Web-UI unter <code>/admin/teams</code></li>
+            <li>Hier in den Projekt-Einstellungen verbleibt nur die Plan-Intelligenz pro Team (Excel-Settings, Notes, Facility Combinations) über das Menü <em>Teams → Edit Teams</em></li>
         </ol>
 
         <p><strong>Szenario 2 - Admin-Wechsel:</strong></p>
@@ -168,7 +165,7 @@
                 <li><strong>Admin wechseln:</strong> ComboBox → Person → Speichern (3 Klicks)</li>
                 <li><strong>Projektname ändern:</strong> LineEdit → Text → Speichern (direkt)</li>
                 <li><strong>Excel-Farben anpassen:</strong> Farbvorschau → Bearbeiten → Ändern</li>
-                <li><strong>Neue Teams:</strong> Teams-Button → Neues Team → Konfigurieren</li>
+                <li><strong>Neue Teams:</strong> im Web-UI unter <code>/admin/teams</code> anlegen</li>
             </ul>
         </div>
 
@@ -177,12 +174,12 @@
         <h3>Sub-Dialog Integration</h3>
         <p>Die Projekt-Einstellungen fungieren als Portal zu spezialisierten Dialogen:</p>
         <ul>
-            <li><strong>FrmTeam</strong> - Vollständige Team-Verwaltung mit Personenzuordnung</li>
             <li><strong>DlgEditSkills</strong> - Umfassende Skills-Definition und -kategorisierung</li>
             <li><strong>DlgTimeOfDayEditList</strong> - Hierarchisches Tageszeiten-Management</li>
             <li><strong>DlgCastRules</strong> - Komplexe Besetzungsregeln und -logik</li>
             <li><strong>DlgExcelExportSettings</strong> - Detaillierte Export-Konfiguration</li>
         </ul>
+        <p>Team-Stammdaten (Anlegen, Umbenennen, Dispatcher-Zuweisung, Löschen) sind in das Web-UI <code>/admin/teams</code> ausgelagert.</p>
 
         <h3>Datenbank-Integration</h3>
         <ul>

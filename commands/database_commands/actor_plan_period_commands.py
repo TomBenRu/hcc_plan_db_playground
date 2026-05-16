@@ -4,7 +4,9 @@ Verwaltet sämtliche Änderungen an der Verknüpfung zwischen Person und PlanPer
 darunter Tageszeiten, Tageszeit-Standards, Standortpräferenzen, Partner-Präferenzen,
 Standortkombinationen, gewünschte Einsätze und Notizen.
 
-Redo bei `Create` übergibt die original ID, um referenzielle Integrität zu wahren.
+Hinweis: Die `Create`-Klasse wurde 2026-05-16 entfernt — APP-Anlage erfolgt
+seit der Person↔Team-Web-Migration über `web_api/admin/teams/mutations.
+create_actor_plan_periods` + `apply_actor_plan_periods_endpoint`.
 """
 from uuid import UUID
 
@@ -50,23 +52,6 @@ class ReplaceCombLocPossibles(Command):
         api_app.restore_comb_loc_possibles(
             self.actor_plan_period_id, self._result['new_comb_ids']
         )
-
-
-class Create(Command):
-    def __init__(self, plan_period_id: UUID, person_id: UUID):
-        super().__init__()
-        self.plan_period_id = plan_period_id
-        self.person_id = person_id
-        self.created_actor_plan_period: schemas.ActorPlanPeriodShow | None = None
-
-    def execute(self):
-        self.created_actor_plan_period = api_app.create(self.plan_period_id, self.person_id)
-
-    def _undo(self):
-        api_app.delete(self.created_actor_plan_period.id)
-
-    def _redo(self):
-        api_app.create(self.plan_period_id, self.person_id, self.created_actor_plan_period.id)
 
 
 class Update(Command):

@@ -1,71 +1,23 @@
 """Command-Klassen für LocationPlanPeriod (Standort-Planperiode).
 
-Enthält neben einfachen Commands (Tageszeiten, fixed_cast, Akteursanzahl,
-Standortkombinationen, Präferenzen) auch:
-
-- `CreateLocationPlanPeriodsFromDate`: Erstellt für alle PlanPeriods eines Teams,
-  deren Ende nach `start_date` liegt, automatisch eine LocationPlanPeriod für den
-  gegebenen Standort — sofern noch keine existiert. Wird beim Team-Beitritt eines
-  Standorts aufgerufen.
+Enthält einfache Commands (Tageszeiten, fixed_cast, Akteursanzahl,
+Standortkombinationen, Präferenzen) sowie Notes-Patches.
 
 Hinweis: `PutInCombLocPossible` / `Remove...` und die Präferenz-Commands in
 diesem Modul delegieren intern an `ActorPlanPeriod` (nicht an LocationPlanPeriod),
 da Präferenzen akteursbezogen gespeichert werden.
+
+Hinweis: Die Klassen `Create` und `CreateLocationPlanPeriodsFromDate` wurden
+2026-05-16 entfernt — LPP-Anlage erfolgt seit der Location↔Team-Web-Migration
+über `web_api/admin/teams/mutations.create_location_plan_periods` +
+`apply_location_plan_periods_endpoint`.
 """
-import datetime
 from uuid import UUID
 
 from database import db_services, schemas
 from commands.command_base_classes import Command
 from gui.api_client import actor_plan_period as api_app
 from gui.api_client import location_plan_period as api_lpp
-
-
-class Create(Command):
-    def __init__(self, plan_period_id: UUID, location_of_work_id: UUID):
-        super().__init__()
-        self.plan_period_id = plan_period_id
-        self.location_of_work_id = location_of_work_id
-        self.created_location_plan_period: schemas.LocationPlanPeriodShow | None = None
-
-    def execute(self):
-        self.created_location_plan_period = api_lpp.create(
-            self.plan_period_id, self.location_of_work_id)
-
-    def _undo(self):
-        api_lpp.delete(self.created_location_plan_period.id)
-
-    def _redo(self):
-        api_lpp.create(self.plan_period_id, self.location_of_work_id,
-                        self.created_location_plan_period.id)
-
-
-class CreateLocationPlanPeriodsFromDate(Command):
-    def __init__(self, start_date: datetime.date, location_id: UUID, team_id: UUID):
-        super().__init__()
-        self.start_date = start_date
-        self.location_id = location_id
-        self.team_id = team_id
-        self.location_plan_periods: list[schemas.LocationPlanPeriodShow] = []
-        self.master_event_groups = []
-
-    def get_plan_periods(self) -> list[schemas.PlanPeriodShow]:
-        return [pp for pp in db_services.PlanPeriod.get_all_from__team(self.team_id)
-                if pp.end > self.start_date]
-
-    def execute(self):
-        for pp in self.get_plan_periods():
-            if self.location_id in {lpp.location_of_work.id for lpp in pp.location_plan_periods}:
-                continue
-            self.location_plan_periods.append(api_lpp.create(pp.id, self.location_id))
-
-    def _undo(self):
-        for lpp in self.location_plan_periods:
-            api_lpp.delete(lpp.id)
-
-    def _redo(self):
-        for lpp in self.location_plan_periods:
-            api_lpp.create(lpp.plan_period.id, lpp.location_of_work.id, lpp.id)
 
 
 class PutInTimeOfDay(Command):

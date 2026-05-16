@@ -115,7 +115,7 @@ class DlgActorLocPref(QDialog):
         else:  # betrifft Person und AvailDay
             self.locations_of_work = get_locations_of_team_at_date(self.curr_team.id, self.de_date.date().toPython())
 
-        self.locations_of_work.sort(key=lambda x: x.name + x.address.city)
+        self.locations_of_work.sort(key=lambda x: x.name + (x.address.city if x.address else ''))
         self.locations_of_team__defaults = {loc.id: 2 for loc in self.locations_of_work}
         self.loc_prefs = [p for p in self.curr_model.actor_location_prefs_defaults
                           if (not p.prep_delete) and (p.location_of_work.id in self.locations_of_team__defaults)]
@@ -165,7 +165,7 @@ class DlgActorLocPref(QDialog):
     def setup_sliders(self):
         self.delete_sliders_labels()
         for row, loc in enumerate(self.locations_of_work):
-            lb_loc = QLabel(f'{loc.name} ({loc.address.city})')
+            lb_loc = QLabel(f'{loc.name} ({loc.address.city if loc.address else "—"})')
             lb_val = QLabel()
             slider = SliderWithPressEvent(Qt.Orientation.Horizontal)
             slider.setMinimum(0)

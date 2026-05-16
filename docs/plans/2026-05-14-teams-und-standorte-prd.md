@@ -1,12 +1,18 @@
 # PRD: Teams & Zuordnungen (Admin-Verwaltung)
 
-**Datum:** 2026-05-14 (umfassender Sync 2026-05-15)
-**Status:** Phase 1.0–1.6 umgesetzt; offen nur noch Mobile-Polish + manuelle End-to-End-Klick-Probe. Plan-Konfig-Pfad (urspruengliche Phase 1.2) am 2026-05-15 wieder zurueckgebaut.
+**Datum:** 2026-05-14 (umfassender Sync 2026-05-15, Zuordnungs-UX-Polish 2026-05-16)
+**Status:** Phase 1.0–1.6 + Phase 1.7 (Zuordnungs-UX-Polish) umgesetzt; offen nur noch Mobile-Polish + manuelle End-to-End-Klick-Probe. Plan-Konfig-Pfad (urspruengliche Phase 1.2) am 2026-05-15 wieder zurueckgebaut.
 **Bezug:** `database/models.py` (`Team`, `LocationOfWork`, `Address`, `Person`, `TeamActorAssign`, `TeamLocationAssign`, `PlanPeriod`, `ActorPlanPeriod`), `web_api/admin/teams/`, `web_api/dashboard/router.py` (Tile `Teams & Zuordnungen`)
 
 > **Architektur-Leitentscheidung (Stand 2026-05-15):** Die Web-UI uebernimmt **organisatorische** Stellschrauben (Team-/Standort-/Personen-Stammdaten, Adressen, Personen-/Standort-Zuordnungen, Dispatcher-Wechsel). **Plan-Intelligenz** (Besetzungsstaerke, TimesOfDay, FixedCast, SkillGroups auf allen Ebenen) bleibt vollstaendig im Desktop. Diese Trennlinie wurde am 2026-05-15 nach kurzer Plan-Konfig-Implementation auf Location-Ebene bewusst gezogen: konsistente Verantwortlichkeit ueber alle vier Konfig-Ebenen statt punktueller Teil-Migration. Eine eventuelle spaetere Voll-Portierung des Desktop-Editor-Pfads bleibt eigenstaendig zu planen.
 
 > **Hinweis zu diesem Dokument (Stand 2026-05-15):** Die urspruengliche Fassung dieses PRDs sah zwei Tabs (Teams / Standorte) und einen Dispatcher-Zugang zur Plan-Konfig vor. Beides hat sich im Lauf der Umsetzung geaendert: heute drei Tabs (Teams / Standorte / Mitglieder), strikt admin-only, mit einem entschlackten Team-Drawer (Counts + Links statt eingebetteter Listen). Die alten Sektionen unten wurden in-place aktualisiert, der `~~strikethrough~~`-Text markiert Pfade, die wieder zurueckgebaut wurden.
+
+> **Nachtrag 2026-05-16 — Zuordnungs-Geometrie & UX-Polish:**
+> - **Standort↔Team ist nun 1:N statt M:N** — ein Standort kann zu jedem Zeitpunkt hoechstens einem Team zugeordnet sein. Doppelbelegung wird per Backend-Constraint geblockt; der Conflict-Dialog bietet eine atomare Replace-Aktion an (Altzuordnung mit `end=today` schliessen, Neuzuordnung mit `start=today+1` anlegen). Begruendung: ueberlappende Standort-Team-Zuordnungen waren technisch moeglich, aber praktisch sinnlos und fuehrten zu Mehrdeutigkeiten bei der Plan-Erstellung.
+> - **Person↔Team bleibt N:N** — Doppel-Mitgliedschaft ist erlaubt, der Admin wird aber bei Mehrfach-Zuordnung mit einem Dialog gewarnt (drei Optionen: „Trotzdem zuordnen" / „Bestehende beenden & neu zuordnen" / „Abbrechen").
+> - **Polish im Datum-Handling:** HTML5 `min="{{ today_iso }}"` auf allen Date-Inputs (Vergangenheit clientseitig gesperrt); `required` auf End-Datum bei aktiven Mitgliedschaften (laesst „Beenden" ohne Datum nicht mehr durch); Helper-Texte oberhalb jeder Search-Result-Liste und unterhalb jeder Active-List, die das Default-Verhalten erklaeren („leer = ab heute" / „Beenden mit leerem Datum hebt geplantes Ende auf").
+> - **422/409-Responses werden jetzt als HTML-Drawer-Re-Render statt JSON ausgeliefert.** Dazu war ein zentraler Fix in `web_api/templates/base.html` noetig: HTMX 2.x verwirft 4xx standardmaessig still — `<meta name="htmx-config" content='…responseHandling…[{"code":"409","swap":true},{"code":"422","swap":true}…]'>` haengt 409+422 wieder an den normalen Swap-Pfad an. Ohne diesen Fix waren auch die schon bestehenden 409-Conflict-Dialoge im Browser unsichtbar.
 
 ---
 
@@ -98,6 +104,13 @@ Eine neue Web-UI unter `/admin/teams` mit **drei top-level Tabs**:
 10. **Phase 1.5b** – Soft-/Hard-Delete für Personen (analog) ✓ (`204b9dd`)
 11. **Phase 1.6** – Person-Anlage im Web + Name-Edit (`dee745e`); Team-Chips in Listen + Batch-Query (`14c8d63`); Verlauf-Reiter in allen Drawern ✓ (`f8cf6fd`)
 12. **Polish-Fixes** ✓ — diverse: Spalten-Alignment (`204b9dd`, `b92f5ce`, `af6bf7b`), Dashboard-Tile-Sync (`b92f5ce`), Tojson-in-HTML-Attribut-Falle (`10f74f3`), HTMX-DELETE-Body→Query (`00b6832`), Status-Count-Drift (`ef4bb81`)
+13. **Phase 1.7 — Zuordnungs-UX-Polish** (2026-05-16) ✓
+    - HTML5 `min="{{ today_iso }}"` auf allen Date-Inputs in Drawern und Search-Result-Forms; `required` auf End-Datum bei aktiven Mitgliedschaften
+    - Helper-Texte oberhalb Search-Result-Listen (`Datum optional — leer = ... beginnt ab heute.`) und unterhalb Active-Listen (`„Beenden": Datum = letzter Tag. „Ändern" mit leerem Datum hebt geplantes Ende wieder auf.`)
+    - 422-Errors als Drawer-Re-Render mit Error-Banner statt nacktem JSON (alle 8 Add/Patch-Endpoints im Bereich)
+    - **Standort↔Team 1:N-Constraint** mit Replace-Dialog (`LocationOccupiedConflict` + `POST /admin/teams/locations/{id}/replace-team`)
+    - **Person↔Team N:N-Warning** mit 3-Optionen-Dialog (`PersonInOtherTeamWarning` + `POST /admin/teams/persons/{id}/replace-team`)
+    - Globaler HTMX-Config-Fix: `<meta name="htmx-config">` in `base.html` schaltet 409+422 vom Default-Error-Pfad auf Swap (sonst waren Conflict-Dialoge im Browser unsichtbar — siehe Memory `feedback_htmx_4xx_response_handling`)
 
 **Offen:** Mobile-Polish (<1024px), manuelle End-to-End-Klick-Probe (Liste in Memory `todo_admin_teams_folge_ui_may2026`).
 
@@ -138,9 +151,13 @@ Als Admin möchte ich Personen einem Team zuordnen, optional mit zukünftigem St
 **Akzeptanzkriterien:**
 - Personen-Selector zeigt alle Personen des Projekts (inkl. Hinweis auf aktuell aktive Team-Mitgliedschaften — „Anna ist aktuell in: Team Hamburg").
 - Mehrfach-Mitgliedschaft ist erlaubt: Person darf gleichzeitig in mehreren Teams aktiv sein.
-- Default: `start = heute`, `end = NULL` (offene Mitgliedschaft).
+- Default: `start = heute`, `end = NULL` (offene Mitgliedschaft). Datum-Input mit `min="{{ today_iso }}"` (Vergangenheit clientseitig gesperrt) + Helper-Text „Datum optional — leer = Mitgliedschaft beginnt ab heute."
 - Optional: Future-Dating — Admin kann `start` auf ein zukünftiges Datum setzen.
-- Konfliktprüfung: Wenn ein bestehender Eintrag (gleiche Person × gleiches Team) noch offen ist, wird der neue Eintrag abgelehnt mit Vorschlag „Bestehende Mitgliedschaft beenden?".
+- Konflikt-Prüfung **gleiches Team** (hard block): Wenn ein bestehender Eintrag (gleiche Person × gleiches Team) noch offen ist, wird der neue Eintrag mit 409 abgelehnt; der Conflict-Dialog (kind `member` / `person`) zeigt Start-/Endzeitraum der Altmitgliedschaft und einen Schliessen-Link, der den Drawer neu lädt.
+- Konflikt-Prüfung **anderes Team** (Warning, kein Block): Wenn die Person eine offene Mitgliedschaft in einem ANDEREN Team hat, antwortet der Server mit 409 + `PersonInOtherTeamWarning`. Der Conflict-Dialog (kind `person_in_other_team`) zeigt das blockierende Team mit Startdatum und bietet drei Aktionen:
+    1. **„Trotzdem zuordnen (beide Teams)"** — schickt den ursprünglichen POST erneut mit `force_other_team=1`; Person ist danach in beiden Teams aktiv.
+    2. **„Bestehende beenden & neu zuordnen"** — POST an `/admin/teams/persons/{person_id}/replace-team` mit `new_team_id` und `new_start`. Server schliesst die blockierende TAA atomar mit `end = max(new_start - 1, today)` und legt die neue TAA an. Bei `new_start = today` ergibt sich eine 1-Tages-Überlappung am Stichtag (sauber, weil `set_team_member_end` `end >= today` verlangt).
+    3. **„Abbrechen"** — lädt den Quell-Drawer per `hx-get` neu.
 - Bestätigung schreibt einen neuen `TeamActorAssign`-Datensatz.
 
 ### US-05 — Admin beendet eine Team-Mitgliedschaft (auch zukünftig)
@@ -148,18 +165,23 @@ Als Admin möchte ich eine Team-Mitgliedschaft zu einem bestimmten Datum beenden
 
 **Akzeptanzkriterien:**
 - Aus dem Team-Detail erreichbar pro Personen-Zeile: Button „Mitgliedschaft beenden".
-- Eingabefeld für `end`-Datum mit Default „heute"; freie Wahl zwischen heute und Zukunft.
-- Validierung: `end > start` erforderlich; Vergangenheit unterhalb `start` wird abgelehnt.
+- Eingabefeld für `end`-Datum mit `min="{{ today_iso }}"`. Für aktive Mitgliedschaften (kein `end` gesetzt) ist das Feld `required` — der Browser blockt den Submit ohne Datum clientseitig, sodass „Beenden ohne Datum" nicht mehr passieren kann.
+- Validierung: `end > start` erforderlich; Vergangenheit unterhalb `start` wird abgelehnt; Server-422 wird als Drawer-Re-Render mit rotem Error-Banner zurueckgegeben (statt nacktem JSON; siehe HTMX-Config-Fix im Header).
 - Nach dem Setzen bleibt der `TeamActorAssign`-Eintrag bestehen (kein DELETE). Die Person verschwindet aus der "aktiven Mitgliederliste" ab dem `end`-Datum.
-- Ein zukünftiges `end` ist **revertierbar**: bis das Datum eintritt, kann das `end`-Feld zurück auf NULL gesetzt werden.
+- Ein zukünftiges `end` ist **revertierbar**: bis das Datum eintritt, kann das `end`-Feld zurück auf NULL gesetzt werden. Bei Einträgen mit gesetztem `end` wird der Button-Text „Ändern" statt „Beenden" und das Datum-Feld ist optional (Helper-Text „Ändern mit leerem Datum hebt geplantes Ende wieder auf").
 
 ### US-06 — Admin weist Standorte einem Team zu (mit Future-Dating)
 Als Admin möchte ich Standorte einem Team zuordnen, optional mit zukünftigem Start-Datum, damit ich z. B. einen neuen Standort einem Team bereits vorab zuweisen kann.
 
 **Akzeptanzkriterien:**
 - Analog zu US-04, aber mit `TeamLocationAssign`-Datensätzen.
-- Mehrfach-Zuordnung erlaubt: ein Standort kann mehreren Teams gleichzeitig zugeordnet sein (das ist real für geteilte Häuser).
-- Default `start = heute`, `end = NULL`. Future-Dating optional.
+- **1:N-Geometrie (Update 2026-05-16):** Ein Standort kann zu jedem Zeitpunkt nur EINEM Team zugeordnet sein. ~~Mehrfach-Zuordnung erlaubt: ein Standort kann mehreren Teams gleichzeitig zugeordnet sein (das ist real für geteilte Häuser).~~ Die alte M:N-Annahme wurde verworfen, weil sie zu Mehrdeutigkeiten bei Plan-Erstellung und Notifications führte und in der Praxis nie sinnvoll genutzt wurde.
+- Default `start = heute`, `end = NULL`. Future-Dating optional. Datum-Input mit `min="{{ today_iso }}"` + Helper-Text „Datum optional — leer = Zuordnung beginnt ab heute."
+- Konflikt-Prüfung **gleiches Team** (hard block): wie bisher — selber Standort, selbes Team mit offenem Eintrag → 409 + Schliessen-Dialog.
+- Konflikt-Prüfung **anderes Team** (hard block, neu seit 2026-05-16): Wenn der Standort bereits einer **anderen** offenen TLA zugeordnet ist, antwortet der Server mit 409 + `LocationOccupiedConflict`. Der Conflict-Dialog (kind `location_occupied`) zeigt das blockierende Team mit Startdatum und bietet zwei Aktionen:
+    1. **„Anderes Team beenden & neu zuordnen"** — POST an `/admin/teams/locations/{location_id}/replace-team` mit `new_team_id`. Server schliesst die blockierende TLA atomar mit `end = today` und legt die neue TLA mit `start = today + 1` an (strikt sequenziell, kein Overlap). Falls die blockierende TLA selbst `start >= today` hat (Future-TLA), gibt der Server 422 mit Hinweis „bitte zukuenftige Zuordnung manuell entfernen".
+    2. **„Abbrechen"** — lädt den Quell-Drawer neu.
+- Symmetrie: gleiche Logik aus Standort-Drawer (`POST /admin/teams/locations/{id}/teams`) und aus Team-Drawer (`POST /admin/teams/teams/{id}/locations`).
 
 ### US-07 — Admin beendet eine Standort-Team-Zuordnung
 Wie US-05, aber für Standort↔Team.
@@ -388,6 +410,17 @@ POST /admin/teams/members/{taa_id}/apply-apps           → ActorPlanPeriods erz
 POST /admin/teams/team-locations/{tla_id}/apply-lpps    → LocationPlanPeriods erzeugen
 ```
 
+**Replace-Endpoints (seit 2026-05-16) — atomares Auflösen von Doppelbelegungen:**
+```
+POST /admin/teams/locations/{location_id}/replace-team  → Standort↔Team: blockierende
+                                                          TLA mit end=today schliessen,
+                                                          neue TLA mit start=today+1 anlegen
+POST /admin/teams/persons/{person_id}/replace-team      → Person↔Team: blockierende TAA
+                                                          mit end=max(new_start-1, today)
+                                                          schliessen, neue TAA anlegen
+```
+Beide Endpoints nehmen `new_team_id` und `return_drawer` ∈ {team, location, member} als Form-Params; der Replace-Endpoint für Person zusätzlich `new_start`.
+
 **Lifecycle (Soft-/Hard-Delete für Team, Standort, Person):**
 ```
 POST /admin/teams/teams/{id}/soft-delete          → prep_delete setzen
@@ -444,18 +477,27 @@ Hinweis zu DELETE-Endpoints mit Confirm-Form: HTMX schickt Form-Werte bei `hx-de
 - `DuplicateNameError`-Meldung ist genus-agnostisch („Person «Max Muster» existiert bereits.") — passt für Team, Standort, Person ohne Sonder-Logik.
 
 ### Personen↔Team-Konflikt
-- Vor Anlage eines neuen `TeamActorAssign`: prüfen, ob bereits ein offener Eintrag (gleiche Person × gleiches Team, `end IS NULL OR end > today`) existiert.
-- Wenn ja: 409-Antwort mit zwei Optionen im UI:
-    1. „Bestehende Mitgliedschaft am … beenden und neue beginnen"
-    2. „Abbrechen"
+- **Gleiches Team (hard block):** Vor Anlage eines neuen `TeamActorAssign`: prüfen, ob bereits ein offener Eintrag (gleiche Person × gleiches Team, `end IS NULL OR end > today`) existiert. Wenn ja: 409 + `AssignConflict` → `conflict_dialog.html` (kind `member`/`person`) mit Schliessen-Link, der den Drawer neu lädt.
+- **Anderes Team (Warning, neu seit 2026-05-16):** Wenn die Person bereits eine offene TAA in einem ANDEREN Team hat und der Admin nicht `force_other_team=1` schickt: 409 + `PersonInOtherTeamWarning` → `conflict_dialog.html` (kind `person_in_other_team`) mit drei Optionen:
+    1. „Trotzdem zuordnen (beide Teams)" — wiederholt den ursprünglichen POST mit `force_other_team=1`.
+    2. „Bestehende beenden & neu zuordnen" — POST an Replace-Endpoint; Server schliesst die alte TAA mit `end = max(new_start - 1, today)` und legt die neue an. Bei `new_start = today` ergibt sich eine 1-Tages-Überlappung am Stichtag (`set_team_member_end` verlangt `end >= today`, daher ist Tag-vor-Start = gestern nicht erlaubt — `max(...)` macht das sauber).
+    3. „Abbrechen" — `hx-get`-Reload des Quell-Drawers.
 
 ### Standort↔Team-Konflikt
-- Analog zu Personen↔Team.
+- **Gleiches Team (hard block):** Symmetrisch zu Personen↔Team mit `AssignConflict` → kind `location`/`team`.
+- **Anderes Team (hard block, neu seit 2026-05-16):** Wenn der Standort bereits einer **anderen** offenen TLA zugeordnet ist: 409 + `LocationOccupiedConflict` → `conflict_dialog.html` (kind `location_occupied`) mit zwei Optionen:
+    1. „Anderes Team beenden & neu zuordnen" — POST an Replace-Endpoint; Server schliesst die blockierende TLA atomar mit `end = today` und legt die neue TLA mit `start = today + 1` an. Falls die blockierende TLA `start >= today` hat (Future-TLA), 422 + Hinweis „bitte zukuenftige Zuordnung manuell entfernen" (kein automatischer Future-Delete).
+    2. „Abbrechen".
+- Hintergrund: Die alte M:N-Annahme aus US-06 wurde am 2026-05-16 zugunsten 1:N verworfen — überlappende Standort-Team-Zuordnungen sind technisch möglich, aber praktisch sinnlos.
 
 ### Future-Dating-Validierung
 - `start <= end` falls beide gesetzt; sonst 422.
+- `start >= today` (Vergangenheit blockiert) — sowohl clientseitig via HTML5 `min="{{ today_iso }}"` als auch serverseitig.
 - `start > today` ist erlaubt (Future-Dating).
+- `end >= today` (Vergangenheit blockiert) — `set_team_member_end`/`set_team_location_end` werfen 422 bei `end < today`.
 - `end > today` ist erlaubt (Future-Canceling).
+- Bei aktiven Mitgliedschaften (kein `end` gesetzt) ist das End-Datum-Input im Drawer `required` (Browser blockt Submit ohne Datum); bei bereits geplantem `end` ist das Feld optional (leeres Feld setzt `end=NULL` zurück = Mitgliedschaft wieder offen).
+- 422-Antworten werden als Drawer-Re-Render mit rotem Error-Banner ausgeliefert (`status_code` bleibt 422 für Korrektheit, Body ist HTML); HTMX-Config in `base.html` swappt 422 statt zu verwerfen.
 
 ### Soft-Delete-Schutz
 - **Team:** blockiert bei aktiver `PlanPeriod` (`prep_delete IS NULL`).
@@ -495,8 +537,8 @@ Bis die zentrale `audit_log`-Tabelle existiert (TODO `todo_audit_infrastructure_
 - **Team:** `team_created`, `team_renamed`, `team_notes_changed`, `team_dispatcher_changed`, `team_soft_deleted`, `team_hard_deleted`, `team_restored`
 - **Standort:** `location_created`, `location_renamed`, `location_address_changed`, `location_soft_deleted`, `location_hard_deleted`, `location_restored` ~~+ `location_plan_config_changed`~~ (verworfen mit Plan-Konfig-Rückbau)
 - **Person:** `person_created`, `person_renamed`, `person_soft_deleted`, `person_hard_deleted`, `person_restored`
-- **Zuordnungen TAA:** `team_member_added`, `team_member_ended`, `team_member_reactivated`, `team_actor_future_deleted`
-- **Zuordnungen TLA:** `team_location_added`, `team_location_ended`, `team_location_reactivated`, `team_location_future_deleted`
+- **Zuordnungen TAA:** `team_member_added`, `team_member_ended`, `team_member_reactivated`, `team_actor_future_deleted`, `team_member_replaced` (seit 2026-05-16; extra `previous_assign_id`)
+- **Zuordnungen TLA:** `team_location_added`, `team_location_ended`, `team_location_reactivated`, `team_location_future_deleted`, `team_location_replaced` (seit 2026-05-16; extra `previous_assign_id`)
 - **APP-Anlage:** `actor_plan_period_created` (mit zusätzlichen `person_id` + `plan_period_id` im `extra`)
 - **LPP-Anlage:** `location_plan_period_created` (mit zusätzlichen `location_of_work_id` + `plan_period_id` im `extra`)
 
@@ -541,3 +583,20 @@ Stand 2026-05-15 — Implementation abgeschlossen, Review-Items aus dem ursprün
 - **Verlauf-Reiter** (`f8cf6fd`): einklappbares `<details>` in jedem Drawer für vergangene Zuordnungen.
 - ✓ **Hard-Delete-Schutz**: blockiert, sobald *irgendeine* PlanPeriod / LocationPlanPeriod / ActorPlanPeriod existiert.
 - ✓ **Adress-Modell**: kein Sharing, immer neue Adress-Zeile pro Standort.
+- **Standort↔Team-Geometrie auf 1:N reduziert** (2026-05-16): Aus US-06's
+  ursprünglicher M:N-Annahme wurde eine 1:N-Constraint via Backend-Check. Ein
+  Standort darf zu jedem Zeitpunkt nur einem Team angehören. Geteilte Häuser
+  werden — soweit relevant — über Standort-Klone abgebildet, nicht über
+  parallele TLAs. Conflict-Dialog mit atomarer Replace-Aktion (alte TLA
+  `end=today`, neue `start=today+1`).
+- **Person↔Team bleibt N:N, aber mit Warning-Pattern** (2026-05-16):
+  Doppel-Mitgliedschaft ist real (z. B. Springer in Hamburg + Köln) und bleibt
+  erlaubt. Aber der Admin kann das beim Zuordnen übersehen — daher 3-Optionen-
+  Dialog mit Default-Pfaden „Trotzdem zuordnen" / „Bestehende beenden" /
+  „Abbrechen". `force_other_team=1` als expliziter Opt-In, damit der „beide
+  Teams"-Pfad nicht versehentlich passiert.
+- **HTMX-Config zentral angepasst** (2026-05-16): `<meta name="htmx-config">`
+  in `base.html` schaltet 409+422 vom Default-Error-Pfad auf Swap, sodass
+  Conflict-/Validation-Dialoge im Browser überhaupt sichtbar werden. Tests
+  waren grün, UI war defekt — fiese Lücke zwischen Test-Realität und
+  User-Erlebnis. Memory: `feedback_htmx_4xx_response_handling`.

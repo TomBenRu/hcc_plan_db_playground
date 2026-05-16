@@ -51,6 +51,11 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,600;1,9..144,300&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet">
 
+    {# HTMX 2.x verwirft 4xx-Responses standardmaessig. Wir nutzen 409/422
+       fuer Validation/Conflict-Dialoge, die als HTML-Partial in den Drawer
+       geswappt werden — deshalb muessen diese Status-Codes als Swap (nicht
+       als Error) behandelt werden. #}
+    <meta name="htmx-config" content='{"responseHandling":[{"code":"204","swap":false},{"code":"[23]..","swap":true},{"code":"422","swap":true},{"code":"409","swap":true},{"code":"[45]..","swap":false,"error":true}]}'>
     <script src="https://unpkg.com/htmx.org@2.0.4" defer></script>
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js" defer></script>
 

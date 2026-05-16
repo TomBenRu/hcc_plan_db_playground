@@ -4,6 +4,9 @@
    Container: <div id="member-search-results"> im Team-Drawer. #}
 
 {% if candidates %}
+<p class="text-[10px] text-slate-400 mb-1 px-1">
+    Datum optional — leer = Mitgliedschaft beginnt ab heute.
+</p>
 <ul class="bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700
            rounded-lg shadow-sm divide-y divide-slate-100 dark:divide-slate-700/50
            text-sm max-h-60 overflow-y-auto">
@@ -20,9 +23,12 @@
               class="flex items-center gap-1.5">
             <input type="hidden" name="person_id" value="{{ person.id }}">
             <input type="date" name="start"
+                   min="{{ today_iso }}"
+                   title="Start-Datum (leer = ab heute)"
                    class="px-2 py-1 rounded border bg-white dark:bg-slate-700/40
                           border-slate-200 dark:border-slate-700 text-xs">
             <button type="submit"
+                    title="Mitglied ab gewähltem Datum zuweisen (leer = heute)"
                     class="px-2 py-1 rounded bg-sky-500 hover:bg-sky-600 text-white text-xs">
                 Zuweisen
             </button>

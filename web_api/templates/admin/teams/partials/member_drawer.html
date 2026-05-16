@@ -196,10 +196,14 @@
                       class="flex items-center gap-1.5">
                     <input type="date" name="end"
                            value="{{ taa.end.isoformat() if taa.end else '' }}"
+                           min="{{ today_iso }}"
+                           {% if not taa.end %}required{% endif %}
+                           title="{% if taa.end %}Leer lassen, um das geplante Ende aufzuheben{% else %}Letzter aktiver Tag der Mitgliedschaft{% endif %}"
                            class="px-2 py-1 rounded border bg-white dark:bg-slate-700/40
                                   border-slate-200 dark:border-slate-700 text-xs
                                   text-slate-800 dark:text-slate-100">
                     <button type="submit"
+                            title="{% if taa.end %}Ende anpassen — leer = Mitgliedschaft wieder offen{% else %}Mitgliedschaft zum gewählten Datum beenden{% endif %}"
                             class="px-2 py-1 rounded bg-slate-200 hover:bg-slate-300
                                    dark:bg-slate-700 dark:hover:bg-slate-600
                                    text-slate-700 dark:text-slate-100 text-xs">
@@ -209,6 +213,10 @@
             </li>
             {% endfor %}
         </ul>
+        <p class="text-[10px] text-slate-400 italic mb-3 -mt-1 px-1">
+            „Beenden": Datum = letzter Tag der Mitgliedschaft. „Ändern" mit leerem
+            Datum hebt ein geplantes Ende wieder auf.
+        </p>
         {% else %}
         <p class="text-xs text-slate-400 italic mb-3">Keine aktiven Team-Mitgliedschaften.</p>
         {% endif %}

@@ -161,10 +161,14 @@
                       class="flex items-center gap-1.5">
                     <input type="date" name="end"
                            value="{{ tla.end.isoformat() if tla.end else '' }}"
+                           min="{{ today_iso }}"
+                           {% if not tla.end %}required{% endif %}
+                           title="{% if tla.end %}Leer lassen, um das geplante Ende aufzuheben{% else %}Letzter aktiver Tag der Zuordnung{% endif %}"
                            class="px-2 py-1 rounded border bg-white dark:bg-slate-700/40
                                   border-slate-200 dark:border-slate-700 text-xs
                                   text-slate-800 dark:text-slate-100">
                     <button type="submit"
+                            title="{% if tla.end %}Ende anpassen — leer = Zuordnung wieder offen{% else %}Zuordnung zum gewählten Datum beenden{% endif %}"
                             class="px-2 py-1 rounded bg-slate-200 hover:bg-slate-300
                                    dark:bg-slate-700 dark:hover:bg-slate-600
                                    text-slate-700 dark:text-slate-100 text-xs">
@@ -174,6 +178,10 @@
             </li>
             {% endfor %}
         </ul>
+        <p class="text-[10px] text-slate-400 italic mb-3 -mt-1 px-1">
+            „Beenden": Datum = letzter Tag der Zuordnung. „Ändern" mit leerem
+            Datum hebt ein geplantes Ende wieder auf.
+        </p>
         {% else %}
         <p class="text-xs text-slate-400 italic mb-3">Keine aktiven Team-Zuordnungen.</p>
         {% endif %}

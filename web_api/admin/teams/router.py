@@ -247,6 +247,7 @@ def team_drawer(
             "active_location_count": len(assignments.list_active_team_locations(session, team.id)),
             "past_member_assigns": assignments.list_past_team_members(session, team.id),
             "past_location_assigns": assignments.list_past_team_locations(session, team.id),
+            "today_iso": date.today().isoformat(),
         },
     )
 
@@ -271,6 +272,7 @@ def location_drawer(
             "active_team_assigns": assignments.list_active_location_teams(session, location.id),
             "future_team_assigns": assignments.list_future_location_teams(session, location.id),
             "past_team_assigns": assignments.list_past_location_teams(session, location.id),
+            "today_iso": date.today().isoformat(),
         },
     )
 
@@ -288,6 +290,7 @@ def _render_team_drawer(
     session: Session,
     saved: bool = False,
     error: str | None = None,
+    status_code: int = status.HTTP_200_OK,
 ) -> HTMLResponse:
     """Drawer fuer ein ``Team`` rendern. Hilfsfunktion, weil mehrere Mutations
     denselben Render-Pfad teilen.
@@ -314,7 +317,9 @@ def _render_team_drawer(
             "past_location_assigns": past_location_assigns,
             "saved": saved,
             "error": error,
+            "today_iso": date.today().isoformat(),
         },
+        status_code=status_code,
     )
     response.headers["HX-Trigger"] = "teams-list-changed"
     return response
@@ -328,6 +333,7 @@ def _render_location_drawer(
     session: Session,
     saved: bool = False,
     error: str | None = None,
+    status_code: int = status.HTTP_200_OK,
 ) -> HTMLResponse:
     """Standort-Drawer rendern inkl. Team-Zuordnungen.
 
@@ -349,7 +355,9 @@ def _render_location_drawer(
             "past_team_assigns": past_team_assigns,
             "saved": saved,
             "error": error,
+            "today_iso": date.today().isoformat(),
         },
+        status_code=status_code,
     )
     response.headers["HX-Trigger"] = "locations-list-changed"
     return response
@@ -363,6 +371,7 @@ def _render_member_drawer(
     session: Session,
     saved: bool = False,
     error: str | None = None,
+    status_code: int = status.HTTP_200_OK,
 ) -> HTMLResponse:
     """Mitglieder-Drawer rendern inkl. Team-Mitgliedschaften.
 
@@ -383,7 +392,9 @@ def _render_member_drawer(
             "past_team_assigns": past_team_assigns,
             "saved": saved,
             "error": error,
+            "today_iso": date.today().isoformat(),
         },
+        status_code=status_code,
     )
     response.headers["HX-Trigger"] = "members-list-changed"
     return response
@@ -548,7 +559,12 @@ def member_search_endpoint(
     )
     return templates.TemplateResponse(
         "admin/teams/partials/member_search_results.html",
-        {"request": request, "team_id": team_id, "candidates": candidates},
+        {
+            "request": request,
+            "team_id": team_id,
+            "candidates": candidates,
+            "today_iso": date.today().isoformat(),
+        },
     )
 
 
@@ -560,6 +576,7 @@ def add_team_member_endpoint(
     session: Session = Depends(get_db_session),
     person_id: uuid.UUID = Form(...),
     start: str | None = Form(default=None),
+    force_other_team: str | None = Form(default=None),
 ):
     team = session.get(Team, team_id)
     if team is None:
@@ -567,9 +584,42 @@ def add_team_member_endpoint(
     parsed_start = _parse_optional_date(start)
     try:
         taa = assignments.add_team_member(
-            session, team=team, person_id=person_id, start=parsed_start, actor=user
+            session,
+            team=team,
+            person_id=person_id,
+            start=parsed_start,
+            actor=user,
+            force_other_team=bool(force_other_team),
         )
     except HTTPException as exc:
+        if exc.status_code == status.HTTP_409_CONFLICT and isinstance(
+            exc.detail, assignments.PersonInOtherTeamWarning
+        ):
+            start_iso = parsed_start.isoformat() if parsed_start else ""
+            return templates.TemplateResponse(
+                "admin/teams/partials/conflict_dialog.html",
+                {
+                    "request": request,
+                    "kind": "person_in_other_team",
+                    "drawer_target": "team-drawer",
+                    "drawer_reload_url": f"/admin/teams/teams/{team_id}/drawer",
+                    "force_form_url": f"/admin/teams/teams/{team_id}/members",
+                    "force_form_hidden": [
+                        ("person_id", str(person_id)),
+                        ("start", start_iso),
+                        ("force_other_team", "1"),
+                    ],
+                    "replace_form_url": f"/admin/teams/persons/{person_id}/replace-team",
+                    "replace_form_hidden": [
+                        ("new_team_id", str(team_id)),
+                        ("new_start", start_iso),
+                        ("return_drawer", "team"),
+                    ],
+                    "conflict": exc.detail,
+                    "new_start": parsed_start,
+                },
+                status_code=status.HTTP_409_CONFLICT,
+            )
         if exc.status_code == status.HTTP_409_CONFLICT and isinstance(
             exc.detail, assignments.AssignConflict
         ):
@@ -584,6 +634,15 @@ def add_team_member_endpoint(
                     "conflict": exc.detail,
                 },
                 status_code=status.HTTP_409_CONFLICT,
+            )
+        if exc.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY:
+            return _render_team_drawer(
+                request,
+                team,
+                user,
+                session=session,
+                error=str(exc.detail),
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             )
         raise
     # Folge-Frage: gibt's offene PPs, die sich mit der TAA ueberschneiden und
@@ -617,10 +676,22 @@ def update_team_member_endpoint(
     if assign is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Mitgliedschaft nicht gefunden")
     parsed_end = _parse_optional_date(end)
-    assign = assignments.set_team_member_end(
-        session, assign=assign, end=parsed_end, actor=user
-    )
     team = session.get(Team, assign.team_id)
+    try:
+        assign = assignments.set_team_member_end(
+            session, assign=assign, end=parsed_end, actor=user
+        )
+    except HTTPException as exc:
+        if exc.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY:
+            return _render_team_drawer(
+                request,
+                team,
+                user,
+                session=session,
+                error=str(exc.detail),
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        raise
     return _render_team_drawer(request, team, user, session=session, saved=True)
 
 
@@ -655,7 +726,12 @@ def location_search_endpoint(
     )
     return templates.TemplateResponse(
         "admin/teams/partials/location_search_results.html",
-        {"request": request, "team_id": team_id, "candidates": candidates},
+        {
+            "request": request,
+            "team_id": team_id,
+            "candidates": candidates,
+            "today_iso": date.today().isoformat(),
+        },
     )
 
 
@@ -678,6 +754,22 @@ def add_team_location_endpoint(
         )
     except HTTPException as exc:
         if exc.status_code == status.HTTP_409_CONFLICT and isinstance(
+            exc.detail, assignments.LocationOccupiedConflict
+        ):
+            return templates.TemplateResponse(
+                "admin/teams/partials/conflict_dialog.html",
+                {
+                    "request": request,
+                    "kind": "location_occupied",
+                    "drawer_target": "team-drawer",
+                    "drawer_reload_url": f"/admin/teams/teams/{team_id}/drawer",
+                    "replace_url": f"/admin/teams/locations/{location_id}/replace-team",
+                    "replace_team_id": team_id,
+                    "conflict": exc.detail,
+                },
+                status_code=status.HTTP_409_CONFLICT,
+            )
+        if exc.status_code == status.HTTP_409_CONFLICT and isinstance(
             exc.detail, assignments.AssignConflict
         ):
             return templates.TemplateResponse(
@@ -691,6 +783,15 @@ def add_team_location_endpoint(
                     "conflict": exc.detail,
                 },
                 status_code=status.HTTP_409_CONFLICT,
+            )
+        if exc.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY:
+            return _render_team_drawer(
+                request,
+                team,
+                user,
+                session=session,
+                error=str(exc.detail),
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             )
         raise
     # Symmetrisch zu add_team_member: offene PPs ohne LPP fuer den Standort
@@ -723,10 +824,22 @@ def update_team_location_endpoint(
     if assign is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Zuordnung nicht gefunden")
     parsed_end = _parse_optional_date(end)
-    assign = assignments.set_team_location_end(
-        session, assign=assign, end=parsed_end, actor=user
-    )
     team = session.get(Team, assign.team_id)
+    try:
+        assign = assignments.set_team_location_end(
+            session, assign=assign, end=parsed_end, actor=user
+        )
+    except HTTPException as exc:
+        if exc.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY:
+            return _render_team_drawer(
+                request,
+                team,
+                user,
+                session=session,
+                error=str(exc.detail),
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        raise
     return _render_team_drawer(request, team, user, session=session, saved=True)
 
 
@@ -767,7 +880,12 @@ def team_search_endpoint(
     )
     return templates.TemplateResponse(
         "admin/teams/partials/team_search_results.html",
-        {"request": request, "location_id": location_id, "candidates": candidates},
+        {
+            "request": request,
+            "location_id": location_id,
+            "candidates": candidates,
+            "today_iso": date.today().isoformat(),
+        },
     )
 
 
@@ -793,6 +911,22 @@ def add_location_team_endpoint(
         )
     except HTTPException as exc:
         if exc.status_code == status.HTTP_409_CONFLICT and isinstance(
+            exc.detail, assignments.LocationOccupiedConflict
+        ):
+            return templates.TemplateResponse(
+                "admin/teams/partials/conflict_dialog.html",
+                {
+                    "request": request,
+                    "kind": "location_occupied",
+                    "drawer_target": "location-drawer",
+                    "drawer_reload_url": f"/admin/teams/locations/{location_id}/drawer",
+                    "replace_url": f"/admin/teams/locations/{location_id}/replace-team",
+                    "replace_team_id": team_id,
+                    "conflict": exc.detail,
+                },
+                status_code=status.HTTP_409_CONFLICT,
+            )
+        if exc.status_code == status.HTTP_409_CONFLICT and isinstance(
             exc.detail, assignments.AssignConflict
         ):
             return templates.TemplateResponse(
@@ -805,6 +939,15 @@ def add_location_team_endpoint(
                     "conflict": exc.detail,
                 },
                 status_code=status.HTTP_409_CONFLICT,
+            )
+        if exc.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY:
+            return _render_location_drawer(
+                request,
+                location,
+                user,
+                session=session,
+                error=str(exc.detail),
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             )
         raise
     # Symmetrisch zur Team-Seite: offene PPs → LPP-Anlage-Dialog.
@@ -838,10 +981,22 @@ def update_location_team_endpoint(
     if assign is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Zuordnung nicht gefunden")
     parsed_end = _parse_optional_date(end)
-    assign = assignments.set_team_location_end(
-        session, assign=assign, end=parsed_end, actor=user
-    )
     location = session.get(LocationOfWork, assign.location_of_work_id)
+    try:
+        assign = assignments.set_team_location_end(
+            session, assign=assign, end=parsed_end, actor=user
+        )
+    except HTTPException as exc:
+        if exc.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY:
+            return _render_location_drawer(
+                request,
+                location,
+                user,
+                session=session,
+                error=str(exc.detail),
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        raise
     return _render_location_drawer(request, location, user, session=session, saved=True)
 
 
@@ -860,6 +1015,116 @@ def delete_location_team_endpoint(
     assignments.delete_future_team_location(session, assign=assign, actor=user)
     location = session.get(LocationOfWork, location_id)
     return _render_location_drawer(request, location, user, session=session, saved=True)
+
+
+@router.post("/locations/{location_id}/replace-team", response_class=HTMLResponse)
+def replace_location_team_endpoint(
+    request: Request,
+    location_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    new_team_id: uuid.UUID = Form(...),
+    return_drawer: str = Form(default="location"),
+):
+    """Loest eine Standort↔Team-Doppelbelegung auf: schliesst die offene
+    Altzuordnung mit ``end=today`` und legt eine neue TLA mit
+    ``start=today+1`` an. Antwort haengt von ``return_drawer`` ab:
+    ``"location"`` rendert den Standort-Drawer, ``"team"`` den Team-Drawer.
+    """
+    location = session.get(LocationOfWork, location_id)
+    if location is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Standort nicht gefunden")
+    new_team = session.get(Team, new_team_id)
+    if new_team is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Team nicht gefunden")
+    try:
+        new_assign = assignments.replace_team_location(
+            session, location=location, new_team=new_team, actor=user
+        )
+    except HTTPException as exc:
+        if exc.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY:
+            if return_drawer == "team":
+                return _render_team_drawer(
+                    request,
+                    new_team,
+                    user,
+                    session=session,
+                    error=str(exc.detail),
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                )
+            return _render_location_drawer(
+                request,
+                location,
+                user,
+                session=session,
+                error=str(exc.detail),
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        # Race-Fallback: zwischen Conflict-Dialog und Replace-Klick hat sich
+        # jemand anderes die Location geschnappt → ``replace_team_location``
+        # ruft intern ``add_team_location`` auf, das einen neuen 409 wirft.
+        # Diesen wieder als Conflict-Dialog rendern, damit der User nicht
+        # auf nacktem JSON landet.
+        if exc.status_code == status.HTTP_409_CONFLICT and isinstance(
+            exc.detail, (assignments.AssignConflict, assignments.LocationOccupiedConflict)
+        ):
+            drawer_target = (
+                "team-drawer" if return_drawer == "team" else "location-drawer"
+            )
+            drawer_reload_url = (
+                f"/admin/teams/teams/{new_team.id}/drawer"
+                if return_drawer == "team"
+                else f"/admin/teams/locations/{location.id}/drawer"
+            )
+            conflict_kind = (
+                "location_occupied"
+                if isinstance(exc.detail, assignments.LocationOccupiedConflict)
+                else ("team" if return_drawer == "location" else "location")
+            )
+            return templates.TemplateResponse(
+                "admin/teams/partials/conflict_dialog.html",
+                {
+                    "request": request,
+                    "kind": conflict_kind,
+                    "drawer_target": drawer_target,
+                    "drawer_reload_url": drawer_reload_url,
+                    "replace_url": f"/admin/teams/locations/{location.id}/replace-team",
+                    "replace_team_id": new_team.id,
+                    "team_id": new_team.id,
+                    "location_id": location.id,
+                    "conflict": exc.detail,
+                },
+                status_code=status.HTTP_409_CONFLICT,
+            )
+        raise
+
+    # Symmetrisch zum normalen Add: offene PPs ohne LPP → LPP-Anlage-Dialog.
+    overlap_pps = assignments.list_open_overlapping_plan_periods_for_tla(
+        session, tla=new_assign
+    )
+    if overlap_pps:
+        drawer_target = "team-drawer" if return_drawer == "team" else "location-drawer"
+        drawer_reload_url = (
+            f"/admin/teams/teams/{new_team.id}/drawer"
+            if return_drawer == "team"
+            else f"/admin/teams/locations/{location_id}/drawer"
+        )
+        return templates.TemplateResponse(
+            "admin/teams/partials/apply_lpps_dialog.html",
+            {
+                "request": request,
+                "tla": new_assign,
+                "plan_periods": overlap_pps,
+                "drawer_target": drawer_target,
+                "drawer_reload_url": drawer_reload_url,
+                "return_drawer": return_drawer,
+            },
+        )
+    if return_drawer == "team":
+        return _render_team_drawer(request, new_team, user, session=session, saved=True)
+    return _render_location_drawer(
+        request, location, user, session=session, saved=True
+    )
 
 
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -976,7 +1241,12 @@ def person_team_search_endpoint(
     )
     return templates.TemplateResponse(
         "admin/teams/partials/person_team_search_results.html",
-        {"request": request, "person_id": person_id, "candidates": candidates},
+        {
+            "request": request,
+            "person_id": person_id,
+            "candidates": candidates,
+            "today_iso": date.today().isoformat(),
+        },
     )
 
 
@@ -988,6 +1258,7 @@ def add_person_team_endpoint(
     session: Session = Depends(get_db_session),
     team_id: uuid.UUID = Form(...),
     start: str | None = Form(default=None),
+    force_other_team: str | None = Form(default=None),
 ):
     person = session.get(Person, person_id)
     if person is None:
@@ -998,9 +1269,42 @@ def add_person_team_endpoint(
     parsed_start = _parse_optional_date(start)
     try:
         taa = assignments.add_team_member(
-            session, team=team, person_id=person.id, start=parsed_start, actor=user
+            session,
+            team=team,
+            person_id=person.id,
+            start=parsed_start,
+            actor=user,
+            force_other_team=bool(force_other_team),
         )
     except HTTPException as exc:
+        if exc.status_code == status.HTTP_409_CONFLICT and isinstance(
+            exc.detail, assignments.PersonInOtherTeamWarning
+        ):
+            start_iso = parsed_start.isoformat() if parsed_start else ""
+            return templates.TemplateResponse(
+                "admin/teams/partials/conflict_dialog.html",
+                {
+                    "request": request,
+                    "kind": "person_in_other_team",
+                    "drawer_target": "member-drawer",
+                    "drawer_reload_url": f"/admin/teams/persons/{person_id}/drawer",
+                    "force_form_url": f"/admin/teams/persons/{person_id}/teams",
+                    "force_form_hidden": [
+                        ("team_id", str(team_id)),
+                        ("start", start_iso),
+                        ("force_other_team", "1"),
+                    ],
+                    "replace_form_url": f"/admin/teams/persons/{person_id}/replace-team",
+                    "replace_form_hidden": [
+                        ("new_team_id", str(team_id)),
+                        ("new_start", start_iso),
+                        ("return_drawer", "member"),
+                    ],
+                    "conflict": exc.detail,
+                    "new_start": parsed_start,
+                },
+                status_code=status.HTTP_409_CONFLICT,
+            )
         if exc.status_code == status.HTTP_409_CONFLICT and isinstance(
             exc.detail, assignments.AssignConflict
         ):
@@ -1014,6 +1318,15 @@ def add_person_team_endpoint(
                     "conflict": exc.detail,
                 },
                 status_code=status.HTTP_409_CONFLICT,
+            )
+        if exc.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY:
+            return _render_member_drawer(
+                request,
+                person,
+                user,
+                session=session,
+                error=str(exc.detail),
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             )
         raise
     # Symmetrisch zu add_team_member_endpoint: offene PPs → APP-Dialog.
@@ -1047,10 +1360,22 @@ def update_person_team_endpoint(
     if assign is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Mitgliedschaft nicht gefunden")
     parsed_end = _parse_optional_date(end)
-    assign = assignments.set_team_member_end(
-        session, assign=assign, end=parsed_end, actor=user
-    )
     person = session.get(Person, assign.person_id)
+    try:
+        assign = assignments.set_team_member_end(
+            session, assign=assign, end=parsed_end, actor=user
+        )
+    except HTTPException as exc:
+        if exc.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY:
+            return _render_member_drawer(
+                request,
+                person,
+                user,
+                session=session,
+                error=str(exc.detail),
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        raise
     return _render_member_drawer(request, person, user, session=session, saved=True)
 
 
@@ -1069,6 +1394,113 @@ def delete_person_team_endpoint(
     assignments.delete_future_team_actor_assign(session, assign=assign, actor=user)
     person = session.get(Person, person_id)
     return _render_member_drawer(request, person, user, session=session, saved=True)
+
+
+@router.post("/persons/{person_id}/replace-team", response_class=HTMLResponse)
+def replace_person_team_endpoint(
+    request: Request,
+    person_id: uuid.UUID,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    new_team_id: uuid.UUID = Form(...),
+    new_start: str | None = Form(default=None),
+    return_drawer: str = Form(default="team"),
+):
+    """Loest eine Person↔Team-Mehrfachbelegung auf: schliesst die offene
+    Altmitgliedschaft in einem anderen Team und legt eine neue fuer
+    ``new_team_id`` an. Antwort haengt von ``return_drawer`` ab: ``"member"``
+    rendert den Mitglieder-Drawer, ``"team"`` den Team-Drawer (Standard)."""
+    person = session.get(Person, person_id)
+    if person is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Person nicht gefunden")
+    new_team = session.get(Team, new_team_id)
+    if new_team is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Team nicht gefunden")
+    parsed_new_start = _parse_optional_date(new_start)
+    try:
+        new_assign = assignments.replace_team_member(
+            session,
+            person=person,
+            new_team=new_team,
+            new_start=parsed_new_start,
+            actor=user,
+        )
+    except HTTPException as exc:
+        if exc.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY:
+            if return_drawer == "member":
+                return _render_member_drawer(
+                    request,
+                    person,
+                    user,
+                    session=session,
+                    error=str(exc.detail),
+                    status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+                )
+            return _render_team_drawer(
+                request,
+                new_team,
+                user,
+                session=session,
+                error=str(exc.detail),
+                status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
+        # Race-Fallback: zwischen Conflict-Dialog und Replace-Klick wurde die
+        # blockierende Mitgliedschaft beendet und der Fallback ``add_team_member``
+        # wirft seinerseits AssignConflict (selbe Person+Team).
+        if exc.status_code == status.HTTP_409_CONFLICT and isinstance(
+            exc.detail, assignments.AssignConflict
+        ):
+            kind = "person" if return_drawer == "member" else "member"
+            drawer_target = (
+                "member-drawer" if return_drawer == "member" else "team-drawer"
+            )
+            drawer_reload_url = (
+                f"/admin/teams/persons/{person_id}/drawer"
+                if return_drawer == "member"
+                else f"/admin/teams/teams/{new_team.id}/drawer"
+            )
+            return templates.TemplateResponse(
+                "admin/teams/partials/conflict_dialog.html",
+                {
+                    "request": request,
+                    "kind": kind,
+                    "drawer_target": drawer_target,
+                    "drawer_reload_url": drawer_reload_url,
+                    "team_id": new_team.id,
+                    "person_id": person_id,
+                    "conflict": exc.detail,
+                },
+                status_code=status.HTTP_409_CONFLICT,
+            )
+        raise
+
+    # Symmetrisch zum normalen Add: offene PPs ohne APP → APP-Anlage-Dialog.
+    overlap_pps = assignments.list_open_overlapping_plan_periods_for_taa(
+        session, taa=new_assign
+    )
+    if overlap_pps:
+        drawer_target = (
+            "member-drawer" if return_drawer == "member" else "team-drawer"
+        )
+        drawer_reload_url = (
+            f"/admin/teams/persons/{person_id}/drawer"
+            if return_drawer == "member"
+            else f"/admin/teams/teams/{new_team.id}/drawer"
+        )
+        return templates.TemplateResponse(
+            "admin/teams/partials/apply_apps_dialog.html",
+            {
+                "request": request,
+                "taa": new_assign,
+                "plan_periods": overlap_pps,
+                "drawer_target": drawer_target,
+                "drawer_reload_url": drawer_reload_url,
+                "return_drawer": return_drawer,
+            },
+        )
+    if return_drawer == "member":
+        return _render_member_drawer(request, person, user, session=session, saved=True)
+    return _render_team_drawer(request, new_team, user, session=session, saved=True)
 
 
 @router.post("/members/{assign_id}/apply-apps", response_class=HTMLResponse)

@@ -194,14 +194,15 @@ class TablePersons(QTableWidget):
         self.put_data_to_table()
 
 
-class DlgPersonData(QDialog):
-    def __init__(self, parent: QWidget, project_id: UUID):
+class DlgPersonModify(QDialog):
+    def __init__(self, parent: QWidget, project_id: UUID, person: schemas.PersonShow):
         super().__init__(parent)
 
         self.setWindowTitle(self.tr('Person Data'))
-
         self.project_id = project_id
         self.project = db_services.Project.get(project_id)
+        self.person = person
+        self.controller = command_base_classes.ContrExecUndoRedo()
 
         self._setup_ui()
 
@@ -210,26 +211,9 @@ class DlgPersonData(QDialog):
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
-        self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
-        self.button_box.accepted.connect(self.accept)
-        self.button_box.rejected.connect(self.reject)
-
-
-class DlgPersonModify(DlgPersonData):
-    def __init__(self, parent: QWidget, project_id: UUID, person: schemas.PersonShow):
-        self.project_id = project_id
-        self.person = person
-        self.controller = command_base_classes.ContrExecUndoRedo()
-
-        super().__init__(parent, project_id)
-
-
-    def _setup_ui(self):
-        super()._setup_ui()
-
-        # Kompakter Header: Name (gross) + Sekundaerzeile (Email/Phone/Gender)
-        # + Adresse. Web-Link rechts oben. Stammdaten sind read-only Anzeige —
-        # Bearbeitung im Web /admin/teams (siehe Trennlinie 591e361/7bf91f3).
+        # Kompakter Header: Name (gross) + Adresse + Mail + Tel. Web-Link
+        # rechts oben. Stammdaten sind read-only Anzeige — Bearbeitung im Web
+        # /admin/teams (siehe Trennlinie 591e361/7bf91f3).
         header_widget = QWidget()
         header_layout = QHBoxLayout(header_widget)
         header_layout.setContentsMargins(0, 0, 0, 0)
@@ -279,8 +263,11 @@ class DlgPersonModify(DlgPersonData):
         self.group_specific_data_layout.addRow(self.tr('Employee Preferences'), self.bt_actor_partner_loc_prefs)
         self.group_specific_data_layout.addRow(self.tr('Skills'), self.bt_skills)
 
-        self.layout.addWidget(self.button_box)
+        self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
+        self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
+        self.layout.addWidget(self.button_box)
+
         self.autofill()
 
     def _open_in_web(self):
@@ -513,38 +500,26 @@ class TableLocationsOfWork(QTableWidget):
         return ''
 
 
-class DlgLocationData(QDialog):
-    def __init__(self, parent: QWidget, project_id: UUID):
+class DlgLocationModify(QDialog):
+    def __init__(self, parent: QWidget, project_id: UUID, location_id: UUID):
         super().__init__(parent)
 
-        self.setMinimumWidth(380)
-
+        self.setWindowTitle(self.tr('Facility Data'))
         self.project_id = project_id
         self.project = db_services.Project.get(project_id)
-
-        self.layout = QVBoxLayout()
-        self.setLayout(self.layout)
-
-        self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
-
-
-class DlgLocationModify(DlgLocationData):
-    def __init__(self, parent: QWidget, project_id: UUID, location_id: UUID):
-        super().__init__(parent, project_id=project_id)
-
-        self.setWindowTitle(self.tr('Facility Data'))
         self.location_id = location_id
         self.controller = command_base_classes.ContrExecUndoRedo()
         self.location_of_work = self.get_location_of_work()
         self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
 
-        self.button_box.accepted.connect(self.save_location)
-        self.button_box.rejected.connect(self.reject)
-
         self._setup_ui()
         self._autofill_widgets()
 
     def _setup_ui(self):
+        self.setMinimumWidth(380)
+        self.layout = QVBoxLayout()
+        self.setLayout(self.layout)
+
         # Kompakter Header: Standort-Name (gross) + Adress-Zeile. Web-Link
         # rechts oben. Stammdaten sind read-only Anzeige — Bearbeitung im Web
         # /admin/teams (siehe Trennlinie 591e361/7bf91f3).
@@ -585,6 +560,10 @@ class DlgLocationModify(DlgLocationData):
         self.layout_group_specific_data.addRow(self.tr('Times of Day'), self.bt_time_of_days)
         self.layout_group_specific_data.addRow(self.tr('Desired Staff'), self.bt_fixed_cast)
         self.layout_group_specific_data.addRow(self.tr('Skill Groups'), self.bt_skill_groups)
+
+        self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
+        self.button_box.accepted.connect(self.save_location)
+        self.button_box.rejected.connect(self.reject)
         self.layout.addWidget(self.button_box)
 
     def _open_in_web(self):

@@ -3,7 +3,7 @@ title: Mein Profil (Stammdaten)
 roles: [employee]
 category: Konto
 order: 90
-updated: 2026-05-07
+updated: 2026-05-16
 anchors:
   - was-kann-ich-aendern
   - daten-bearbeiten
@@ -26,6 +26,7 @@ Du erreichst die Seite über das **Avatar-Symbol** oben rechts in der Navigation
 | Vor- und Nachname | Nein | Nur deine Disposition kann das ändern |
 | **E-Mail (Kontakt)** | Ja | Wird für Benachrichtigungen genutzt |
 | **Telefonnummer** | Ja | Optional |
+| **Geschlecht** | Ja | Optional (weiblich / männlich / divers oder leer) |
 | **Straße / PLZ / Ort** | Ja | Optional, für Abrechnung relevant |
 | Login-E-Mail | Nein, hier | Wechsel über [Anmeldedaten](/help/employee/account-credentials) |
 

@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from sqlalchemy.orm import selectinload
 from sqlmodel import Session, select
 
+from database.enums import Gender
 from database.models import Address, Person
 from web_api.auth.password_policy import validate_password
 from web_api.auth.service import hash_password, verify_password
@@ -18,6 +19,7 @@ class ProfileData:
     l_name: str
     email: str
     phone_nr: str | None
+    gender: Gender | None
     street: str | None
     postal_code: str | None
     city: str | None
@@ -46,6 +48,7 @@ def load_profile(session: Session, web_user: WebUser) -> ProfileData | None:
         l_name=person.l_name,
         email=person.email,
         phone_nr=person.phone_nr,
+        gender=person.gender,
         street=addr.street if addr else None,
         postal_code=addr.postal_code if addr else None,
         city=addr.city if addr else None,
@@ -58,6 +61,7 @@ def update_profile(
     *,
     email: str,
     phone_nr: str | None,
+    gender: Gender | None,
     street: str | None,
     postal_code: str | None,
     city: str | None,
@@ -81,6 +85,7 @@ def update_profile(
 
     person.email = email.strip()
     person.phone_nr = (phone_nr or "").strip() or None
+    person.gender = gender
 
     has_addr_input = any(v and v.strip() for v in (street, postal_code, city))
     addr = person.address
@@ -121,6 +126,7 @@ def update_profile(
         l_name=person.l_name,
         email=person.email,
         phone_nr=person.phone_nr,
+        gender=person.gender,
         street=addr_after.street if addr_after else None,
         postal_code=addr_after.postal_code if addr_after else None,
         city=addr_after.city if addr_after else None,

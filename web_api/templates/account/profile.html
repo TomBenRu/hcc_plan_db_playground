@@ -150,6 +150,19 @@
                     Vor- und Nachname werden von der Einsatzplanung gepflegt.
                 </p>
 
+                {% set current_gender = form_gender if form_gender is defined else (profile.gender.name if profile.gender else '') %}
+                <div>
+                    <label for="gender" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
+                        Geschlecht <span class="text-slate-400 dark:text-slate-500 font-normal">(optional)</span>
+                    </label>
+                    <select class="field-input" id="gender" name="gender">
+                        <option value=""       {% if not current_gender %}selected{% endif %}>—</option>
+                        <option value="female" {% if current_gender == 'female' %}selected{% endif %}>weiblich</option>
+                        <option value="male"   {% if current_gender == 'male' %}selected{% endif %}>männlich</option>
+                        <option value="divers" {% if current_gender == 'divers' %}selected{% endif %}>divers</option>
+                    </select>
+                </div>
+
                 <div>
                     <label for="email" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1.5">
                         E-Mail-Adresse

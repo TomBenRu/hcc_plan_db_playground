@@ -5,6 +5,7 @@ from fastapi import APIRouter, BackgroundTasks, Cookie, Depends, Form, Query, Re
 from fastapi.responses import HTMLResponse, RedirectResponse
 from sqlmodel import Session
 
+from database.enums import Gender
 from web_api.account.service import change_password, load_profile, update_profile
 from web_api.auth.cookies import set_auth_cookies
 from web_api.auth.dependencies import LoggedInUser
@@ -62,6 +63,7 @@ def profile_update(
     user: LoggedInUser,
     email: str = Form(...),
     phone_nr: str = Form(""),
+    gender: str = Form(""),
     street: str = Form(""),
     postal_code: str = Form(""),
     city: str = Form(""),
@@ -85,6 +87,14 @@ def profile_update(
     if len(phone_nr.strip()) > 50:
         errors.append("Die Telefonnummer darf höchstens 50 Zeichen haben.")
 
+    gender_raw = gender.strip()
+    parsed_gender: Gender | None = None
+    if gender_raw:
+        if gender_raw in Gender.__members__:
+            parsed_gender = Gender[gender_raw]
+        else:
+            errors.append("Ungültiges Geschlecht.")
+
     if errors:
         return templates.TemplateResponse(
             "account/profile.html",
@@ -97,6 +107,7 @@ def profile_update(
                 "errors": errors,
                 "form_email": email_clean,
                 "form_phone": phone_nr,
+                "form_gender": gender_raw,
                 "form_street": street,
                 "form_postal_code": postal_code,
                 "form_city": city,
@@ -108,6 +119,7 @@ def profile_update(
         user,
         email=email_clean,
         phone_nr=phone_nr,
+        gender=parsed_gender,
         street=street,
         postal_code=postal_code,
         city=city,

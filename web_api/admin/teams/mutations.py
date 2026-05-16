@@ -530,11 +530,14 @@ def hard_delete_location(
         )
     lpp_count = guards.count_any_location_plan_periods(session, location.id)
     if lpp_count > 0:
+        period_word = "Planperiode" if lpp_count == 1 else "Planperioden"
         raise HTTPException(
             status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=(
-                f"Endgültiges Löschen nicht möglich — {lpp_count} Location-PlanPeriod(n) "
-                "existieren."
+                f"Endgültiges Löschen nicht möglich: Der Standort ist noch mit "
+                f"{lpp_count} {period_word} verknüpft (aktiv oder historisch). "
+                "Ein Hard-Delete würde Planungsdaten zerstören — der Standort "
+                "bleibt soft-deleted erhalten."
             ),
         )
     loc_id_for_log = str(location.id)

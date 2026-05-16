@@ -215,6 +215,53 @@ def test_soft_delete_location_blocked_by_lpp(
     assert fresh.prep_delete is None
 
 
+def test_hard_delete_location_blocked_by_any_lpp_renders_drawer_with_error(
+    as_admin, session: Session, project: Project
+) -> None:
+    """Hard-Delete einer soft-deleted Location mit historischer LPP darf NICHT
+    durchgehen — User soll den Banner im Drawer sehen (200 + error-Text),
+    nicht den blanken 422 ohne Detail.
+
+    Regression: vor 2026-05-16 fehlte im Location-Endpoint der try/except-
+    Block, der die HTTPException in einen Drawer-Render mit Banner umwandelt
+    (Spiegel zu hard_delete_person_endpoint).
+    """
+    team = Team(name="TeamLocHistLPP", project=project)
+    loc = LocationOfWork(
+        name="HistLPPLoc",
+        project=project,
+        prep_delete=datetime.datetime.now(datetime.timezone.utc),
+    )
+    session.add_all([team, loc])
+    session.commit()
+    pp = PlanPeriod(
+        team=team,
+        start=date.today() - timedelta(days=180),
+        end=date.today() - timedelta(days=150),
+        prep_delete=datetime.datetime.now(datetime.timezone.utc),  # historisch
+    )
+    session.add(pp)
+    session.commit()
+    lpp = LocationPlanPeriod(plan_period=pp, location_of_work=loc)
+    session.add(lpp)
+    session.commit()
+    session.refresh(loc)
+    loc_id = loc.id
+
+    resp = as_admin.request(
+        "DELETE",
+        f"/admin/teams/locations/{loc_id}",
+        data={"name_confirmation": "HistLPPLoc"},
+    )
+    # Drawer-Render mit Banner statt blanker 422
+    assert resp.status_code == 200
+    assert "Endgültiges Löschen nicht möglich" in resp.text
+    assert "Planperiode" in resp.text  # verstaendlicher Begriff statt "LPP"
+    session.expire_all()
+    assert session.get(LocationOfWork, loc_id) is not None, \
+        "Location mit LPP-Historie darf NICHT weg"
+
+
 def test_soft_delete_location_without_lpp(
     as_admin, session: Session, project: Project
 ) -> None:

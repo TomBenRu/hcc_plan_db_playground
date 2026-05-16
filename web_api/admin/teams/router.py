@@ -1346,9 +1346,16 @@ async def hard_delete_location_endpoint(
     location = session.get(LocationOfWork, location_id)
     if location is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Standort nicht gefunden")
-    mutations.hard_delete_location(
-        session, location=location, name_confirmation=name_confirmation, actor=user
-    )
+    try:
+        mutations.hard_delete_location(
+            session, location=location, name_confirmation=name_confirmation, actor=user
+        )
+    except HTTPException as exc:
+        if exc.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY:
+            return _render_location_drawer(
+                request, location, user, session=session, error=exc.detail
+            )
+        raise
     from fastapi.responses import Response
 
     resp = Response(status_code=status.HTTP_200_OK)

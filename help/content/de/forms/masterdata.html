@@ -20,7 +20,7 @@
         <h2>Hauptfunktionen</h2>
         <ul class="feature-list">
             <li><strong>Mitarbeiter-Verwaltung</strong> - Bearbeiten von Plan-Konfiguration pro Person (Tageszeiten, Skills, Standort-Präferenzen). Anlage neuer Mitarbeiter erfolgt im Web-UI unter <code>/admin/teams</code>.</li>
-            <li><strong>Einrichtungs-Management</strong> - Zentrale Verwaltung aller Arbeitsstandorte und Facility-Informationen</li>
+            <li><strong>Einrichtungs-Management</strong> - Bearbeiten von Plan-Konfiguration pro Standort (Mindestbesetzung, Tageszeiten, FixedCast, Skill-Groups). Anlage neuer Standorte erfolgt im Web-UI unter <code>/admin/teams</code>.</li>
             <li><strong>Datenqualitäts-Kontrolle</strong> - Validierung und Konsistenzprüfung aller eingegebenen Stammdaten</li>
             <li><strong>Suchfunktionen</strong> - Schnelles Auffinden und Filtern von Mitarbeitern und Einrichtungen</li>
             <li><strong>Bulk-Operationen</strong> - Effiziente Bearbeitung mehrerer Datensätze gleichzeitig</li>
@@ -32,20 +32,7 @@
         <p>Mitarbeiter werden ausschließlich im Web-UI unter <code>/admin/teams</code> angelegt. Im Desktop steht weiterhin der Mitarbeiter-Tab zur Verfügung, um Plan-Konfiguration (Tageszeiten, Skills, Standort-Präferenzen, Partner-Präferenzen) pro Person zu pflegen.</p>
 
         <h3>Neue Einrichtung anlegen</h3>
-        <ol>
-            <li>Wechseln Sie zum Tab <strong>"Facilities"</strong> (Einrichtungen)</li>
-            <li>Klicken Sie auf <strong>"Create Location"</strong></li>
-            <li>Geben Sie alle relevanten Standortdetails ein:
-                <ul class="feature-list">
-                    <li><strong>Name</strong> - Eindeutige Bezeichnung der Einrichtung</li>
-                    <li><strong>Adresse</strong> - Vollständige Anschrift mit Straße und Hausnummer</li>
-                    <li><strong>Stadt</strong> - Ort der Einrichtung</li>
-                    <li><strong>Postleitzahl</strong> - Korrekte PLZ</li>
-                    <li><strong>Kontaktdaten</strong> - Telefon und E-Mail der Einrichtung</li>
-                </ul>
-            </li>
-            <li>Bestätigen Sie die Eingabe mit <strong>"OK"</strong></li>
-        </ol>
+        <p>Standorte werden ausschließlich im Web-UI unter <code>/admin/teams</code> angelegt. Im Desktop steht weiterhin der Facilities-Tab zur Verfügung, um Plan-Konfiguration (Mindestbesetzung, Tageszeiten, FixedCast, Skill-Groups) pro Standort zu pflegen.</p>
 
         <h2>Tastaturkürzel</h2>
         <div class="keyboard-shortcuts">
@@ -108,10 +95,8 @@
 
         <h3>Facilities-Tab (Einrichtungs-Management)</h3>
         <ul class="feature-list">
-            <li><strong>"Create Location"</strong> - Dialog zur Erstellung einer neuen Einrichtung</li>
-            <li><strong>"Edit Location"</strong> - Bearbeitung der ausgewählten Einrichtung</li>
-            <li><strong>"Delete Location"</strong> - Löschen der ausgewählten Einrichtung mit Sicherheitsabfrage</li>
-            <li><strong>"Location Settings"</strong> - Erweiterte standort-spezifische Konfigurationsoptionen</li>
+            <li><strong>"Edit Facility"</strong> - Bearbeitet ausgewählten Standort inkl. Plan-Konfiguration. Anlage neuer Standorte im Web-UI.</li>
+            <li><strong>"Delete Facility"</strong> - Löschen der ausgewählten Einrichtung mit Sicherheitsabfrage</li>
             <li><strong>Einrichtungs-Liste</strong> - Übersicht aller Standorte mit Detail-Informationen</li>
         </ul>
 
@@ -129,13 +114,7 @@
         <p>Die Anlage neuer Mitarbeiter erfolgt im Web-UI unter <code>/admin/teams</code>. Nach Anlage im Web öffnen Sie den entsprechenden Mitarbeiter im Desktop-Mitarbeiter-Tab, um Plan-Konfiguration (Tageszeiten, Skills, Standort- und Partner-Präferenzen) zu pflegen.</p>
 
         <h3>Neue Betriebsstandorte einrichten</h3>
-        <ol>
-            <li><strong>Standort-Analyse</strong> - Sammeln Sie alle relevanten Facility-Informationen</li>
-            <li><strong>Adress-Validierung</strong> - Verifizieren Sie alle Adressen und Postleitzahlen</li>
-            <li><strong>Systematische Eingabe</strong> - Legen Sie Standorte in logischer Reihenfolge an</li>
-            <li><strong>Kontaktdaten-Pflege</strong> - Erfassen Sie spezifische Ansprechpartner pro Standort</li>
-            <li><strong>Konfiguration</strong> - Setzen Sie standort-spezifische Einstellungen über "Location Settings"</li>
-        </ol>
+        <p>Die Anlage neuer Standorte erfolgt im Web-UI unter <code>/admin/teams</code> (inkl. Adresse und Team-Zuordnung). Im Desktop öffnen Sie den entsprechenden Standort im Facilities-Tab, um Plan-Konfiguration (Mindestbesetzung, Tageszeiten, FixedCast, Skill-Groups) zu pflegen.</p>
 
         <h3>Regelmäßige Stammdaten-Wartung</h3>
         <ol>

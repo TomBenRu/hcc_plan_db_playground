@@ -21,7 +21,6 @@ from gui import frm_time_of_day, frm_comb_loc_possible, frm_actor_loc_prefs, frm
 from commands import command_base_classes
 from commands.database_commands import person_commands, location_of_work_commands, \
     location_plan_period_commands, event_group_commands, address_commands, actor_partner_loc_pref_commands
-from gui.api_client.client import ApiError
 from tools.helper_functions import date_to_string, setup_form_help
 from .frm_fixed_cast import DlgFixedCastBuilderLocationOfWork
 from gui.custom_widgets.tabbars import TabBar
@@ -499,9 +498,6 @@ class WidgetLocationsOfWork(QWidget):
 
         self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
 
-        self.bt_new = QPushButton(QIcon(os.path.join(self.path_to_icons, 'store--plus.png')), ' ' + self.tr('Create Facility'))
-        self.bt_new.setFixedWidth(200)
-        self.bt_new.clicked.connect(self.create_location)
         self.bt_edit = QPushButton(QIcon(os.path.join(self.path_to_icons, 'store--pencil.png')), ' ' + self.tr('Edit Facility'))
         self.bt_edit.setFixedWidth(200)
         self.bt_edit.clicked.connect(self.edit_location)
@@ -509,7 +505,6 @@ class WidgetLocationsOfWork(QWidget):
         self.bt_delete.setFixedWidth(200)
         self.bt_delete.clicked.connect(self.delete_location)
 
-        self.layout_buttons.addWidget(self.bt_new)
         self.layout_buttons.addWidget(self.bt_edit)
         self.layout_buttons.addWidget(self.bt_delete)
 
@@ -523,11 +518,6 @@ class WidgetLocationsOfWork(QWidget):
         self.table_locations.setSortingEnabled(False)
         self.table_locations.put_data_to_table()
         self.table_locations.setSortingEnabled(True)
-
-    def create_location(self):
-        dlg = DlgLocationCreate(self, self.project_id)
-        dlg.exec()
-        self.refresh_table()
 
     def edit_location(self):
         row = self.table_locations.currentRow()
@@ -629,7 +619,6 @@ class DlgLocationData(QDialog):
 
         self.project_id = project_id
         self.project = db_services.Project.get(project_id)
-        self.controller = command_base_classes.ContrExecUndoRedo()
 
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
@@ -655,55 +644,6 @@ class DlgLocationData(QDialog):
         self.group_address_data_layout.addRow(self.tr('Descriptive Name'), self.le_descriptive_name)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
-        self.button_box.accepted.connect(self.save_location)
-        self.button_box.rejected.connect(self.reject)
-
-    def save_location(self):
-        street = self.le_street.text().strip()
-        postal_code = self.le_postal_code.text().strip()
-        city = self.le_city.text().strip()
-        descriptive_name = self.le_descriptive_name.text().strip()
-        address_is_set = street or postal_code or city or descriptive_name
-        if address_is_set:
-            address = schemas.AddressCreate(project_id=self.project_id, street=street, postal_code=postal_code, city=city, name=descriptive_name)
-        else:
-            address = None
-
-        location = schemas.LocationOfWorkCreate(name=self.le_name.text(), address=address)
-
-        cmd = location_of_work_commands.Create(location, self.project_id)
-        try:
-            self.controller.execute(cmd)
-        except ApiError as exc:
-            # 409 Conflict: typischerweise UNIQUE-Violation (Name bereits vergeben).
-            # Andere ApiError: Server-/Validierungsproblem — als saubere Message anzeigen.
-            if exc.status_code == 409:
-                QMessageBox.warning(
-                    self,
-                    self.tr('Facility — Duplicate'),
-                    self.tr('Ein Standort mit diesem Namen existiert bereits (ggf. zum Loeschen '
-                            'vorgemerkt).\nBitte waehle einen anderen Namen.'),
-                )
-            else:
-                QMessageBox.critical(
-                    self,
-                    self.tr('Facility Create Error'),
-                    self.tr('Fehler: {}').format(exc.detail),
-                )
-            return
-        QMessageBox.information(self, self.tr('Facility Created'), str(cmd.created_location))
-        self.close()
-
-    def reject(self):
-        super().reject()
-
-
-class DlgLocationCreate(DlgLocationData):
-    def __init__(self, parent: QWidget, project_id: UUID):
-        super().__init__(parent, project_id=project_id)
-
-        self.setWindowTitle(self.tr('Facility Data'))
-        self.layout.addWidget(self.button_box)
 
 
 class DlgLocationModify(DlgLocationData):
@@ -715,6 +655,9 @@ class DlgLocationModify(DlgLocationData):
         self.controller = command_base_classes.ContrExecUndoRedo()
         self.location_of_work = self.get_location_of_work()
         self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
+
+        self.button_box.accepted.connect(self.save_location)
+        self.button_box.rejected.connect(self.reject)
 
         self._setup_ui()
         self._autofill_widgets()

@@ -8,14 +8,13 @@ from uuid import UUID
 
 from PySide6.QtCore import Qt, QCoreApplication
 from PySide6.QtGui import QGuiApplication, QIcon
-from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QMessageBox, QLineEdit, QComboBox, \
+from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QMessageBox, QLabel, \
     QGroupBox, QPushButton, QDialogButtonBox, QTableWidget, QTableWidgetItem, QAbstractItemView, QHBoxLayout, QSpinBox, \
     QFormLayout, QHeaderView, QMainWindow
 
 from gui.frm_skill_groups import DlgSkillGroups
 from gui.api_client.client import get_api_client
 from database import db_services, schemas
-from database.enums import Gender
 from database.special_schema_requests import get_curr_team_of_person_at_date, \
     get_curr_team_of_location_at_date, get_next_assignment_of_location
 from gui import frm_time_of_day, frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, \
@@ -207,45 +206,9 @@ class DlgPersonData(QDialog):
         self._setup_ui()
 
     def _setup_ui(self):
-        self.setMinimumWidth(350)
+        self.setMinimumWidth(380)
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
-
-        self.group_person_data = QGroupBox(self.tr('Personal Data'))
-        self.group_person_data_layout = QFormLayout(self.group_person_data)
-        self.layout.addWidget(self.group_person_data)
-
-        self.group_address_data = QGroupBox(self.tr('Address Data'))
-        self.group_address_data_layout = QFormLayout(self.group_address_data)
-        self.layout.addWidget(self.group_address_data)
-
-        self.le_f_name = QLineEdit()
-        self.le_l_name = QLineEdit()
-        self.le_email = QLineEdit()
-        self.cb_gender = QComboBox()
-        self.cb_gender.addItems([n.name for n in Gender])
-        self.le_phone_nr = QLineEdit()
-        self.le_street = QLineEdit()
-        self.le_postal_code = QLineEdit()
-        self.le_city = QLineEdit()
-        self.le_descriptive_name = QLineEdit()
-        self.le_descriptive_name.setPlaceholderText(self.tr('Optional, e.g. "John Doe"'))
-
-        # Stammdaten werden im Web unter /admin/teams gepflegt — Anzeige read-only.
-        for w in (self.le_f_name, self.le_l_name, self.le_email, self.le_phone_nr,
-                  self.le_street, self.le_postal_code, self.le_city, self.le_descriptive_name):
-            w.setReadOnly(True)
-        self.cb_gender.setEnabled(False)
-
-        self.group_person_data_layout.addRow(self.tr('First Name'), self.le_f_name)
-        self.group_person_data_layout.addRow(self.tr('Last Name'), self.le_l_name)
-        self.group_person_data_layout.addRow(self.tr('Email'), self.le_email)
-        self.group_person_data_layout.addRow(self.tr('Gender'), self.cb_gender)
-        self.group_person_data_layout.addRow(self.tr('Phone'), self.le_phone_nr)
-        self.group_address_data_layout.addRow(self.tr('Street'), self.le_street)
-        self.group_address_data_layout.addRow(self.tr('ZIP'), self.le_postal_code)
-        self.group_address_data_layout.addRow(self.tr('City'), self.le_city)
-        self.group_address_data_layout.addRow(self.tr('Descriptive Name'), self.le_descriptive_name)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
         self.button_box.accepted.connect(self.accept)
@@ -263,12 +226,43 @@ class DlgPersonModify(DlgPersonData):
 
     def _setup_ui(self):
         super()._setup_ui()
-        self.group_specific_data = QGroupBox(self.tr('Specific Data'))
+
+        # Kompakter Header: Name (gross) + Sekundaerzeile (Email/Phone/Gender)
+        # + Adresse. Web-Link rechts oben. Stammdaten sind read-only Anzeige —
+        # Bearbeitung im Web /admin/teams (siehe Trennlinie 591e361/7bf91f3).
+        header_widget = QWidget()
+        header_layout = QHBoxLayout(header_widget)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+
+        info_layout = QVBoxLayout()
+        info_layout.setSpacing(2)
+        self.lb_name = QLabel()
+        self.lb_name.setStyleSheet('font-size: 15px; font-weight: 600;')
+        self.lb_address = QLabel()
+        self.lb_address.setStyleSheet('color: #9ca3af;')
+        self.lb_email = QLabel()
+        self.lb_email.setStyleSheet('color: #9ca3af;')
+        self.lb_phone = QLabel()
+        self.lb_phone.setStyleSheet('color: #9ca3af;')
+        info_layout.addWidget(self.lb_name)
+        info_layout.addWidget(self.lb_address)
+        info_layout.addWidget(self.lb_email)
+        info_layout.addWidget(self.lb_phone)
+        header_layout.addLayout(info_layout, 1)
+
+        self.bt_edit_in_web = QPushButton('↗  ' + self.tr('Web'),
+                                          clicked=self._open_in_web)
+        self.bt_edit_in_web.setToolTip(self.tr('Stammdaten im Web bearbeiten'))
+        self.bt_edit_in_web.setFlat(True)
+        header_layout.addWidget(self.bt_edit_in_web, 0, Qt.AlignmentFlag.AlignTop)
+
+        self.layout.addWidget(header_widget)
+
+        # Plan-Konfiguration als Hauptsektion
+        self.group_specific_data = QGroupBox(self.tr('Plan-Konfiguration'))
         self.group_specific_data_layout = QFormLayout(self.group_specific_data)
         self.layout.addWidget(self.group_specific_data)
 
-        self.le_id = QLineEdit()
-        self.le_id.setReadOnly(True)
         self.spin_num_requested_assignments = QSpinBox()
         self.spin_num_requested_assignments.setMinimum(0)
         self.bt_time_of_days = QPushButton(self.tr('Edit...'), clicked=self.edit_time_of_days)
@@ -278,17 +272,12 @@ class DlgPersonModify(DlgPersonData):
                                                       clicked=self.edit_partner_location_prefs)
         self.bt_skills = QPushButton(self.tr('Edit...'), clicked=self.select_skills)
 
-        self.group_person_data_layout.addRow(self.tr('ID'), self.le_id)
         self.group_specific_data_layout.addRow(self.tr('Requested Assignments'), self.spin_num_requested_assignments)
         self.group_specific_data_layout.addRow(self.tr('Times of Day'), self.bt_time_of_days)
         self.group_specific_data_layout.addRow(self.tr('Location Combinations'), self.bt_comb_loc_possible)
         self.group_specific_data_layout.addRow(self.tr('Location Preferences'), self.bt_actor_loc_prefs)
         self.group_specific_data_layout.addRow(self.tr('Employee Preferences'), self.bt_actor_partner_loc_prefs)
         self.group_specific_data_layout.addRow(self.tr('Skills'), self.bt_skills)
-
-        self.bt_edit_in_web = QPushButton(self.tr('Stammdaten im Web bearbeiten…'),
-                                          clicked=self._open_in_web)
-        self.group_person_data_layout.addRow('', self.bt_edit_in_web)
 
         self.layout.addWidget(self.button_box)
         self.button_box.rejected.connect(self.reject)
@@ -315,25 +304,32 @@ class DlgPersonModify(DlgPersonData):
         super().reject()
 
     def autofill(self):
-        self.fill_person_data()
-        self.fill_address_data()
+        self.fill_header()
         self.fill_requested_assignm()
 
-    def fill_person_data(self):
-        self.le_id.setText(str(self.person.id))
-        self.le_f_name.setText(self.person.f_name)
-        self.le_l_name.setText(self.person.l_name)
-        self.le_email.setText(self.person.email)
-        self.cb_gender.setCurrentText(self.person.gender.name if self.person.gender else 'divers')
-        self.le_phone_nr.setText(self.person.phone_nr)
+    def fill_header(self):
+        self.lb_name.setText(f'{self.person.f_name} {self.person.l_name}')
 
-    def fill_address_data(self):
-        if not self.person.address:
-            return
-        self.le_street.setText(self.person.address.street)
-        self.le_postal_code.setText(self.person.address.postal_code)
-        self.le_city.setText(self.person.address.city)
-        self.le_descriptive_name.setText(self.person.address.name or '')
+        if self.person.address:
+            addr = self.person.address
+            addr_parts = [addr.street, ' '.join(filter(None, [addr.postal_code, addr.city]))]
+            addr_text = ', '.join(p for p in addr_parts if p)
+            self.lb_address.setText(addr_text)
+            self.lb_address.setVisible(bool(addr_text))
+        else:
+            self.lb_address.setVisible(False)
+
+        if self.person.email:
+            self.lb_email.setText(self.tr('Email: {}').format(self.person.email))
+            self.lb_email.setVisible(True)
+        else:
+            self.lb_email.setVisible(False)
+
+        if self.person.phone_nr:
+            self.lb_phone.setText(self.tr('Tel.: {}').format(self.person.phone_nr))
+            self.lb_phone.setVisible(True)
+        else:
+            self.lb_phone.setVisible(False)
 
     def fill_requested_assignm(self):
         self.spin_num_requested_assignments.setValue(self.person.requested_assignments)
@@ -521,38 +517,13 @@ class DlgLocationData(QDialog):
     def __init__(self, parent: QWidget, project_id: UUID):
         super().__init__(parent)
 
-        self.setMinimumWidth(350)
+        self.setMinimumWidth(380)
 
         self.project_id = project_id
         self.project = db_services.Project.get(project_id)
 
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
-
-        self.group_location_data = QGroupBox(self.tr('Facility Data'))
-        self.group_location_data_layout = QFormLayout(self.group_location_data)
-        self.layout.addWidget(self.group_location_data)
-        self.group_address_data = QGroupBox(self.tr('Address Data'))
-        self.group_address_data_layout = QFormLayout(self.group_address_data)
-        self.layout.addWidget(self.group_address_data)
-
-        self.le_name = QLineEdit()
-        self.le_street = QLineEdit()
-        self.le_postal_code = QLineEdit()
-        self.le_city = QLineEdit()
-        self.le_descriptive_name = QLineEdit()
-        self.le_descriptive_name.setPlaceholderText(self.tr('Optional, e.g. "Clinic XYZ"'))
-
-        # Stammdaten werden im Web unter /admin/teams gepflegt — Anzeige read-only.
-        for w in (self.le_name, self.le_street, self.le_postal_code,
-                  self.le_city, self.le_descriptive_name):
-            w.setReadOnly(True)
-
-        self.group_location_data_layout.addRow(self.tr('Name'), self.le_name)
-        self.group_address_data_layout.addRow(self.tr('Street'), self.le_street)
-        self.group_address_data_layout.addRow(self.tr('ZIP Code'), self.le_postal_code)
-        self.group_address_data_layout.addRow(self.tr('City'), self.le_city)
-        self.group_address_data_layout.addRow(self.tr('Descriptive Name'), self.le_descriptive_name)
 
         self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
 
@@ -574,22 +545,42 @@ class DlgLocationModify(DlgLocationData):
         self._autofill_widgets()
 
     def _setup_ui(self):
-        self.group_specific_data = QGroupBox(self.tr('Specific Data'))
+        # Kompakter Header: Standort-Name (gross) + Adress-Zeile. Web-Link
+        # rechts oben. Stammdaten sind read-only Anzeige — Bearbeitung im Web
+        # /admin/teams (siehe Trennlinie 591e361/7bf91f3).
+        header_widget = QWidget()
+        header_layout = QHBoxLayout(header_widget)
+        header_layout.setContentsMargins(0, 0, 0, 0)
+
+        info_layout = QVBoxLayout()
+        info_layout.setSpacing(2)
+        self.lb_name = QLabel()
+        self.lb_name.setStyleSheet('font-size: 15px; font-weight: 600;')
+        self.lb_address = QLabel()
+        self.lb_address.setStyleSheet('color: #9ca3af;')
+        info_layout.addWidget(self.lb_name)
+        info_layout.addWidget(self.lb_address)
+        header_layout.addLayout(info_layout, 1)
+
+        self.bt_edit_in_web = QPushButton('↗  ' + self.tr('Web'),
+                                          clicked=self._open_in_web)
+        self.bt_edit_in_web.setToolTip(self.tr('Stammdaten im Web bearbeiten'))
+        self.bt_edit_in_web.setFlat(True)
+        header_layout.addWidget(self.bt_edit_in_web, 0, Qt.AlignmentFlag.AlignTop)
+
+        self.layout.addWidget(header_widget)
+
+        # Plan-Konfiguration als Hauptsektion
+        self.group_specific_data = QGroupBox(self.tr('Plan-Konfiguration'))
         self.layout_group_specific_data = QFormLayout(self.group_specific_data)
         self.layout.addWidget(self.group_specific_data)
 
-        self.le_id = QLineEdit()
-        self.le_id.setReadOnly(True)
         self.spin_nr_actors = QSpinBox()
         self.spin_nr_actors.setMinimum(1)
         self.bt_time_of_days = QPushButton(self.tr('Edit...'), clicked=self.edit_time_of_days)
         self.bt_fixed_cast = QPushButton(self.tr('Edit...'), clicked=self.edit_fixed_cast)
         self.bt_skill_groups = QPushButton(self.tr('Edit...'), clicked=self.edit_skill_groups)
-        self.bt_edit_in_web = QPushButton(self.tr('Stammdaten im Web bearbeiten…'),
-                                          clicked=self._open_in_web)
 
-        self.group_location_data_layout.addRow(self.tr('ID'), self.le_id)
-        self.group_location_data_layout.addRow('', self.bt_edit_in_web)
         self.layout_group_specific_data.addRow(self.tr('Staff Count'), self.spin_nr_actors)
         self.layout_group_specific_data.addRow(self.tr('Times of Day'), self.bt_time_of_days)
         self.layout_group_specific_data.addRow(self.tr('Desired Staff'), self.bt_fixed_cast)
@@ -600,13 +591,16 @@ class DlgLocationModify(DlgLocationData):
         webbrowser.open(f"{get_api_client().base_url}/admin/teams?tab=locations")
 
     def _autofill_widgets(self):
-        self.le_name.setText(self.location_of_work.name)
-        self.le_id.setText(str(self.location_of_work.id))
+        self.lb_name.setText(self.location_of_work.name)
+
         if self.location_of_work.address:
-            self.le_street.setText(self.location_of_work.address.street)
-            self.le_postal_code.setText(self.location_of_work.address.postal_code)
-            self.le_city.setText(self.location_of_work.address.city)
-            self.le_descriptive_name.setText(self.location_of_work.address.name or '')
+            addr = self.location_of_work.address
+            addr_parts = [addr.street, ' '.join(filter(None, [addr.postal_code, addr.city]))]
+            self.lb_address.setText(', '.join(p for p in addr_parts if p))
+            self.lb_address.setVisible(True)
+        else:
+            self.lb_address.setVisible(False)
+
         self.spin_nr_actors.setValue(self.location_of_work.nr_actors)
 
     def save_location(self):

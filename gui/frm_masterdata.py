@@ -287,7 +287,11 @@ class DlgPersonModify(QDialog):
         super().accept()
 
     def reject(self):
-        self.controller.undo_all()
+        # Cancel verwirft nur eine etwaige requested_assignments-Aenderung in
+        # der Spinbox. Sub-Dialog-Aenderungen (TimeOfDay, Skills, Praeferenzen
+        # etc.) sind beim OK des jeweiligen Sub-Dialogs sofort persistent —
+        # ein controller.undo_all() hier wuerde sie alle ruecksetzen, was nach
+        # der Schicht-B-Migration kontra-intuitiv ist.
         super().reject()
 
     def autofill(self):
@@ -596,7 +600,11 @@ class DlgLocationModify(QDialog):
         self.accept()
 
     def reject(self):
-        self.controller.undo_all()
+        # Cancel verwirft nur eine etwaige nr_actors-Aenderung in der Spinbox.
+        # Sub-Dialog-Aenderungen (TimeOfDay, FixedCast, SkillGroups) sind beim
+        # OK des jeweiligen Sub-Dialogs sofort persistent — ein
+        # controller.undo_all() hier wuerde sie alle ruecksetzen, was nach der
+        # Schicht-B-Migration kontra-intuitiv ist.
         super().reject()
 
     def get_location_of_work(self):

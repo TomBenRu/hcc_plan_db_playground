@@ -1,6 +1,5 @@
 """Command-Klassen für TeamLocationAssign (Standort-Team-Zuweisung).
 
-Analoges Pendant zu `team_actor_assignment_commands` für Standorte statt Personen.
 Wird intern von `location_of_work_commands.AssignToTeam` und `LeaveTeam` über
 `ContrExecUndoRedo` als atomare Unter-Commands verwendet.
 

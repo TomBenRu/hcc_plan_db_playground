@@ -17,7 +17,7 @@ from database.enums import Gender
 from database.special_schema_requests import get_curr_team_of_person_at_date, \
     get_curr_team_of_location_at_date, get_next_assignment_of_location
 from gui import frm_time_of_day, frm_comb_loc_possible, frm_actor_loc_prefs, frm_partner_location_prefs, \
-    frm_assign_to_team, frm_skills, frm_team_assignments
+    frm_assign_to_team, frm_skills
 from commands import command_base_classes
 from commands.database_commands import person_commands, location_of_work_commands, \
     location_plan_period_commands, event_group_commands, address_commands, actor_partner_loc_pref_commands
@@ -204,37 +204,16 @@ class TablePersons(QTableWidget):
             self.setItem(row, 6, QTableWidgetItem(p.address.postal_code if p.address else ''))
             self.setItem(row, 7, QTableWidgetItem(p.address.city if p.address else ''))
 
-            # Team-Spalte: Text mit allen Teams + Edit-Button für Multi-Team-Support
+            # Team-Spalte: Komma-separierte Team-Namen der Person (heute).
+            # Bearbeitung der Team-Zuordnungen erfolgt im Web-UI unter /admin/teams.
             names = teams_by_person.get(p.id, [])
             team_names = ', '.join(names) if names else self.tr('No Team')
-
-            widget_teams = QWidget()
-            layout_teams = QHBoxLayout(widget_teams)
-            layout_teams.setContentsMargins(2, 2, 2, 2)
-            layout_teams.setSpacing(4)
-
-            lb_teams = QLabel(team_names)
-            lb_teams.setToolTip(team_names if names else '')
-            bt_edit_teams = QPushButton('...')
-            bt_edit_teams.setMaximumWidth(30)
-            bt_edit_teams.setToolTip(self.tr('Edit team assignments'))
-            bt_edit_teams.clicked.connect(partial(self.edit_team_assignments, p.id))
-
-            layout_teams.addWidget(lb_teams, 1)
-            layout_teams.addWidget(bt_edit_teams, 0)
-
-            self.setCellWidget(row, 8, widget_teams)
+            item_teams = QTableWidgetItem(team_names)
+            item_teams.setToolTip(team_names if names else '')
+            self.setItem(row, 8, item_teams)
 
         # Sortierung wieder aktivieren
         self.setSortingEnabled(True)
-
-    def edit_team_assignments(self, person_id: UUID):
-        """Öffnet den Dialog zur Verwaltung der Team-Zuordnungen einer Person."""
-        person = db_services.Person.get(person_id)
-        dlg = frm_team_assignments.DlgTeamAssignments(self, self.project_id, person)
-        if dlg.exec():
-            self.persons = db_services.Person.get_batch([p.id for p in self.persons])
-            self.put_data_to_table()
 
     def refresh_table(self):
         """Aktualisiert die gesamte Tabelle mit aktuellen Daten."""
@@ -312,7 +291,6 @@ class DlgPersonModify(DlgPersonData):
         self.le_id.setReadOnly(True)
         self.spin_num_requested_assignments = QSpinBox()
         self.spin_num_requested_assignments.setMinimum(0)
-        self.bt_team_assignments = QPushButton(self.tr('Edit...'), clicked=self.edit_team_assignments)
         self.bt_time_of_days = QPushButton(self.tr('Edit...'), clicked=self.edit_time_of_days)
         self.bt_comb_loc_possible = QPushButton(self.tr('Edit...'), clicked=self.edit_comb_loc_possible)
         self.bt_actor_loc_prefs = QPushButton(self.tr('Edit...'), clicked=self.edit_location_prefs)
@@ -321,7 +299,6 @@ class DlgPersonModify(DlgPersonData):
         self.bt_skills = QPushButton(self.tr('Edit...'), clicked=self.select_skills)
 
         self.group_person_data_layout.addRow(self.tr('ID'), self.le_id)
-        self.group_specific_data_layout.addRow(self.tr('Team Assignments'), self.bt_team_assignments)
         self.group_specific_data_layout.addRow(self.tr('Requested Assignments'), self.spin_num_requested_assignments)
         self.group_specific_data_layout.addRow(self.tr('Times of Day'), self.bt_time_of_days)
         self.group_specific_data_layout.addRow(self.tr('Location Combinations'), self.bt_comb_loc_possible)
@@ -399,13 +376,6 @@ class DlgPersonModify(DlgPersonData):
 
     def fill_requested_assignm(self):
         self.spin_num_requested_assignments.setValue(self.person.requested_assignments)
-
-    def edit_team_assignments(self):
-        """Öffnet den Dialog zur Verwaltung der Team-Zuordnungen."""
-        dlg = frm_team_assignments.DlgTeamAssignments(self, self.project_id, self.person)
-        if dlg.exec():
-            self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
-            self.person = db_services.Person.get(self.person.id)
 
     def edit_time_of_days(self):
         dlg = frm_time_of_day.DlgTimeOfDayEditListBuilderPerson(self, self.person).build()

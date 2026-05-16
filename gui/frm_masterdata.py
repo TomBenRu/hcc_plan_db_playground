@@ -9,7 +9,7 @@ from PySide6.QtCore import Qt, QCoreApplication
 from PySide6.QtGui import QGuiApplication, QIcon
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QMessageBox, QLabel, QLineEdit, QComboBox, \
     QGroupBox, QPushButton, QDialogButtonBox, QTableWidget, QTableWidgetItem, QAbstractItemView, QHBoxLayout, QSpinBox, \
-    QFormLayout, QHeaderView, QFileDialog, QMainWindow
+    QFormLayout, QHeaderView, QMainWindow
 
 from gui.frm_skill_groups import DlgSkillGroups
 from database import db_services, schemas
@@ -85,15 +85,6 @@ class WidgetPerson(QWidget):
 
         self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
 
-        self.bt_new = QPushButton(QIcon(os.path.join(self.path_to_icons, 'user--plus.png')), self.tr('Create Person'))
-        self.bt_new.setFixedWidth(200)
-        self.bt_new.clicked.connect(self.create_person)
-
-        self.bt_new_from_xlsx = QPushButton(QIcon(os.path.join(self.path_to_icons, 'file--plus.png')), self.tr('Import People from XLSX'))
-        self.bt_new_from_xlsx.setFixedWidth(200)
-        self.bt_new_from_xlsx.clicked.connect(self.create_persons_from_xlsx)
-        self.bt_new_from_xlsx.setToolTip(self.tr('Import employees from XLSX file.\nColumns: First name, Last name, username'))
-
         self.bt_edit = QPushButton(QIcon(os.path.join(self.path_to_icons, 'user--pencil.png')), self.tr('Edit Person'))
         self.bt_edit.setFixedWidth(200)
         self.bt_edit.clicked.connect(self.edit_person)
@@ -102,8 +93,6 @@ class WidgetPerson(QWidget):
         self.bt_delete.setFixedWidth(200)
         self.bt_delete.clicked.connect(self.delete_person)
 
-        self.layout_buttons.addWidget(self.bt_new)
-        self.layout_buttons.addWidget(self.bt_new_from_xlsx)
         self.layout_buttons.addWidget(self.bt_edit)
         self.layout_buttons.addWidget(self.bt_delete)
 
@@ -120,28 +109,6 @@ class WidgetPerson(QWidget):
         self.table_persons.setSortingEnabled(False)
         self.table_persons.put_data_to_table()
         self.table_persons.setSortingEnabled(True)
-
-    def create_person(self):
-        dlg = DlgPersonCreate(self, self.project_id)
-        if dlg.exec():
-            self.refresh_table()
-            self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
-
-    def create_persons_from_xlsx(self):
-        """
-        Import employees from XLSX file.
-        Columns: First name, Last name, username
-        Fake email and password will be generated.
-        """
-        file_name, _ = QFileDialog.getOpenFileName(self, self.tr('Open XLSX File'), '', self.tr('XLSX Files (*.xlsx)'))
-        if file_name:
-            try:
-                persons = db_services.Person.create_persons_from_xlsx(file_name, self.project_id)
-                self.persons = persons
-                self.table_persons.persons = persons
-                self.refresh_table()
-            except Exception as e:
-                QMessageBox.critical(self, self.tr('Error'), self.tr('Error: {}').format(e))
 
     def edit_person(self):
         row = self.table_persons.currentRow()
@@ -296,10 +263,6 @@ class DlgPersonData(QDialog):
         self.group_person_data_layout = QFormLayout(self.group_person_data)
         self.layout.addWidget(self.group_person_data)
 
-        self.group_auth_data = QGroupBox(self.tr('Login Data'))
-        self.group_auth_data_layout = QFormLayout(self.group_auth_data)
-        self.layout.addWidget(self.group_auth_data)
-
         self.group_address_data = QGroupBox(self.tr('Address Data'))
         self.group_address_data_layout = QFormLayout(self.group_address_data)
         self.layout.addWidget(self.group_address_data)
@@ -310,8 +273,6 @@ class DlgPersonData(QDialog):
         self.cb_gender = QComboBox()
         self.cb_gender.addItems([n.name for n in Gender])
         self.le_phone_nr = QLineEdit()
-        self.le_username = QLineEdit()
-        self.le_password = QLineEdit()
         self.le_street = QLineEdit()
         self.le_postal_code = QLineEdit()
         self.le_city = QLineEdit()
@@ -323,8 +284,6 @@ class DlgPersonData(QDialog):
         self.group_person_data_layout.addRow(self.tr('Email'), self.le_email)
         self.group_person_data_layout.addRow(self.tr('Gender'), self.cb_gender)
         self.group_person_data_layout.addRow(self.tr('Phone'), self.le_phone_nr)
-        self.group_auth_data_layout.addRow(self.tr('Username'), self.le_username)
-        self.group_auth_data_layout.addRow(self.tr('Password'), self.le_password)
         self.group_address_data_layout.addRow(self.tr('Street'), self.le_street)
         self.group_address_data_layout.addRow(self.tr('ZIP'), self.le_postal_code)
         self.group_address_data_layout.addRow(self.tr('City'), self.le_city)
@@ -333,43 +292,6 @@ class DlgPersonData(QDialog):
         self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
-
-
-class DlgPersonCreate(DlgPersonData):
-    def __init__(self, parent: QWidget, project_id: UUID):
-        self.created_person: schemas.PersonShow | None = None
-        self.controller = command_base_classes.ContrExecUndoRedo()
-        super().__init__(parent, project_id)
-
-        self.layout.addWidget(self.button_box)
-
-    def accept(self):
-        street = self.le_street.text().strip()
-        postal_code = self.le_postal_code.text().strip()
-        city = self.le_city.text().strip()
-        descriptive_name = self.le_descriptive_name.text().strip()
-        person_address_is_set = street or postal_code or city or descriptive_name
-        if person_address_is_set:
-            address = schemas.AddressCreate(project_id=self.project_id, street=street, postal_code=postal_code, city=city, name=descriptive_name)
-        else:
-            address = None
-        person = schemas.PersonCreate(f_name=self.le_f_name.text(), l_name=self.le_l_name.text(),
-                                      email=self.le_email.text(), gender=Gender[self.cb_gender.currentText()],
-                                      phone_nr=self.le_phone_nr.text(), username=self.le_username.text(),
-                                      password=self.le_password.text(), address=address)
-
-        create_command = person_commands.Create(person, self.project_id)
-        self.controller.execute(create_command)
-        self.created_person = create_command.created_person
-        QMessageBox.information(self, self.tr('Person Created'),
-                                self.tr('Person {} created in project {}').format(
-                                    self.created_person.full_name,
-                                    self.created_person.project.name))
-        super().accept()
-
-    @property
-    def password(self):
-        return self.le_password.text()
 
 
 class DlgPersonModify(DlgPersonData):
@@ -383,7 +305,6 @@ class DlgPersonModify(DlgPersonData):
 
     def _setup_ui(self):
         super()._setup_ui()
-        self.group_auth_data.close()
         self.group_specific_data = QGroupBox(self.tr('Specific Data'))
         self.group_specific_data_layout = QFormLayout(self.group_specific_data)
         self.layout.addWidget(self.group_specific_data)

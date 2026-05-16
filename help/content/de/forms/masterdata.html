@@ -19,9 +19,8 @@
 
         <h2>Hauptfunktionen</h2>
         <ul class="feature-list">
-            <li><strong>Mitarbeiter-Verwaltung</strong> - Vollständige Personalverwaltung mit Kontaktdaten und Qualifikationen</li>
+            <li><strong>Mitarbeiter-Verwaltung</strong> - Bearbeiten von Plan-Konfiguration pro Person (Tageszeiten, Skills, Standort-Präferenzen). Anlage neuer Mitarbeiter erfolgt im Web-UI unter <code>/admin/teams</code>.</li>
             <li><strong>Einrichtungs-Management</strong> - Zentrale Verwaltung aller Arbeitsstandorte und Facility-Informationen</li>
-            <li><strong>Excel-Import</strong> - Bulk-Import von Mitarbeiterdaten aus Excel-Dateien für effiziente Ersteinrichtung</li>
             <li><strong>Datenqualitäts-Kontrolle</strong> - Validierung und Konsistenzprüfung aller eingegebenen Stammdaten</li>
             <li><strong>Suchfunktionen</strong> - Schnelles Auffinden und Filtern von Mitarbeitern und Einrichtungen</li>
             <li><strong>Bulk-Operationen</strong> - Effiziente Bearbeitung mehrerer Datensätze gleichzeitig</li>
@@ -30,21 +29,7 @@
         <h2>Grundbedienung</h2>
 
         <h3>Neuen Mitarbeiter anlegen</h3>
-        <ol>
-            <li>Wechseln Sie zum Tab <strong>"Employees"</strong> (Mitarbeiter)</li>
-            <li>Klicken Sie auf <strong>"Create Person"</strong></li>
-            <li>Füllen Sie alle erforderlichen Personaldetails aus:
-                <ul class="feature-list">
-                    <li><strong>Vorname</strong> - Vollständiger Vorname des Mitarbeiters</li>
-                    <li><strong>Nachname</strong> - Vollständiger Nachname des Mitarbeiters</li>
-                    <li><strong>Benutzername</strong> - Eindeutiger Login-Name (keine Dopplungen erlaubt)</li>
-                    <li><strong>E-Mail</strong> - Aktuelle Kontakt-E-Mail-Adresse</li>
-                    <li><strong>Telefon</strong> - Primäre Telefonnummer</li>
-                    <li><strong>Adresse</strong> - Vollständige Wohnadresse</li>
-                </ul>
-            </li>
-            <li>Speichern Sie den neuen Mitarbeiter mit <strong>"OK"</strong></li>
-        </ol>
+        <p>Mitarbeiter werden ausschließlich im Web-UI unter <code>/admin/teams</code> angelegt. Im Desktop steht weiterhin der Mitarbeiter-Tab zur Verfügung, um Plan-Konfiguration (Tageszeiten, Skills, Standort-Präferenzen, Partner-Präferenzen) pro Person zu pflegen.</p>
 
         <h3>Neue Einrichtung anlegen</h3>
         <ol>
@@ -60,15 +45,6 @@
                 </ul>
             </li>
             <li>Bestätigen Sie die Eingabe mit <strong>"OK"</strong></li>
-        </ol>
-
-        <h3>Bulk-Import aus Excel</h3>
-        <ol>
-            <li>Bereiten Sie eine Excel-Datei mit korrekten Spaltenüberschriften vor</li>
-            <li>Klicken Sie auf <strong>"Import People from XLSX"</strong></li>
-            <li>Wählen Sie Ihre vorbereitete Excel-Datei aus</li>
-            <li>Überprüfen Sie die Importvorschau sorgfältig</li>
-            <li>Bestätigen Sie den Import nach erfolgreicher Validierung</li>
         </ol>
 
         <h2>Tastaturkürzel</h2>
@@ -125,9 +101,7 @@
 
         <h3>Employees-Tab (Mitarbeiter-Verwaltung)</h3>
         <ul class="feature-list">
-            <li><strong>"Create Person"</strong> - Öffnet Dialog zur Erstellung eines neuen Mitarbeiters</li>
-            <li><strong>"Import People from XLSX"</strong> - Startet Excel-Import-Wizard für Bulk-Operationen</li>
-            <li><strong>"Edit Person"</strong> - Bearbeitet ausgewählten Mitarbeiter (alternativ: Doppelklick)</li>
+            <li><strong>"Edit Person"</strong> - Bearbeitet ausgewählten Mitarbeiter inkl. Plan-Konfiguration (alternativ: Doppelklick). Anlage neuer Mitarbeiter im Web-UI.</li>
             <li><strong>"Delete Person"</strong> - Löscht ausgewählten Mitarbeiter nach Bestätigung</li>
             <li><strong>Mitarbeiter-Liste</strong> - Tabellarische Übersicht aller Personen mit Sortier- und Suchfunktion</li>
         </ul>
@@ -152,14 +126,7 @@
         <h2>Praktische Anwendungsfälle</h2>
 
         <h3>Komplette Personalstammdaten neu anlegen</h3>
-        <ol>
-            <li><strong>Datensammlung</strong> - Sammeln Sie alle Personaldaten in strukturierter Form</li>
-            <li><strong>Excel-Vorbereitung</strong> - Erstellen Sie Excel-Datei mit korrekten Spaltenüberschriften</li>
-            <li><strong>Datenvalidierung</strong> - Überprüfen Sie Vollständigkeit und Eindeutigkeit der Benutzernamen</li>
-            <li><strong>Bulk-Import</strong> - Importieren Sie alle Mitarbeiter in einem Arbeitsgang</li>
-            <li><strong>Nachbearbeitung</strong> - Ergänzen Sie fehlende Details manuell für jeden Mitarbeiter</li>
-            <li><strong>Qualitätskontrolle</strong> - Überprüfen Sie alle importierten Daten auf Korrektheit</li>
-        </ol>
+        <p>Die Anlage neuer Mitarbeiter erfolgt im Web-UI unter <code>/admin/teams</code>. Nach Anlage im Web öffnen Sie den entsprechenden Mitarbeiter im Desktop-Mitarbeiter-Tab, um Plan-Konfiguration (Tageszeiten, Skills, Standort- und Partner-Präferenzen) zu pflegen.</p>
 
         <h3>Neue Betriebsstandorte einrichten</h3>
         <ol>
@@ -180,13 +147,6 @@
         </ol>
 
         <h2>Häufige Probleme & Lösungen</h2>
-
-        <h3>Excel-Import schlägt fehl</h3>
-        <div class="warning-box">
-            <p><strong>Problem:</strong> Import-Funktion erkennt Excel-Datei nicht oder wirft Formatfehler.</p>
-            <p><strong>Ursache:</strong> Falsche oder fehlende Spaltenüberschriften in der Excel-Datei.</p>
-            <p><strong>Lösung:</strong> Verwenden Sie exakt diese Spaltenüberschriften: "First name", "Last name", "username" (englisch, genau so geschrieben). Alle anderen Spalten werden ignoriert.</p>
-        </div>
 
         <h3>Mitarbeiter kann nicht gelöscht werden</h3>
         <div class="warning-box">
@@ -216,7 +176,6 @@
             <ul>
                 <li><strong>Vollständige Ersterfassung</strong> - Sammeln Sie alle Informationen vor dem Anlegen neuer Datensätze</li>
                 <li><strong>Naming-Conventions</strong> - Definieren Sie Standards für Benutzernamen (z.B. vorname.nachname)</li>
-                <li><strong>Validierung vor Import</strong> - Prüfen Sie Excel-Dateien gründlich vor dem Bulk-Import</li>
                 <li><strong>Eindeutigkeit sicherstellen</strong> - Überprüfen Sie Benutzernamen und E-Mail-Adressen auf Dubletten</li>
             </ul>
         </div>
@@ -224,7 +183,6 @@
         <div class="tip-box">
             <h4>🚀 Effizienz-Tipps</h4>
             <ul>
-                <li><strong>Bulk-Import nutzen</strong> - Verwenden Sie Excel-Import für größere Mengen neuer Mitarbeiter</li>
                 <li><strong>Batch-Bearbeitung</strong> - Bearbeiten Sie ähnliche Änderungen in einem Arbeitsgang</li>
                 <li><strong>Suchfunktionen</strong> - Nutzen Sie Strg+F für schnelles Auffinden spezifischer Datensätze</li>
                 <li><strong>Sortierung strategisch nutzen</strong> - Sortieren Sie Listen nach relevanten Kriterien vor Bearbeitung</li>
@@ -242,16 +200,6 @@
         </div>
 
         <h2>Technische Details</h2>
-
-        <h3>Excel-Import Spezifikationen</h3>
-        <p>Der Excel-Import unterstützt folgende technische Parameter:</p>
-        <ul class="feature-list">
-            <li><strong>Dateiformat</strong> - .xlsx und .xls Dateien (Microsoft Excel Format)</li>
-            <li><strong>Erforderliche Spalten</strong> - "First name", "Last name", "username" (exakte Schreibweise)</li>
-            <li><strong>Optionale Spalten</strong> - Weitere Spalten werden ignoriert, verursachen aber keine Fehler</li>
-            <li><strong>Encoding</strong> - UTF-8 Unterstützung für Umlaute und Sonderzeichen</li>
-            <li><strong>Maximale Zeilen</strong> - Bis zu 10.000 Mitarbeiter pro Import-Vorgang</li>
-        </ul>
 
         <h3>Datenvalidierung</h3>
         <p>Das System führt automatische Validierungen durch:</p>

@@ -2,9 +2,8 @@
 
 Verwaltet Personen innerhalb eines Projekts inklusive Adresse, Tageszeiten,
 Standortpräferenzen, Skills und Flags. Passwörter werden vor dem Speichern
-gehasht. Bietet einen Bulk-Import aus Excel-Dateien (`create_persons_from_xlsx`).
-Soft-Delete via `prep_delete`-Timestamp. Spezielle Abfragen filtern Personen
-nach PlanPeriod oder nach aktiven TeamActorAssign-Zeiträumen.
+gehasht. Soft-Delete via `prep_delete`-Timestamp. Spezielle Abfragen filtern
+Personen nach PlanPeriod oder nach aktiven TeamActorAssign-Zeiträumen.
 """
 import datetime
 from uuid import UUID
@@ -17,7 +16,6 @@ from .. import schemas, models
 from ..authentication import hash_psw
 from ..database import get_session
 from ..models import _utcnow
-from ..enums import Gender
 from ._common import log_function_info
 from ._eager_loading import person_show_options, person_for_comb_loc_dialog_options, person_for_master_data_options
 from ._soft_delete import active_team_pp_criteria
@@ -195,36 +193,6 @@ def create(person: schemas.PersonCreate, project_id: UUID, person_id: UUID = Non
         session.add(person_db)
         session.flush()
         return schemas.Person.model_validate(person_db)
-
-
-def create_persons_from_xlsx(file_name: str, project_id: UUID) -> list[schemas.Person]:
-    import pandas as pd  # lazy: pandas ist Desktop-only Dependency, im Web-API-Container nicht installiert
-    log_function_info()
-    with get_session() as session:
-        team_db = session.exec(
-            select(models.Team)
-            .where(models.Team.project_id == project_id)
-            .where(models.Team.prep_delete.is_(None))
-        ).first()
-        try:
-            df = pd.read_excel(file_name)
-        except Exception as e:
-            raise ValueError(f'Error while reading xlsx file: {e}')
-        persons_list: list[schemas.Person] = []
-        project_db = session.get(models.Project, project_id)
-        for _, row in df.iterrows():
-            person_db = models.Person(
-                f_name=row['First name'], l_name=row['Last name'],
-                email='fake@email.com', gender=Gender.divers, phone_nr=None,
-                username=row['username'], password=hash_psw('password'),
-                project=project_db, address=None)
-            session.add(person_db)
-            session.flush()
-            taa = models.TeamActorAssign(start=datetime.date.today(), person=person_db, team=team_db)
-            session.add(taa)
-            session.flush()
-            persons_list.append(schemas.Person.model_validate(person_db))
-        return persons_list
 
 
 def update(person: schemas.PersonShow) -> schemas.Person:

@@ -418,36 +418,50 @@ class PersonDetailPane(QWidget):
 
 
 class WidgetLocationsOfWork(QWidget):
+    """Standort-Tab in FrmBasicConfiguration. Master-Detail-Layout mit
+    QSplitter horizontal: Tabelle links + LocationDetailPane rechts.
+
+    Konsistent zum Mitarbeiter- und Teams-Tab. Tabelle zeigt nur
+    Uebersichts-Spalten (Name, Strasse, Stadt, Team, Staff), Details
+    + Plan-Konfig erscheinen rechts beim Selektieren.
+    """
+
     def __init__(self, project_id: UUID):
         super().__init__()
-
-        self.layout = QVBoxLayout()
-        self.setLayout(self.layout)
-
-        self.layout_buttons = QHBoxLayout()
-        self.layout_buttons.setAlignment(Qt.AlignmentFlag.AlignLeft)
-        self.layout.addLayout(self.layout_buttons)
-
         self.project_id = project_id
+
+        self.layout = QHBoxLayout()
+        self.layout.setContentsMargins(8, 8, 8, 8)
+        self.layout.setSpacing(12)
+        self.setLayout(self.layout)
 
         self.locations = self.get_locations()
 
+        self.splitter = QSplitter(Qt.Orientation.Horizontal)
+
         self.table_locations = TableLocationsOfWork(self.locations)
-        self.table_locations.cellDoubleClicked.connect(self.edit_location)
-        self.layout.addWidget(self.table_locations)
+        self.table_locations.itemSelectionChanged.connect(self._on_selection_changed)
+        self.splitter.addWidget(self.table_locations)
 
-        self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
+        self.detail_pane = LocationDetailPane(self, self.project_id)
+        self.splitter.addWidget(self.detail_pane)
 
-        self.bt_edit = QPushButton(QIcon(os.path.join(self.path_to_icons, 'store--pencil.png')), ' ' + self.tr('Edit Facility'))
-        self.bt_edit.setFixedWidth(200)
-        self.bt_edit.clicked.connect(self.edit_location)
+        self.splitter.setStretchFactor(0, 3)
+        self.splitter.setStretchFactor(1, 2)
+        self.splitter.setSizes([600, 380])
 
-        self.layout_buttons.addWidget(self.bt_edit)
+        self.layout.addWidget(self.splitter)
+
+        if self.table_locations.rowCount() > 0:
+            self.table_locations.selectRow(0)
+        else:
+            self.detail_pane.set_location(None)
 
     def get_locations(self) -> list[schemas.LocationOfWorkShow]:
         return db_services.LocationOfWork.get_all_from__project(self.project_id)
 
     def refresh_table(self):
+        self.detail_pane._persist_pending_changes()
         self.locations = self.get_locations()
         self.table_locations.locations = self.locations
         self.table_locations.clearContents()
@@ -455,17 +469,13 @@ class WidgetLocationsOfWork(QWidget):
         self.table_locations.put_data_to_table()
         self.table_locations.setSortingEnabled(True)
 
-    def edit_location(self):
+    def _on_selection_changed(self):
         row = self.table_locations.currentRow()
         if row == -1:
-            QMessageBox.information(self, self.tr('Edit'),
-                                  self.tr('You must first select an entry.\n'
-                                        'Click on the corresponding row.'))
+            self.detail_pane.set_location(None)
             return
         location_id = self.table_locations.item(row, 0).data(Qt.ItemDataRole.UserRole)
-        dlg = DlgLocationModify(self, self.project_id, location_id)
-        if dlg.exec():
-            self.refresh_table()
+        self.detail_pane.set_location(location_id)
 
 
 class TableLocationsOfWork(QTableWidget):
@@ -481,17 +491,15 @@ class TableLocationsOfWork(QTableWidget):
         self.horizontalHeader().setHighlightSections(False)
         self.horizontalHeader().setStyleSheet("::section {background-color: teal; color:white}")
 
-        # Using tr() for column headers
+        # Reduzierte Spalten (ZIP raus — Details im Detail-Pane).
         self.headers = [
             self.tr('Name'),
             self.tr('Street'),
-            self.tr('ZIP'),
             self.tr('City'),
             self.tr('Team'),
             self.tr('Staff')
         ]
         self.setColumnCount(len(self.headers))
-        self.setColumnWidth(4, 50)
         self.setHorizontalHeaderLabels(self.headers)
 
         self.put_data_to_table()
@@ -504,13 +512,12 @@ class TableLocationsOfWork(QTableWidget):
             item_name.setData(Qt.ItemDataRole.UserRole, loc.id)
             self.setItem(row, 0, item_name)
             self.setItem(row, 1, QTableWidgetItem(loc.address.street if loc.address else ''))
-            self.setItem(row, 2, QTableWidgetItem(loc.address.postal_code if loc.address else ''))
-            self.setItem(row, 3, QTableWidgetItem(loc.address.city if loc.address else ''))
+            self.setItem(row, 2, QTableWidgetItem(loc.address.city if loc.address else ''))
 
             curr_team = get_curr_team_of_location_at_date(location=loc)
             txt_team = self.get_team_info_text(loc, curr_team)
-            self.setItem(row, 4, QTableWidgetItem(txt_team))
-            self.setItem(row, 5, QTableWidgetItem(str(loc.nr_actors)))
+            self.setItem(row, 3, QTableWidgetItem(txt_team))
+            self.setItem(row, 4, QTableWidgetItem(str(loc.nr_actors)))
 
     @staticmethod
     def get_team_info_text(location: schemas.LocationOfWorkShow, curr_team: schemas.Team | None) -> str:
@@ -527,29 +534,28 @@ class TableLocationsOfWork(QTableWidget):
         return ''
 
 
-class DlgLocationModify(QDialog):
-    def __init__(self, parent: QWidget, project_id: UUID, location_id: UUID):
+class LocationDetailPane(QWidget):
+    """Detail-Pane fuer den Standort-Tab. Wird durch Selektion in
+    TableLocationsOfWork befuellt. Stammdaten read-only (Name + Adresse),
+    Plan-Konfig editierbar via SpinBox (Auto-Save) und Sub-Dialoge.
+
+    Auto-Save-Semantik: nr_actors-SpinBox persistiert bei `editingFinished`
+    und vor jedem set_location()-Wechsel — kein Save-Button. Sub-Dialoge
+    persistieren weiterhin sofort beim OK.
+    """
+
+    def __init__(self, parent: QWidget, project_id: UUID):
         super().__init__(parent)
-
-        self.setWindowTitle(self.tr('Facility Data'))
         self.project_id = project_id
-        self.project = db_services.Project.get(project_id)
-        self.location_id = location_id
+        self.location_of_work: schemas.LocationOfWorkShow | None = None
+        self._initial_nr_actors: int | None = None
         self.controller = command_base_classes.ContrExecUndoRedo()
-        self.location_of_work = self.get_location_of_work()
-        self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
-
         self._setup_ui()
-        self._autofill_widgets()
 
     def _setup_ui(self):
-        self.setMinimumWidth(380)
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
-        # Kompakter Header: Standort-Name (gross) + Adress-Zeile. Web-Link
-        # rechts oben. Stammdaten sind read-only Anzeige — Bearbeitung im Web
-        # /admin/teams (siehe Trennlinie 591e361/7bf91f3).
         header_widget = QWidget()
         header_layout = QHBoxLayout(header_widget)
         header_layout.setContentsMargins(0, 0, 0, 0)
@@ -572,31 +578,65 @@ class DlgLocationModify(QDialog):
 
         self.layout.addWidget(header_widget)
 
-        # Plan-Konfiguration als Hauptsektion
-        self.group_specific_data = QGroupBox(self.tr('Plan-Konfiguration'))
-        self.layout_group_specific_data = QFormLayout(self.group_specific_data)
-        self.layout.addWidget(self.group_specific_data)
+        self.group_plan_config = QGroupBox(self.tr('Plan-Konfiguration'))
+        self.group_plan_config_layout = QFormLayout(self.group_plan_config)
+        self.layout.addWidget(self.group_plan_config)
 
         self.spin_nr_actors = QSpinBox()
         self.spin_nr_actors.setMinimum(1)
+        self.spin_nr_actors.editingFinished.connect(self._persist_pending_changes)
         self.bt_time_of_days = QPushButton(self.tr('Edit...'), clicked=self.edit_time_of_days)
         self.bt_fixed_cast = QPushButton(self.tr('Edit...'), clicked=self.edit_fixed_cast)
         self.bt_skill_groups = QPushButton(self.tr('Edit...'), clicked=self.edit_skill_groups)
 
-        self.layout_group_specific_data.addRow(self.tr('Staff Count'), self.spin_nr_actors)
-        self.layout_group_specific_data.addRow(self.tr('Times of Day'), self.bt_time_of_days)
-        self.layout_group_specific_data.addRow(self.tr('Desired Staff'), self.bt_fixed_cast)
-        self.layout_group_specific_data.addRow(self.tr('Skill Groups'), self.bt_skill_groups)
+        self.group_plan_config_layout.addRow(self.tr('Staff Count'), self.spin_nr_actors)
+        self.group_plan_config_layout.addRow(self.tr('Times of Day'), self.bt_time_of_days)
+        self.group_plan_config_layout.addRow(self.tr('Desired Staff'), self.bt_fixed_cast)
+        self.group_plan_config_layout.addRow(self.tr('Skill Groups'), self.bt_skill_groups)
 
-        self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
-        self.button_box.accepted.connect(self.save_location)
-        self.button_box.rejected.connect(self.reject)
-        self.layout.addWidget(self.button_box)
+        self.layout.addStretch(1)
 
-    def _open_in_web(self):
-        webbrowser.open(f"{get_api_client().base_url}/admin/teams?tab=locations")
+        self._set_enabled(False)
 
-    def _autofill_widgets(self):
+    def _set_enabled(self, enabled: bool):
+        self.group_plan_config.setEnabled(enabled)
+        self.bt_edit_in_web.setEnabled(enabled)
+
+    def set_location(self, location_id: UUID | None):
+        # Erst alte Aenderungen sichern, bevor wir das Location-Objekt austauschen.
+        self._persist_pending_changes()
+
+        if location_id is None:
+            self.location_of_work = None
+            self._initial_nr_actors = None
+            self.lb_name.setText(self.tr('No Facility Selected'))
+            self.lb_address.setVisible(False)
+            self._set_enabled(False)
+            return
+
+        self.location_of_work = db_services.LocationOfWork.get(location_id)
+        self._fill_header()
+        self._initial_nr_actors = self.location_of_work.nr_actors
+        self.spin_nr_actors.blockSignals(True)
+        self.spin_nr_actors.setValue(self.location_of_work.nr_actors)
+        self.spin_nr_actors.blockSignals(False)
+        self._set_enabled(True)
+
+    def _persist_pending_changes(self):
+        """Auto-Save fuer die nr_actors-SpinBox. Wird bei editingFinished und
+        vor Selection-Change aufgerufen. No-op wenn kein Dirty-State."""
+        if not self.location_of_work or self._initial_nr_actors is None:
+            return
+        current = self.spin_nr_actors.value()
+        if current == self._initial_nr_actors:
+            return
+        self.location_of_work.nr_actors = current
+        self.controller.execute(location_of_work_commands.Update(self.location_of_work))
+        self._initial_nr_actors = current
+
+    def _fill_header(self):
+        if not self.location_of_work:
+            return
         self.lb_name.setText(self.location_of_work.name)
 
         if self.location_of_work.address:
@@ -607,49 +647,32 @@ class DlgLocationModify(QDialog):
         else:
             self.lb_address.setVisible(False)
 
-        self.spin_nr_actors.setValue(self.location_of_work.nr_actors)
-
-    def save_location(self):
-        # Stammdaten (Name, Adresse) und Team-Mitgliedschaft sind seit Schicht-B
-        # read-only — Bearbeitung erfolgt im Web /admin/teams. Hier nur noch die
-        # Plan-Konfig-Felder schreiben.
-        self.location_of_work.nr_actors = self.spin_nr_actors.value()
-        update_location_command = location_of_work_commands.Update(self.location_of_work)
-        self.controller.execute(update_location_command)
-        updated_location = update_location_command.updated_location_of_work
-        QMessageBox.information(self, self.tr('Location Update'),
-                              self.tr('The location has been updated:\n{name}').format(
-                                  name=updated_location.name))
-        self.accept()
-
-    def reject(self):
-        # Cancel verwirft nur eine etwaige nr_actors-Aenderung in der Spinbox.
-        # Sub-Dialog-Aenderungen (TimeOfDay, FixedCast, SkillGroups) sind beim
-        # OK des jeweiligen Sub-Dialogs sofort persistent — ein
-        # controller.undo_all() hier wuerde sie alle ruecksetzen, was nach der
-        # Schicht-B-Migration kontra-intuitiv ist.
-        super().reject()
-
-    def get_location_of_work(self):
-        return db_services.LocationOfWork.get(self.location_id)
+    def _open_in_web(self):
+        webbrowser.open(f"{get_api_client().base_url}/admin/teams?tab=locations")
 
     def edit_time_of_days(self):
+        if not self.location_of_work:
+            return
         dlg = frm_time_of_day.DlgTimeOfDayEditListBuilderLocation(self, self.location_of_work).build()
         if dlg.exec():
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             self.location_of_work = db_services.LocationOfWork.get(self.location_of_work.id)
 
     def edit_fixed_cast(self):
+        if not self.location_of_work:
+            return
         dlg = DlgFixedCastBuilderLocationOfWork(self, self.location_of_work).build()
         if dlg.exec():
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             self.location_of_work = db_services.LocationOfWork.get(self.location_of_work.id)
 
     def edit_skill_groups(self):
+        if not self.location_of_work:
+            return
         dlg = DlgSkillGroups(self, self.location_of_work)
         if dlg.exec():
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
-            self.location_of_work = self.get_location_of_work()
+            self.location_of_work = db_services.LocationOfWork.get(self.location_of_work.id)
         else:
             dlg.controller.undo_all()
 
@@ -731,7 +754,7 @@ class TeamDetailPane(QWidget):
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
-        # Kompakter Header analog DlgPersonModify/DlgLocationModify: Name (gross)
+        # Kompakter Header analog PersonDetailPane/LocationDetailPane: Name (gross)
         # + Dispatcher-Zeile + Web-Link rechts oben.
         header_widget = QWidget()
         header_layout = QHBoxLayout(header_widget)

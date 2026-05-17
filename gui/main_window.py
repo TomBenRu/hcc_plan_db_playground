@@ -39,7 +39,7 @@ from .frm_excel_export import DlgPlanToXLSX
 from .frm_general_settings import DlgGeneralSettings
 from .frm_notes import DlgPlanPeriodNotes
 from .custom_widgets.progress_bars import GlobalUpdatePlanTabsProgressManager, DlgProgressInfinite
-from .frm_masterdata import FrmMasterData
+from .frm_basic_config import FrmBasicConfiguration
 from tools.actions import MenuToolbarAction
 from .frm_open_plan_period_mask import DlgOpenPlanPeriodMask
 from .frm_plan import FrmTabPlan
@@ -159,9 +159,9 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                               self.tr('Open the account self-service page in the default web browser.'),
                               self.open_account_in_browser),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'address-book-blue.png'),
-                              self.tr('Master Data...'),
-                              self.tr('Edit master data of employees and work locations.'),
-                              self.master_data),
+                              self.tr('Basis-Konfiguration...'),
+                              self.tr('Edit basic configuration: employees, facilities and teams.'),
+                              self.basic_config),
             MenuToolbarAction(self, None, self.tr('Show Plans'), None, self.show_plans),
             MenuToolbarAction(self, None, self.tr('Show Masks'), None, self.show_masks),
             MenuToolbarAction(self, os.path.join(path_to_toolbar_icons, 'table-select-cells.png'),
@@ -277,7 +277,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             self.actions['plan_export_to_excel'],
             self.actions['export_avail_days_to_excel'],
             self.actions['lookup_for_excel_plan_folder'], None,
-            self.actions['master_data'],
+            self.actions['basic_config'],
             self.actions['show_employee_events_window'], None,
             self.actions['exit']
         ]
@@ -293,7 +293,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                                None, self.actions['open_account_in_browser'],
                                self.actions['logout'], self.actions['exit']],
             self.tr('&Team'): [self._put_clients_to_menu],
-            self.tr('&Konfiguration'): [self.actions['master_data']],
+            self.tr('&Konfiguration'): [self.actions['basic_config']],
             self.tr('&View'): [{'toggle_plans_masks': (self.actions['show_plans'], self.actions['show_masks'])},
                                self.actions['statistics'], None,
                                self.actions['show_employee_events_window']],
@@ -386,7 +386,7 @@ class MainWindow(QMainWindow, TabCacheIntegration):
 
         # === ENDE TAB MANAGER INTEGRATION ===
 
-        self.frm_master_data = None
+        self.frm_basic_config = None
         self.employee_events_window = None  # Employee Events Window Instance
 
         self._activate_signals()
@@ -1040,12 +1040,12 @@ class MainWindow(QMainWindow, TabCacheIntegration):
         # Nutze erweiterte Implementierung aus TabCacheIntegration
         self.enhanced_goto_team(team_id)
 
-    def master_data(self):
-        if self.frm_master_data is None:
-            self.frm_master_data = FrmMasterData(self, project_id=self.project_id)
-        self.frm_master_data.raise_()
-        self.frm_master_data.activateWindow()
-        self.frm_master_data.showNormal()
+    def basic_config(self):
+        if self.frm_basic_config is None:
+            self.frm_basic_config = FrmBasicConfiguration(self, project_id=self.project_id)
+        self.frm_basic_config.raise_()
+        self.frm_basic_config.activateWindow()
+        self.frm_basic_config.showNormal()
 
     def show_employee_events_window(self):
         """Öffnet Employee Events in separatem Fenster."""

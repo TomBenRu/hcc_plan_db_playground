@@ -88,7 +88,7 @@ class HelpManager:
         Zeigt spezifische Hilfe für ein Formular.
         
         Args:
-            form_name: Name des Formulars (z.B. "plan", "masterdata")
+            form_name: Name des Formulars (z.B. "plan", "basic_config")
             
         Returns:
             bool: True wenn erfolgreich geöffnet

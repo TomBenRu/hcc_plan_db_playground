@@ -170,7 +170,7 @@ class AddressForTable(BaseModel):
 
 
 class PersonForMasterData(BaseModel):
-    """Minimales Schema für die Stammdaten-Tabelle (FrmMasterData/TablePersons).
+    """Minimales Schema für die Stammdaten-Tabelle (FrmBasicConfiguration/TablePersons).
 
     Lädt nur die direkt angezeigten Felder — ohne team_actor_assigns,
     teams_of_dispatcher, time_of_days, skills, clp, prefs, flags.

@@ -32,14 +32,14 @@ if TYPE_CHECKING:
     from .main_window import MainWindow
 
 
-class FrmMasterData(QMainWindow):
+class FrmBasicConfiguration(QMainWindow):
     def __init__(self, parent: 'MainWindow', project_id: UUID):
         super().__init__(parent)
-        
+
         # Help-System Integration
-        setup_form_help(self, "masterdata", add_help_button=True, help_button_style='floating')
-        
-        self.setWindowTitle(self.tr('Master Data'))
+        setup_form_help(self, "basic_config", add_help_button=True, help_button_style='floating')
+
+        self.setWindowTitle(self.tr('Basis-Konfiguration'))
         self.setGeometry(50, 50, 1000, 600)
 
         self.project_id = project_id
@@ -637,7 +637,7 @@ class DlgLocationModify(QDialog):
 
 
 class WidgetTeams(QWidget):
-    """Teams-Tab in FrmMasterData. Master-Detail-Layout: links Liste der Teams,
+    """Teams-Tab in FrmBasicConfiguration. Master-Detail-Layout: links Liste der Teams,
     rechts Detail-Pane mit Plan-Konfiguration des selektierten Teams.
 
     Bei 1-3 Teams pro Projekt waere eine Tabelle wie bei Personen/Standorten

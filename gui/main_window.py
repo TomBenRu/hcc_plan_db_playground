@@ -15,7 +15,7 @@ from httplib2 import ServerNotFoundError
 # xlsxwriter Imports werden lazy geladen für bessere Startup-Performance
 
 from commands import command_base_classes
-from commands.database_commands import plan_commands, team_commands, plan_period_commands, project_commands
+from commands.database_commands import plan_commands, plan_period_commands, project_commands
 from configuration import team_start_config, project_paths
 from configuration.google_calenders import curr_calendars_handler
 from configuration.main_geometry import geometry_manager, MainGeometry
@@ -37,7 +37,7 @@ from .frm_create_google_calendar import CreateGoogleCalendar
 from .frm_create_project import DlgCreateProject
 from .frm_excel_export import DlgPlanToXLSX
 from .frm_general_settings import DlgGeneralSettings
-from .frm_notes import DlgPlanPeriodNotes, DlgTeamNotes
+from .frm_notes import DlgPlanPeriodNotes
 from .custom_widgets.progress_bars import GlobalUpdatePlanTabsProgressManager, DlgProgressInfinite
 from .frm_masterdata import FrmMasterData
 from tools.actions import MenuToolbarAction
@@ -292,9 +292,8 @@ class MainWindow(QMainWindow, TabCacheIntegration):
                                self.actions['lookup_for_excel_plan_folder'],
                                None, self.actions['open_account_in_browser'],
                                self.actions['logout'], self.actions['exit']],
-            self.tr('&Teams'): [{self.tr('Edit Teams'): [self.put_teams_to__teams_edit_menu]}, None,
-                                self._put_clients_to_menu,
-                                None, self.actions['master_data']],
+            self.tr('&Team'): [self._put_clients_to_menu],
+            self.tr('&Konfiguration'): [self.actions['master_data']],
             self.tr('&View'): [{'toggle_plans_masks': (self.actions['show_plans'], self.actions['show_masks'])},
                                self.actions['statistics'], None,
                                self.actions['show_employee_events_window']],
@@ -665,50 +664,6 @@ class MainWindow(QMainWindow, TabCacheIntegration):
     def edit_team(self, team: schemas.Team):
         ...
 
-    def edit_comb_loc_poss(self, team: schemas.Team):
-        """Legt die mögl. Einrichtungskombinationen zum aktuellen Datum fest.
-        Differenzierungen werden erst bei Person, ActorPlanPeriod u. AvailDay vorgenommen."""
-        team = db_services.Team.get(team.id)
-        dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, team, None, None)
-        dlg.disable_reset_bt()
-        if dlg.exec():
-            self.controller.execute(
-                team_commands.ReplaceCombLocPossibles(
-                    team_id=team.id,
-                    original_ids=dlg.original_ids,
-                    pending_creates=dlg.pending_creates,
-                    current_combs=list(dlg.curr_model.combination_locations_possibles),
-                )
-            )
-
-    def edit_team_excel_export_settings(self, team: schemas.Team):
-        team = db_services.Team.get(team.id)
-        # team.project bereits via team_show_options() geladen — kein separater Project.get()-Aufruf nötig
-        dlg = frm_excel_settings.DlgExcelExportSettings(self, team.excel_export_settings,
-                                                        team.project)
-        if dlg.exec():
-            # Copy-on-Write: jede Modifikation legt einen neuen Settings-Record an
-            # und biegt den Team-FK darauf um. Nur wenn der User explizit auf den
-            # Project-Default zurueckgesetzt hat, wird stattdessen der FK auf den
-            # Project-Settings-Record umgelenkt (kein neuer Record).
-            if dlg.curr_excel_settings_id == team.project.excel_export_settings.id:
-                self.controller.execute(
-                    team_commands.PutInExcelExportSettings(team.id, team.project.excel_export_settings.id)
-                )
-            else:
-                self.controller.execute(
-                    team_commands.NewExcelExportSettings(
-                        team.id, schemas.ExcelExportSettingsCreate(**dlg.excel_settings.model_dump())
-                    )
-                )
-
-        signal_handling.handler_plan_tabs.reload_plan_from_db()
-
-    def edit_team_notes(self, team: schemas.TeamShow):
-        dlg = DlgTeamNotes(self, team)
-        if dlg.exec():
-            self.controller.execute(team_commands.UpdateNotes(team.id, dlg.notes))
-
     def plan_excel_configs(self):
         """Minimal angepasst: Nutzt TabManager Properties"""
         plan_widget = self.tab_manager.current_plan_widget
@@ -1030,26 +985,6 @@ class MainWindow(QMainWindow, TabCacheIntegration):
             for name, team_id in teams
         }
         return tuple(self.actions_teams_in_clients_menu.values())
-
-    def put_teams_to__teams_edit_menu(self) -> dict[str, list[MenuToolbarAction]] | None:
-        try:
-            teams = sorted(db_services.Team.get_all_from__project(self.project_id, minimal=True),
-                           key=lambda x: x[0])
-        except Exception as e:
-            QMessageBox.critical(self, 'put_teams_to__teams_edit_menu', f'Fehler: {e}')
-            return None
-        # checked=False absorbiert Qt's triggered(bool checked) — tid bleibt die korrekte UUID
-        # db_services.Team.get(team_id) wird erst beim Klick aufgerufen, nicht beim Menü-Aufbau
-        return {name: [MenuToolbarAction(self, None, self.tr('Facility Combinations...'),
-                                         self.tr('Edit possible combinations of facilities.'),
-                                         lambda checked=False, tid=team_id: self.edit_comb_loc_poss(db_services.Team.get(tid))),
-                       MenuToolbarAction(self, None, self.tr('Excel Settings...'),
-                                         self.tr('Edit settings for Excel export of the schedule.'),
-                                         lambda checked=False, tid=team_id: self.edit_team_excel_export_settings(db_services.Team.get(tid))),
-                       MenuToolbarAction(self, None, self.tr('Notes...'),
-                                         self.tr('Edit team notes.'),
-                                         lambda checked=False, tid=team_id: self.edit_team_notes(db_services.Team.get(tid)))]
-                for name, team_id in teams}
 
     @Slot(UUID, UUID)
     def _show_location_plan_period_mask(self, plan_period_id: UUID, location_id: UUID):

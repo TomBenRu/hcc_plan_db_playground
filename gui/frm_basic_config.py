@@ -10,7 +10,7 @@ from PySide6.QtCore import Qt, QCoreApplication
 from PySide6.QtGui import QGuiApplication, QIcon
 from PySide6.QtWidgets import QDialog, QWidget, QVBoxLayout, QMessageBox, QLabel, \
     QGroupBox, QPushButton, QDialogButtonBox, QTableWidget, QTableWidgetItem, QAbstractItemView, QHBoxLayout, QSpinBox, \
-    QFormLayout, QHeaderView, QMainWindow, QListWidget, QListWidgetItem
+    QFormLayout, QHeaderView, QMainWindow, QListWidget, QListWidgetItem, QSplitter
 
 from gui.frm_skill_groups import DlgSkillGroups
 from gui.api_client.client import get_api_client
@@ -66,40 +66,54 @@ class FrmBasicConfiguration(QMainWindow):
 
 
 class WidgetPerson(QWidget):
+    """Mitarbeiter-Tab in FrmBasicConfiguration. Master-Detail-Layout mit
+    QSplitter horizontal: Tabelle links + PersonDetailPane rechts.
+
+    Konsistent zum Teams-Tab. Tabelle zeigt nur Uebersichts-Spalten
+    (First/Last Name + Adress-Kurzform + Team), Details + Plan-Konfig
+    erscheinen rechts beim Selektieren.
+    """
+
     def __init__(self, project_id: UUID):
         super().__init__()
-
-        self.layout = QVBoxLayout()
-        self.setLayout(self.layout)
-
-        self.layout_buttons = QHBoxLayout()
-        self.layout_buttons.setAlignment(Qt.AlignLeft)
-        self.layout.addLayout(self.layout_buttons)
-
         self.project_id = project_id
+
+        self.layout = QHBoxLayout()
+        self.layout.setContentsMargins(8, 8, 8, 8)
+        self.layout.setSpacing(12)
+        self.setLayout(self.layout)
 
         self.persons = self.get_persons()
 
+        self.splitter = QSplitter(Qt.Orientation.Horizontal)
+
         self.table_persons = TablePersons(self.persons, self.project_id)
-        self.table_persons.cellDoubleClicked.connect(self.edit_person)
+        self.table_persons.itemSelectionChanged.connect(self._on_selection_changed)
+        self.splitter.addWidget(self.table_persons)
 
-        self.layout.addWidget(self.table_persons)
+        self.detail_pane = PersonDetailPane(self, self.project_id)
+        self.splitter.addWidget(self.detail_pane)
 
-        self.path_to_icons = os.path.join(os.path.dirname(__file__), 'resources', 'toolbar_icons', 'icons')
+        self.splitter.setStretchFactor(0, 3)
+        self.splitter.setStretchFactor(1, 2)
+        self.splitter.setSizes([600, 380])
 
-        self.bt_edit = QPushButton(QIcon(os.path.join(self.path_to_icons, 'user--pencil.png')), self.tr('Edit Person'))
-        self.bt_edit.setFixedWidth(200)
-        self.bt_edit.clicked.connect(self.edit_person)
+        self.layout.addWidget(self.splitter)
 
-        self.layout_buttons.addWidget(self.bt_edit)
+        if self.table_persons.rowCount() > 0:
+            self.table_persons.selectRow(0)
+        else:
+            self.detail_pane.set_person(None)
 
     def get_persons(self) -> list[schemas.PersonForMasterData]:
         try:
             return db_services.Person.get_all_for_master_data_table(self.project_id)
         except Exception as e:
             QMessageBox.critical(self, self.tr('Error'), self.tr('Error: {}').format(e))
+            return []
 
     def refresh_table(self):
+        self.detail_pane._persist_pending_changes()
         self.persons = self.get_persons()
         self.table_persons.persons = self.persons
         self.table_persons.clearContents()
@@ -107,16 +121,13 @@ class WidgetPerson(QWidget):
         self.table_persons.put_data_to_table()
         self.table_persons.setSortingEnabled(True)
 
-    def edit_person(self):
+    def _on_selection_changed(self):
         row = self.table_persons.currentRow()
         if row == -1:
-            QMessageBox.information(self, self.tr('Edit'),
-                                  self.tr('Please select an entry first.\nClick on the corresponding row.'))
+            self.detail_pane.set_person(None)
             return
-        person = db_services.Person.get(self.table_persons.item(row, 0).data(Qt.ItemDataRole.UserRole))
-        dlg = DlgPersonModify(self, self.project_id, person)
-        if dlg.exec():
-            self.refresh_table()
+        person_id = self.table_persons.item(row, 0).data(Qt.ItemDataRole.UserRole)
+        self.detail_pane.set_person(person_id)
 
 
 class TablePersons(QTableWidget):
@@ -133,25 +144,16 @@ class TablePersons(QTableWidget):
         self.horizontalHeader().setHighlightSections(False)
         self.horizontalHeader().setStyleSheet("::section {background-color: teal; color:white}")
 
+        # Reduzierte Spalten (Email/Gender/Phone/ZIP raus — Details im Detail-Pane).
         self.headers = [
             self.tr('First Name'),
             self.tr('Last Name'),
-            self.tr('Email'),
-            self.tr('Gender'),
-            self.tr('Phone'),
             self.tr('Street'),
-            self.tr('ZIP'),
             self.tr('City'),
             self.tr('Team'),
         ]
         self.setColumnCount(len(self.headers))
-        self.setColumnWidth(6, 50)
         self.setHorizontalHeaderLabels(self.headers)
-        self.gender_visible_strings = {
-            'm': self.tr('male'),
-            'f': self.tr('female'),
-            'd': self.tr('diverse')
-        }
 
         self.put_data_to_table()
         self.horizontalHeader().setSectionResizeMode(QHeaderView.ResizeMode.ResizeToContents)
@@ -174,21 +176,14 @@ class TablePersons(QTableWidget):
             item_f_name.setData(Qt.ItemDataRole.UserRole, p.id)
             self.setItem(row, 0, item_f_name)
             self.setItem(row, 1, QTableWidgetItem(p.l_name))
-            self.setItem(row, 2, QTableWidgetItem(p.email))
-            self.setItem(row, 3, QTableWidgetItem(
-                self.gender_visible_strings[p.gender.value] if p.gender else ''))
-            self.setItem(row, 4, QTableWidgetItem(p.phone_nr))
-            self.setItem(row, 5, QTableWidgetItem(p.address.street if p.address else ''))
-            self.setItem(row, 6, QTableWidgetItem(p.address.postal_code if p.address else ''))
-            self.setItem(row, 7, QTableWidgetItem(p.address.city if p.address else ''))
+            self.setItem(row, 2, QTableWidgetItem(p.address.street if p.address else ''))
+            self.setItem(row, 3, QTableWidgetItem(p.address.city if p.address else ''))
 
-            # Team-Spalte: Komma-separierte Team-Namen der Person (heute).
-            # Bearbeitung der Team-Zuordnungen erfolgt im Web-UI unter /admin/teams.
             names = teams_by_person.get(p.id, [])
             team_names = ', '.join(names) if names else self.tr('No Team')
             item_teams = QTableWidgetItem(team_names)
             item_teams.setToolTip(team_names if names else '')
-            self.setItem(row, 8, item_teams)
+            self.setItem(row, 4, item_teams)
 
         # Sortierung wieder aktivieren
         self.setSortingEnabled(True)
@@ -199,26 +194,28 @@ class TablePersons(QTableWidget):
         self.put_data_to_table()
 
 
-class DlgPersonModify(QDialog):
-    def __init__(self, parent: QWidget, project_id: UUID, person: schemas.PersonShow):
+class PersonDetailPane(QWidget):
+    """Detail-Pane fuer den Mitarbeiter-Tab. Wird durch Selektion in
+    TablePersons befuellt. Stammdaten read-only (Name + Adresse + Email +
+    Phone), Plan-Konfig editierbar via SpinBox (Auto-Save) und Sub-Dialoge.
+
+    Auto-Save-Semantik: requested_assignments-SpinBox persistiert bei
+    `editingFinished` und vor jedem set_person()-Wechsel — kein Save-Button.
+    Sub-Dialoge persistieren weiterhin sofort beim OK.
+    """
+
+    def __init__(self, parent: QWidget, project_id: UUID):
         super().__init__(parent)
-
-        self.setWindowTitle(self.tr('Person Data'))
         self.project_id = project_id
-        self.project = db_services.Project.get(project_id)
-        self.person = person
+        self.person: schemas.PersonShow | None = None
+        self._initial_requested_assignments: int | None = None
         self.controller = command_base_classes.ContrExecUndoRedo()
-
         self._setup_ui()
 
     def _setup_ui(self):
-        self.setMinimumWidth(380)
         self.layout = QVBoxLayout()
         self.setLayout(self.layout)
 
-        # Kompakter Header: Name (gross) + Adresse + Mail + Tel. Web-Link
-        # rechts oben. Stammdaten sind read-only Anzeige — Bearbeitung im Web
-        # /admin/teams (siehe Trennlinie 591e361/7bf91f3).
         header_widget = QWidget()
         header_layout = QHBoxLayout(header_widget)
         header_layout.setContentsMargins(0, 0, 0, 0)
@@ -247,13 +244,13 @@ class DlgPersonModify(QDialog):
 
         self.layout.addWidget(header_widget)
 
-        # Plan-Konfiguration als Hauptsektion
-        self.group_specific_data = QGroupBox(self.tr('Plan-Konfiguration'))
-        self.group_specific_data_layout = QFormLayout(self.group_specific_data)
-        self.layout.addWidget(self.group_specific_data)
+        self.group_plan_config = QGroupBox(self.tr('Plan-Konfiguration'))
+        self.group_plan_config_layout = QFormLayout(self.group_plan_config)
+        self.layout.addWidget(self.group_plan_config)
 
         self.spin_num_requested_assignments = QSpinBox()
         self.spin_num_requested_assignments.setMinimum(0)
+        self.spin_num_requested_assignments.editingFinished.connect(self._persist_pending_changes)
         self.bt_time_of_days = QPushButton(self.tr('Edit...'), clicked=self.edit_time_of_days)
         self.bt_comb_loc_possible = QPushButton(self.tr('Edit...'), clicked=self.edit_comb_loc_possible)
         self.bt_actor_loc_prefs = QPushButton(self.tr('Edit...'), clicked=self.edit_location_prefs)
@@ -261,49 +258,61 @@ class DlgPersonModify(QDialog):
                                                       clicked=self.edit_partner_location_prefs)
         self.bt_skills = QPushButton(self.tr('Edit...'), clicked=self.select_skills)
 
-        self.group_specific_data_layout.addRow(self.tr('Requested Assignments'), self.spin_num_requested_assignments)
-        self.group_specific_data_layout.addRow(self.tr('Times of Day'), self.bt_time_of_days)
-        self.group_specific_data_layout.addRow(self.tr('Location Combinations'), self.bt_comb_loc_possible)
-        self.group_specific_data_layout.addRow(self.tr('Location Preferences'), self.bt_actor_loc_prefs)
-        self.group_specific_data_layout.addRow(self.tr('Employee Preferences'), self.bt_actor_partner_loc_prefs)
-        self.group_specific_data_layout.addRow(self.tr('Skills'), self.bt_skills)
+        self.group_plan_config_layout.addRow(self.tr('Requested Assignments'), self.spin_num_requested_assignments)
+        self.group_plan_config_layout.addRow(self.tr('Times of Day'), self.bt_time_of_days)
+        self.group_plan_config_layout.addRow(self.tr('Location Combinations'), self.bt_comb_loc_possible)
+        self.group_plan_config_layout.addRow(self.tr('Location Preferences'), self.bt_actor_loc_prefs)
+        self.group_plan_config_layout.addRow(self.tr('Employee Preferences'), self.bt_actor_partner_loc_prefs)
+        self.group_plan_config_layout.addRow(self.tr('Skills'), self.bt_skills)
 
-        self.button_box = QDialogButtonBox(QDialogButtonBox.Save | QDialogButtonBox.Cancel)
-        self.button_box.accepted.connect(self.accept)
-        self.button_box.rejected.connect(self.reject)
-        self.layout.addWidget(self.button_box)
+        self.layout.addStretch(1)
 
-        self.autofill()
+        self._set_enabled(False)
 
-    def _open_in_web(self):
-        webbrowser.open(f"{get_api_client().base_url}/admin/teams")
+    def _set_enabled(self, enabled: bool):
+        self.group_plan_config.setEnabled(enabled)
+        self.bt_edit_in_web.setEnabled(enabled)
 
-    def accept(self):
-        # Stammdaten (Name, Email, Gender, Phone, Adresse) sind seit Schicht-B
-        # read-only — Bearbeitung erfolgt im Web /admin/teams. Hier nur noch
-        # die Plan-Konfig-Felder schreiben.
-        self.person.requested_assignments = self.spin_num_requested_assignments.value()
-        update_person_command = person_commands.Update(self.person)
-        self.controller.execute(update_person_command)
-        updated_person = update_person_command.updated_person
-        QMessageBox.information(self, self.tr('Person Update'),
-                                self.tr('Person has been updated:\n{} {}').format(
-                                    updated_person.f_name, updated_person.l_name))
-        super().accept()
+    def set_person(self, person_id: UUID | None):
+        # Erst alte Aenderungen sichern, bevor wir das Person-Objekt austauschen.
+        self._persist_pending_changes()
 
-    def reject(self):
-        # Cancel verwirft nur eine etwaige requested_assignments-Aenderung in
-        # der Spinbox. Sub-Dialog-Aenderungen (TimeOfDay, Skills, Praeferenzen
-        # etc.) sind beim OK des jeweiligen Sub-Dialogs sofort persistent —
-        # ein controller.undo_all() hier wuerde sie alle ruecksetzen, was nach
-        # der Schicht-B-Migration kontra-intuitiv ist.
-        super().reject()
+        if person_id is None:
+            self.person = None
+            self._initial_requested_assignments = None
+            self.lb_name.setText(self.tr('No Employee Selected'))
+            self.lb_address.setVisible(False)
+            self.lb_email.setVisible(False)
+            self.lb_phone.setVisible(False)
+            self._set_enabled(False)
+            return
 
-    def autofill(self):
-        self.fill_header()
-        self.fill_requested_assignm()
+        self.person = db_services.Person.get(person_id)
+        self._fill_header()
+        self._initial_requested_assignments = self.person.requested_assignments
+        # blockSignals waehrend setValue, damit editingFinished beim Initial-Fill
+        # nicht ungewollt feuert
+        self.spin_num_requested_assignments.blockSignals(True)
+        self.spin_num_requested_assignments.setValue(self.person.requested_assignments)
+        self.spin_num_requested_assignments.blockSignals(False)
+        self._set_enabled(True)
 
-    def fill_header(self):
+    def _persist_pending_changes(self):
+        """Auto-Save fuer die requested_assignments-SpinBox. Wird bei
+        editingFinished und vor Selection-Change aufgerufen. No-op wenn
+        kein Dirty-State."""
+        if not self.person or self._initial_requested_assignments is None:
+            return
+        current = self.spin_num_requested_assignments.value()
+        if current == self._initial_requested_assignments:
+            return
+        self.person.requested_assignments = current
+        self.controller.execute(person_commands.Update(self.person))
+        self._initial_requested_assignments = current
+
+    def _fill_header(self):
+        if not self.person:
+            return
         self.lb_name.setText(f'{self.person.f_name} {self.person.l_name}')
 
         if self.person.address:
@@ -327,16 +336,20 @@ class DlgPersonModify(QDialog):
         else:
             self.lb_phone.setVisible(False)
 
-    def fill_requested_assignm(self):
-        self.spin_num_requested_assignments.setValue(self.person.requested_assignments)
+    def _open_in_web(self):
+        webbrowser.open(f"{get_api_client().base_url}/admin/teams")
 
     def edit_time_of_days(self):
+        if not self.person:
+            return
         dlg = frm_time_of_day.DlgTimeOfDayEditListBuilderPerson(self, self.person).build()
         if dlg.exec():
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())
             self.person = db_services.Person.get(self.person.id)
 
     def edit_comb_loc_possible(self):
+        if not self.person:
+            return
         team_at_date_factory = parent_model_factory = partial(get_curr_team_of_person_at_date, self.person)
 
         dlg = frm_comb_loc_possible.DlgCombLocPossibleEditList(self, self.person, parent_model_factory,
@@ -353,7 +366,8 @@ class DlgPersonModify(QDialog):
             self.person = db_services.Person.get(self.person.id)
 
     def edit_location_prefs(self):
-
+        if not self.person:
+            return
         team_at_date_factory = functools.partial(get_curr_team_of_person_at_date, self.person)
 
         dlg = frm_actor_loc_prefs.DlgActorLocPref(self, self.person, None, team_at_date_factory)
@@ -367,6 +381,8 @@ class DlgPersonModify(QDialog):
         self.person = db_services.Person.get(self.person.id)
 
     def edit_partner_location_prefs(self):
+        if not self.person:
+            return
         team = get_curr_team_of_person_at_date(self.person)
         if not team:
             QMessageBox.critical(self, self.tr('Employee Preferences'),
@@ -391,6 +407,8 @@ class DlgPersonModify(QDialog):
         self.person = db_services.Person.get(self.person.id)
 
     def select_skills(self):
+        if not self.person:
+            return
         dlg = frm_skills.DlgSelectSkills(self, self.person)
         if dlg.exec():
             self.controller.add_to_undo_stack(dlg.controller.get_undo_stack())

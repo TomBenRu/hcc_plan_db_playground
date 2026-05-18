@@ -910,7 +910,7 @@ class LocationOfWork(LocationOfWorkCreate):
 
     @property
     def name_an_city(self):
-        return f'{self.name} {self.address.city}'
+        return f'{self.name} {self.address.city if self.address else "—"}'
 
 
 class LocationOfWorkShow(LocationOfWork):

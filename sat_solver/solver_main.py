@@ -1139,7 +1139,7 @@ def set_test_plan_constraints(model: cp_model.CpModel, plan: schemas.PlanShow,
                                  f'{appointment.event.date: %d.%m.%y}, '
                                  f'{appointment.event.time_of_day.name}, '
                                  f'{appointment.event.location_plan_period.location_of_work.name} '
-                                 f'{appointment.event.location_plan_period.location_of_work.address.city}</p>')
+                                 f'{appointment.event.location_plan_period.location_of_work.address.city if appointment.event.location_plan_period.location_of_work.address else "—"}</p>')
             model.Add(entities.shift_vars[(avd.avail_day_group.id, event_group_id)] == True).OnlyEnforceIf(a)
             model.AddAssumption(a)
             indexes_shift_vars.remove((avd.avail_day_group.id, event_group_id))

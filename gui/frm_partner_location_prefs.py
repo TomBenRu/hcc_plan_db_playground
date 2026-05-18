@@ -123,7 +123,7 @@ class DlgPartnerLocationPrefsLocs(QDialog):
 
     def setup_option_field(self):
         for row, location in enumerate(self.all_locations):
-            lb_location = QLabel(f'{location.name} ({location.address.city}):')
+            lb_location = QLabel(f'{location.name} ({location.address.city if location.address else "—"}):')
             lb_slider_val = QLabel('Error')
             slider_location = SliderWithPressEvent(Qt.Orientation.Horizontal)
             slider_location.setMinimum(0)
@@ -468,7 +468,7 @@ class DlgPartnerLocationPrefs(QDialog):
             self.locations = []
         else:  # betrifft Person und AvailDay
             self.locations = sorted(get_locations_of_team_at_date(self.curr_team.id, self.de_date.date().toPython()),
-                                    key=lambda x: x.name+x.address.city)
+                                    key=lambda x: x.name + (x.address.city if x.address else ""))
 
     def union_partners(self) -> list[schemas.PersonForFixedCastCombo]:
         """Vereinigung aus allen möglichen Partner an den Tagen der Planungsperiode werden gebildet"""
@@ -543,7 +543,7 @@ class DlgPartnerLocationPrefs(QDialog):
         '''setup locations group:'''
         for row, loc in enumerate(self.locations):
             lb_location = QLabel(self.tr('In {name} ({city}):').format(
-                name=loc.name, city=loc.address.city))
+                name=loc.name, city=loc.address.city if loc.address else "—"))
             self.layout_options_locations.addWidget(lb_location, row, 0)
             bt_partners = QPushButton(self.tr('Employees'), clicked=partial(self.choice_partners, loc.id))
             self.layout_options_locations.addWidget(bt_partners, row, 1)

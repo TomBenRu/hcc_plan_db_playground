@@ -47,8 +47,10 @@ class DlgNewCombLocPossible(QDialog):
         self.layout_group_time_span_between.addRow(self.tr('Hours'), self.spin_hours)
         self.layout_group_time_span_between.addRow(self.tr('Minutes'), self.spin_minutes)
 
-        self.checks_loc_of_work: dict[UUID, QCheckBox] = {l_o_w.id: QCheckBox(f'{l_o_w.name} ({l_o_w.address.city})')
-                                                          for l_o_w in self.locations_of_work}
+        self.checks_loc_of_work: dict[UUID, QCheckBox] = {
+            l_o_w.id: QCheckBox(f'{l_o_w.name} ({l_o_w.address.city if l_o_w.address else "—"})')
+            for l_o_w in self.locations_of_work
+        }
         for chk in self.checks_loc_of_work.values():
             chk.checkStateChanged.connect(self.check_changed)
         for chk in self.checks_loc_of_work.values():
@@ -232,7 +234,7 @@ class DlgCombLocPossibleEditList(QDialog):
 
     def valid_combs_at_date(self) -> list[tuple[str, str, str]]:
         curr_location_ids = {l.id for l in self.locations_of_work}
-        comb_loc_poss = [[str(c.id), [f'{l.name} ({l.address.city})'
+        comb_loc_poss = [[str(c.id), [f'{l.name} ({l.address.city if l.address else "—"})'
                                       for l in c.locations_of_work if l.id in curr_location_ids],
                           str(c.time_span_between)]
                          for c in self.curr_model.combination_locations_possibles]

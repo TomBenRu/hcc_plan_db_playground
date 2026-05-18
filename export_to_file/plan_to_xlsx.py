@@ -180,7 +180,8 @@ class ExportToXlsx:
             for i, location in enumerate(col_locations['locations']):
                 column = col_locations['column'] + 1 + i
                 self.max_col_locations = max(self.max_col_locations, column)
-                self.worksheet_plan.write(self.offset_y + 1, column, f'{location.name}\n({location.address.city})',
+                _city = location.address.city if location.address else "—"
+                self.worksheet_plan.write(self.offset_y + 1, column, f'{location.name}\n({_city})',
                                           self.format_locations_1 if format_idx % 2 else self.format_locations_2)
                 self.worksheet_plan.set_column(column, column, self.col_width_locations)
                 format_idx += 1

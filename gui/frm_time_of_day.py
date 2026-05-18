@@ -116,7 +116,8 @@ class DlgTimeOfDayEditListBuilderLocation(DlgTimeOfDayEditListBuilderABC):
 
     def _generate_field_values(self):
         self.window_title = QCoreApplication.translate("TimeOfDayEditList", "Times of day for facility {} {}").format(
-            self.object_with_time_of_days.name, self.object_with_time_of_days.address.city)
+            self.object_with_time_of_days.name,
+            self.object_with_time_of_days.address.city if self.object_with_time_of_days.address else "—")
         self.project_id = self.object_with_time_of_days.project.id
         project = db_services.Project.get(self.project_id)
         self.parent_time_of_days = [t_o_d for t_o_d in project.time_of_days if not t_o_d.prep_delete]
@@ -169,9 +170,10 @@ class DlgTimeOfDayEditListBuilderLocationPlanPeriod(DlgTimeOfDayEditListBuilderA
         self.object_with_time_of_days: schemas.LocationPlanPeriodShow = location_plan_period.model_copy()
 
     def _generate_field_values(self):
+        loc = self.object_with_time_of_days.location_of_work
         self.window_title = QCoreApplication.translate("TimeOfDayEditList", "Times of day for planning period, {} {}").format(
-            self.object_with_time_of_days.location_of_work.name,
-            self.object_with_time_of_days.location_of_work.address.city)
+            loc.name,
+            loc.address.city if loc.address else "—")
         self.project_id = self.object_with_time_of_days.project.id
         self.parent_time_of_days = [
             t_o_d for t_o_d in

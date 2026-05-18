@@ -204,10 +204,11 @@ class DlgEditAppointment(QDialog):
         self.layout.addLayout(self.layout_head)
         self.layout.addLayout(self.layout_body)
         self.layout.addLayout(self.layout_foot)
+        _loc = self.appointment.event.location_plan_period.location_of_work
         explanation_text = self.tr('Assignments on:\n%s, %s - %s, %s\nHere you can change the cast.') % (
             date_to_string(self.appointment.event.date),
-            self.appointment.event.location_plan_period.location_of_work.name,
-            self.appointment.event.location_plan_period.location_of_work.address.city,
+            _loc.name,
+            _loc.address.city if _loc.address else "—",
             self.appointment.event.time_of_day.name)
         self.lb_explanation = QLabel(explanation_text)
         self.layout_head.addWidget(self.lb_explanation)
@@ -1706,7 +1707,8 @@ class FrmTabPlan(QWidget):
                     not in {loc.id for loc in weekdays_locations[weekday]}):
                 weekdays_locations[weekday].append(appointment.event.location_plan_period.location_of_work)
         for weekday, locations in weekdays_locations.items():
-            weekdays_locations[weekday] = sorted(locations, key=lambda x: (x.name, x.address.city))
+            weekdays_locations[weekday] = sorted(
+                locations, key=lambda x: (x.name, x.address.city if x.address else ""))
 
         return weekdays_locations
 
@@ -1717,8 +1719,10 @@ class FrmTabPlan(QWidget):
             kws_wds[week_number][weekday].append(appointment)
         for week in kws_wds.values():
             for appointments in week.values():
-                appointments.sort(key=lambda x: (x.event.location_plan_period.location_of_work.name,
-                                                 x.event.location_plan_period.location_of_work.address.city))
+                appointments.sort(key=lambda x: (
+                    x.event.location_plan_period.location_of_work.name,
+                    (x.event.location_plan_period.location_of_work.address.city
+                     if x.event.location_plan_period.location_of_work.address else "")))
         return kws_wds
 
     def generate_column_assignments(self):

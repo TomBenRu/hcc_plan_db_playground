@@ -170,12 +170,14 @@ def create_google_event(appointment: schemas.Appointment, team_id: UUID) -> tupl
     cast_group = db_services.CastGroup.get_cast_group_of_event(appointment.event.id)
     num_vacant = cast_group.nr_actors - len(names_of_employees)
     text_vacant = f' (unbesetzt: {num_vacant})' if num_vacant > 0 else ''
+    _loc = appointment.event.location_plan_period.location_of_work
+    if _loc.address:
+        _location_str = f'{_loc.name}, {_loc.address.street}, {_loc.address.postal_code} {_loc.address.city}'
+    else:
+        _location_str = _loc.name
     event_obj = GoogleCalendarEvent(
-        summary=appointment.event.location_plan_period.location_of_work.name_an_city,
-        location=f'{appointment.event.location_plan_period.location_of_work.name}, '
-                 f'{appointment.event.location_plan_period.location_of_work.address.street}, '
-                 f'{appointment.event.location_plan_period.location_of_work.address.postal_code} '
-                 f'{appointment.event.location_plan_period.location_of_work.address.city}',
+        summary=_loc.name_an_city,
+        location=_location_str,
         description=', '.join(names_of_employees) + text_vacant + (f'\nInfo: {appointment.notes}' if appointment.notes else ''),
         start_time=datetime.datetime(appointment.event.date.year, appointment.event.date.month,
                                      appointment.event.date.day, appointment.event.time_of_day.start.hour,

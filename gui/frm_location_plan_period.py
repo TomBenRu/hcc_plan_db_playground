@@ -1030,7 +1030,8 @@ class FrmTabLocationPlanPeriods(QWidget):
                                                  key=lambda x: x.location_of_work.name)):
             self.table_select_location.setItem(row, 0, QTableWidgetItem(str(location_pp.location_of_work.id)))
             self.table_select_location.setItem(row, 1, QTableWidgetItem(location_pp.location_of_work.name))
-            self.table_select_location.setItem(row, 2, QTableWidgetItem(location_pp.location_of_work.address.city))
+            self.table_select_location.setItem(row, 2, QTableWidgetItem(
+                location_pp.location_of_work.address.city if location_pp.location_of_work.address else "—"))
         self.table_select_location.hideColumn(0)
 
     def set_splitter_sizes(self):
@@ -1056,10 +1057,11 @@ class FrmTabLocationPlanPeriods(QWidget):
             or db_services.LocationPlanPeriod.get(location_plan_period.id))
         # location_of_work aus bereits geladenem LPP-Show (kein separater DB-Call)
         self.location = location_plan_period_show.location_of_work
+        _loc = location_plan_period_show.location_of_work
         self.lb_title_name.setText(
             self.tr('Events: {location_name} {location_city}').format(
-                location_name=location_plan_period_show.location_of_work.name,
-                location_city=location_plan_period_show.location_of_work.address.city
+                location_name=_loc.name,
+                location_city=_loc.address.city if _loc.address else "—"
             )
         )
 
@@ -1262,7 +1264,8 @@ class FrmLocationPlanPeriod(QWidget):
                 self.tr('Availabilities'),
                 self.tr('Error:\nNo time of day standards are defined for this planning period of {name} {city}').format(
                     name=self.location_plan_period.location_of_work.name,
-                    city=self.location_plan_period.location_of_work.address.city
+                    city=(self.location_plan_period.location_of_work.address.city
+                          if self.location_plan_period.location_of_work.address else "—")
                 )
             )
             return
@@ -1320,7 +1323,8 @@ class FrmLocationPlanPeriod(QWidget):
                     self.tr('Availabilities'),
                     self.tr('Error:\nNo time of day standards are defined for this planning period of {name} {city}').format(
                         name=self.location_plan_period.location_of_work.name,
-                        city=self.location_plan_period.location_of_work.address.city
+                        city=(self.location_plan_period.location_of_work.address.city
+                              if self.location_plan_period.location_of_work.address else "—")
                     )
                 )
                 return
@@ -1658,7 +1662,8 @@ class FrmLocationPlanPeriod(QWidget):
             self.tr('Reset Cast'),
             self.tr('Do you really want to reset the fixed cast of all events to the cast standard of this planning period of {} {}?').format(
                 self.location_plan_period.location_of_work.name,
-                self.location_plan_period.location_of_work.address.city
+                (self.location_plan_period.location_of_work.address.city
+                 if self.location_plan_period.location_of_work.address else "—")
             )
         )
         if reply != QMessageBox.StandardButton.Yes:

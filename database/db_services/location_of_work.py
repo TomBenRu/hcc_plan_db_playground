@@ -138,7 +138,7 @@ def get_locations_of_team_between_dates(team_id: UUID, date_start: datetime.date
             if loc.id not in seen and (not loc.prep_delete or loc.prep_delete.date() > date_end):
                 seen.add(loc.id)
                 result.append(schemas.LocationOfWork.model_validate(loc))
-    return sorted(result, key=lambda x: x.name + x.address.city)
+    return sorted(result, key=lambda x: x.name + (x.address.city if x.address else ""))
 
 
 def create(location: schemas.LocationOfWorkCreate, project_id: UUID) -> schemas.LocationOfWork:

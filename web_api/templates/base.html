@@ -182,6 +182,34 @@
         {% block content %}{% endblock %}
     </main>
 
+    {# ── Globaler Legal-Footer ───────────────────────────────────────────
+       Impressum + Datenschutz muessen von JEDER Seite erreichbar sein
+       (DDG &sect;5). Auf full-screen-Layouts (Login etc.) landet der Footer
+       below-the-fold; das ist legal-konform, aber die Auth-Templates haben
+       zusaetzlich Inline-Links im sichtbaren Bereich. Templates, die den
+       Footer unterdruecken muessen (z.B. iframe-Embeds), koennen
+       {% block footer %}{% endblock %} ueberschreiben. #}
+    {% block footer %}
+    <footer class="border-t border-slate-200 dark:border-slate-700/50
+                   bg-white dark:bg-slate-800
+                   text-slate-500 dark:text-slate-400">
+        <div class="max-w-6xl mx-auto px-6 py-4
+                    flex flex-col sm:flex-row sm:items-center sm:justify-between
+                    gap-2 text-xs">
+            <div>
+                &copy; {{ current_year() }} hcc plan
+            </div>
+            <nav class="flex items-center gap-4" aria-label="Rechtliche Hinweise">
+                <a href="/legal/impressum"
+                   class="hover:text-brand transition-colors">Impressum</a>
+                <span aria-hidden="true">·</span>
+                <a href="/legal/datenschutz"
+                   class="hover:text-brand transition-colors">Datenschutz</a>
+            </nav>
+        </div>
+    </footer>
+    {% endblock %}
+
     {# Globaler Modal-Root: wird per HTMX befüllt. Leer = kein Modal offen. #}
     <div id="modal-root" aria-live="polite"></div>
 

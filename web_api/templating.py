@@ -1,5 +1,6 @@
 """Zentraler Jinja2Templates-Singleton für die gesamte Web-API."""
 
+from datetime import datetime
 from pathlib import Path
 
 from fastapi.templating import Jinja2Templates
@@ -17,3 +18,7 @@ templates.env.globals["cb_palette"] = OKABE_ITO_PALETTE
 # Rollen-Branding (Label + Farben) als Single Source of Truth fuer das
 # role_kicker-Macro in templates/_macros/branding.html.
 templates.env.globals["role_branding"] = role_branding
+
+# Callable, damit der Wert je Request frisch ist (sonst friert das Jahr beim
+# erstem Import ein und kippt erst beim naechsten Deploy auf das neue Jahr).
+templates.env.globals["current_year"] = lambda: datetime.now().year

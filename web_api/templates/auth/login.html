@@ -238,6 +238,17 @@
             <p class="mt-8 text-center text-xs text-slate-400">
                 Kein Zugang? Bitte wenden Sie sich an Ihren Administrator.
             </p>
+
+            {# Legal-Footer: Pflicht-Sichtbarkeit auch auf der Login-Seite.
+               Der globale Footer in base.html ist below-the-fold bei
+               min-h-screen-Layouts — deshalb hier zusaetzlich inline. #}
+            <p class="mt-4 text-center text-xs text-slate-400 flex justify-center gap-3">
+                <a href="/legal/impressum"
+                   class="hover:text-brand transition-colors">Impressum</a>
+                <span aria-hidden="true">·</span>
+                <a href="/legal/datenschutz"
+                   class="hover:text-brand transition-colors">Datenschutz</a>
+            </p>
         </div>
     </div>
 

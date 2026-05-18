@@ -1,0 +1,63 @@
+{# Gemeinsames Layout fuer /legal/* — schmale, lesbare Textseite mit Brand-Header.
+   Wird sowohl von eingeloggten als auch nicht-eingeloggten Besuchern aufgerufen,
+   deshalb keine Sidebar/Nav, sondern eine eigenstaendige Page. #}
+{% extends "base.html" %}
+
+{% block content %}
+<div class="min-h-screen bg-slate-50 dark:bg-slate-900">
+
+    {# ── Header-Bar ───────────────────────────────────────────────────── #}
+    <header class="bg-white dark:bg-slate-800 border-b border-slate-200 dark:border-slate-700">
+        <div class="max-w-3xl mx-auto px-6 py-4 flex items-center justify-between">
+            <a href="/" class="flex items-center gap-2 group">
+                <div class="flex flex-col gap-[3px]">
+                    <div class="w-1 h-4 bg-brand rounded-full"></div>
+                    <div class="w-1 h-2.5 bg-brand/40 rounded-full"></div>
+                </div>
+                <span class="font-display text-navy dark:text-slate-100 text-xl font-light
+                             group-hover:text-brand transition-colors">hcc plan</span>
+            </a>
+            <a href="/auth/login"
+               class="text-xs text-slate-500 dark:text-slate-400
+                      hover:text-brand transition-colors">
+                Zur Anmeldung &rarr;
+            </a>
+        </div>
+    </header>
+
+    {# ── Hauptinhalt ──────────────────────────────────────────────────── #}
+    <article class="max-w-3xl mx-auto px-6 py-12">
+        <header class="mb-10">
+            <p class="text-xs font-semibold tracking-widest uppercase text-brand mb-2">
+                {% block legal_kicker %}{% endblock %}
+            </p>
+            <h1 class="font-display text-4xl font-semibold text-slate-900 dark:text-slate-100">
+                {% block legal_title %}{% endblock %}
+            </h1>
+        </header>
+
+        <div class="prose prose-slate dark:prose-invert max-w-none
+                    text-slate-700 dark:text-slate-300
+                    [&>h2]:font-display [&>h2]:text-2xl [&>h2]:font-semibold
+                    [&>h2]:text-slate-800 [&>h2:not(:first-child)]:mt-10 [&>h2]:mb-3
+                    [&>h2]:dark:text-slate-100
+                    [&>h3]:font-semibold [&>h3]:text-lg [&>h3]:mt-6 [&>h3]:mb-2
+                    [&>h3]:text-slate-800 [&>h3]:dark:text-slate-200
+                    [&>p]:mb-4 [&>p]:leading-relaxed
+                    [&>ul]:list-disc [&>ul]:pl-6 [&>ul]:mb-4 [&>ul]:space-y-1
+                    [&>ol]:list-decimal [&>ol]:pl-6 [&>ol]:mb-4 [&>ol]:space-y-1
+                    [&_a]:text-brand [&_a]:underline [&_a:hover]:text-brand-600">
+            {% block legal_body %}{% endblock %}
+        </div>
+
+        <footer class="mt-16 pt-6 border-t border-slate-200 dark:border-slate-700
+                       text-xs text-slate-400 dark:text-slate-500 flex flex-wrap gap-4">
+            <a href="/legal/impressum" class="hover:text-brand transition-colors">Impressum</a>
+            <span aria-hidden="true">·</span>
+            <a href="/legal/datenschutz" class="hover:text-brand transition-colors">Datenschutz</a>
+            <span aria-hidden="true">·</span>
+            <a href="/auth/login" class="hover:text-brand transition-colors">Anmelden</a>
+        </footer>
+    </article>
+</div>
+{% endblock %}

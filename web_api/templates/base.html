@@ -283,6 +283,32 @@
     }());
     </script>
 
+    {# ── Datum-Validierung: <input type="date"> ────────────────────────────
+       Bei ungültigen Datumseingaben (z. B. 31.04.) setzt der Browser laut
+       HTML5-Spec value="" und meldet beim Submit "Bitte füllen Sie dieses
+       Feld aus". Wir tauschen das gegen eine klare "Ungültiges Datum"-
+       Meldung via setCustomValidity(), bevor die native Anzeige feuert. #}
+    <script>
+    (function () {
+        var MSG = 'Ungültiges Datum. Bitte einen Tag wählen, der im gewählten Monat existiert.';
+
+        function check(el) {
+            if (!el || el.tagName !== 'INPUT' || el.type !== 'date') return;
+            if (el.validity && el.validity.badInput) {
+                el.setCustomValidity(MSG);
+            } else if (el.validationMessage === MSG) {
+                el.setCustomValidity('');
+            }
+        }
+
+        // capture:true → greift auch in Shadow-/HTMX-nachgeladenen Forms,
+        // bevor der native invalid-Event-Flow startet.
+        document.addEventListener('input',  function (e) { check(e.target); }, true);
+        document.addEventListener('change', function (e) { check(e.target); }, true);
+        document.addEventListener('blur',   function (e) { check(e.target); }, true);
+    }());
+    </script>
+
     <script>
     /* ── Touch-Swipe-Helper: horizontale Navigation ──────────────────────────
        Erkennt eine horizontale Wisch-Geste (>= threshold px, |dy/dx| < ratio,

@@ -1,0 +1,14 @@
+{# ─ Querystring-Helfer: liest aktuelle Filter, ueberschreibt mit Kwargs ─
+
+   Wird sowohl im index.html als auch in den Partial-Templates
+   (sidebar_filters.html) verwendet, damit die Filter-Links nach jedem
+   HTMX-Refresh die gerade aktive Sucheingabe mitnehmen.
+#}
+{%- macro qs(role=None, status=None, person_link=None, sort=None, search=None) -%}
+{%- set r = role if role is not none else filters.role -%}
+{%- set s = status if status is not none else filters.status -%}
+{%- set p = person_link if person_link is not none else filters.person_link -%}
+{%- set o = sort if sort is not none else filters.sort -%}
+{%- set q = search if search is not none else filters.search -%}
+role={{ r }}&status={{ s }}&person_link={{ p }}&sort={{ o }}&search={{ q | urlencode }}
+{%- endmacro -%}

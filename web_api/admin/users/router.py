@@ -55,7 +55,12 @@ def users_index(
     sort: SortKey = Query(default="name"),
     search: str = Query(default=""),
 ):
-    """Listenseite mit Sidebar-Filter und Tabelle."""
+    """Listenseite mit Sidebar-Filter und Tabelle.
+
+    Vollseiten-Render fuer GET ohne ``HX-Request``; bei HTMX-Calls (Live-Suche
+    via Tastatureingabe) wird ein leichtgewichtiges Response-Partial geliefert,
+    das die Tabelle tauscht und per OOB-Swap die Sidebar-Filter synchron haelt.
+    """
     rows = list_users(
         session,
         role=role,
@@ -66,8 +71,14 @@ def users_index(
     )
     counts = compute_sidebar_counts(session)
 
+    template_name = (
+        "admin/users/partials/htmx_response.html"
+        if request.headers.get("HX-Request") == "true"
+        else "admin/users/index.html"
+    )
+
     return templates.TemplateResponse(
-        "admin/users/index.html",
+        template_name,
         {
             "request": request,
             "user": user,

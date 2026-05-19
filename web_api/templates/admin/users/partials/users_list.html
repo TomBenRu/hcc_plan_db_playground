@@ -1,0 +1,55 @@
+{# Tabelle + Empty-State + Eintragszaehler.
+
+   Wird sowohl auf der Initial-Page eingebunden als auch bei jedem
+   Live-Search-Request neu gerendert und in #users-main-content getauscht.
+#}
+
+{% set role_colors = {
+    "admin":      ("bg-rose-50",  "text-rose-700",  "bg-rose-900/30",  "text-rose-300",  "ADM"),
+    "dispatcher": ("bg-sky-50",   "text-sky-700",   "bg-sky-900/30",   "text-sky-300",   "DISP"),
+    "employee":   ("bg-orange-50","text-orange-700","bg-orange-900/30","text-orange-300","EMP"),
+    "accountant": ("bg-teal-50",  "text-teal-700",  "bg-teal-900/30",  "text-teal-300",  "ACC"),
+    "viewer":     ("bg-indigo-50","text-indigo-700","bg-indigo-900/30","text-indigo-300","VIEW"),
+} %}
+
+{% if rows %}
+<div class="bg-white dark:bg-slate-800 rounded-xl border
+            border-slate-100 dark:border-slate-700/50 shadow-sm overflow-hidden
+            anim" style="animation-delay: 0.1s;">
+    <table class="users-table w-full text-sm">
+        <thead class="bg-slate-50/60 dark:bg-slate-900/40">
+            <tr>
+                <th>Name &amp; E-Mail</th>
+                <th>Rollen</th>
+                <th>Status</th>
+                <th>Letzter Login</th>
+                <th class="text-right pr-4">Angelegt</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+                {% include "admin/users/partials/user_row.html" %}
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+<p class="text-xs text-slate-400 mt-3 font-sans">
+    {{ rows | length }} {{ "Eintrag" if rows | length == 1 else "Einträge" }} angezeigt
+</p>
+{% else %}
+<div class="anim flex flex-col items-center justify-center py-16 text-slate-400"
+     style="animation-delay: 0.1s;">
+    <div class="w-14 h-14 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100
+                dark:border-slate-700/50 shadow-sm flex items-center justify-center mb-4">
+        <svg class="w-7 h-7 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
+                  d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-2.13a4 4 0 11-8 0 4 4 0 018 0zm6 0a4 4 0 11-8 0 4 4 0 018 0z"/>
+        </svg>
+    </div>
+    <p class="text-sm font-medium text-slate-500 dark:text-slate-300">Keine Treffer</p>
+    <p class="text-xs mt-1">
+        {% if filters.search %}Kein Treffer für „{{ filters.search }}".
+        {% else %}Mit den aktuellen Filtern wurde kein Benutzer gefunden.{% endif %}
+    </p>
+</div>
+{% endif %}

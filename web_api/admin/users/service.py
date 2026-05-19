@@ -106,7 +106,15 @@ def list_users(
 
     if search:
         like = f"%{search.strip().lower()}%"
-        stmt = stmt.where(func.lower(WebUser.email).like(like))
+        # Subquery statt OUTER JOIN, damit Row-Duplikate durch selectinload(role_links)
+        # ausgeschlossen sind. User ohne person_id matchen weiter ueber den Email-Pfad.
+        person_match = select(Person.id).where(
+            func.lower(Person.f_name).like(like)
+            | func.lower(Person.l_name).like(like)
+        )
+        stmt = stmt.where(
+            func.lower(WebUser.email).like(like) | WebUser.person_id.in_(person_match)
+        )
 
     if status == "active":
         stmt = stmt.where(WebUser.is_active.is_(True))

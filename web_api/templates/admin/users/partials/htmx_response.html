@@ -1,0 +1,13 @@
+{# OOB-Wrapper fuer HTMX-Refresh der Benutzerliste.
+
+   Hauptcontent (#users-main-content) wird per regulaerem hx-target/hx-swap
+   getauscht; die Sidebar-Filter werden per Out-Of-Band-Swap aktualisiert,
+   damit die `?role=…&search=…`-Hrefs den aktuellen Suchstring mitnehmen.
+   Sonst wuerde der naechste Filter-Klick die Sucheingabe verschlucken. #}
+
+{% include "admin/users/partials/users_list.html" %}
+
+<div id="sidebar-filters" class="sidebar-filters flex flex-col gap-1.5 mb-6"
+     hx-swap-oob="outerHTML">
+    {% include "admin/users/partials/sidebar_filters.html" %}
+</div>

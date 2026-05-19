@@ -1,15 +1,6 @@
 {% extends "base.html" %}
 {% from "_macros/branding.html" import role_kicker %}
-
-{# ─ Querystring-Helfer: liest aktuelle Filter, ueberschreibt mit Kwargs ─ #}
-{%- macro qs(role=None, status=None, person_link=None, sort=None, search=None) -%}
-{%- set r = role if role is not none else filters.role -%}
-{%- set s = status if status is not none else filters.status -%}
-{%- set p = person_link if person_link is not none else filters.person_link -%}
-{%- set o = sort if sort is not none else filters.sort -%}
-{%- set q = search if search is not none else filters.search -%}
-role={{ r }}&status={{ s }}&person_link={{ p }}&sort={{ o }}&search={{ q | urlencode }}
-{%- endmacro -%}
+{% from "admin/users/_macros.html" import qs with context %}
 
 {% block title %}Benutzerverwaltung – hcc plan{% endblock %}
 
@@ -165,43 +156,6 @@ role={{ r }}&status={{ s }}&person_link={{ p }}&sort={{ o }}&search={{ q | urlen
 
 {% block content %}
 
-{% set role_labels = {
-    "all":        "Alle",
-    "admin":      "Administration",
-    "dispatcher": "Disposition",
-    "employee":   "Mitarbeiter",
-    "accountant": "Buchhaltung",
-    "viewer":     "Einblick",
-} %}
-
-{% set status_labels = {
-    "all":      "Alle",
-    "active":   "aktiv",
-    "inactive": "inaktiv",
-    "invited":  "Einladung offen",
-} %}
-
-{% set person_link_labels = {
-    "all":      "Alle",
-    "linked":   "Verknüpft",
-    "unlinked": "Ohne Person",
-} %}
-
-{% set sort_labels = {
-    "name":           "Name",
-    "created":        "Angelegt",
-    "last_modified":  "Letzte Änderung",
-    "last_login":     "Letzter Login",
-} %}
-
-{% set role_colors = {
-    "admin":      ("bg-rose-50",  "text-rose-700",  "bg-rose-900/30",  "text-rose-300",  "ADM"),
-    "dispatcher": ("bg-sky-50",   "text-sky-700",   "bg-sky-900/30",   "text-sky-300",   "DISP"),
-    "employee":   ("bg-orange-50","text-orange-700","bg-orange-900/30","text-orange-300","EMP"),
-    "accountant": ("bg-teal-50",  "text-teal-700",  "bg-teal-900/30",  "text-teal-300",  "ACC"),
-    "viewer":     ("bg-indigo-50","text-indigo-700","bg-indigo-900/30","text-indigo-300","VIEW"),
-} %}
-
 <div class="h-[calc(100vh-56px)] flex flex-col overflow-hidden">
 <div class="page-wrapper flex-1 grid overflow-hidden" style="grid-template-columns: 240px 1fr;">
 
@@ -237,74 +191,7 @@ role={{ r }}&status={{ s }}&person_link={{ p }}&sort={{ o }}&search={{ q | urlen
         </button>
 
         <div id="sidebar-filters" class="sidebar-filters flex flex-col gap-1.5 mb-6">
-
-            {# ── Rolle ──────────────────────────────────────────────────── #}
-            <p class="hidden lg:block text-xs font-semibold tracking-widest uppercase text-slate-500 mb-2 font-sans">
-                Rolle
-            </p>
-            {% for key, dot in [("all", "bg-slate-500"), ("admin", "bg-rose-500"),
-                                 ("dispatcher", "bg-sky-400"), ("employee", "bg-orange-500"),
-                                 ("accountant", "bg-teal-400"), ("viewer", "bg-indigo-400")] %}
-            <a href="?{{ qs(role=key) }}"
-               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
-                      border-transparent text-sm font-sans text-slate-400
-                      {% if filters.role == key %}active{% endif %}">
-                <span class="w-2 h-2 rounded-full flex-shrink-0 {{ dot }}"></span>
-                {{ role_labels[key] }}
-                <span class="filter-count">
-                    {% if key == "all" %}{{ counts.total }}{% else %}{{ counts.by_role.get(key, 0) }}{% endif %}
-                </span>
-            </a>
-            {% endfor %}
-
-            {# ── Status ─────────────────────────────────────────────────── #}
-            <p class="hidden lg:block text-xs font-semibold tracking-widest uppercase text-slate-500 mt-5 mb-2 font-sans">
-                Status
-            </p>
-            {% for key, dot in [("all", "bg-slate-500"), ("active", "bg-emerald-400"),
-                                 ("inactive", "bg-slate-400"), ("invited", "bg-amber-400")] %}
-            <a href="?{{ qs(status=key) }}"
-               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
-                      border-transparent text-sm font-sans text-slate-400
-                      {% if filters.status == key %}active{% endif %}">
-                <span class="w-2 h-2 rounded-full flex-shrink-0 {{ dot }}"></span>
-                {{ status_labels[key] }}
-                <span class="filter-count">{{ counts.by_status.get(key, 0) }}</span>
-            </a>
-            {% endfor %}
-
-            {# ── Person-Link ────────────────────────────────────────────── #}
-            <p class="hidden lg:block text-xs font-semibold tracking-widest uppercase text-slate-500 mt-5 mb-2 font-sans">
-                Person-Verknüpfung
-            </p>
-            {% for key, dot in [("all", "bg-slate-500"), ("linked", "bg-indigo-400"),
-                                 ("unlinked", "bg-slate-500")] %}
-            <a href="?{{ qs(person_link=key) }}"
-               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
-                      border-transparent text-sm font-sans text-slate-400
-                      {% if filters.person_link == key %}active{% endif %}">
-                <span class="w-2 h-2 rounded-full flex-shrink-0 {{ dot }}"></span>
-                {{ person_link_labels[key] }}
-                <span class="filter-count">{{ counts.by_person_link.get(key, 0) }}</span>
-            </a>
-            {% endfor %}
-
-            {# ── Sortierung ─────────────────────────────────────────────── #}
-            <p class="hidden lg:block text-xs font-semibold tracking-widest uppercase text-slate-500 mt-5 mb-2 font-sans">
-                Sortierung
-            </p>
-            {% for key in ["name", "created", "last_modified", "last_login"] %}
-            <a href="?{{ qs(sort=key) }}"
-               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
-                      border-transparent text-sm font-sans text-slate-400
-                      {% if filters.sort == key %}active{% endif %}">
-                <svg class="w-3 h-3 flex-shrink-0 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4h13M3 8h9m-9 4h6m4 0l4-4m0 0l4 4m-4-4v12"/>
-                </svg>
-                {{ sort_labels[key] }}
-            </a>
-            {% endfor %}
-
+            {% include "admin/users/partials/sidebar_filters.html" %}
         </div>
 
         <div class="sidebar-spacer flex-1"></div>
@@ -326,7 +213,12 @@ role={{ r }}&status={{ s }}&person_link={{ p }}&sort={{ o }}&search={{ q | urlen
 
             {# ── Kopfzeile: Such-/Aktionsleiste ──────────────────────────── #}
             <div class="mb-6 flex items-center gap-3 anim" style="animation-delay: 0.05s;">
-                <form method="get" class="flex-1">
+                <form method="get" class="flex-1"
+                      hx-get="/admin/users"
+                      hx-trigger="input changed delay:300ms from:input[type='search']"
+                      hx-target="#users-main-content"
+                      hx-swap="innerHTML"
+                      hx-push-url="true">
                     {# Verstecke alle nicht-Such-Filter, damit GET die Filter beibehält. #}
                     <input type="hidden" name="role"        value="{{ filters.role }}">
                     <input type="hidden" name="status"      value="{{ filters.status }}">
@@ -339,7 +231,7 @@ role={{ r }}&status={{ s }}&person_link={{ p }}&sort={{ o }}&search={{ q | urlen
                                   d="M21 21l-4.35-4.35M11 17a6 6 0 100-12 6 6 0 000 12z"/>
                         </svg>
                         <input type="search" name="search" value="{{ filters.search }}"
-                               placeholder="Suche nach E-Mail-Adresse …"
+                               placeholder="Suche nach E-Mail oder Namen …"
                                class="w-full pl-9 pr-3 py-2 rounded-lg border
                                       bg-white dark:bg-slate-800
                                       border-slate-200 dark:border-slate-700
@@ -366,47 +258,9 @@ role={{ r }}&status={{ s }}&person_link={{ p }}&sort={{ o }}&search={{ q | urlen
             </div>
 
             {# ── Tabelle ────────────────────────────────────────────────── #}
-            {% if rows %}
-            <div class="bg-white dark:bg-slate-800 rounded-xl border
-                        border-slate-100 dark:border-slate-700/50 shadow-sm overflow-hidden
-                        anim" style="animation-delay: 0.1s;">
-                <table class="users-table w-full text-sm">
-                    <thead class="bg-slate-50/60 dark:bg-slate-900/40">
-                        <tr>
-                            <th>Name &amp; E-Mail</th>
-                            <th>Rollen</th>
-                            <th>Status</th>
-                            <th>Letzter Login</th>
-                            <th class="text-right pr-4">Angelegt</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for row in rows %}
-                            {% include "admin/users/partials/user_row.html" %}
-                        {% endfor %}
-                    </tbody>
-                </table>
+            <div id="users-main-content">
+                {% include "admin/users/partials/users_list.html" %}
             </div>
-            <p class="text-xs text-slate-400 mt-3 font-sans">
-                {{ rows | length }} {{ "Eintrag" if rows | length == 1 else "Einträge" }} angezeigt
-            </p>
-            {% else %}
-            <div class="anim flex flex-col items-center justify-center py-16 text-slate-400"
-                 style="animation-delay: 0.1s;">
-                <div class="w-14 h-14 rounded-2xl bg-white dark:bg-slate-800 border border-slate-100
-                            dark:border-slate-700/50 shadow-sm flex items-center justify-center mb-4">
-                    <svg class="w-7 h-7 opacity-30" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                              d="M17 20h5v-2a4 4 0 00-3-3.87M9 20H4v-2a4 4 0 013-3.87m6-2.13a4 4 0 11-8 0 4 4 0 018 0zm6 0a4 4 0 11-8 0 4 4 0 018 0z"/>
-                    </svg>
-                </div>
-                <p class="text-sm font-medium text-slate-500 dark:text-slate-300">Keine Treffer</p>
-                <p class="text-xs mt-1">
-                    {% if filters.search %}Keine E-Mail enthält „{{ filters.search }}".
-                    {% else %}Mit den aktuellen Filtern wurde kein Benutzer gefunden.{% endif %}
-                </p>
-            </div>
-            {% endif %}
 
         </div>
     </main>

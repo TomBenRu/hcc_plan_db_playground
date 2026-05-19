@@ -1356,6 +1356,10 @@ class FrmLocationPlanPeriod(QWidget):
         # Caches invalidieren: nächstes data_setup lädt frische Daten vom DB
         self.parent.lpp_id__events_for_buttons.pop(self.location_plan_period.id, None)
         self.parent.loc_id__location_pp_show.pop(str(loc_id), None)
+        # cast_groups_of_pp wird beim ButtonFixedCast.__init__ konsumiert –
+        # ohne Refresh sehen neu erzeugte/gelöschte Events keine aktuellen CastGroups.
+        self.parent.cast_groups_of_pp = db_services.CastGroup.get_all_for_button__plan_period(
+            self.location_plan_period.plan_period.id)
         self.parent.data_setup(location_id=loc_id)
 
     @Slot(UUID)

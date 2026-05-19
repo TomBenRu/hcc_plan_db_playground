@@ -63,6 +63,21 @@
     }
     .fc .fc-day-today .fc-daygrid-day-number { color: #F97316; font-weight: 700; }
     .fc .fc-daygrid-day-frame { min-height: 72px; }
+    /* ── Kalenderwoche (weekNumbers: true) ──────────────────────────────────── */
+    /* Header-Eck (.fc-week-number) + Monatsgrid-Zellen (.fc-daygrid-week-number). */
+    .fc .fc-week-number,
+    .fc .fc-daygrid-week-number {
+        font-family: 'Outfit', sans-serif;
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: #94a3b8;
+        background: #f8fafc;
+        padding: 4px 6px;
+        text-decoration: none !important;
+    }
+    .fc .fc-week-number a,
+    .fc .fc-daygrid-week-number { color: inherit; text-decoration: none; }
     .fc thead { border-bottom: 2px solid #e2e8f0; }
     .fc .fc-scrollgrid { border-radius: 0; border: none; }
     .fc .fc-scrollgrid-section-header th { background: #f8fafc; }
@@ -139,6 +154,8 @@
         background-color: #0072B2; border-color: #0072B2;
     }
     [data-theme="colorblind"] .fc .fc-day-today .fc-daygrid-day-number { color: #0072B2; }
+    [data-theme="colorblind"] .fc .fc-week-number,
+    [data-theme="colorblind"] .fc .fc-daygrid-week-number { color: #64748b; }
     [data-theme="colorblind"] .fc .fc-button:focus { box-shadow: 0 0 0 3px rgba(0,114,178,0.25); }
     [data-theme="colorblind"] .fc-event--active { outline-color: #0072B2 !important; }
 
@@ -160,6 +177,8 @@
     [data-theme="dark"] .fc .fc-col-header-cell-cushion { color: #64748b; }
     [data-theme="dark"] .fc .fc-daygrid-day-number { color: #94a3b8; }
     [data-theme="dark"] .fc .fc-day-today .fc-daygrid-day-number { color: var(--brand); font-weight: 700; }
+    [data-theme="dark"] .fc .fc-week-number,
+    [data-theme="dark"] .fc .fc-daygrid-week-number { color: #64748b; background: #0F172A; }
     [data-theme="dark"] .fc thead { border-bottom-color: #334155; }
     [data-theme="dark"] .fc .fc-scrollgrid-section-header th { background: #0F172A; }
     [data-theme="dark"] .fc .fc-scrollgrid td,
@@ -858,6 +877,9 @@ document.addEventListener('DOMContentLoaded', function () {
         initialDate: '{{ view_model.initial_date }}',
         locale: 'de',
         firstDay: 1,
+        weekNumbers: true,
+        weekNumberCalculation: 'ISO',
+        weekText: 'KW',
         height: '100%',
         validRange: { start: periodStart, end: periodEndExcl },
         // Chips chronologisch nach TOD-Startzeit. FCs eventOrder-String unterstuetzt

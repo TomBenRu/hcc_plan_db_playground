@@ -126,6 +126,23 @@
 
     .fc .fc-daygrid-day-frame { min-height: 72px; }
 
+    /* ── Kalenderwoche (weekNumbers: true) ───────────────────── */
+    /* Zwei Stellen abdecken: Header-Eck (.fc-week-number) und Zellen
+       im Monatsgrid (.fc-daygrid-week-number). Beide auf Tageszahl-Größe. */
+    .fc .fc-week-number,
+    .fc .fc-daygrid-week-number {
+        font-family: 'Outfit', sans-serif;
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: #94a3b8;
+        background: #f8fafc;
+        padding: 4px 6px;
+        text-decoration: none !important;
+    }
+    .fc .fc-week-number a,
+    .fc .fc-daygrid-week-number { color: inherit; text-decoration: none; }
+
     .fc thead { border-bottom: 2px solid #e2e8f0; }
 
     .fc .fc-scrollgrid { border-radius: 0; border: none; }
@@ -195,6 +212,8 @@
         border-color: #0072B2;
     }
     [data-theme="colorblind"] .fc .fc-day-today .fc-daygrid-day-number { color: #0072B2; }
+    [data-theme="colorblind"] .fc .fc-week-number,
+    [data-theme="colorblind"] .fc .fc-daygrid-week-number { color: #64748b; }
     [data-theme="colorblind"] .fc .fc-button:focus {
         box-shadow: 0 0 0 3px rgba(0,114,178,0.25);
     }
@@ -222,6 +241,8 @@
     [data-theme="dark"] .fc .fc-col-header-cell-cushion { color: #64748b; }
     [data-theme="dark"] .fc .fc-daygrid-day-number { color: #94a3b8; }
     [data-theme="dark"] .fc .fc-day-today .fc-daygrid-day-number { color: var(--brand); font-weight: 700; }
+    [data-theme="dark"] .fc .fc-week-number,
+    [data-theme="dark"] .fc .fc-daygrid-week-number { color: #64748b; background: #0F172A; }
     [data-theme="dark"] .fc thead { border-bottom-color: #334155; }
     [data-theme="dark"] .fc .fc-scrollgrid-section-header th { background: #0F172A; }
     [data-theme="dark"] .fc .fc-scrollgrid td,
@@ -532,6 +553,9 @@ document.addEventListener('DOMContentLoaded', function () {
         initialDate: '{{ initial_date }}',
         locale: 'de',
         firstDay: 1,
+        weekNumbers: true,
+        weekNumberCalculation: 'ISO',
+        weekText: 'KW',
         height: '100%',
         headerToolbar: {
             left:   'prev,next today',

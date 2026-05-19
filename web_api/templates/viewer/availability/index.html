@@ -77,6 +77,20 @@
     .fc .fc-day-today .fc-daygrid-day-number {
         color: #818CF8; font-weight: 700;
     }
+    /* Kalenderwoche (weekNumbers: true) — Header-Eck + Monatsgrid-Zellen */
+    .fc .fc-week-number,
+    .fc .fc-daygrid-week-number {
+        font-family: 'Outfit', sans-serif;
+        font-size: 0.8rem;
+        font-weight: 600;
+        letter-spacing: 0.02em;
+        color: #94a3b8;
+        background: #f8fafc;
+        padding: 4px 6px;
+        text-decoration: none !important;
+    }
+    .fc .fc-week-number a,
+    .fc .fc-daygrid-week-number { color: inherit; text-decoration: none; }
     .fc .fc-daygrid-event {
         border-radius: 4px; font-size: 0.73rem;
         font-family: 'Outfit', sans-serif; font-weight: 600;
@@ -103,6 +117,8 @@
     [data-theme="dark"] .fc .fc-day-today .fc-daygrid-day-number {
         color: #A5B4FC; font-weight: 700;
     }
+    [data-theme="dark"] .fc .fc-week-number,
+    [data-theme="dark"] .fc .fc-daygrid-week-number { color: #64748b; background: #0F172A; }
     [data-theme="dark"] .fc thead { border-bottom-color: #334155; }
     [data-theme="dark"] .fc .fc-scrollgrid-section-header th { background: #0F172A; }
     [data-theme="dark"] .fc .fc-scrollgrid td,
@@ -278,6 +294,9 @@
                         initialDate: '{{ active_period.start.isoformat() }}',
                         locale: 'de',
                         firstDay: 1,
+                        weekNumbers: true,
+                        weekNumberCalculation: 'ISO',
+                        weekText: 'KW',
                         height: 'auto',
                         headerToolbar: { left: 'prev,next today', center: 'title', right: '' },
                         events: {

@@ -226,6 +226,84 @@ def create_by_ids(location_plan_period_id: UUID, date: datetime.date,
         return schemas.EventShow.model_validate(event_db)
 
 
+def create_bulk(items: list[tuple[UUID, datetime.date, UUID]]) -> list[schemas.EventShow]:
+    """Erstellt mehrere Events (+ je EventGroup + CastGroup) in einer einzigen Session.
+
+    Args:
+        items: Liste von Tupeln (location_plan_period_id, date, time_of_day_id).
+
+    Returns:
+        EventShow-Liste in **gleicher Reihenfolge** wie ``items`` — Caller verlassen sich
+        auf diesen Ordering-Contract (siehe data_processing.make_events_from_planning_rules,
+        das die Events anhand des Eingabe-Index zurueck auf Rule-Buckets verteilt).
+
+    LPP/TimeOfDay werden je ID nur einmal geladen (Dict-Cache), damit N Items
+    nicht N*2 zusaetzliche Queries verursachen.
+    """
+    log_function_info()
+    if not items:
+        return []
+    with get_session() as session:
+        lpp_ids = {lpp_id for lpp_id, _, _ in items}
+        tod_ids = {tod_id for _, _, tod_id in items}
+        lpps = {
+            lpp.id: lpp
+            for lpp in session.exec(
+                select(models.LocationPlanPeriod).where(models.LocationPlanPeriod.id.in_(lpp_ids))
+            ).all()
+        }
+        tods = {
+            tod.id: tod
+            for tod in session.exec(
+                select(models.TimeOfDay).where(models.TimeOfDay.id.in_(tod_ids))
+            ).all()
+        }
+        created: list[models.Event] = []
+        for lpp_id, date, tod_id in items:
+            lpp = lpps[lpp_id]
+            eg = models.EventGroup(event_group=lpp.event_group)
+            session.add(eg)
+            cg = models.CastGroup(
+                nr_actors=lpp.nr_actors, plan_period=lpp.plan_period,
+                fixed_cast=lpp.fixed_cast,
+                fixed_cast_only_if_available=lpp.fixed_cast_only_if_available,
+            )
+            session.add(cg)
+            event_db = models.Event(
+                date=date, time_of_day=tods[tod_id],
+                event_group=eg, cast_group=cg, location_plan_period=lpp,
+            )
+            session.add(event_db)
+            created.append(event_db)
+        session.flush()
+        return [schemas.EventShow.model_validate(e) for e in created]
+
+
+def delete_bulk(event_ids: list[UUID]) -> None:
+    """Hard-Delete fuer mehrere Events inkl. zugehoeriger EventGroup + CastGroup
+    in einer Session/Transaktion (all-or-nothing).
+
+    Pro-Event-Verhalten identisch zu :func:`delete`. Parent-CastGroup-Verschachtelungen
+    werden — wie beim Single-Delete — nicht aufgeraeumt.
+    """
+    log_function_info()
+    if not event_ids:
+        return
+    with get_session() as session:
+        events = session.exec(
+            select(models.Event).where(models.Event.id.in_(event_ids))
+        ).all()
+        egs = [e.event_group for e in events]
+        cgs = [e.cast_group for e in events]
+        for e in events:
+            session.delete(e)
+        session.flush()
+        for eg in egs:
+            session.delete(eg)
+        for cg in cgs:
+            session.delete(cg)
+
+
 def update_time_of_day_and_date(event_id: UUID, new_time_of_day_id: UUID,
                                 new_date: datetime.date = None) -> None:
     log_function_info()

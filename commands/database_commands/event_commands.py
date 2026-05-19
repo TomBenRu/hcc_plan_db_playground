@@ -40,6 +40,30 @@ class Create(Command):
         )
 
 
+class CreateBulk(Command):
+    """Erstellt mehrere Events in einem HTTP-Roundtrip.
+
+    Reihenfolge der `created_events` entspricht der `events`-Eingabe — Caller
+    duerfen darauf re-distributen (z.B. zurueck in Rule-Buckets).
+    """
+
+    def __init__(self, events: list[schemas.EventCreate]):
+        super().__init__()
+        self.items: list[tuple[UUID, datetime.date, UUID]] = [
+            (e.location_plan_period.id, e.date, e.time_of_day.id) for e in events
+        ]
+        self.created_events: list[schemas.EventShow] = []
+
+    def execute(self):
+        self.created_events = api_event.create_bulk(self.items)
+
+    def _undo(self):
+        api_event.delete_bulk([e.id for e in self.created_events])
+
+    def _redo(self):
+        self.created_events = api_event.create_bulk(self.items)
+
+
 class UpdateTimeOfDay(Command):
     def __init__(self, event: schemas.Event, new_time_of_day_id: UUID):
         super().__init__()
@@ -133,6 +157,38 @@ class Delete(Command):
 
     def _redo(self):
         api_event.delete(self.event_id)
+
+
+class DeleteBulk(Command):
+    """Hard-Delete fuer mehrere Events in einem HTTP-Roundtrip.
+
+    Undo erzeugt frische Events mit denselben (date, lpp, time_of_day) — jedoch
+    neuen UUIDs und frischen EventGroup/CastGroup. Wenn Events vor dem Delete
+    in eine Parent-CastGroup-Struktur verschachtelt waren, kommt diese
+    Verschachtelung beim Undo NICHT zurueck (identisches Verhalten wie
+    Single-:class:`Delete`). Fuer den
+    ``make_events_from_planning_rules``-Pfad bewusst akzeptiert, weil der User
+    die Struktur ohnehin per neuem Run regeneriert.
+    """
+
+    def __init__(self, events: list[schemas.EventShow]):
+        super().__init__()
+        # Daten fuer Undo VOR dem Delete sichern; spaeter sind die DB-Rows weg.
+        self.undo_items: list[tuple[UUID, datetime.date, UUID]] = [
+            (e.location_plan_period.id, e.date, e.time_of_day.id) for e in events
+        ]
+        self.event_ids: list[UUID] = [e.id for e in events]
+
+    def execute(self):
+        api_event.delete_bulk(self.event_ids)
+
+    def _undo(self):
+        recreated = api_event.create_bulk(self.undo_items)
+        # Neue UUIDs fuer evtl. Redo merken.
+        self.event_ids = [e.id for e in recreated]
+
+    def _redo(self):
+        api_event.delete_bulk(self.event_ids)
 
 
 class PutInFlag(Command):

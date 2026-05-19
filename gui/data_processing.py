@@ -277,9 +277,7 @@ class LocationPlanPeriodData:
         master_event_group = db_services.EventGroup.get_master_from__location_plan_period(
             self.location_plan_period.id)
         if existing_events := db_services.Event.get_all_from__location_plan_period(self.location_plan_period.id):
-            for event in existing_events:
-                command = event_commands.Delete(event.id)
-                self.controller.execute(command)
+            self.controller.execute(event_commands.DeleteBulk(existing_events))
 
         events = self._create_events_from_rules(dlg.planning_rules.rules_data,
                                                 dlg.planning_rules.same_partial_days_for_all_rules,
@@ -296,23 +294,35 @@ class LocationPlanPeriodData:
 
     def _create_events_from_rules(self, rules: list[gui.data_models.schemas.RulesData],
                                   same_partial_days_for_all_rules: bool, master_event_group_id: UUID):
-        """Erstellt Ereignisse basierend auf den gegebenen Regeln."""
-        events = []
-        for rule in rules:
-            events.append({})
+        """Erstellt Ereignisse basierend auf den gegebenen Regeln.
+
+        Bulk-Variante: sammelt zuerst alle EventCreates ueber alle Rules, fuehrt
+        EINEN ``CreateBulk``-Command aus und verteilt die zurueckgegebenen
+        EventShow-Instanzen anhand des Eingabe-Index zurueck in die
+        Rule-Buckets. Cross-Rule-Date-Kollisionen sind damit eindeutig
+        aufloesbar (Index-Mapping statt Date-Mapping).
+        """
+        plan: list[tuple[int, datetime.date, schemas.EventCreate]] = []
+        for rule_idx, rule in enumerate(rules):
             for n in range(rule.repeat + 1):
-                event = schemas.EventCreate(
+                event_create = schemas.EventCreate(
                     location_plan_period=self.location_plan_period,
                     date=rule.first_day + datetime.timedelta(n * rule.interval),
                     time_of_day=rule.time_of_day, flags=[]
                 )
-                command = event_commands.Create(event)
-                self.controller.execute(command)
-                events[-1][command.created_event.date] = command.created_event
+                plan.append((rule_idx, event_create.date, event_create))
 
+        events: list[dict[datetime.date, schemas.EventShow]] = [{} for _ in rules]
+        if plan:
+            bulk = event_commands.CreateBulk([ec for _, _, ec in plan])
+            self.controller.execute(bulk)
+            for (rule_idx, date, _), created in zip(plan, bulk.created_events):
+                events[rule_idx][date] = created
+
+        for rule_idx, rule in enumerate(rules):
             if rule.num_events < rule.repeat + 1 and not same_partial_days_for_all_rules:
                 new_event_group = self._create_event_group(master_event_group_id, rule.num_events)
-                self._assign_events_to_group(events[-1], new_event_group)
+                self._assign_events_to_group(events[rule_idx], new_event_group)
         return events
 
     def _group_events_by_day(self, events, master_event_group, rules: list[gui.data_models.schemas.RulesData]):

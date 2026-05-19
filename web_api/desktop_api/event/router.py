@@ -31,6 +31,24 @@ class EventTimeOfDaysBody(BaseModel):
     time_of_days: list[schemas.TimeOfDay]
 
 
+class EventBulkCreateItem(BaseModel):
+    location_plan_period_id: uuid.UUID
+    date: datetime.date
+    time_of_day_id: uuid.UUID
+
+
+class EventBulkCreateBody(BaseModel):
+    items: list[EventBulkCreateItem]
+
+
+class EventBulkIdsBody(BaseModel):
+    event_ids: list[uuid.UUID]
+
+
+class EventBulkCreateResponse(BaseModel):
+    events: list[schemas.EventShow]
+
+
 @router.post("", response_model=schemas.EventShow, status_code=status.HTTP_201_CREATED)
 def create_event(body: EventCreateBody, _: DesktopUser):
     return db_services.Event.create_by_ids(
@@ -38,6 +56,21 @@ def create_event(body: EventCreateBody, _: DesktopUser):
         date=body.date,
         time_of_day_id=body.time_of_day_id,
     )
+
+
+# /bulk* MUSS vor /{event_id} stehen — sonst matcht "bulk" als UUID.
+@router.post("/bulk", response_model=EventBulkCreateResponse,
+             status_code=status.HTTP_201_CREATED)
+def create_events_bulk(body: EventBulkCreateBody, _: DesktopUser):
+    events = db_services.Event.create_bulk(
+        [(it.location_plan_period_id, it.date, it.time_of_day_id) for it in body.items]
+    )
+    return EventBulkCreateResponse(events=events)
+
+
+@router.delete("/bulk", status_code=status.HTTP_204_NO_CONTENT)
+def delete_events_bulk(body: EventBulkIdsBody, _: DesktopUser):
+    db_services.Event.delete_bulk(body.event_ids)
 
 
 @router.delete("/{event_id}", response_model=schemas.EventShow)

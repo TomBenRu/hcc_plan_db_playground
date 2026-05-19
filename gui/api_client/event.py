@@ -17,9 +17,34 @@ def create(date: datetime.date, location_plan_period_id: uuid.UUID,
     return schemas.EventShow.model_validate(data)
 
 
+def create_bulk(items: list[tuple[uuid.UUID, datetime.date, uuid.UUID]]
+                ) -> list[schemas.EventShow]:
+    """Erzeugt mehrere Events in einem HTTP-Roundtrip.
+
+    Items: ``(location_plan_period_id, date, time_of_day_id)`` — Reihenfolge
+    der Rueckgabe entspricht der Eingabe (Caller verlassen sich darauf).
+    """
+    data = get_api_client().post("/api/v1/events/bulk", json={
+        "items": [
+            {
+                "location_plan_period_id": str(lpp_id),
+                "date": date.isoformat(),
+                "time_of_day_id": str(tod_id),
+            }
+            for lpp_id, date, tod_id in items
+        ],
+    })
+    return [schemas.EventShow.model_validate(e) for e in data["events"]]
+
+
 def delete(event_id: uuid.UUID) -> schemas.EventShow:
     data = get_api_client().delete(f"/api/v1/events/{event_id}")
     return schemas.EventShow.model_validate(data)
+
+
+def delete_bulk(event_ids: list[uuid.UUID]) -> None:
+    get_api_client().delete("/api/v1/events/bulk",
+                            json={"event_ids": [str(i) for i in event_ids]})
 
 
 def update_time_of_day_and_date(event_id: uuid.UUID, time_of_day_id: uuid.UUID,

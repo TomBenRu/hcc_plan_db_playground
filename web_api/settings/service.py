@@ -16,35 +16,45 @@ class EffectiveSettings:
     source: str  # "team" | "project" | "default"
 
 
+DEFAULT_DEADLINE_HOURS = 48
+
+
+def get_project_deadline_hours(session: Session, project_id: uuid.UUID) -> int:
+    """Lädt den projektweiten Default. Liefert 48h, wenn noch keine Row existiert."""
+    setting = session.execute(
+        sa_select(ProjectSettings).where(ProjectSettings.project_id == project_id)
+    ).scalars().first()
+    return setting.cancellation_deadline_hours if setting else DEFAULT_DEADLINE_HOURS
+
+
 def get_effective_deadline(session: Session, team_id: uuid.UUID) -> EffectiveSettings:
     """Ermittelt die effektive Absagefrist: Team → Project → Default 48h."""
-    team_setting = session.exec(
+    team_setting = session.execute(
         sa_select(TeamNotificationSettings).where(TeamNotificationSettings.team_id == team_id)
-    ).first()
+    ).scalars().first()
     if team_setting and team_setting.cancellation_deadline_hours is not None:
         return EffectiveSettings(deadline_hours=team_setting.cancellation_deadline_hours, source="team")
 
     team = session.get(Team, team_id)
     if team:
-        project_setting = session.exec(
+        project_setting = session.execute(
             sa_select(ProjectSettings).where(ProjectSettings.project_id == team.project_id)
-        ).first()
+        ).scalars().first()
         if project_setting:
             return EffectiveSettings(
                 deadline_hours=project_setting.cancellation_deadline_hours, source="project"
             )
 
-    return EffectiveSettings(deadline_hours=48, source="default")
+    return EffectiveSettings(deadline_hours=DEFAULT_DEADLINE_HOURS, source="default")
 
 
 def upsert_project_settings(
     session: Session, project_id: uuid.UUID, deadline_hours: int
 ) -> ProjectSettings:
-    existing = session.exec(
+    existing = session.execute(
         sa_select(ProjectSettings).where(ProjectSettings.project_id == project_id)
-    ).first()
+    ).scalars().first()
     if existing:
-        existing.deadline_hours = deadline_hours  # type: ignore[assignment]
         existing.cancellation_deadline_hours = deadline_hours
         session.add(existing)
         return existing
@@ -56,9 +66,9 @@ def upsert_project_settings(
 def upsert_team_settings(
     session: Session, team_id: uuid.UUID, deadline_hours: int | None
 ) -> TeamNotificationSettings:
-    existing = session.exec(
+    existing = session.execute(
         sa_select(TeamNotificationSettings).where(TeamNotificationSettings.team_id == team_id)
-    ).first()
+    ).scalars().first()
     if existing:
         existing.cancellation_deadline_hours = deadline_hours
         session.add(existing)

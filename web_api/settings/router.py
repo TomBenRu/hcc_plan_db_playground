@@ -27,9 +27,9 @@ def get_project_settings(
     user: WebUser = AdminUser,
     session: Session = Depends(get_db_session),
 ):
-    setting = session.exec(
+    setting = session.execute(
         sa_select(ProjectSettings).where(ProjectSettings.project_id == project_id)
-    ).first()
+    ).scalars().first()
     return {
         "project_id": str(project_id),
         "cancellation_deadline_hours": setting.cancellation_deadline_hours if setting else 48,

@@ -22,6 +22,10 @@ from web_api.email.crypto import (
 )
 from web_api.email.service import send_test_email
 from web_api.models.web_models import WebUser
+from web_api.settings.service import (
+    get_project_deadline_hours,
+    upsert_project_settings,
+)
 from web_api.templating import templates
 
 router = APIRouter(prefix="/admin", tags=["admin"])
@@ -38,9 +42,16 @@ def admin_project_settings(
 ):
     """Vollständige Einstellungs-Seite (erste Navigation)."""
     project = get_admin_project(session, user)
+    deadline_hours = get_project_deadline_hours(session, project.id)
     return templates.TemplateResponse(
         "admin/project_settings.html",
-        {"request": request, "user": user, "project": project, "saved": False},
+        {
+            "request": request,
+            "user": user,
+            "project": project,
+            "deadline_hours": deadline_hours,
+            "saved": False,
+        },
     )
 
 
@@ -59,6 +70,27 @@ def admin_update_project_settings(
     return templates.TemplateResponse(
         "admin/partials/settings_card.html",
         {"request": request, "project": project, "saved": True},
+    )
+
+
+@router.post("/project-settings/deadline", response_class=HTMLResponse)
+def admin_update_project_deadline(
+    request: Request,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    cancellation_deadline_hours: int = Form(..., ge=0, le=720),
+):
+    """HTMX-Swap-Ziel: speichert die projektweite Absagefrist (Stunden vor Termin)."""
+    project = get_admin_project(session, user)
+    upsert_project_settings(session, project.id, cancellation_deadline_hours)
+    session.commit()
+    return templates.TemplateResponse(
+        "admin/partials/deadline_card.html",
+        {
+            "request": request,
+            "deadline_hours": cancellation_deadline_hours,
+            "saved": True,
+        },
     )
 
 

@@ -55,8 +55,8 @@ def admin_project_settings(
     )
 
 
-@router.post("/project-settings", response_class=HTMLResponse)
-def admin_update_project_settings(
+@router.post("/project-settings/simple-time-slots", response_class=HTMLResponse)
+def admin_update_simple_time_slots(
     request: Request,
     user: WebUser = require_role(WebUserRole.admin),
     session: Session = Depends(get_db_session),

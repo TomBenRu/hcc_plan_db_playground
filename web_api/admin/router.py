@@ -24,7 +24,9 @@ from web_api.email.service import send_test_email
 from web_api.models.web_models import WebUser
 from web_api.settings.service import (
     get_project_deadline_hours,
+    get_project_swap_deadline_hours,
     upsert_project_settings,
+    upsert_project_swap_deadline,
 )
 from web_api.templating import templates
 
@@ -43,6 +45,7 @@ def admin_project_settings(
     """Vollständige Einstellungs-Seite (erste Navigation)."""
     project = get_admin_project(session, user)
     deadline_hours = get_project_deadline_hours(session, project.id)
+    swap_deadline_hours = get_project_swap_deadline_hours(session, project.id)
     return templates.TemplateResponse(
         "admin/project_settings.html",
         {
@@ -50,7 +53,9 @@ def admin_project_settings(
             "user": user,
             "project": project,
             "deadline_hours": deadline_hours,
+            "swap_deadline_hours": swap_deadline_hours,
             "saved": False,
+            "swap_saved": False,
         },
     )
 
@@ -90,6 +95,27 @@ def admin_update_project_deadline(
             "request": request,
             "deadline_hours": cancellation_deadline_hours,
             "saved": True,
+        },
+    )
+
+
+@router.post("/project-settings/swap-deadline", response_class=HTMLResponse)
+def admin_update_project_swap_deadline(
+    request: Request,
+    user: WebUser = require_role(WebUserRole.admin),
+    session: Session = Depends(get_db_session),
+    swap_deadline_hours: int = Form(..., ge=0, le=720),
+):
+    """HTMX-Swap-Ziel: speichert die projektweite Tausch-Frist (Stunden vor Termin)."""
+    project = get_admin_project(session, user)
+    upsert_project_swap_deadline(session, project.id, swap_deadline_hours)
+    session.commit()
+    return templates.TemplateResponse(
+        "admin/partials/swap_deadline_card.html",
+        {
+            "request": request,
+            "swap_deadline_hours": swap_deadline_hours,
+            "swap_saved": True,
         },
     )
 

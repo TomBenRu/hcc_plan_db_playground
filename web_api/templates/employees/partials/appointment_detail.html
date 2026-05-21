@@ -251,7 +251,7 @@
         </div>
         {% elif event.is_appointment_started %}
         {# Cancellation-Bereich zeigt bereits „Termin hat bereits begonnen" — hier nichts duplizieren. #}
-        {% elif event.is_past_deadline %}
+        {% elif event.is_past_swap_deadline %}
         <div class="w-full py-2 rounded-xl text-sm font-medium border border-slate-200 text-slate-400 bg-slate-50 text-center">
             Tausch-Frist abgelaufen
         </div>

@@ -1,0 +1,76 @@
+{# HTMX-Partial: Tausch-Frist-Card. #}
+{# Kontext: swap_deadline_hours (int), swap_saved (bool) #}
+
+{% set quick_picks = [0, 24, 48, 72] %}
+
+<div id="swap-deadline-card" class="bg-white dark:bg-slate-800 rounded-xl border border-slate-100 dark:border-slate-700/50 shadow-sm p-6 mb-3">
+
+    <div class="flex items-start justify-between gap-4 mb-4">
+        <div class="min-w-0">
+            <p class="font-medium text-sm text-slate-800 dark:text-slate-100">
+                Tausch-Frist
+            </p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 leading-relaxed">
+                Wie viele Stunden vor Termin-Beginn können Mitarbeiter noch eine Tauschanfrage stellen? Unabhängig von der Absagefrist.
+            </p>
+        </div>
+    </div>
+
+    {# ── Zahlenfeld ──────────────────────────────────────────────────────── #}
+    <form hx-post="/admin/project-settings/swap-deadline"
+          hx-trigger="change from:input[name=swap_deadline_hours]"
+          hx-target="#swap-deadline-card"
+          hx-swap="outerHTML"
+          class="flex items-center gap-3 mb-3">
+        <label for="swap-deadline-input" class="text-sm text-slate-700 dark:text-slate-300 font-sans">
+            Stunden vor Termin:
+        </label>
+        <input id="swap-deadline-input"
+               type="number"
+               name="swap_deadline_hours"
+               min="0"
+               max="720"
+               step="1"
+               value="{{ swap_deadline_hours }}"
+               class="w-24 px-3 py-1.5 text-sm text-slate-800 dark:text-slate-100
+                      bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700
+                      rounded-md focus:outline-none focus:ring-2 focus:ring-brand/30 focus:border-brand
+                      font-sans tabular-nums">
+    </form>
+
+    {# ── Schnellwahl-Chips ───────────────────────────────────────────────── #}
+    <div class="flex items-center gap-2 flex-wrap">
+        <span class="text-xs text-slate-400 dark:text-slate-500 font-sans mr-1">Schnellwahl:</span>
+        {% for h in quick_picks %}
+            {% set active = (h == swap_deadline_hours) %}
+            <button type="button"
+                    hx-post="/admin/project-settings/swap-deadline"
+                    hx-vals='{"swap_deadline_hours": {{ h }}}'
+                    hx-target="#swap-deadline-card"
+                    hx-swap="outerHTML"
+                    class="text-xs font-medium px-3 py-1 rounded-full border transition-colors font-sans
+                           {% if active %}
+                               bg-brand text-white border-brand
+                           {% else %}
+                               bg-white dark:bg-slate-700/40 text-slate-600 dark:text-slate-300
+                               border-slate-200 dark:border-slate-600
+                               hover:bg-slate-50 dark:hover:bg-slate-700
+                           {% endif %}">
+                {{ h }} h
+            </button>
+        {% endfor %}
+    </div>
+
+    <p class="text-xs text-slate-400 dark:text-slate-500 mt-3 font-sans leading-relaxed">
+        <span class="font-medium">0 h</span> = Tauschanfrage jederzeit möglich, auch nach Termin-Beginn.
+    </p>
+
+    {% if swap_saved %}
+    <div class="flex items-center gap-1.5 text-xs text-green-600 dark:text-green-400 font-sans mt-3">
+        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+        </svg>
+        Gespeichert
+    </div>
+    {% endif %}
+</div>

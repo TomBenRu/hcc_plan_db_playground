@@ -179,25 +179,27 @@ class InboxMessageType(str, enum.Enum):
 
 
 class ProjectSettings(SQLModel, table=True):
-    """Projekt-weite Einstellungen, insbesondere die Standard-Absagefrist."""
+    """Projekt-weite Einstellungen — Absagefrist und Tausch-Frist."""
 
     __tablename__ = "project_settings"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     project_id: uuid.UUID = Field(foreign_key="project.id", unique=True, ondelete="CASCADE")
     cancellation_deadline_hours: int = Field(default=48, ge=0)
+    swap_deadline_hours: int = Field(default=48, ge=0)
     created_at: datetime = Field(default_factory=_utcnow)
     last_modified: datetime = Field(default_factory=_utcnow)
 
 
 class TeamNotificationSettings(SQLModel, table=True):
-    """Team-spezifische Absagefrist (NULL = erbt von ProjectSettings)."""
+    """Team-spezifische Fristen (NULL = erbt von ProjectSettings)."""
 
     __tablename__ = "team_notification_settings"
 
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     team_id: uuid.UUID = Field(foreign_key="team.id", unique=True, ondelete="CASCADE")
     cancellation_deadline_hours: Optional[int] = Field(default=None, ge=0, nullable=True)
+    swap_deadline_hours: Optional[int] = Field(default=None, ge=0, nullable=True)
     created_at: datetime = Field(default_factory=_utcnow)
     last_modified: datetime = Field(default_factory=_utcnow)
 

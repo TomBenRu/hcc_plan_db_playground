@@ -126,3 +126,12 @@ gerichtet. Wenn du nur abgeben willst, nutze die [Absage](/help/employee/cancell
 
 Beide Seiten erhalten die Ablehnungs-Begründung per E-Mail, der Plan bleibt unverändert. Du kannst
 dann z. B. eine reguläre Absage stellen oder eine andere Tauschanfrage versuchen.
+
+**Bis wann kann ich eine Tauschanfrage stellen?**
+
+Bis zum Ablauf der **Tausch-Frist** deines Teams. Sie ist projektweit konfigurierbar (Standard
+48 Stunden vor Termin-Start) und unabhängig von der [Absagefrist](/help/employee/cancellation).
+Sobald die Frist überschritten ist, wird der „Termin tauschen"-Button nicht mehr angezeigt — und
+auch ein direkter API-Aufruf wird vom Server abgelehnt. Wenn du nach Frist-Ablauf nicht mehr
+kannst, bleibt nur noch die [Notfall-Absage](/help/employee/cancellation#notfall-absage) bis
+zum Termin-Start oder ein direkter Anruf bei der Disposition.

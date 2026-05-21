@@ -2,7 +2,7 @@
 
 import uuid
 from dataclasses import dataclass
-from datetime import date, datetime, timezone
+from datetime import date, datetime, timedelta, timezone
 
 from fastapi import HTTPException, status
 from sqlalchemy import select as sa_select
@@ -42,6 +42,7 @@ from web_api.models.web_models import (
     WebUser,
 )
 from web_api.plan_adjustment.service import swap_appointments
+from web_api.settings.service import get_effective_deadline
 
 
 def _utcnow() -> datetime:
@@ -120,6 +121,37 @@ def create_swap_request(
 
     dispatcher_user = _get_dispatcher_web_user(session, req_ctx["team_id"])
 
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+
+    def _check_temporal_window(ctx: dict, label: str) -> None:
+        """422, wenn Termin schon begonnen hat oder die Tausch-Frist abgelaufen ist."""
+        time_start = ctx["time_start"]
+        if time_start is None:
+            appt_start = datetime.combine(ctx["event_date"], datetime.min.time())
+        else:
+            appt_start = datetime.combine(ctx["event_date"], time_start)
+        if now >= appt_start:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail=(
+                    f"Tausch nicht möglich: {label} hat bereits begonnen oder liegt "
+                    f"in der Vergangenheit."
+                ),
+            )
+        settings = get_effective_deadline(session, ctx["team_id"])
+        if settings.swap_deadline_hours > 0 and time_start is not None:
+            cutoff = appt_start - timedelta(hours=settings.swap_deadline_hours)
+            if now > cutoff:
+                raise HTTPException(
+                    status.HTTP_422_UNPROCESSABLE_ENTITY,
+                    detail=(
+                        f"Tausch-Frist für {label} überschritten "
+                        f"(maximal {settings.swap_deadline_hours}h vor Termin-Start)."
+                    ),
+                )
+
+    _check_temporal_window(req_ctx, "dein Termin")
+
     swaps: list[SwapRequest] = []
     email_payloads: list[EmailPayload] = []
     target_names: list[str] = []
@@ -133,6 +165,8 @@ def create_swap_request(
                 status.HTTP_422_UNPROCESSABLE_ENTITY,
                 detail="Tausch ist nur innerhalb desselben Teams möglich.",
             )
+
+        _check_temporal_window(tgt_ctx, "Ziel-Termin")
 
         # Konflikt: offene Absage für einen der Termine
         for appt_id in (requester_appt_id, target_appt_id):

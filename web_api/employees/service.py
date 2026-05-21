@@ -63,6 +63,7 @@ class CalendarEvent:
     has_pending_cancellation: bool = False
     has_active_swap_request: bool = False
     is_past_deadline: bool = False
+    is_past_swap_deadline: bool = False
     is_appointment_started: bool = False
     # Besetzungs-Metadaten (Defaults: neutral, damit Employee-Pfad unverändert bleibt)
     cast_count: int = 0
@@ -198,23 +199,38 @@ def get_appointments_for_person(
             ).scalars().all()
         )
 
-    # Batch-Load: Deadlines je Team (eine DB-Abfrage je unique team_id)
+    # Batch-Load: Fristen je Team (eine DB-Abfrage je unique team_id) — liefert beide
+    # Fristen in einem Pass, jeweils nach Team-Override → Projekt-Default → 48h.
     unique_team_ids = {row["team_id"] for row in rows if row["team_id"] is not None}
-    deadline_hours_by_team: dict[uuid.UUID, int] = {
-        tid: get_effective_deadline(session, tid).deadline_hours
-        for tid in unique_team_ids
-    }
+    deadline_hours_by_team: dict[uuid.UUID, int] = {}
+    swap_deadline_hours_by_team: dict[uuid.UUID, int] = {}
+    for tid in unique_team_ids:
+        eff = get_effective_deadline(session, tid)
+        deadline_hours_by_team[tid] = eff.deadline_hours
+        swap_deadline_hours_by_team[tid] = eff.swap_deadline_hours
 
     now = datetime.now(timezone.utc).replace(tzinfo=None)
 
-    def _is_past_deadline(team_id: uuid.UUID | None, event_date: date, time_start: time | None) -> bool:
+    def _is_past_deadline_for(
+        deadlines: dict[uuid.UUID, int],
+        team_id: uuid.UUID | None,
+        event_date: date,
+        time_start: time | None,
+    ) -> bool:
+        """Generisch: True, wenn `now` den Frist-Cutoff (Termin − Stunden) überschritten hat."""
         if team_id is None or time_start is None:
             return False
-        dl = deadline_hours_by_team.get(team_id, 0)
+        dl = deadlines.get(team_id, 0)
         if dl <= 0:
             return False
         cutoff = datetime.combine(event_date, time_start) - timedelta(hours=dl)
         return now > cutoff
+
+    def _is_past_deadline(team_id: uuid.UUID | None, event_date: date, time_start: time | None) -> bool:
+        return _is_past_deadline_for(deadline_hours_by_team, team_id, event_date, time_start)
+
+    def _is_past_swap_deadline(team_id: uuid.UUID | None, event_date: date, time_start: time | None) -> bool:
+        return _is_past_deadline_for(swap_deadline_hours_by_team, team_id, event_date, time_start)
 
     def _is_appointment_started(event_date: date, time_start: time | None) -> bool:
         """True, wenn der Termin (Datum + Startzeit) bereits angefangen hat.
@@ -247,6 +263,9 @@ def get_appointments_for_person(
             has_pending_cancellation=row["appointment_id"] in pending_cancellation_ids,
             has_active_swap_request=row["appointment_id"] in active_swap_request_ids,
             is_past_deadline=_is_past_deadline(
+                row["team_id"], row["event_date"], row["time_start"]
+            ),
+            is_past_swap_deadline=_is_past_swap_deadline(
                 row["team_id"], row["event_date"], row["time_start"]
             ),
             is_appointment_started=_is_appointment_started(

@@ -124,10 +124,7 @@ Notfall-Variante verfügbar.
 ### Unterschied zum regulären Benachrichtigungs-Kreis
 
 Der Notfall-Kreis ist **separat** vom regulären Kreis, der nach klassischen Absagen
-informiert wird. Die Disposition kann den Notfall-Kreis bewusst kleiner halten — z. B. nur
-besonders verlässliche Personen für kurzfristige Einsätze. Solange der Notfall-Kreis leer
-bleibt, wird automatisch der gleiche Personenkreis wie bei regulären Absagen genutzt
-(„Auto-Mode").
+informiert wird. Die Disposition kann den Notfall-Kreis bewusst anders gestalten.
 
 ## Häufige Fragen {#haeufige-fragen}
 

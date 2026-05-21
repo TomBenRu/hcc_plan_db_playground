@@ -125,10 +125,19 @@ def create_emergency_absence(
 
     _verify_ownership(session, appointment_id, web_user.person_id)
 
-    if ctx["event_date"] < date.today():
+    now = datetime.now(timezone.utc).replace(tzinfo=None)
+    if ctx["time_start"] is not None:
+        appointment_start_dt = datetime.combine(ctx["event_date"], ctx["time_start"])
+    else:
+        # Termin ohne konkrete Startzeit: konservativ als Tagesbeginn werten.
+        appointment_start_dt = datetime.combine(ctx["event_date"], datetime.min.time())
+    if now >= appointment_start_dt:
         raise HTTPException(
             status.HTTP_410_GONE,
-            detail="Notfall-Absage nicht mehr möglich: Termin liegt in der Vergangenheit.",
+            detail=(
+                "Notfall-Absage nicht mehr möglich: Termin hat bereits begonnen "
+                "oder liegt in der Vergangenheit."
+            ),
         )
 
     # Idempotenz: keine doppelten offenen Workflow-Items für denselben Termin
@@ -168,9 +177,8 @@ def create_emergency_absence(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail="Notfall-Absage nicht anwendbar: kein gültiger Termin-Zeitpunkt.",
         )
-    appointment_dt = datetime.combine(ctx["event_date"], ctx["time_start"])
-    cutoff = appointment_dt - timedelta(hours=settings.deadline_hours)
-    if datetime.now(timezone.utc).replace(tzinfo=None) <= cutoff:
+    cutoff = appointment_start_dt - timedelta(hours=settings.deadline_hours)
+    if now <= cutoff:
         raise HTTPException(
             status.HTTP_422_UNPROCESSABLE_ENTITY,
             detail=(

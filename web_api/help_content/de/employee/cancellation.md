@@ -97,6 +97,11 @@ Im Termin-Detail erscheint anstelle des regulären roten **„Absagen"**-Buttons
 Vorher ist nur die normale Absage möglich; ist die Frist überschritten, ist nur noch die
 Notfall-Variante verfügbar.
 
+> **Zeitliche Grenze:** Sobald der Termin selbst **beginnt** (geplante Startzeit erreicht oder
+> überschritten), verschwindet auch der Notfall-Absage-Button. Eine Absage ist dann nicht mehr
+> möglich — wenn du es nicht zum Termin schaffst, sprich deine Disposition direkt telefonisch
+> an.
+
 ### Was passiert beim Klick?
 
 1. **Pflicht-Begründung** — du musst kurz beschreiben, warum es ein Notfall ist (z. B. „akut

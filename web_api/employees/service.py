@@ -207,13 +207,19 @@ def get_appointments_for_person(
     now = datetime.now(timezone.utc).replace(tzinfo=None)
 
     def _is_past_deadline(team_id: uuid.UUID | None, event_date: date, time_start: time | None) -> bool:
+        """True nur im Notfall-Fenster: Frist ueberschritten UND Termin noch nicht begonnen.
+
+        Sobald `now >= appointment_start`, ist auch keine Notfall-Absage mehr moeglich
+        — der rote Button im UI muss dann verschwinden (Server reject mit 410).
+        """
         if team_id is None or time_start is None:
             return False
         dl = deadline_hours_by_team.get(team_id, 0)
         if dl <= 0:
             return False
-        cutoff = datetime.combine(event_date, time_start) - timedelta(hours=dl)
-        return now > cutoff
+        appointment_start = datetime.combine(event_date, time_start)
+        cutoff = appointment_start - timedelta(hours=dl)
+        return cutoff < now < appointment_start
 
     return [
         CalendarEvent(

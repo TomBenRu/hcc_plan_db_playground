@@ -84,8 +84,11 @@ def dispatcher_cancellations(
     user: WebUser = require_role(WebUserRole.dispatcher, WebUserRole.admin),
     session: Session = Depends(get_db_session),
     status_filter: str | None = "pending",
+    kind_filter: str | None = None,
 ):
-    cancellations = get_cancellations_for_dispatcher(session, user, status_filter)
+    cancellations = get_cancellations_for_dispatcher(
+        session, user, status_filter, kind_filter,
+    )
     return templates.TemplateResponse(
         "dispatcher/cancellations.html",
         {
@@ -93,6 +96,7 @@ def dispatcher_cancellations(
             "user": user,
             "cancellations": cancellations,
             "status_filter": status_filter,
+            "kind_filter": kind_filter or "",
         },
     )
 

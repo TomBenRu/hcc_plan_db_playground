@@ -104,6 +104,7 @@ class CancellationSummary:
     created_at: datetime
     recipient_count: int
     offer_count: int = 0
+    kind: CancellationKind = CancellationKind.regular
 
 
 # ── Hilfsfunktionen ───────────────────────────────────────────────────────────
@@ -874,8 +875,13 @@ def get_cancellations_for_dispatcher(
     session: Session,
     web_user: WebUser,
     status_filter: str | None = None,
+    kind_filter: str | None = None,
 ) -> list[CancellationSummary]:
-    """Gibt alle Absagen des Teams zurück, dessen Dispatcher der User ist."""
+    """Gibt alle Absagen des Teams zurück, dessen Dispatcher der User ist.
+
+    `kind_filter` (Werte: "regular" | "emergency" | None): optional auf
+    Discriminator-Spalte filtern. None ⇒ beide Arten.
+    """
     if web_user.person_id is None:
         return []
 
@@ -892,6 +898,7 @@ def get_cancellations_for_dispatcher(
             CancellationRequest.id,
             CancellationRequest.reason,
             CancellationRequest.status,
+            CancellationRequest.kind,
             CancellationRequest.created_at,
             Event.date.label("event_date"),
             LocationOfWork.name.label("location_name"),
@@ -916,6 +923,8 @@ def get_cancellations_for_dispatcher(
     )
     if status_filter:
         stmt = stmt.where(CancellationRequest.status == status_filter)
+    if kind_filter in ("regular", "emergency"):
+        stmt = stmt.where(CancellationRequest.kind == kind_filter)
 
     rows = session.execute(stmt).mappings().all()
 
@@ -947,6 +956,7 @@ def get_cancellations_for_dispatcher(
             created_at=r["created_at"],
             recipient_count=0,
             offer_count=offer_counts.get(r["id"], 0),
+            kind=r["kind"],
         )
         for r in rows
     ]

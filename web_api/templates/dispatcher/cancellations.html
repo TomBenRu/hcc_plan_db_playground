@@ -95,38 +95,68 @@
             </svg>
         </button>
 
+        {# Beim Wechsel zwischen Status-Filtern bleibt der Art-Filter bestehen
+           (und umgekehrt), damit der Dispatcher z.B. "offene Notfälle" sehen kann. #}
+        {% set _kind_qs = ("&kind_filter=" ~ kind_filter) if kind_filter else "" %}
+        {% set _status_qs = ("&status_filter=" ~ status_filter) if status_filter else "" %}
+
         <div id="sidebar-filters" class="sidebar-filters flex flex-col gap-1.5 mb-6">
             <p class="hidden lg:block text-xs font-semibold tracking-widest uppercase text-slate-500 mb-2 font-sans">
                 Status
             </p>
 
-            <a href="?status_filter="
+            <a href="?status_filter={{ _kind_qs }}"
                class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
                       border-transparent text-sm font-sans text-slate-400
                       {% if not status_filter %}active{% endif %}">
                 <span class="w-2 h-2 rounded-full flex-shrink-0 bg-slate-500"></span>
                 Alle
             </a>
-            <a href="?status_filter=pending"
+            <a href="?status_filter=pending{{ _kind_qs }}"
                class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
                       border-transparent text-sm font-sans text-slate-400
                       {% if status_filter == 'pending' %}active{% endif %}">
                 <span class="w-2 h-2 rounded-full flex-shrink-0 bg-amber-400"></span>
                 Offen
             </a>
-            <a href="?status_filter=withdrawn"
+            <a href="?status_filter=withdrawn{{ _kind_qs }}"
                class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
                       border-transparent text-sm font-sans text-slate-400
                       {% if status_filter == 'withdrawn' %}active{% endif %}">
                 <span class="w-2 h-2 rounded-full flex-shrink-0 bg-slate-400"></span>
                 Zurückgezogen
             </a>
-            <a href="?status_filter=resolved"
+            <a href="?status_filter=resolved{{ _kind_qs }}"
                class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
                       border-transparent text-sm font-sans text-slate-400
                       {% if status_filter == 'resolved' %}active{% endif %}">
                 <span class="w-2 h-2 rounded-full flex-shrink-0 bg-green-400"></span>
                 Gelöst
+            </a>
+
+            <p class="hidden lg:block text-xs font-semibold tracking-widest uppercase text-slate-500 mt-5 mb-2 font-sans">
+                Art
+            </p>
+            <a href="?kind_filter={{ _status_qs }}"
+               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                      border-transparent text-sm font-sans text-slate-400
+                      {% if not kind_filter %}active{% endif %}">
+                <span class="w-2 h-2 rounded-full flex-shrink-0 bg-slate-500"></span>
+                Alle
+            </a>
+            <a href="?kind_filter=regular{{ _status_qs }}"
+               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                      border-transparent text-sm font-sans text-slate-400
+                      {% if kind_filter == 'regular' %}active{% endif %}">
+                <span class="w-2 h-2 rounded-full flex-shrink-0 bg-blue-400"></span>
+                Regulär
+            </a>
+            <a href="?kind_filter=emergency{{ _status_qs }}"
+               class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border
+                      border-transparent text-sm font-sans text-slate-400
+                      {% if kind_filter == 'emergency' %}active{% endif %}">
+                <span class="w-2 h-2 rounded-full flex-shrink-0 bg-red-500"></span>
+                Notfall
             </a>
         </div>
 

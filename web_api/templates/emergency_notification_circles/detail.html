@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}{{ loc.name }} · Notfall-Kreis – hcc plan{% endblock %}
+
+{% block nav %}{% include "partials/nav.html" %}{% endblock %}
+
+{% block content %}
+<div class="bg-slate-50 dark:bg-slate-900 min-h-[calc(100vh-56px)] px-6 py-8">
+    <div class="max-w-2xl mx-auto">
+
+        {# ── Breadcrumb / Back ─────────────────────────────────────────── #}
+        <a href="/dispatcher/emergency-notification-circles"
+           class="inline-flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400
+                  hover:text-slate-700 dark:hover:text-slate-200 mb-4 font-sans">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
+            Zurück zur Übersicht
+        </a>
+
+        {# ── Header ────────────────────────────────────────────────────── #}
+        <div class="mb-6">
+            <h1 class="font-display text-2xl font-semibold text-slate-800 dark:text-white">
+                {{ loc.name }}
+            </h1>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-1 font-sans">
+                Notfall-Benachrichtigungs-Kreis bei kurzfristigen Absagen
+            </p>
+        </div>
+
+        {# ── Detail-Pane (Members + Hinweis), als HX-Swap-Target ─────── #}
+        <div id="detail-pane">
+            {% include "emergency_notification_circles/partials/_detail_pane.html" %}
+        </div>
+
+        {# ── Modal-Root ───────────────────────────────────────────────── #}
+        <div id="modal-root"></div>
+
+    </div>
+</div>
+{% endblock %}

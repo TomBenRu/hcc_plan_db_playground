@@ -1,0 +1,86 @@
+{# Inneres Pane der Detail-Seite (Notfall-Whitelist).
+   Wird nach jeder Mutation (Add/Remove) als HX-Swap zurückgegeben.
+   Erwartet: loc, members, eligible_count.
+
+   KEIN Mode-Toggle — Aktivierung implicit über Member-Existenz. #}
+
+{# ── Hinweis-Banner ─────────────────────────────────────────────────── #}
+<div class="bg-white dark:bg-slate-800 rounded-xl border
+            border-slate-100 dark:border-slate-700/50 shadow-sm p-5 mb-6">
+    <div class="flex items-start gap-3">
+        <div class="flex-shrink-0 w-8 h-8 rounded-md flex items-center justify-center
+                    {% if members %}bg-red-50 dark:bg-red-900/30{% else %}bg-green-50 dark:bg-green-900/30{% endif %}">
+            <svg class="w-4 h-4 {% if members %}text-red-600 dark:text-red-400{% else %}text-green-600 dark:text-green-400{% endif %}"
+                 fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                {% if members %}
+                <path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"/>
+                {% else %}
+                <path stroke-linecap="round" stroke-linejoin="round" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                {% endif %}
+            </svg>
+        </div>
+        <div class="flex-1">
+            <p class="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                {% if members %}
+                Konfiguriert · {{ members | length }} {% if members | length == 1 %}Person{% else %}Personen{% endif %}
+                {% else %}
+                Auto-Mode aktiv
+                {% endif %}
+            </p>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5 leading-relaxed">
+                {% if members %}
+                Bei einer Notfall-Absage werden nur die eingetragenen Personen benachrichtigt
+                (zusätzlich zum Dispatcher).
+                Entferne alle Einträge, um zurück zu Auto-Mode zu wechseln.
+                {% else %}
+                Bei einer Notfall-Absage werden automatisch alle berechtigten Personen am
+                Arbeitsort benachrichtigt, die an diesem Tag frei sind.
+                Trage Personen ein, um den Empfängerkreis einzuschränken.
+                {% endif %}
+            </p>
+        </div>
+    </div>
+</div>
+
+{# ── Member-Liste ───────────────────────────────────────────────────── #}
+<div id="members-card"
+     class="bg-white dark:bg-slate-800 rounded-xl border
+            border-slate-100 dark:border-slate-700/50 shadow-sm p-5">
+    <div class="flex items-start justify-between gap-3 mb-4">
+        <div>
+            <h2 class="text-sm font-semibold text-slate-800 dark:text-slate-100">
+                Whitelist
+            </h2>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Personen, die im Notfall benachrichtigt werden sollen.
+            </p>
+        </div>
+        <button hx-get="/dispatcher/emergency-notification-circles/{{ loc.id }}/add-member"
+                hx-target="#modal-root"
+                hx-swap="innerHTML"
+                class="flex-shrink-0 text-xs px-3 py-1.5 rounded-md
+                       border border-slate-200 dark:border-slate-700
+                       text-slate-700 dark:text-slate-200
+                       hover:bg-slate-50 dark:hover:bg-slate-700/50
+                       transition-colors">
+            + Person hinzufügen
+        </button>
+    </div>
+
+    {% if members %}
+    <ul id="members-list" class="space-y-1.5">
+        {% for m in members %}
+        {% include "emergency_notification_circles/partials/member_row.html" %}
+        {% endfor %}
+    </ul>
+    {% else %}
+    <p class="text-xs text-slate-400 dark:text-slate-500 italic">
+        Keine Mitglieder. Im Auto-Mode werden alle berechtigten Personen benachrichtigt.
+    </p>
+    {% endif %}
+
+    <p class="text-[11px] text-slate-400 dark:text-slate-500 mt-4">
+        Pool: {{ eligible_count }} Person{% if eligible_count != 1 %}en{% endif %} verfügbar
+        (aktive Team-Zuordnung am Arbeitsort).
+    </p>
+</div>

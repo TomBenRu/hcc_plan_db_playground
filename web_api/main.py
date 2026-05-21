@@ -38,6 +38,7 @@ from web_api.exceptions import LoginRequired
 from web_api.help.router import router as help_router
 from web_api.inbox.router import router as inbox_router
 from web_api.dispatcher.notification_circles.router import router as notification_circles_router
+from web_api.dispatcher.emergency_notification_circles.router import router as emergency_notification_circles_router
 from web_api.legal.router import router as legal_router
 from web_api.locations.router import router as locations_router
 from web_api.notification_groups.router import router as notification_groups_router
@@ -120,6 +121,7 @@ app.include_router(legal_router)
 app.include_router(locations_router)
 app.include_router(notification_groups_router)
 app.include_router(notification_circles_router)
+app.include_router(emergency_notification_circles_router)
 app.include_router(swap_requests_router)
 app.include_router(offers_router)
 app.include_router(user_settings_router)

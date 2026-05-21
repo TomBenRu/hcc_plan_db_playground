@@ -29,7 +29,11 @@ from web_api.dispatcher.notification_circles.service import (
     _today,
 )
 from web_api.email.recipient import sql_recipient_email
-from web_api.models.web_models import LocationEmergencyNotificationCircle, WebUser
+from web_api.models.web_models import (
+    LocationEmergencyNotificationCircle,
+    LocationNotificationCircle,
+    WebUser,
+)
 
 
 @dataclass
@@ -200,3 +204,77 @@ def remove_emergency_member(
     session.delete(row)
     session.commit()
     return True
+
+
+def count_regular_circle_members(
+    session: Session,
+    location_id: uuid.UUID,
+) -> int:
+    """Anzahl Members im regulären `location_notification_circle` der Location.
+
+    Verwendet im Detail-Pane, um den „Aus regulärem Kreis übernehmen"-Button
+    nur dann anzuzeigen, wenn überhaupt etwas zu übernehmen ist.
+    """
+    return session.execute(
+        sa_select(func.count(LocationNotificationCircle.web_user_id))
+        .where(LocationNotificationCircle.location_of_work_id == location_id)
+    ).scalar_one() or 0
+
+
+def clear_emergency_circle(
+    session: Session,
+    location_id: uuid.UUID,
+) -> int:
+    """Entfernt ALLE Members aus der Notfall-Whitelist der Location.
+    Liefert die Anzahl der gelöschten Zeilen.
+
+    Nach dem Clear ist die Whitelist leer und Auto-Mode greift wieder
+    (Implicit-Aktivierung). Aufrufer (Router) muss vorher den Eigentümer-
+    Check via `assert_dispatcher_owns_location` laufen lassen.
+    """
+    rows = session.execute(
+        sa_select(LocationEmergencyNotificationCircle)
+        .where(LocationEmergencyNotificationCircle.location_of_work_id == location_id)
+    ).scalars().all()
+    if not rows:
+        return 0
+    for row in rows:
+        session.delete(row)
+    session.commit()
+    return len(rows)
+
+
+def copy_from_regular_circle(
+    session: Session,
+    location_id: uuid.UUID,
+    added_by: WebUser,
+) -> int:
+    """Übernimmt alle Members aus dem regulären `location_notification_circle`
+    in die Notfall-Whitelist. Idempotent: bereits vorhandene Personen werden
+    übersprungen.
+
+    Karteileichen-Schutz: Personen, die im regulären Kreis sind aber heute
+    nicht mehr im aktuellen Pool (Team verlassen, Location-Zuordnung weg),
+    werden vorab herausgefiltert — sonst würde die Pool-Validierung in
+    `add_emergency_members` mit 403 abbrechen und die ganze Bulk-Übernahme
+    schlagen fehl.
+
+    Liefert die Anzahl der NEU hinzugefügten Zeilen.
+    """
+    from web_api.dispatcher.notification_circles.service import (
+        get_eligible_users_for_location,
+    )
+
+    regular_ids = set(session.execute(
+        sa_select(LocationNotificationCircle.web_user_id)
+        .where(LocationNotificationCircle.location_of_work_id == location_id)
+    ).scalars().all())
+    if not regular_ids:
+        return 0
+
+    eligible_ids = {u.web_user_id for u in get_eligible_users_for_location(session, location_id)}
+    valid_ids = list(regular_ids & eligible_ids)
+    if not valid_ids:
+        return 0
+
+    return add_emergency_members(session, location_id, valid_ids, added_by)

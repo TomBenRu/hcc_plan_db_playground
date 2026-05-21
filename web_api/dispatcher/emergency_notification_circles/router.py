@@ -15,6 +15,9 @@ from web_api.auth.dependencies import require_role
 from web_api.dependencies import get_db_session
 from web_api.dispatcher.emergency_notification_circles.service import (
     add_emergency_members,
+    clear_emergency_circle,
+    copy_from_regular_circle,
+    count_regular_circle_members,
     get_emergency_circle_members,
     list_emergency_locations_for_dispatcher,
     remove_emergency_member,
@@ -39,13 +42,14 @@ def _render_detail_pane(
     user: WebUser,
     location_id: uuid.UUID,
 ) -> HTMLResponse:
-    """Re-rendert das #detail-pane nach jeder Mutation (Add/Remove)."""
+    """Re-rendert das #detail-pane nach jeder Mutation (Add/Remove/Copy)."""
     loc = session.get(LocationOfWork, location_id)
     if loc is None or loc.prep_delete is not None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Arbeitsort nicht gefunden.")
 
     members = get_emergency_circle_members(session, location_id)
     eligible_count = len(get_eligible_users_for_location(session, location_id))
+    regular_count = count_regular_circle_members(session, location_id)
 
     return templates.TemplateResponse(
         "emergency_notification_circles/partials/_detail_pane.html",
@@ -54,6 +58,7 @@ def _render_detail_pane(
             "loc": loc,
             "members": members,
             "eligible_count": eligible_count,
+            "regular_count": regular_count,
         },
     )
 
@@ -111,6 +116,7 @@ def detail(
 
     members = get_emergency_circle_members(session, location_id)
     eligible_count = len(get_eligible_users_for_location(session, location_id))
+    regular_count = count_regular_circle_members(session, location_id)
 
     return templates.TemplateResponse(
         "emergency_notification_circles/detail.html",
@@ -120,6 +126,7 @@ def detail(
             "loc": loc,
             "members": members,
             "eligible_count": eligible_count,
+            "regular_count": regular_count,
         },
     )
 
@@ -185,4 +192,33 @@ def delete_member(
     """Entfernt einen Notfall-Whitelist-Member."""
     assert_dispatcher_owns_location(session, user, location_id)
     remove_emergency_member(session, location_id, web_user_id)
+    return _render_detail_pane(request, session, user, location_id)
+
+
+@router.post("/{location_id}/copy-from-regular", response_class=HTMLResponse)
+def post_copy_from_regular(
+    location_id: uuid.UUID,
+    request: Request,
+    user: WebUser = require_role(WebUserRole.dispatcher),
+    session: Session = Depends(get_db_session),
+):
+    """Übernimmt alle Members aus dem regulären Benachrichtigungs-Kreis
+    der Location in die Notfall-Whitelist (idempotent, Karteileichen-
+    gefiltert). Pane re-rendered direkt mit dem neuen Stand."""
+    assert_dispatcher_owns_location(session, user, location_id)
+    copy_from_regular_circle(session, location_id, added_by=user)
+    return _render_detail_pane(request, session, user, location_id)
+
+
+@router.post("/{location_id}/clear", response_class=HTMLResponse)
+def post_clear(
+    location_id: uuid.UUID,
+    request: Request,
+    user: WebUser = require_role(WebUserRole.dispatcher),
+    session: Session = Depends(get_db_session),
+):
+    """Entfernt alle Members aus der Notfall-Whitelist der Location.
+    Nach dem Clear ist die Liste leer und Auto-Mode greift wieder."""
+    assert_dispatcher_owns_location(session, user, location_id)
+    clear_emergency_circle(session, location_id)
     return _render_detail_pane(request, session, user, location_id)

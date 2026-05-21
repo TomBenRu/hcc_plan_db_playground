@@ -228,13 +228,16 @@
                 {{ help_button("employee/cancellation", anchor="notfall-absage", label="Notfall-Absage") }}
             </div>
             {% else %}
-            <button
-                hx-get="/cancellations/form/{{ event.appointment_id }}"
-                hx-target="#cancellation-action-area"
-                hx-swap="innerHTML"
-                class="w-full py-2 rounded-xl text-sm font-medium border border-rose-200 dark:border-rose-700/50 text-rose-500 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors">
-                Termin absagen
-            </button>
+            <div class="flex items-center gap-1.5">
+                <button
+                    hx-get="/cancellations/form/{{ event.appointment_id }}"
+                    hx-target="#cancellation-action-area"
+                    hx-swap="innerHTML"
+                    class="flex-1 py-2 rounded-xl text-sm font-medium border border-rose-200 dark:border-rose-700/50 text-rose-500 dark:text-rose-300 hover:bg-rose-50 dark:hover:bg-rose-900/20 transition-colors">
+                    Termin absagen
+                </button>
+                {{ help_button("employee/cancellation", anchor="absage-stellen", label="Termin absagen") }}
+            </div>
             {% endif %}
         </div>
         <div id="swap-action-area">

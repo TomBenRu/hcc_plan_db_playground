@@ -216,6 +216,10 @@
             <div class="w-full py-2 rounded-xl text-sm font-medium border border-amber-200 dark:border-amber-700/50 text-amber-600 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30 text-center">
                 Absage bereits gestellt
             </div>
+            {% elif event.is_appointment_started %}
+            <div class="w-full py-2 rounded-xl text-sm font-medium border border-slate-200 dark:border-slate-700/50 text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/50 text-center">
+                Termin hat bereits begonnen
+            </div>
             {% elif event.is_past_deadline %}
             <div class="flex items-center gap-1.5">
                 <button
@@ -245,6 +249,8 @@
         <div class="w-full py-2 rounded-xl text-sm font-medium border border-blue-200 text-blue-400 bg-blue-50 text-center">
             Tauschanfrage bereits gestellt
         </div>
+        {% elif event.is_appointment_started %}
+        {# Cancellation-Bereich zeigt bereits „Termin hat bereits begonnen" — hier nichts duplizieren. #}
         {% elif event.is_past_deadline %}
         <div class="w-full py-2 rounded-xl text-sm font-medium border border-slate-200 text-slate-400 bg-slate-50 text-center">
             Tausch-Frist abgelaufen

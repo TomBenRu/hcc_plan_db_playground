@@ -63,6 +63,7 @@ class CalendarEvent:
     has_pending_cancellation: bool = False
     has_active_swap_request: bool = False
     is_past_deadline: bool = False
+    is_appointment_started: bool = False
     # Besetzungs-Metadaten (Defaults: neutral, damit Employee-Pfad unverändert bleibt)
     cast_count: int = 0
     cast_required: int = 0
@@ -207,19 +208,24 @@ def get_appointments_for_person(
     now = datetime.now(timezone.utc).replace(tzinfo=None)
 
     def _is_past_deadline(team_id: uuid.UUID | None, event_date: date, time_start: time | None) -> bool:
-        """True nur im Notfall-Fenster: Frist ueberschritten UND Termin noch nicht begonnen.
-
-        Sobald `now >= appointment_start`, ist auch keine Notfall-Absage mehr moeglich
-        — der rote Button im UI muss dann verschwinden (Server reject mit 410).
-        """
         if team_id is None or time_start is None:
             return False
         dl = deadline_hours_by_team.get(team_id, 0)
         if dl <= 0:
             return False
-        appointment_start = datetime.combine(event_date, time_start)
-        cutoff = appointment_start - timedelta(hours=dl)
-        return cutoff < now < appointment_start
+        cutoff = datetime.combine(event_date, time_start) - timedelta(hours=dl)
+        return now > cutoff
+
+    def _is_appointment_started(event_date: date, time_start: time | None) -> bool:
+        """True, wenn der Termin (Datum + Startzeit) bereits angefangen hat.
+
+        Wird im UI verwendet, um saemtliche Aktions-Buttons (Absage, Tausch, Notfall)
+        sauber zu deaktivieren — Server-side erfolgt der definitive Reject je nach
+        Workflow.
+        """
+        if time_start is None:
+            return event_date < now.date()
+        return now >= datetime.combine(event_date, time_start)
 
     return [
         CalendarEvent(
@@ -242,6 +248,9 @@ def get_appointments_for_person(
             has_active_swap_request=row["appointment_id"] in active_swap_request_ids,
             is_past_deadline=_is_past_deadline(
                 row["team_id"], row["event_date"], row["time_start"]
+            ),
+            is_appointment_started=_is_appointment_started(
+                row["event_date"], row["time_start"]
             ),
         )
         for row in rows

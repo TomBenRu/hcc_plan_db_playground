@@ -256,14 +256,17 @@
             Tausch-Frist abgelaufen
         </div>
         {% else %}
-        <button
-            hx-get="/swap-requests/preflight/{{ event.appointment_id }}"
-            hx-target="#swap-action-area"
-            hx-swap="innerHTML"
-            class="w-full py-2 rounded-xl text-sm font-medium
-                   border border-blue-200 text-blue-500 hover:bg-blue-50 transition-colors">
-            Termin tauschen
-        </button>
+        <div class="flex items-center gap-1.5">
+            <button
+                hx-get="/swap-requests/preflight/{{ event.appointment_id }}"
+                hx-target="#swap-action-area"
+                hx-swap="innerHTML"
+                class="flex-1 py-2 rounded-xl text-sm font-medium
+                       border border-blue-200 text-blue-500 hover:bg-blue-50 transition-colors">
+                Termin tauschen
+            </button>
+            {{ help_button("employee/swap-request", anchor="tausch-stellen", label="Termin tauschen") }}
+        </div>
         {% endif %}
         </div>
     </div>

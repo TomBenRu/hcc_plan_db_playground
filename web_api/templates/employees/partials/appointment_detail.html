@@ -1,5 +1,6 @@
 {# HTMX-Partial: Termin-Details. Kein extends, kein doctype — reines Fragment. #}
 {# Kontext: event (CalendarEvent) #}
+{% from "_macros/help.html" import help_button %}
 
 {% set months_de = ["Jan", "Feb", "Mär", "Apr", "Mai", "Jun", "Jul", "Aug", "Sep", "Okt", "Nov", "Dez"] %}
 {% set days_de   = ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"] %}
@@ -216,13 +217,16 @@
                 Absage bereits gestellt
             </div>
             {% elif event.is_past_deadline %}
-            <button
-                hx-get="/emergency-absences/form/{{ event.appointment_id }}"
-                hx-target="#cancellation-action-area"
-                hx-swap="innerHTML"
-                class="w-full py-2 rounded-xl text-sm font-medium border border-red-300 dark:border-red-700/60 text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
-                Notfall-Absage
-            </button>
+            <div class="flex items-center gap-1.5">
+                <button
+                    hx-get="/emergency-absences/form/{{ event.appointment_id }}"
+                    hx-target="#cancellation-action-area"
+                    hx-swap="innerHTML"
+                    class="flex-1 py-2 rounded-xl text-sm font-medium border border-red-300 dark:border-red-700/60 text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                    Notfall-Absage
+                </button>
+                {{ help_button("employee/cancellation", anchor="notfall-absage", label="Notfall-Absage") }}
+            </div>
             {% else %}
             <button
                 hx-get="/cancellations/form/{{ event.appointment_id }}"

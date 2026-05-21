@@ -3,17 +3,19 @@ title: Termin absagen
 roles: [employee]
 category: Mitarbeiter
 order: 40
-updated: 2026-05-07
+updated: 2026-05-21
 anchors:
   - wann-absagen
   - absage-stellen
   - status-bedeutung
   - uebernahme-anbieten
   - zurueckziehen
+  - notfall-absage
   - haeufige-fragen
 related:
   - employee/swap-request
   - employee/availability
+  - employee/account-profile
 ---
 
 Wenn du einen geplanten Termin nicht wahrnehmen kannst, stellst du eine **Absage**. Deine Disposition wird automatisch
@@ -81,6 +83,47 @@ Solange der Status **Offen** ist, kannst du den Antrag zurückziehen:
 
 Das ist nützlich, wenn du merkst, das du den Termin nun doch wahrnehmen kannst.
 
+## Notfall-Absage (Frist abgelaufen) {#notfall-absage}
+
+Wenn die reguläre Absagefrist deines Teams abgelaufen ist, du den Termin aber wirklich nicht mehr
+wahrnehmen kannst (z. B. kurzfristige Erkrankung), greift der **Notfall-Absage-Workflow**. Er
+unterscheidet sich bewusst von der regulären Absage — kürzere Reaktionszeit, schnellere Reaktion
+des Teams, aber auch verbindlicher.
+
+### Wann erscheint der Button?
+
+Im Termin-Detail erscheint anstelle des regulären roten **„Absagen"**-Buttons ein roter Button
+**„Notfall-Absage"** — sichtbar erst, sobald die Absagefrist für diesen Termin abgelaufen ist.
+Vorher ist nur die normale Absage möglich; ist die Frist überschritten, ist nur noch die
+Notfall-Variante verfügbar.
+
+### Was passiert beim Klick?
+
+1. **Pflicht-Begründung** — du musst kurz beschreiben, warum es ein Notfall ist (z. B. „akut
+   krank", „Notfall in der Familie"). Das Feld ist erforderlich (mindestens 3 Zeichen).
+2. **Sofortige Cast-Removal** — anders als bei der regulären Absage bist du **unmittelbar**
+   aus der Besetzung entfernt. Du musst nicht auf eine Disposition-Entscheidung warten.
+3. **Bestätigungs-Mail mit Telefonliste** — du erhältst eine E-Mail mit den Telefonnummern
+   der Personen, die deine Disposition für solche Fälle hinterlegt hat. Damit kannst du
+   selbst direkt anrufen und persönlich um Ersatz bitten. In der Liste stehen nur Kontakte,
+   die dem Teilen ihrer Telefonnummer im Notfall zugestimmt haben (siehe
+   [Profil-Einstellung](/help/employee/account-profile)).
+4. **Auto-Broadcast** — parallel benachrichtigt das System per E-Mail und Inbox alle Personen
+   aus dem **Notfall-Benachrichtigungs-Kreis** des Einsatzortes, die an dem Tag frei sind. Sie
+   können den Termin direkt übernehmen.
+
+> **Wichtig:** Eine Notfall-Absage kann **nicht zurückgezogen** werden. Falls du dich kurz
+> darauf doch wieder einsatzfähig fühlst, sprich deine Disposition direkt telefonisch an —
+> sie kann dich gegebenenfalls manuell wieder einplanen.
+
+### Unterschied zum regulären Benachrichtigungs-Kreis
+
+Der Notfall-Kreis ist **separat** vom regulären Kreis, der nach klassischen Absagen
+informiert wird. Die Disposition kann den Notfall-Kreis bewusst kleiner halten — z. B. nur
+besonders verlässliche Personen für kurzfristige Einsätze. Solange der Notfall-Kreis leer
+bleibt, wird automatisch der gleiche Personenkreis wie bei regulären Absagen genutzt
+(„Auto-Mode").
+
 ## Häufige Fragen {#haeufige-fragen}
 
 **Warum erscheint mein Absage-Button nicht?**
@@ -104,5 +147,12 @@ Benachrichtigung.
 
 **Wie kurzfristig darf ich absagen?**
 
-Es gibt aktuell **keine technische Frist** — du kannst bis zum Termin-Beginn absagen. Inhaltlich
-hängt das aber von deinem Team ab; sprich im Zweifel mit deiner Disposition.
+Bis zum Ablauf der **Absagefrist** deines Teams stellst du eine reguläre Absage. Danach
+schaltet das System automatisch auf die [Notfall-Absage](#notfall-absage) um — du kannst bis
+zum Termin-Beginn absagen, akzeptierst dann aber die strengeren Bedingungen (Pflicht-Grund,
+sofortige Cast-Removal, kein Rückzug).
+
+**Wo stelle ich ein, ob meine Telefonnummer im Notfall geteilt werden darf?**
+
+Im [Profil-Tab](/help/employee/account-profile) unter „Telefonnummer in Notfällen teilen".
+Standardmäßig ist diese Option **aktiv**.

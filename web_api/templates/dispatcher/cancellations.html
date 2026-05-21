@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "_macros/branding.html" import role_kicker %}
+{% from "_macros/help.html" import help_button %}
 {% block title %}Vertretungen – hcc plan{% endblock %}
 
 {% block head %}
@@ -134,8 +135,9 @@
                 Gelöst
             </a>
 
-            <p class="hidden lg:block text-xs font-semibold tracking-widest uppercase text-slate-500 mt-5 mb-2 font-sans">
-                Art
+            <p class="hidden lg:flex items-center gap-1.5 text-xs font-semibold tracking-widest uppercase text-slate-500 mt-5 mb-2 font-sans">
+                <span>Art</span>
+                {{ help_button("employee/cancellation", anchor="notfall-absage", label="Notfall-Workflow (Mitarbeiter-Sicht)", dark=True) }}
             </p>
             <a href="?kind_filter={{ _status_qs }}"
                class="filter-btn flex items-center gap-2.5 w-full px-3 py-2 rounded-lg border

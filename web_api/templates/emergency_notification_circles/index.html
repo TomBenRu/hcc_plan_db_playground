@@ -1,5 +1,6 @@
 {% extends "base.html" %}
 {% from "_macros/branding.html" import role_kicker %}
+{% from "_macros/help.html" import help_button %}
 
 {% block title %}Notfall-Kreise – hcc plan{% endblock %}
 
@@ -53,8 +54,9 @@
             <div class="flex items-center gap-1.5 mb-2">
                 {{ role_kicker("dispatcher") }}
             </div>
-            <h1 class="font-display text-white text-2xl font-semibold leading-tight tracking-tight">
+            <h1 class="font-display text-white text-2xl font-semibold leading-tight tracking-tight flex items-center gap-1.5">
                 Notfall-Kreise
+                {{ help_button("dispatcher/emergency-notification-circles", label="Notfall-Kreise", dark=True) }}
             </h1>
             <p class="font-sans text-xs text-slate-500 mt-1.5">
                 Empfänger bei kurzfristigen Notfall-Absagen pro Arbeitsort eingrenzen.

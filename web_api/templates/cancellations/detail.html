@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% from "_macros/help.html" import help_button %}
 {% block title %}Absage-Detail – hcc plan{% endblock %}
 
 {% block nav %}{% include "partials/nav.html" %}{% endblock %}
@@ -27,8 +28,11 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
             </svg>
         </a>
-        <h1 class="font-display text-xl font-semibold text-slate-800 dark:text-white">
+        <h1 class="font-display text-xl font-semibold text-slate-800 dark:text-white flex items-center gap-1.5">
             {% if detail.kind.value == "emergency" %}Notfall-Absage{% else %}Absage-Detail{% endif %}
+            {% if detail.kind.value == "emergency" %}
+            {{ help_button("employee/cancellation", anchor="notfall-absage", label="Notfall-Absage") }}
+            {% endif %}
         </h1>
         <div class="ml-auto flex items-center gap-2">
             {% if detail.kind.value == "emergency" %}

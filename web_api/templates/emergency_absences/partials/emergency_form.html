@@ -1,8 +1,12 @@
 {# HTMX-Partial: Notfall-Absage-Formular. Kontext: appointment_id #}
+{% from "_macros/help.html" import help_button %}
 <div id="emergency-form" class="mt-3 bg-red-50 dark:bg-red-900/20 rounded-xl border border-red-200 dark:border-red-900/50 p-4">
-    <p class="text-xs font-semibold tracking-widest uppercase text-red-600 dark:text-red-300 mb-2">
-        Notfall-Absage
-    </p>
+    <div class="flex items-center justify-between gap-2 mb-2">
+        <p class="text-xs font-semibold tracking-widest uppercase text-red-600 dark:text-red-300">
+            Notfall-Absage
+        </p>
+        {{ help_button("employee/cancellation", anchor="notfall-absage", label="Notfall-Absage") }}
+    </div>
     <p class="text-xs text-red-700 dark:text-red-200 mb-3 leading-relaxed">
         Die reguläre Absagefrist ist abgelaufen. Du wirst sofort aus der Besetzung entfernt
         und der Dispatcher sowie der Notfall-Kreis werden automatisch benachrichtigt.

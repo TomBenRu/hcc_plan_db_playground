@@ -3,14 +3,16 @@ title: Mein Profil (Stammdaten)
 roles: [employee]
 category: Konto
 order: 90
-updated: 2026-05-16
+updated: 2026-05-21
 anchors:
   - was-kann-ich-aendern
   - daten-bearbeiten
   - validierung
+  - notfall-telefon
   - haeufige-fragen
 related:
   - employee/account-credentials
+  - employee/cancellation
 ---
 
 Im **Profil-Tab** unter **Mein Konto** pflegst du deine Stammdaten — E-Mail-Adresse, Telefonnummer und
@@ -53,6 +55,27 @@ Beim Speichern prüft das System:
 > **Tipp:** Wenn die Domain-Prüfung scheitert, obwohl die Adresse korrekt ist (z. B. neuere Domain,
 > die DNS-Resolver noch nicht kennen), warte 5–10 Minuten und versuche erneut.
 
+## Telefonnummer in Notfällen teilen {#notfall-telefon}
+
+Unterhalb des Telefon-Feldes findest du die Option **„Telefonnummer in Notfällen teilen"**.
+Sie steuert, ob deine Nummer in der **Kontakt-Liste** auftaucht, die bei einer
+[Notfall-Absage](/help/employee/cancellation) an die absagende Person verschickt wird.
+
+**Hintergrund:** Wenn eine Kollegin oder ein Kollege kurz vor einem Termin krank wird und eine
+Notfall-Absage stellt, bekommt sie/er eine E-Mail mit den Telefonnummern erreichbarer Kontakte
+am gleichen Einsatzort. So kann sie/er sich direkt persönlich um Ersatz kümmern, statt nur auf
+die automatische Benachrichtigung über das System zu hoffen.
+
+| Toggle | Bedeutung |
+|---|---|
+| **Aktiv** (Standard) | Deine Telefonnummer erscheint in Notfall-Mails an Kolleg:innen |
+| **Inaktiv** | Deine Nummer wird **nicht** geteilt — nur Name und ggf. E-Mail sichtbar |
+
+> **Hinweis:** Auch wenn du den Toggle deaktivierst, bleibst du weiterhin im
+> **Benachrichtigungs-Kreis** für Notfälle (wenn deine Disposition dich dafür vorgesehen hat).
+> Du bekommst weiterhin Inbox- und E-Mail-Nachrichten — nur dein Telefonanschluss ist dann
+> für andere Mitarbeiter:innen nicht sichtbar.
+
 ## Häufige Fragen {#haeufige-fragen}
 
 **Warum kann ich meinen Namen nicht ändern?**
@@ -73,3 +96,10 @@ Ja, ab dem nächsten gesendeten E-Mail-Trigger geht alles an die neue Adresse.
 **Wo finde ich meine bisher gespeicherten Daten?**
 
 Sie werden beim Öffnen der Seite automatisch geladen — vorausgefüllt, falls schon eingegeben, oder leer.
+
+**Wer sieht meine Telefonnummer noch, wenn der Notfall-Toggle inaktiv ist?**
+
+Deine **Disposition** sieht sie immer (Stammdaten-Sicht). Andere Mitarbeiter:innen sehen sie
+**nur**, wenn der Toggle aktiv ist und konkret eine Notfall-Absage einen Kontakt-Anruf an dich
+sinnvoll macht. Im normalen Plan- und Kalender-Betrieb ist deine Nummer für Kolleg:innen nie
+sichtbar.

@@ -675,6 +675,10 @@ def replace_cast_for_appointment(
     appointment_id: uuid.UUID,
     person_ids: list[uuid.UUID],
     guests: list[str] | None = None,
+    *,
+    exclude_cancellation_ids: frozenset[uuid.UUID] = frozenset(),
+    exclude_swap_ids: frozenset[uuid.UUID] = frozenset(),
+    additional_exclude_user_ids: frozenset[uuid.UUID] = frozenset(),
 ) -> list[EmailPayload]:
     """Ersetzt die Cast-Zuordnung eines Appointments (Personen + optional Gäste).
 
@@ -765,7 +769,14 @@ def replace_cast_for_appointment(
                 reset_location_prefs_to_normal(session, avail_day)
             avail_day_ids.append(avail_day.id)
 
-    payloads = update_appointment_avail_days(session, appointment_id, avail_day_ids)
+    payloads = update_appointment_avail_days(
+        session,
+        appointment_id,
+        avail_day_ids,
+        exclude_cancellation_ids=exclude_cancellation_ids,
+        exclude_swap_ids=exclude_swap_ids,
+        additional_exclude_user_ids=additional_exclude_user_ids,
+    )
 
     # Gäste erst nach dem Avail-Day-Update persistieren, damit bei einem
     # Fehler oben die Gäste-Mutation nicht als Ghost-Write zurückbleibt.

@@ -1,0 +1,33 @@
+{% extends "emails/_base.html" %}
+{% block title %}Notfall-Absage eingegangen{% endblock %}
+{% block badge %}<p style="margin:0 0 16px"><span class="badge badge-urgent">Notfall-Absage</span></p>{% endblock %}
+{% block heading %}Notfall-Absage eingegangen{% endblock %}
+{% block lead %}<p class="lead">{{ employee_name }} hat eine Notfall-Absage gemeldet — die Absagefrist war bereits abgelaufen.</p>{% endblock %}
+{% block content %}
+  <div class="label">Einsatzort</div>
+  <div class="value">{{ snapshot.location_name }}</div>
+
+  <div class="label">Datum</div>
+  <div class="value">{{ snapshot.event_date }}{% if snapshot.time_of_day_name %} · {{ snapshot.time_of_day_name }}{% endif %}</div>
+
+  {% if snapshot.time_start %}
+  <div class="label">Uhrzeit</div>
+  <div class="value">{{ snapshot.time_start[:5] }}{% if snapshot.time_end %} – {{ snapshot.time_end[:5] }} Uhr{% endif %}</div>
+  {% endif %}
+
+  {% if reason %}
+  <div class="label">Begründung</div>
+  <div class="value" style="font-style:italic;">&bdquo;{{ reason }}&ldquo;</div>
+  {% endif %}
+
+  <div class="label">Automatisch benachrichtigt</div>
+  <div class="value">{{ recipient_count }} Kolleg:innen aus dem Notfall-Kreis</div>
+
+  <p style="margin-top:24px;">
+    <a class="button" href="{{ base_url }}/cancellations/{{ cr_id }}?from_dispatcher=1">Notfall-Absage öffnen</a>
+  </p>
+  <p class="meta" style="margin-top:16px;">
+    Der Termin wurde sofort als unbesetzt markiert. Sobald jemand Übernahme anbietet, erscheint
+    der Vorschlag in dieser Übersicht zur Bestätigung.
+  </p>
+{% endblock %}

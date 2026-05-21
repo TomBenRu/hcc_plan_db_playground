@@ -26,6 +26,7 @@ from web_api.admin.users.router import router as admin_users_router
 from web_api.auth.router import router as auth_router
 from web_api.desktop_api.router import router as desktop_api_router
 from web_api.cancellations.router import router as cancellations_router
+from web_api.emergency_absences.router import router as emergency_absences_router
 from web_api.config import get_settings
 from web_api.dashboard.router import router as dashboard_router
 from web_api.dependencies import get_db_session
@@ -112,6 +113,7 @@ app.include_router(dispatcher_periods_router)
 app.include_router(employees_router)
 app.include_router(availability_router)
 app.include_router(cancellations_router)
+app.include_router(emergency_absences_router)
 app.include_router(help_router)
 app.include_router(inbox_router)
 app.include_router(legal_router)

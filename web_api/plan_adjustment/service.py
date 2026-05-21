@@ -453,6 +453,10 @@ def update_appointment_avail_days(
     session: Session,
     appointment_id: uuid.UUID,
     new_avail_day_ids: list[uuid.UUID],
+    *,
+    exclude_cancellation_ids: frozenset[uuid.UUID] = frozenset(),
+    exclude_swap_ids: frozenset[uuid.UUID] = frozenset(),
+    additional_exclude_user_ids: frozenset[uuid.UUID] = frozenset(),
 ) -> list[EmailPayload]:
     """Ändert die AvailDay-Liste eines Appointments + cleant Requests entfernter User.
 
@@ -461,6 +465,17 @@ def update_appointment_avail_days(
     Requests der entfernten User auf superseded_by_cast_change — alles in
     einer Transaktion. Gibt die Liste der zu versendenden Email-Payloads
     zurück (Caller dispatched via BackgroundTasks).
+
+    `exclude_cancellation_ids` / `exclude_swap_ids` werden an den Cascade-
+    Helper durchgereicht (analog `reassign_appointment`) — Workflow-Pfade
+    können ihre aktive Request damit aus dem Superseded-Sweep ausklammern.
+
+    `additional_exclude_user_ids` werden zusätzlich zu den durch den Cascade
+    bereits benachrichtigten Usern an `_notify_direct_cast_changes` als
+    Exclude übergeben. Use-Case: User, die die Cast-Removal selbst ausgelöst
+    haben (z. B. Notfall-Absage), sollen keine generische „Aus Besetzung
+    entfernt"-Mail bekommen — sie erhalten ihre Workflow-spezifische
+    Bestätigung an anderer Stelle.
     """
     old_person_ids = set(session.execute(
         sa_select(ActorPlanPeriod.person_id)
@@ -492,14 +507,18 @@ def update_appointment_avail_days(
     session.flush()
 
     cascade_payloads, notified_user_ids = _cancel_open_requests_for_removed_persons(
-        session, appointment_id, removed_person_ids
+        session,
+        appointment_id,
+        removed_person_ids,
+        exclude_cancellation_ids=exclude_cancellation_ids,
+        exclude_swap_ids=exclude_swap_ids,
     )
     direct_payloads = _notify_direct_cast_changes(
         session,
         appointment_id,
         added_person_ids=added_person_ids,
         removed_person_ids=removed_person_ids,
-        exclude_user_ids=notified_user_ids,
+        exclude_user_ids=notified_user_ids | additional_exclude_user_ids,
     )
     return cascade_payloads + direct_payloads
 
@@ -594,13 +613,19 @@ def reassign_appointment(
         avail_day = create_avail_day(session, new_app.id, event_date, time_of_day_id)
         reset_location_prefs_to_normal(session, avail_day)
 
-    # 5. Neuen Link anlegen
-    new_link = AvailDayAppointmentLink(
-        avail_day_id=avail_day.id,
-        appointment_id=appointment_id,
-    )
-    session.add(new_link)
-    session.flush()
+    # 5. Neuen Link anlegen (idempotent: skip wenn bereits existiert)
+    existing_link = session.execute(
+        sa_select(AvailDayAppointmentLink.appointment_id)
+        .where(AvailDayAppointmentLink.avail_day_id == avail_day.id)
+        .where(AvailDayAppointmentLink.appointment_id == appointment_id)
+    ).first()
+    if existing_link is None:
+        new_link = AvailDayAppointmentLink(
+            avail_day_id=avail_day.id,
+            appointment_id=appointment_id,
+        )
+        session.add(new_link)
+        session.flush()
 
     # 6. fixed_cast der CastGroup löschen
     cast_group = session.get(CastGroup, cast_group_id)

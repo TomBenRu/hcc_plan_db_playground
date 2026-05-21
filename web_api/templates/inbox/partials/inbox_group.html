@@ -22,6 +22,9 @@
     "availability_reminder_t3":     {"label": "Erinnerung · 3 Tage",     "color": "#F59E0B"},
     "availability_reminder_t1":     {"label": "Letzte Erinnerung",       "color": "#EF4444"},
     "availability_reminder_catchup":{"label": "Neu hinzugekommen",       "color": "#06B6D4"},
+    "emergency_absence_new":              {"label": "Notfall-Absage",          "color": "#DC2626"},
+    "emergency_absence_takeover_accepted":{"label": "Notfall-Übernahme akzeptiert", "color": "#22C55E"},
+    "emergency_absence_resolved":         {"label": "Notfall-Absage gelöst",    "color": "#22C55E"},
 } %}
 
 {# Differenzierte Labels für dispatcher_removed_from_cast — Key ist request_type|recipient_role aus snapshot_data. Farbe einheitlich purple-400. #}
@@ -101,9 +104,13 @@
 
             {# Link zu Detail / spezifischer CTA — explizit pro reference_type.
                Pattern: bei has_unread prominenter farbiger CTA, sonst dezenter Default-Link.
-               Farben spiegeln die Notification-Icons des jeweiligen reference_type. #}
+               Farben spiegeln die Notification-Icons des jeweiligen reference_type.
+               `_first_sent_as` unterscheidet Dispatcher-Variante: kein Übernahme-Angebot,
+               Detail-Link öffnet die Dispatcher-Sicht (Vertretungen) via ?from_dispatcher=1. #}
+            {% set _first_sent_as = (_first.snapshot_data or {}).get("sent_as") %}
+            {% set _cancel_qs = "?from_dispatcher=1" if _first_sent_as == "dispatcher" else "" %}
             {% if group.reference_id and group.reference_type == "cancellation_request" %}
-              {% if can_offer_takeover and group.cancellation_open and group.requester_web_user_id != user.id %}
+              {% if can_offer_takeover and group.cancellation_open and group.requester_web_user_id != user.id and _first_sent_as != "dispatcher" %}
               <a href="/cancellations/{{ group.reference_id }}"
                  onclick="event.stopPropagation();"
                  class="flex-shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-lg
@@ -112,7 +119,7 @@
                   Übernahme anbieten
               </a>
               {% elif group.has_unread %}
-              <a href="/cancellations/{{ group.reference_id }}"
+              <a href="/cancellations/{{ group.reference_id }}{{ _cancel_qs }}"
                  onclick="event.stopPropagation();"
                  class="flex-shrink-0 text-[11px] font-semibold px-2.5 py-1 rounded-lg
                         bg-red-50 text-red-700 border border-red-200
@@ -120,7 +127,7 @@
                   Absage öffnen
               </a>
               {% else %}
-              <a href="/cancellations/{{ group.reference_id }}"
+              <a href="/cancellations/{{ group.reference_id }}{{ _cancel_qs }}"
                  onclick="event.stopPropagation();"
                  class="flex-shrink-0 text-[11px] font-medium text-slate-400 hover:text-navy transition-colors whitespace-nowrap">
                   Details

@@ -133,6 +133,13 @@ class CancellationStatus(str, enum.Enum):
     superseded_by_plan_unbind = "superseded_by_plan_unbind"
 
 
+class CancellationKind(str, enum.Enum):
+    """Discriminator: reguläre Absage vor der Frist vs. Notfall-Absage nach Frist."""
+
+    regular = "regular"
+    emergency = "emergency"
+
+
 class NotificationSource(str, enum.Enum):
     auto_computed = "auto_computed"
     preconfigured = "preconfigured"
@@ -163,6 +170,9 @@ class InboxMessageType(str, enum.Enum):
     availability_reminder_t3 = "availability_reminder_t3"
     availability_reminder_t1 = "availability_reminder_t1"
     availability_reminder_catchup = "availability_reminder_catchup"
+    emergency_absence_new = "emergency_absence_new"
+    emergency_absence_takeover_accepted = "emergency_absence_takeover_accepted"
+    emergency_absence_resolved = "emergency_absence_resolved"
 
 
 # ── Absage-Workflow — Modelle ─────────────────────────────────────────────────
@@ -196,6 +206,30 @@ class LocationNotificationCircle(SQLModel, table=True):
     """Vorab-konfigurierter Benachrichtigungs-Kreis pro Arbeitsort (durch Dispatcher)."""
 
     __tablename__ = "location_notification_circle"
+
+    location_of_work_id: uuid.UUID = Field(
+        foreign_key="location_of_work.id",
+        primary_key=True,
+        ondelete="CASCADE",
+    )
+    web_user_id: uuid.UUID = Field(
+        foreign_key="web_user.id",
+        primary_key=True,
+        ondelete="CASCADE",
+    )
+    added_by_id: uuid.UUID = Field(foreign_key="web_user.id", ondelete="CASCADE")
+    created_at: datetime = Field(default_factory=_utcnow)
+
+
+class LocationEmergencyNotificationCircle(SQLModel, table=True):
+    """Notfall-Benachrichtigungs-Kreis pro Arbeitsort.
+
+    Aktivierung implicit: leere Tabelle für eine Location ⇒ Auto-Mode (alle
+    berechtigten Personen werden benachrichtigt); Members eingetragen ⇒ Filter
+    auf diese Members. Kein separater Boolean-Toggle.
+    """
+
+    __tablename__ = "location_emergency_notification_circle"
 
     location_of_work_id: uuid.UUID = Field(
         foreign_key="location_of_work.id",
@@ -249,6 +283,13 @@ class CancellationRequest(SQLModel, table=True):
             SAEnum(CancellationStatus, name="cancellationstatus"),
             nullable=False,
         )
+    )
+    kind: CancellationKind = Field(
+        sa_column=Column(
+            SAEnum(CancellationKind, name="cancellationkind"),
+            nullable=False,
+            server_default="regular",
+        ),
     )
     created_at: datetime = Field(default_factory=_utcnow)
     resolved_at: Optional[datetime] = Field(default=None, nullable=True)

@@ -67,6 +67,7 @@ def profile_update(
     street: str = Form(""),
     postal_code: str = Form(""),
     city: str = Form(""),
+    share_phone_in_emergency: bool = Form(False),
     session: Session = Depends(get_db_session),
 ):
     errors: list[str] = []
@@ -123,6 +124,7 @@ def profile_update(
         street=street,
         postal_code=postal_code,
         city=city,
+        share_phone_in_emergency=share_phone_in_emergency,
     )
     session.commit()
 

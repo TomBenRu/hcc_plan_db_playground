@@ -680,6 +680,7 @@ class Person(SQLModel, table=True):
     role: Role | None = Field(default=None, sa_column=Column(SAEnum(Role), nullable=True))
     email: str = Field(max_length=50)
     phone_nr: str | None = Field(default=None, max_length=50)
+    share_phone_in_emergency: bool = Field(default=True)
     username: str = Field(max_length=50, unique=True)
     password: str
     requested_assignments: int = Field(default=8, ge=0, le=65535)

@@ -8,7 +8,7 @@ from fastapi import HTTPException, status
 from sqlalchemy import select as sa_select, update as sa_update
 from sqlmodel import Session
 
-from database.models import Person
+from database.models import ActorPlanPeriod, AvailDay, AvailDayAppointmentLink, Person
 from web_api.cancellations.service import (
     _build_snapshot,
     _get_dispatcher_web_user,
@@ -69,6 +69,23 @@ def create_takeover_offer(
             status.HTTP_403_FORBIDDEN,
             detail="Nur Mitglieder des Benachrichtigungskreises können eine Übernahme anbieten.",
         )
+
+    # Offerer darf nicht bereits im Cast sein — sonst wäre die "Übernahme"
+    # semantisch sinnlos und der spätere reassign_appointment-Pfad würde an
+    # einer UNIQUE-Verletzung in avail_day_appointment scheitern.
+    if web_user.person_id is not None:
+        already_in_cast = session.execute(
+            sa_select(AvailDayAppointmentLink.appointment_id)
+            .join(AvailDay, AvailDay.id == AvailDayAppointmentLink.avail_day_id)
+            .join(ActorPlanPeriod, ActorPlanPeriod.id == AvailDay.actor_plan_period_id)
+            .where(AvailDayAppointmentLink.appointment_id == cr.appointment_id)
+            .where(ActorPlanPeriod.person_id == web_user.person_id)
+        ).first()
+        if already_in_cast is not None:
+            raise HTTPException(
+                status.HTTP_422_UNPROCESSABLE_ENTITY,
+                detail="Sie sind bereits in der Besetzung dieses Termins eingeteilt.",
+            )
 
     duplicate = session.execute(
         sa_select(TakeoverOffer.id)

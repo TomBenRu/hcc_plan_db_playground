@@ -3,6 +3,7 @@
 import uuid
 from dataclasses import dataclass, field
 from datetime import date, datetime, time, timedelta, timezone
+from typing import Literal
 
 from fastapi import HTTPException, status
 from sqlalchemy import select as sa_select, update as sa_update
@@ -35,10 +36,12 @@ from web_api.email.recipient import (
 from web_api.email.service import EmailPayload
 from web_api.inbox.service import create_inbox_message
 from web_api.models.web_models import (
+    CancellationKind,
     CancellationNotificationRecipient,
     CancellationRequest,
     CancellationStatus,
     InboxMessageType,
+    LocationEmergencyNotificationCircle,
     LocationNotificationCircle,
     NotificationSource,
     SwapRequest,
@@ -86,6 +89,7 @@ class CancellationDetail:
     notification_recipients: list[NotificationRecipient]
     takeover_offers: list = field(default_factory=list)
     requester_web_user_id: uuid.UUID | None = None
+    kind: CancellationKind = CancellationKind.regular
 
 
 @dataclass
@@ -156,6 +160,30 @@ def _verify_ownership(session: Session, appointment_id: uuid.UUID, person_id: uu
         raise HTTPException(status.HTTP_403_FORBIDDEN, detail="Kein Zugriff auf diesen Termin")
 
 
+def is_person_in_appointment_cast(
+    session: Session,
+    appointment_id: uuid.UUID,
+    person_id: uuid.UUID | None,
+) -> bool:
+    """Pruft, ob die Person aktuell im Cast (avail_day_appointment) eines Termins ist.
+
+    Genutzt von:
+    - `create_takeover_offer` (Layer-1-Validierung: kein Selbst-Override)
+    - `create_cancellation` + `create_emergency_absence` (Dispatcher-Add: nicht
+      doppelt benachrichtigen, wenn Dispatcher bereits Cast-Mitglied ist).
+    """
+    if person_id is None:
+        return False
+    row = session.execute(
+        sa_select(AvailDayAppointmentLink.appointment_id)
+        .join(AvailDay, AvailDay.id == AvailDayAppointmentLink.avail_day_id)
+        .join(ActorPlanPeriod, ActorPlanPeriod.id == AvailDay.actor_plan_period_id)
+        .where(AvailDayAppointmentLink.appointment_id == appointment_id)
+        .where(ActorPlanPeriod.person_id == person_id)
+    ).first()
+    return row is not None
+
+
 def _get_dispatcher_web_user(session: Session, team_id: uuid.UUID) -> WebUser | None:
     """Gibt den WebUser des Dispatchers zurück (wenn vorhanden)."""
     team = session.get(Team, team_id)
@@ -186,6 +214,17 @@ def _build_snapshot(ctx: dict, employee_name: str) -> dict:
 
 
 def _render_email(template_name: str, **ctx) -> str:
+    """Rendert ein Mail-Template und injiziert `base_url` als Default-Context.
+
+    `base_url` ist nötig, damit alle Mail-Links absolut sind. Relativ-Links wie
+    `/cancellations/{id}` werden von Mail-Tracking-Proxies (z.B. Brevo, Mailgun)
+    nicht aufgelöst und führen beim Klick zu „host missing"-Fehlern. Caller, die
+    `base_url` explizit überschreiben wollen (z.B. Tests), können es mitgeben.
+    """
+    from web_api.config import get_settings
+    settings = get_settings()
+    base = (getattr(settings, "BASE_URL", "") or "").rstrip("/") or "http://localhost:8000"
+    ctx.setdefault("base_url", base)
     return templates.get_template(f"emails/{template_name}").render(**ctx)
 
 
@@ -247,32 +286,52 @@ def compute_notification_circle(
     event_date: date,
     cancelled_time_start: time | None,
     cancelled_time_end: time | None,
+    mode: Literal["regular", "emergency"] = "regular",
 ) -> list[NotificationRecipient]:
     """Berechnet den Benachrichtigungs-Kreis.
 
-    Default (`location_of_work.notification_circle_restricted = False`):
-    nur Auto-Kreis (Schritt B).
+    Schritt B (Auto-Kreis inkl. CombLoc) und Schritt C (Whitelist-Filter)
+    sind für beide Modi identisch — `mode` wirkt nur in Schritt A.
 
-    Restricted-Modus (`= True`): Endergebnis = Auto-Kreis ∩ Whitelist
-    aus `location_notification_circle`.
+    `mode='regular'`:
+        - `location_of_work.notification_circle_restricted = False` ⇒ Auto-Kreis.
+        - `= True` ⇒ Auto-Kreis ∩ `location_notification_circle`.
+
+    `mode='emergency'`:
+        - Whitelist-Quelle ist `location_emergency_notification_circle`.
+        - **Aktivierung implicit**: leere Tabelle für die Location ⇒ Auto-Kreis;
+          non-empty ⇒ Auto-Kreis ∩ Whitelist. Kein Boolean-Toggle.
     """
 
     # ── Schritt A: Whitelist-Modus pruefen ───────────────────────────────────
-    restricted: bool = session.execute(
-        sa_select(LocationOfWork.notification_circle_restricted)
-        .where(LocationOfWork.id == location_id)
-    ).scalar_one()
-
     whitelist_ids: set[uuid.UUID] | None = None
-    if restricted:
-        whitelist_ids = {
+
+    if mode == "regular":
+        restricted: bool = session.execute(
+            sa_select(LocationOfWork.notification_circle_restricted)
+            .where(LocationOfWork.id == location_id)
+        ).scalar_one()
+        if restricted:
+            whitelist_ids = {
+                row[0]
+                for row in session.execute(
+                    sa_select(LocationNotificationCircle.web_user_id)
+                    .where(LocationNotificationCircle.location_of_work_id == location_id)
+                    .where(LocationNotificationCircle.web_user_id != exclude_web_user_id)
+                ).all()
+            }
+    else:  # mode == "emergency"
+        emergency_members = {
             row[0]
             for row in session.execute(
-                sa_select(LocationNotificationCircle.web_user_id)
-                .where(LocationNotificationCircle.location_of_work_id == location_id)
-                .where(LocationNotificationCircle.web_user_id != exclude_web_user_id)
+                sa_select(LocationEmergencyNotificationCircle.web_user_id)
+                .where(LocationEmergencyNotificationCircle.location_of_work_id == location_id)
+                .where(LocationEmergencyNotificationCircle.web_user_id != exclude_web_user_id)
             ).all()
         }
+        # Implicit-Aktivierung: non-empty ⇒ Whitelist greift, empty ⇒ Auto-Mode
+        if emergency_members:
+            whitelist_ids = emergency_members
 
     # ── Schritt B: auto-berechnet ─────────────────────────────────────────────
     candidates_rows = session.execute(
@@ -551,7 +610,14 @@ def create_cancellation(
     # auf /cancellations/.
     if dispatcher_user is not None:
         in_auto_circle = any(r.web_user_id == dispatcher_user.id for r in recipients)
-        if not in_auto_circle and dispatcher_user.has_any_role(WebUserRole.employee):
+        dispatcher_in_cast = is_person_in_appointment_cast(
+            session, appointment_id, dispatcher_user.person_id
+        )
+        if (
+            not in_auto_circle
+            and dispatcher_user.has_any_role(WebUserRole.employee)
+            and not dispatcher_in_cast
+        ):
             session.add(CancellationNotificationRecipient(
                 cancellation_request_id=cr.id,
                 web_user_id=dispatcher_user.id,
@@ -595,7 +661,7 @@ def withdraw_cancellation(
     cancellation_id: uuid.UUID,
     web_user: WebUser,
 ) -> tuple[CancellationDetail, list[EmailPayload]]:
-    """BR-04: Rückzug nur bei status=pending."""
+    """BR-04: Rückzug nur bei status=pending. Notfall-Absagen sind nicht zurückziehbar."""
     cr = session.get(CancellationRequest, cancellation_id)
     if cr is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Absage nicht gefunden.")
@@ -605,6 +671,11 @@ def withdraw_cancellation(
         raise HTTPException(
             status.HTTP_409_CONFLICT,
             detail="Rückzug nur möglich, solange die Absage offen ist.",
+        )
+    if cr.kind == CancellationKind.emergency:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT,
+            detail="Notfall-Absagen können nicht zurückgezogen werden.",
         )
 
     cr.status = CancellationStatus.withdrawn
@@ -951,6 +1022,7 @@ def get_cancellation_detail(
         notification_recipients=recipients_dc,
         takeover_offers=takeover_offers,
         requester_web_user_id=cr.web_user_id,
+        kind=cr.kind,
     )
 
 

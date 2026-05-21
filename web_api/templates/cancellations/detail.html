@@ -27,10 +27,21 @@
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
             </svg>
         </a>
-        <h1 class="font-display text-xl font-semibold text-slate-800 dark:text-white">Absage-Detail</h1>
-        <span class="ml-auto text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 {{ status_styles.get(detail.status.value, '') }}">
-            {{ status_labels.get(detail.status.value, detail.status.value) }}
-        </span>
+        <h1 class="font-display text-xl font-semibold text-slate-800 dark:text-white">
+            {% if detail.kind.value == "emergency" %}Notfall-Absage{% else %}Absage-Detail{% endif %}
+        </h1>
+        <div class="ml-auto flex items-center gap-2">
+            {% if detail.kind.value == "emergency" %}
+            <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1
+                         bg-red-50 text-red-700 ring-red-200
+                         dark:bg-red-900/30 dark:text-red-400 dark:ring-red-700/50">
+                Notfall
+            </span>
+            {% endif %}
+            <span class="text-[10px] font-medium px-2 py-0.5 rounded-full ring-1 {{ status_styles.get(detail.status.value, '') }}">
+                {{ status_labels.get(detail.status.value, detail.status.value) }}
+            </span>
+        </div>
     </div>
 
     <div class="space-y-3">
@@ -203,7 +214,7 @@
         {% endif %}
 
         <!-- Aktionen -->
-        {% if detail.status.value == "pending" and detail.appointment_id and is_own and not from_dispatcher %}
+        {% if detail.status.value == "pending" and detail.appointment_id and is_own and not from_dispatcher and detail.kind.value != "emergency" %}
         <div id="withdraw-section" class="pt-2">
             <form hx-patch="/cancellations/{{ detail.id }}/withdraw"
                   hx-target="#withdraw-section"
@@ -214,6 +225,12 @@
                 </button>
             </form>
         </div>
+        {% endif %}
+
+        {% if detail.kind.value == "emergency" and is_own %}
+        <p class="pt-2 text-xs text-slate-400 dark:text-slate-500 text-center italic">
+            Eine Notfall-Absage kann nicht zurückgezogen werden.
+        </p>
         {% endif %}
     </div>
 </div>

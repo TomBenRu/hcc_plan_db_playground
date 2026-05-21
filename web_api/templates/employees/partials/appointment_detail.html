@@ -216,9 +216,13 @@
                 Absage bereits gestellt
             </div>
             {% elif event.is_past_deadline %}
-            <div class="w-full py-2 rounded-xl text-sm font-medium border border-slate-200 dark:border-slate-700 text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-800/60 text-center">
-                Absage-Frist abgelaufen
-            </div>
+            <button
+                hx-get="/emergency-absences/form/{{ event.appointment_id }}"
+                hx-target="#cancellation-action-area"
+                hx-swap="innerHTML"
+                class="w-full py-2 rounded-xl text-sm font-medium border border-red-300 dark:border-red-700/60 text-red-600 dark:text-red-300 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                Notfall-Absage
+            </button>
             {% else %}
             <button
                 hx-get="/cancellations/form/{{ event.appointment_id }}"

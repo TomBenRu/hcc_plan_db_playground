@@ -23,6 +23,7 @@ class ProfileData:
     street: str | None
     postal_code: str | None
     city: str | None
+    share_phone_in_emergency: bool = True
 
 
 def _utcnow() -> datetime:
@@ -52,6 +53,7 @@ def load_profile(session: Session, web_user: WebUser) -> ProfileData | None:
         street=addr.street if addr else None,
         postal_code=addr.postal_code if addr else None,
         city=addr.city if addr else None,
+        share_phone_in_emergency=person.share_phone_in_emergency,
     )
 
 
@@ -65,6 +67,7 @@ def update_profile(
     street: str | None,
     postal_code: str | None,
     city: str | None,
+    share_phone_in_emergency: bool = True,
 ) -> ProfileData:
     """Updated Email/Telefon auf Person und Adresse via Copy-on-Write.
 
@@ -86,6 +89,7 @@ def update_profile(
     person.email = email.strip()
     person.phone_nr = (phone_nr or "").strip() or None
     person.gender = gender
+    person.share_phone_in_emergency = share_phone_in_emergency
 
     has_addr_input = any(v and v.strip() for v in (street, postal_code, city))
     addr = person.address
@@ -130,6 +134,7 @@ def update_profile(
         street=addr_after.street if addr_after else None,
         postal_code=addr_after.postal_code if addr_after else None,
         city=addr_after.city if addr_after else None,
+        share_phone_in_emergency=person.share_phone_in_emergency,
     )
 
 
